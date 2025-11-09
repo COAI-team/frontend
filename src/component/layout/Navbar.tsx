@@ -2,201 +2,218 @@ import {
     Disclosure,
     DisclosureButton,
     DisclosurePanel,
-    Menu,
-    MenuButton,
-    MenuItem,
-    MenuItems,
-} from "@headlessui/react";
-import { MagnifyingGlassIcon } from "@heroicons/react/20/solid";
-import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { Link } from "react-router-dom";
+} from '@headlessui/react'
+import { Bars3Icon, BellIcon, XMarkIcon, MoonIcon, SunIcon } from '@heroicons/react/24/outline'
+import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect, ElementType } from 'react'
+import { useTheme } from 'next-themes'
+
+type NavItem = {
+    name: string
+    href: string
+    current: boolean
+}
+
+const initialNavigation = [
+    { name: '코드 분석', href: '/codeAnalysis' },
+    { name: '알고리즘', href: '/algorithms' },
+    { name: '결제', href: '/payments' },
+]
+
+function classNames(...classes: string[]) {
+    return classes.filter(Boolean).join(' ')
+}
+
+function NavLinks({
+                      as: Component = Link,
+                      mobile = false,
+                      navigation,
+                      onLinkClick,
+                  }: {
+    as?: ElementType
+    mobile?: boolean
+    navigation: NavItem[]
+    onLinkClick: (href: string) => void
+}) {
+    const { theme } = useTheme()
+
+    const baseClass = mobile
+        ? 'block rounded-md px-3 py-2 text-base font-bold' // ✅ 여기서 bold 추가
+        : 'rounded-md px-3 py-2 text-sm font-bold'        // ✅ 데스크탑도 bold
+
+    return (
+        <>
+            {navigation.map((item) => {
+                let themeClass: string
+
+                if (item.current) {
+                    themeClass =
+                        theme === 'light'
+                            ? 'bg-gray-200 text-gray-900'
+                            : 'bg-gray-900 text-white'
+                } else {
+                    themeClass =
+                        theme === 'light'
+                            ? 'text-gray-700 hover:text-black hover:bg-gray-100'
+                            : 'text-gray-300 hover:text-white hover:bg-white/5'
+                }
+
+                return (
+                    <Component
+                        key={item.name}
+                        to={item.href}
+                        onClick={() => onLinkClick(item.href)}
+                        aria-current={item.current ? 'page' : undefined}
+                        className={classNames(themeClass, baseClass)}
+                    >
+                        {item.name}
+                    </Component>
+                )
+            })}
+        </>
+    )
+}
 
 export default function Navbar() {
-    const menuItems = [
-        { name: "Dashboard", to: "/dashboard" },
-        { name: "Team", to: "/team" },
-        { name: "Projects", to: "/projects" },
-        { name: "Calendar", to: "/calendar" },
-    ];
+    const location = useLocation()
+    const [navigation, setNavigation] = useState<NavItem[]>(
+        initialNavigation.map((item) => ({ ...item, current: false }))
+    )
 
-    const navClassActive =
-        "inline-flex items-center border-b-2 border-indigo-600 px-1 pt-1 text-sm font-medium text-gray-900 dark:border-indigo-500 dark:text-white";
-    const navClassDefault =
-        "inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-white/20 dark:hover:text-white";
+    const { theme, setTheme } = useTheme()
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => setMounted(true), [])
 
-    const mobileNavClassActive =
-        "block border-l-4 border-indigo-600 bg-indigo-50 py-2 pr-4 pl-3 text-base font-medium text-indigo-700 dark:border-indigo-500 dark:bg-indigo-600/10 dark:text-indigo-400";
-    const mobileNavClassDefault =
-        "block border-l-4 border-transparent py-2 pr-4 pl-3 text-base font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800 dark:text-gray-300 dark:hover:border-white/20 dark:hover:bg-white/5 dark:hover:text-white";
+    useEffect(() => {
+        setNavigation((prev) =>
+            prev.map((item) => ({
+                ...item,
+                current: item.href === location.pathname,
+            }))
+        )
+    }, [location.pathname])
 
-    const userMenu = [
-        { name: "Your profile", to: "/profile" },
-        { name: "Settings", to: "/settings" },
-        { name: "Sign out", to: "/signout" },
-    ];
+    const handleLinkClick = (href: string) => {
+        setNavigation((prev) =>
+            prev.map((item) => ({
+                ...item,
+                current: item.href === href,
+            }))
+        )
+    }
 
     return (
         <Disclosure
             as="nav"
-            // 👇 Navbar를 화면 상단에 고정 (fixed)
-            className="fixed top-0 left-0 w-full z-50 bg-white shadow-sm dark:bg-gray-800/50 dark:shadow-none dark:after:pointer-events-none dark:after:absolute dark:after:inset-x-0 dark:after:bottom-0 dark:after:h-px dark:after:bg-white/10"
+            className={`relative transition-colors border-b border-gray-500
+                ${theme === 'light'
+                ? 'bg-white text-gray-700'
+                : 'dark:bg-gray-800/50 text-gray-300'} 
+                dark:after:pointer-events-none dark:after:absolute dark:after:inset-x-0 dark:after:bottom-0 dark:after:h-px dark:after:bg-white/10`}
         >
-            <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:px-8">
-                <div className="flex h-16 justify-between">
-                    {/* Left Section */}
-                    <div className="flex px-2 lg:px-0">
-                        <div className="flex shrink-0 items-center">
-                            <Link to="/">
-                                <img
-                                    alt="Your Company"
-                                    src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
-                                    className="h-8 w-auto dark:hidden"
-                                />
-                                <img
-                                    alt="Your Company"
-                                    src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
-                                    className="h-8 w-auto not-dark:hidden"
-                                />
+            {mounted && (
+                <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+                    <div className="relative flex h-16 items-center justify-between">
+                        {/* Mobile menu button */}
+                        <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
+                            <DisclosureButton
+                                className={`group relative inline-flex items-center justify-center rounded-md p-2 focus:outline-2 focus:-outline-offset-1 focus:outline-indigo-500
+                                    ${theme === 'light'
+                                    ? 'text-gray-700 hover:bg-gray-100 hover:text-black'
+                                    : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                            >
+                                <span className="sr-only">Open main menu</span>
+                                <Bars3Icon aria-hidden="true" className="block size-6 group-data-open:hidden" />
+                                <XMarkIcon aria-hidden="true" className="hidden size-6 group-data-open:block" />
+                            </DisclosureButton>
+                        </div>
+
+                        {/* Logo & Nav Links */}
+                        <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
+                            <div className="flex shrink-0 items-center">
+                                <Link to="/">
+                                    <div
+                                        className={`p-1.5 rounded-md transition-colors duration-300 ${
+                                            theme === 'dark' ? 'bg-white' : ''
+                                        }`}
+                                    >
+                                        <img
+                                            alt="Your Company"
+                                            src="/vite.svg"
+                                            className="h-8 w-auto cursor-pointer"
+                                        />
+                                    </div>
+                                </Link>
+                            </div>
+                            <div className="hidden sm:flex sm:flex-1 sm:justify-center">
+                                <div className="flex space-x-6">
+                                    <NavLinks
+                                        navigation={navigation}
+                                        onLinkClick={handleLinkClick}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right side icons */}
+                        <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+                            {/* Notification Button */}
+                            <button
+                                type="button"
+                                className={`relative rounded-full p-1 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500 
+                                    ${theme === 'light'
+                                    ? 'text-gray-700 hover:text-black'
+                                    : 'text-gray-300 hover:text-white'}`}
+                            >
+                                <span className="sr-only">View notifications</span>
+                                <BellIcon aria-hidden="true" className="size-6" />
+                            </button>
+
+                            {/* ✅ 다크모드 토글 버튼 */}
+                            <button
+                                onClick={() =>
+                                    setTheme(theme === 'light' ? 'dark' : 'light')
+                                }
+                                className={`rounded-md p-1.5 focus:outline-none transition-transform hover:scale-110 
+                                    ${theme === 'light'
+                                    ? 'text-gray-700 hover:text-black' // 밝을 때 어두운 텍스트
+                                    : 'text-gray-300 hover:text-white' // 어두울 때 밝은 텍스트
+                                }`}
+                            >
+                                {theme === 'light' ? (
+                                    <MoonIcon className="w-5 h-5" />
+                                ) : (
+                                    <SunIcon className="w-5 h-5" />
+                                )}
+                            </button>
+
+                            {/* ✅ Login Button */}
+                            <Link
+                                to="/login"
+                                className={`ml-2 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-indigo-600 
+                                    ${theme === 'light'
+                                    ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+                                    : 'bg-indigo-500 text-white hover:bg-indigo-400'}`}
+                            >
+                                로그인
                             </Link>
                         </div>
-                        <div className="hidden lg:ml-6 lg:flex lg:space-x-8">
-                            {menuItems.map((item) => (
-                                <Link
-                                    key={item.name}
-                                    to={item.to}
-                                    className={
-                                        item.name === "Dashboard"
-                                            ? navClassActive
-                                            : navClassDefault
-                                    }
-                                >
-                                    {item.name}
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Search */}
-                    <div className="flex flex-1 items-center justify-center px-2 lg:ml-6 lg:justify-end">
-                        <div className="grid w-full max-w-lg grid-cols-1 lg:max-w-xs">
-                            <input
-                                name="search"
-                                type="search"
-                                placeholder="Search"
-                                className="col-start-1 row-start-1 block w-full rounded-md bg-white py-1.5 pr-3 pl-10 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:placeholder:text-gray-500 dark:focus:outline-indigo-500"
-                            />
-                            <MagnifyingGlassIcon
-                                aria-hidden="true"
-                                className="pointer-events-none col-start-1 row-start-1 ml-3 size-5 self-center text-gray-400"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Mobile menu button */}
-                    <div className="flex items-center lg:hidden">
-                        <DisclosureButton className="group relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-2 focus:-outline-offset-1 focus:outline-indigo-600 dark:hover:bg-white/5 dark:hover:text-white dark:focus:outline-indigo-500">
-                            <span className="absolute -inset-0.5" />
-                            <span className="sr-only">Open main menu</span>
-                            <Bars3Icon
-                                aria-hidden="true"
-                                className="block size-6 group-data-open:hidden"
-                            />
-                            <XMarkIcon
-                                aria-hidden="true"
-                                className="hidden size-6 group-data-open:block"
-                            />
-                        </DisclosureButton>
-                    </div>
-
-                    {/* Profile Dropdown */}
-                    <div className="hidden lg:ml-4 lg:flex lg:items-center">
-                        <Menu as="div" className="relative ml-4 shrink-0">
-                            <MenuButton className="relative flex rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:focus-visible:outline-indigo-500">
-                                <span className="absolute -inset-1.5" />
-                                <span className="sr-only">Open user menu</span>
-                                <img
-                                    alt=""
-                                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                                    className="size-8 rounded-full bg-gray-100 outline -outline-offset-1 outline-black/5 dark:bg-gray-800 dark:outline-white/10"
-                                />
-                            </MenuButton>
-
-                            <MenuItems
-                                transition
-                                className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg outline-1 outline-black/5 transition data-closed:scale-95 data-closed:transform data-closed:opacity-0 dark:bg-gray-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10"
-                            >
-                                {userMenu.map((menu) => (
-                                    <MenuItem key={menu.name}>
-                                        <Link
-                                            to={menu.to}
-                                            className="block px-4 py-2 text-sm text-gray-700 data-focus:bg-gray-100 dark:text-gray-300 dark:data-focus:bg-white/5"
-                                        >
-                                            {menu.name}
-                                        </Link>
-                                    </MenuItem>
-                                ))}
-                            </MenuItems>
-                        </Menu>
                     </div>
                 </div>
-            </div>
+            )}
 
-            {/* Mobile Panel */}
-            <DisclosurePanel className="lg:hidden">
-                <div className="space-y-1 pt-2 pb-3">
-                    {menuItems.map((item) => (
-                        <DisclosureButton
-                            key={item.name}
-                            as="a"
-                            href="#"
-                            className={
-                                item.name === "Dashboard"
-                                    ? mobileNavClassActive
-                                    : mobileNavClassDefault
-                            }
-                        >
-                            {item.name}
-                        </DisclosureButton>
-                    ))}
-                </div>
-                <div className="border-t border-gray-200 pt-4 pb-3 dark:border-white/10">
-                    <div className="flex items-center px-4">
-                        <img
-                            alt=""
-                            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                            className="size-10 rounded-full bg-gray-100 outline -outline-offset-1 outline-black/5 dark:bg-gray-800 dark:outline-white/10"
+            {/* Mobile menu */}
+            {mounted && (
+                <DisclosurePanel className="sm:hidden">
+                    <div className="space-y-1 px-2 pt-2 pb-3">
+                        <NavLinks
+                            mobile
+                            navigation={navigation}
+                            onLinkClick={handleLinkClick}
                         />
-                        <div className="ml-3">
-                            <div className="text-base font-medium text-gray-800 dark:text-gray-200">
-                                Tom Cook
-                            </div>
-                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                tom@example.com
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            className="relative ml-auto shrink-0 rounded-full p-1 text-gray-400 hover:text-gray-500 focus:outline-2 focus:outline-offset-2 dark:hover:text-white"
-                        >
-                            <span className="sr-only">View notifications</span>
-                            <BellIcon aria-hidden="true" className="size-6" />
-                        </button>
                     </div>
-
-                    <div className="mt-3 space-y-1">
-                        {userMenu.map((menu) => (
-                            <DisclosureButton
-                                key={menu.name}
-                                as="a"
-                                href="#"
-                                className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
-                            >
-                                {menu.name}
-                            </DisclosureButton>
-                        ))}
-                    </div>
-                </div>
-            </DisclosurePanel>
+                </DisclosurePanel>
+            )}
         </Disclosure>
-    );
+    )
 }

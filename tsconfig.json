@@ -9,7 +9,7 @@
     "module": "esnext",               // ✅ Vite 번들러용 (NodeNext → esnext)
     "moduleResolution": "bundler",    // ✅ Vite/ESM 환경에서 import 확장자 자동 처리
     "target": "esnext",
-    "types": [],
+    "types": ["react"],
 
     // JS/JSX 파일 허용
     "allowJs": true,                  // ✅ JS/JSX 파일 import 허용
