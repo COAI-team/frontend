@@ -1,45 +1,29 @@
 import React from "react";
-import {
-  Image as ImageIcon,
-  Link as LinkIcon,
-  Quote,
-  FileText,
-  BarChart2,
-  Table,
-  Code,
-} from "lucide-react";
+import { Bold, Italic, Code, Image } from "lucide-react";
 
-const Toolbar = ({ editor, openCodeModal }) => {
+const Toolbar = ({ editor, insertCodeBlock }) => {
   if (!editor) return null;
 
+  const btn = "toolbar-btn mx-1";
+
   return (
-    <div className="flex items-center gap-3 bg-[#242424] p-3 rounded-xl border border-gray-700">
-      <button className="toolbar-btn" onClick={() => editor.chain().focus().setImage({ src: window.prompt("이미지 URL") }).run()}>
-        <ImageIcon size={20} />
+    <div className="mb-3 p-2 bg-[#222] rounded-lg flex items-center shadow">
+      <button className={btn} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <Bold size={18} />
       </button>
 
-      <button className="toolbar-btn" onClick={() => editor.chain().focus().toggleLink({ href: window.prompt("링크 입력") }).run()}>
-        <LinkIcon size={20} />
+      <button className={btn} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <Italic size={18} />
       </button>
 
-      <button className="toolbar-btn" onClick={() => editor.chain().focus().toggleBlockquote().run()}>
-        <Quote size={20} />
+      {/* 이미지 */}
+      <button className={btn} onClick={() => editor.chain().focus().setImage({ src: prompt("Image URL") }).run()}>
+        <Image size={18} />
       </button>
 
-      <button className="toolbar-btn">
-        <FileText size={20} />
-      </button>
-
-      <button className="toolbar-btn">
-        <BarChart2 size={20} />
-      </button>
-
-      <button className="toolbar-btn">
-        <Table size={20} />
-      </button>
-
-      <button className="toolbar-btn bg-purple-600 text-white" onClick={openCodeModal}>
-        <Code size={20} />
+      {/* VSCode Monaco 코드블록 */}
+      <button className={btn} onClick={insertCodeBlock}>
+        <Code size={18} />
       </button>
     </div>
   );
