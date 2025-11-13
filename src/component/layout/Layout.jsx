@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
-import Navbar from "../layout/Navbar.js";
-import Footer from "../layout/Footer.js";
+import Navbar from "./Navbar.jsx";
+import Footer from "./Footer.jsx";
 import { useTheme } from "next-themes";
 
 export default function Layout() {

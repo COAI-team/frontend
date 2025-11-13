@@ -6,7 +6,7 @@ import { ThemeProvider } from 'next-themes'
 import Layout from './component/layout/Layout'
 import Main from './pages/Main'
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById('root')).render(
     <StrictMode>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
             <BrowserRouter>
