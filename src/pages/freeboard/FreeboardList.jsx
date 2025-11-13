@@ -13,7 +13,6 @@ const FreeboardList = () => {
     axios
       .get("/api/freeboard/list", { params: { page, size } })
       .then((res) => {
-        console.log("서버 응답:", res.data);
         setBoards(res.data.boards);
         setTotalCount(res.data.totalCount);
       })
@@ -21,45 +20,75 @@ const FreeboardList = () => {
   }, [page]);
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">자유게시판</h1>
+    <div className="max-w-5xl mx-auto p-6 text-gray-100">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">자유게시판</h1>
         <button
           onClick={() => navigate("/freeboard/write")}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"
         >
           글쓰기
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {boards.map((b) => (
           <div
             key={b.freeboardId}
-            className="bg-gray-800 hover:bg-gray-700 cursor-pointer transition rounded-lg p-5 shadow"
+            className="bg-[#1f1f1f] rounded-xl p-5 shadow-md hover:shadow-xl hover:bg-[#262626] cursor-pointer transition-all duration-200 flex gap-5"
             onClick={() => navigate(`/freeboard/${b.freeboardId}`)}
           >
-            <h3 className="text-lg font-semibold text-blue-400">
-              {b.freeboardTitle}
-            </h3>
-            <p className="text-gray-300 mt-2 line-clamp-2">
-              {b.freeboardContent}
-            </p>
-            <div className="text-sm text-gray-400 mt-3 flex justify-between">
-              <span>조회수 {b.freeboardClick}</span>
-              <span>
-                {new Date(b.freeboardCreatedAt).toLocaleDateString()}
-              </span>
+            {/* 왼쪽 본문 */}
+            <div className="flex-1">
+              {/* 프로필, 닉네임, 작성시간 */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-full bg-gray-600 flex items-center justify-center text-sm">
+                  {String(b.userId).slice(0, 1)}
+                </div>
+                <div className="text-sm text-gray-300">
+                  사용자 {b.userId}
+                  <span className="ml-2 text-gray-500">
+                    · {new Date(b.freeboardCreatedAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* 제목 */}
+              <h3 className="text-xl font-semibold text-gray-100 mb-2">
+                {b.freeboardTitle}
+              </h3>
+
+              {/* 내용(요약) */}
+              <p className="text-gray-400 line-clamp-2">
+                {b.freeboardContent}
+              </p>
+
+              {/* 하단 정보 */}
+              <div className="flex items-center gap-6 mt-4 text-gray-500 text-sm">
+                <span>조회수 {b.freeboardClick}</span>
+                <span>❤️ 0</span>
+                <span>💬 0</span>
+              </div>
             </div>
+
+            {/* 오른쪽 대표 이미지(있다면 표시) */}
+            {b.freeboardImagePath && (
+              <img
+                src={b.freeboardImagePath}
+                alt="썸네일"
+                className="w-32 h-32 object-cover rounded-lg"
+              />
+            )}
           </div>
         ))}
       </div>
 
-      <div className="mt-8 flex justify-center items-center gap-3">
+      {/* 페이지네이션 */}
+      <div className="mt-10 flex justify-center items-center gap-3">
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
-          className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50"
+          className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-40"
         >
           이전
         </button>
@@ -73,7 +102,7 @@ const FreeboardList = () => {
             setPage((p) => (p * size < totalCount ? p + 1 : p))
           }
           disabled={page * size >= totalCount}
-          className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50"
+          className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-40"
         >
           다음
         </button>
