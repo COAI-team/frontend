@@ -1,10 +1,8 @@
 import React from "react";
-import { useTheme } from "next-themes"; // ✅ 다크모드 테마 사용 예시
-
+import { useTheme } from "next-themes";
 export default function Main() {
     const { theme } = useTheme();
 
-    // ✅ 조건부 스타일을 삼항식 대신 분리
     let containerStyle = "";
     if (theme === "light") {
         containerStyle = "text-gray-900";
