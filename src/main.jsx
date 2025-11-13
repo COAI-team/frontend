@@ -6,19 +6,17 @@ import { ThemeProvider } from "next-themes";
 import Layout from "./component/layout/Layout";
 import Main from "./pages/Main";
 
-// 자유게시판 관련 컴포넌트 import
+// 자유게시판 관련 컴포넌트
 import FreeboardList from "./pages/freeboard/FreeboardList";
 import FreeboardDetail from "./pages/freeboard/FreeboardDetail";
 import FreeboardWrite from "./pages/freeboard/FreeboardWrite";
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
       <BrowserRouter>
         <Routes>
-          {/* 레이아웃 전체 공통 래퍼 */}
           <Route path="/" element={<Layout />}>
-            {/* 기본 홈 */}
             <Route index element={<Main />} />
 
             {/* 자유게시판 라우트 */}
