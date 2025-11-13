@@ -1,23 +1,31 @@
-// src/component/editor/CodeBlock.jsx
 import React from "react";
 import { NodeViewWrapper } from "@tiptap/react";
-import Editor from "@monaco-editor/react";
+import MonacoEditor from "@monaco-editor/react";
+import CodeBlockLangDropdown from "./CodeBlockLangDropdown";
 
 const CodeBlock = ({ node, updateAttributes }) => {
-  const code = node.attrs.code || "";
+  const { code, language } = node.attrs;
 
   return (
-    <NodeViewWrapper className="my-4 border border-gray-700 rounded-lg bg-[#0f0f0f]">
-      <Editor
-        height="250px"
-        defaultLanguage={node.attrs.language || "javascript"}
-        theme="vs-dark"
+    <NodeViewWrapper className="monaco-code-block">
+      {/* 언어 드롭다운 */}
+      <div className="flex justify-between items-center mb-2">
+        <CodeBlockLangDropdown
+          language={language}
+          onChange={(lang) => updateAttributes({ language: lang })}
+        />
+      </div>
+
+      {/* 실제 모나코 */}
+      <MonacoEditor
+        height="320px"
+        language={language}
         value={code}
         onChange={(value) => updateAttributes({ code: value })}
+        theme="vs-dark"
         options={{
           minimap: { enabled: false },
-          fontSize: 14,
-          lineNumbers: "on",
+          fontSize: 15,
           scrollBeyondLastLine: false,
           automaticLayout: true,
         }}

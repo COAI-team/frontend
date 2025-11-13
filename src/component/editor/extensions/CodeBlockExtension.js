@@ -1,10 +1,9 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import CodeBlock from "../nodeviews/CodeBlock.jsx";
+import CodeBlock from "../nodeviews/CodeBlock";
 
 export default Node.create({
   name: "monacoCodeBlock",
-
   group: "block",
   atom: true,
 

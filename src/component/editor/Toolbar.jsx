@@ -22,6 +22,13 @@ const Toolbar = ({ editor, insertCodeBlock }) => {
       </button>
 
       {/* VSCode Monaco 코드블록 */}
+      <button
+        onClick={() =>
+          editor.chain().focus().insertContent({ type: "monacoCodeBlock" }).run()
+        }
+      >
+        코드
+      </button>
       <button className={btn} onClick={insertCodeBlock}>
         <Code size={18} />
       </button>
