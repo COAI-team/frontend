@@ -21,7 +21,7 @@
     "@tiptap/starter-kit": "^3.10.7",
     "axios": "^1.13.2",
     "highlight.js": "^11.11.1",
-    "lowlight": "^3.3.0",
+    "lowlight": "^2.9.0",
     "lucide-react": "^0.553.0",
     "next-themes": "^0.4.6",
     "prop-types": "^15.8.1",

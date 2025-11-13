@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+/* Toolbar 공통 버튼 스타일 */
+.toolbar-btn {
+  @apply p-2 rounded-lg hover:bg-gray-700 transition text-gray-300;
+}

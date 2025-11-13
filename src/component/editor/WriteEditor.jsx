@@ -4,7 +4,8 @@ import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import { lowlight } from "lowlight";
+
+import { lowlight } from "lowlight/lib/common.js";
 import "highlight.js/styles/github-dark.css";
 
 import Toolbar from "./Toolbar";
@@ -17,9 +18,7 @@ const WriteEditor = ({ onSubmit }) => {
     extensions: [
       StarterKit,
       Image,
-      Link.configure({
-        openOnClick: false,
-      }),
+      Link.configure({ openOnClick: false }),
       CodeBlockLowlight.configure({
         lowlight,
       }),
@@ -27,35 +26,22 @@ const WriteEditor = ({ onSubmit }) => {
     content: "",
   });
 
-  const handleCodeInsert = (code) => {
-    editor.chain().focus().insertContent({
-      type: "codeBlock",
-      attrs: { language: "javascript" },
-      content: [{ type: "text", text: code }],
-    }).run();
-  };
-
   if (!editor) return null;
 
   return (
     <div className="bg-[#1a1a1a] rounded-2xl p-6 shadow-xl text-gray-200">
-      
-      {/* 제목 입력 */}
       <input
         type="text"
         placeholder="제목을 입력하세요"
         className="w-full text-3xl font-bold bg-transparent border-none outline-none mb-5 text-gray-100 placeholder-gray-500"
       />
 
-      {/* Toolbar */}
       <Toolbar editor={editor} openCodeModal={() => setIsCodeModalOpen(true)} />
 
-      {/* 본문 */}
       <div className="mt-4 border border-gray-700 rounded-xl p-4 min-h-[350px] bg-[#111111]">
         <EditorContent editor={editor} />
       </div>
 
-      {/* 버튼 */}
       <div className="flex justify-end mt-6 gap-3">
         <button className="px-5 py-2 bg-gray-700 rounded-lg hover:bg-gray-600">
           취소
@@ -68,11 +54,20 @@ const WriteEditor = ({ onSubmit }) => {
         </button>
       </div>
 
-      {/* Monaco 코드 작성 모달 */}
       <MonacoModal
         isOpen={isCodeModalOpen}
         onClose={() => setIsCodeModalOpen(false)}
-        onInsert={handleCodeInsert}
+        onInsert={(code) => {
+          editor
+            .chain()
+            .focus()
+            .insertContent({
+              type: "codeBlock",
+              attrs: { language: "javascript" },
+              content: [{ type: "text", text: code }],
+            })
+            .run();
+        }}
       />
     </div>
   );
