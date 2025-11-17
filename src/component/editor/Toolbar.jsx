@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import {
   Bold,
   Italic,
@@ -11,14 +12,9 @@ import {
   ListOrdered,
   Link as LinkIcon,
   Image as ImageIcon,
-  Video,
   Code,
-  FileText,
-  Table,
-  BarChart3,
-  Calendar,
-  FileSpreadsheet,
   Smile,
+  Table,
 } from "lucide-react";
 
 const Toolbar = ({ editor, insertCodeBlock }) => {
@@ -39,12 +35,54 @@ const Toolbar = ({ editor, insertCodeBlock }) => {
     </button>
   );
 
-  const addImage = () => {
-    const url = window.prompt("이미지 URL을 입력하세요:");
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
+  // 🔥 이미지 업로드 반영
+  const addImage = async () => {
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+
+  fileInput.onchange = async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+
+    // 파일 크기 체크 (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert("파일 크기는 10MB를 초과할 수 없습니다.");
+      return;
+    }
+
+    // 이미지 파일 형식 체크
+    if (!file.type.startsWith('image/')) {
+      alert("이미지 파일만 업로드 가능합니다.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await axios.post(
+        "http://localhost:8090/api/images/upload",
+        formData,
+        { 
+          headers: { 
+            "Content-Type": "multipart/form-data" 
+          },
+          timeout: 30000 // 30초 타임아웃
+        }
+      );
+
+      if (res.data) {
+        editor.chain().focus().setImage({ src: res.data }).run();
+      }
+    } catch (error) {
+      console.error("이미지 업로드 실패:", error);
+      alert(`이미지 업로드 실패: ${error.response?.data || error.message}`);
     }
   };
+
+  fileInput.click();
+};
 
   const addLink = () => {
     const url = window.prompt("링크 URL을 입력하세요:");
@@ -55,57 +93,29 @@ const Toolbar = ({ editor, insertCodeBlock }) => {
 
   return (
     <div className="bg-[#2a2a2a] rounded-lg p-3 mb-4">
-      {/* 1줄: 첨부/코드 관련 */}
+      {/* 1줄: 첨부/코드 */}
       <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-700">
         <ToolbarButton onClick={addImage} title="사진">
           <ImageIcon size={20} />
         </ToolbarButton>
 
-        <ToolbarButton onClick={() => {}} title="동영상">
-          <Video size={20} />
-        </ToolbarButton>
-
-        <ToolbarButton onClick={addLink} title="링크">
+        <ToolbarButton onClick={addLink} active={editor.isActive("link")} title="링크">
           <LinkIcon size={20} />
-        </ToolbarButton>
-
-        <ToolbarButton onClick={() => {}} title="인용구">
-          <FileText size={20} />
-        </ToolbarButton>
-
-        <ToolbarButton onClick={() => {}} title="파일">
-          <FileSpreadsheet size={20} />
-        </ToolbarButton>
-
-        <ToolbarButton onClick={() => {}} title="투표">
-          <BarChart3 size={20} />
-        </ToolbarButton>
-
-        <ToolbarButton onClick={() => {}} title="문서">
-          <Calendar size={20} />
         </ToolbarButton>
 
         <ToolbarButton
           onClick={() =>
-            editor
-              .chain()
-              .focus()
-              .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-              .run()
+            editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run()
           }
-          title="표"
+          title="표 삽입"
         >
           <Table size={20} />
-        </ToolbarButton>
-
-        <ToolbarButton onClick={() => {}} title="수식">
-          <span className="text-sm font-bold">∑</span>
         </ToolbarButton>
 
         <ToolbarButton
           onClick={insertCodeBlock}
           active={editor.isActive("monacoCodeBlock")}
-          title="코드작성"
+          title="코드 작성"
         >
           <div className="flex flex-col items-center">
             <Code size={20} className="text-purple-400" />
@@ -114,24 +124,9 @@ const Toolbar = ({ editor, insertCodeBlock }) => {
         </ToolbarButton>
       </div>
 
-      {/* 2줄: 텍스트 편집 */}
+      {/* 2줄: 텍스트 */}
       <div className="flex items-center gap-2 flex-wrap">
-        <select
-          value={fontSize}
-          onChange={(e) => setFontSize(Number(e.target.value))}
-          className="bg-gray-700 text-gray-200 px-3 py-1.5 rounded text-sm border border-gray-600"
-        >
-          <option value={12}>12</option>
-          <option value={14}>14</option>
-          <option value={15}>15</option>
-          <option value={16}>16</option>
-          <option value={18}>18</option>
-          <option value={20}>20</option>
-          <option value={24}>24</option>
-        </select>
-
-        <div className="w-px h-6 bg-gray-600 mx-1" />
-
+        {/* Bold, Italic, Underline, Strike */}
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive("bold")}
@@ -164,8 +159,7 @@ const Toolbar = ({ editor, insertCodeBlock }) => {
           <Strikethrough size={18} />
         </ToolbarButton>
 
-        <div className="w-px h-6 bg-gray-600 mx-1" />
-
+        {/* 정렬 */}
         <ToolbarButton
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
           active={editor.isActive({ textAlign: "left" })}
@@ -190,18 +184,26 @@ const Toolbar = ({ editor, insertCodeBlock }) => {
           <AlignRight size={18} />
         </ToolbarButton>
 
-        <div className="w-px h-6 bg-gray-600 mx-1" />
-
-        <ToolbarButton onClick={() => {}} title="이모지">
-          <Smile size={18} />
+        {/* 리스트 */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          active={editor.isActive("bulletList")}
+          title="● 목록"
+        >
+          <List size={18} />
         </ToolbarButton>
 
         <ToolbarButton
-          onClick={addLink}
-          active={editor.isActive("link")}
-          title="링크"
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          active={editor.isActive("orderedList")}
+          title="1. 목록"
         >
-          <LinkIcon size={18} />
+          <ListOrdered size={18} />
+        </ToolbarButton>
+
+        {/* 이모지 */}
+        <ToolbarButton onClick={() => {}} title="이모지">
+          <Smile size={18} />
         </ToolbarButton>
       </div>
     </div>

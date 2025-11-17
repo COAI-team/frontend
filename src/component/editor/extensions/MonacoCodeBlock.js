@@ -7,12 +7,12 @@ const MonacoCodeBlock = Node.create({
 
   group: "block",
   atom: true, // 내용은 전부 attribute(code)에 저장
-  selectable: true,
+  isolating: true, // 문서 흐름 분리하여 줄바꿈 문제 해결
 
   addAttributes() {
     return {
       language: {
-        default: "javascript",
+        default: "java",
         parseHTML: (element) => element.getAttribute("data-language"),
         renderHTML: (attributes) => ({
           "data-language": attributes.language,
@@ -70,6 +70,20 @@ const MonacoCodeBlock = Node.create({
           .focus()
           .insertContent({ type: this.name })
           .run(),
+
+           // Backspace: 비어있는 코드블록이면 삭제
+      Backspace: () => {
+        const { $anchor, empty } = this.editor.state.selection;
+        const isCodeBlock = $anchor.parent.type.name === this.name;
+
+        if (isCodeBlock && empty) {
+          return this.editor.commands.deleteNode(this.name);
+        }
+        return false;
+      },
+
+      // Enter: 코드블록 내부는 Monaco가 처리하므로 Tiptap이 가로채지 않음
+      Enter: () => true,
     };
   },
 });

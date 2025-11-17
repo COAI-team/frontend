@@ -1,20 +1,41 @@
-/* TipTap CodeBlock 스타일 */
-.tiptap pre {
-  background: #1e1e1e !important;
-  color: #e5e5e5;
-  padding: 14px 16px;
-  border-radius: 10px;
-  font-family: "JetBrains Mono", "Fira Code", monospace;
-  font-size: 14px;
-  line-height: 1.5;
-  overflow-x: auto;
-  border: 1px solid #333;
-  margin: 10px 0;
+/* Tiptap 기본 스타일 */
+.tiptap {
+  min-height: 300px;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-/* 코드 블록 내부 코드 */
-.tiptap pre code {
-  background: transparent !important;
-  color: inherit;
-  padding: 0;
+.tiptap p {
+  margin: 0;
+}
+
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.5rem;
+}
+
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.tiptap table td,
+.tiptap table th {
+  border: 1px solid #444;
+  padding: 6px;
+}
+
+.tiptap table th {
+  background: #333;
+}
+
+ /* Monaco Block 전용 스타일 적용 */
+.monaco-code-block-wrapper {
+  margin: 12px 0;
+  width: 100%;
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 6px 0;
 }
