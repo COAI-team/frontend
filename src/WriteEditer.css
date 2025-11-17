@@ -2,11 +2,11 @@
 .tiptap {
   min-height: 300px;
   outline: none;
-  white-space: pre-wrap;
   word-break: break-word;
 }
 
 .tiptap p {
+  white-space: pre-wrap;
   margin: 0;
 }
 
@@ -28,6 +28,33 @@
 
 .tiptap table th {
   background: #333;
+}
+
+
+/* 이미지 정상 표시 */
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 12px 0;
+}
+
+/* 이미지 로드 실패 시 기본 표시 */
+.tiptap img[alt] {
+  font-size: 14px;
+  color: #ccc;
+}
+
+/* 아래는 테이블 등 확장 요소 대응 */
+.tiptap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tiptap table td,
+.tiptap table th {
+  border: 1px solid #444;
+  padding: 6px;
 }
 
  /* Monaco Block 전용 스타일 적용 */
