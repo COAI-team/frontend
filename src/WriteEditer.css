@@ -1,0 +1,91 @@
+/* Tiptap 기본 스타일 */
+.tiptap {
+  min-height: 300px;
+  outline: none;
+  word-break: break-word;
+}
+
+.tiptap p {
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.5rem;
+}
+
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.tiptap table td,
+.tiptap table th {
+  border: 1px solid #444;
+  padding: 6px;
+}
+
+.tiptap table th {
+  background: #333;
+}
+
+
+/* 이미지 정상 표시 */
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 12px 0;
+}
+
+/* 이미지 로드 실패 시 기본 표시 */
+.tiptap img[alt] {
+  font-size: 14px;
+  color: #ccc;
+}
+
+/* 아래는 테이블 등 확장 요소 대응 */
+.tiptap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tiptap table td,
+.tiptap table th {
+  border: 1px solid #444;
+  padding: 6px;
+}
+
+ /* Monaco Block 전용 스타일 적용 */
+.monaco-code-block-wrapper {
+  margin: 12px 0;
+  width: 100%;
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 6px 0;
+}
+
+/* 이미지 */
+.tiptap img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 24px 0;   /* 이미지 사이 간격 통일 */
+  cursor: grab;
+}
+
+.tiptap img:active {
+  cursor: grabbing;
+}
+
+/* 비어 있는 문단도 클릭 가능하게 최소 높이만 확보 */
+.tiptap p:empty {
+  min-height: 1.2rem;
+}
+
+.tiptap img:active {
+  cursor: grabbing;
+}
+

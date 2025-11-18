@@ -18,8 +18,6 @@
     "strict": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-
-    // 📌 여기 추가하면 ts/tsx 해석이 100% 보장됨
     "resolveJsonModule": true
   },
   "include": ["src/**/*"],
