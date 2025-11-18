@@ -1,6 +1,24 @@
 @import "tailwindcss";
 
-/* Toolbar 공통 버튼 스타일 */
-.toolbar-btn {
-  @apply p-2 rounded-lg hover:bg-gray-700 transition text-gray-300;
+/* Placeholder 텍스트 */
+.tiptap p.is-editor-empty:first-child::before {
+  content: '여기에 내용을 작성하세요...';
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
 }
+
+html.dark .tiptap p.is-editor-empty:first-child::before {
+  color: #6b7280;
+}
+
+/* Selection 색상 */
+.tiptap ::selection {
+  background-color: #ddd6fe;
+}
+
+html.dark .tiptap ::selection {
+  background-color: #4c1d95;
+}
+

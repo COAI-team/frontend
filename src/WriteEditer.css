@@ -66,3 +66,26 @@
   overflow: hidden;
   padding: 6px 0;
 }
+
+/* 이미지 */
+.tiptap img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 24px 0;   /* 이미지 사이 간격 통일 */
+  cursor: grab;
+}
+
+.tiptap img:active {
+  cursor: grabbing;
+}
+
+/* 비어 있는 문단도 클릭 가능하게 최소 높이만 확보 */
+.tiptap p:empty {
+  min-height: 1.2rem;
+}
+
+.tiptap img:active {
+  cursor: grabbing;
+}
+
