@@ -7,7 +7,7 @@ const MonacoCodeBlock = Node.create({
 
   group: "block",
   atom: true, // 내용은 전부 attribute(code)에 저장
-  isolating: true, // 문서 흐름 분리하여 줄바꿈 문제 해결
+  isolating: true, // 있으면 오탈자 방지에 도움
 
   addAttributes() {
     return {
@@ -65,13 +65,8 @@ const MonacoCodeBlock = Node.create({
   addKeyboardShortcuts() {
     return {
       "Mod-Alt-c": () =>
-        this.editor
-          .chain()
-          .focus()
-          .insertContent({ type: this.name })
-          .run(),
+        this.editor.chain().focus().insertContent({ type: this.name }).run(),
 
-           // Backspace: 비어있는 코드블록이면 삭제
       Backspace: () => {
         const { $anchor, empty } = this.editor.state.selection;
         const isCodeBlock = $anchor.parent.type.name === this.name;
@@ -82,8 +77,18 @@ const MonacoCodeBlock = Node.create({
         return false;
       },
 
-      // Enter: 코드블록 내부는 Monaco가 처리하므로 Tiptap이 가로채지 않음
-      Enter: () => true,
+      Enter: ({ editor }) => {
+        const { $anchor } = editor.state.selection;
+        const isCodeBlock = $anchor.parent.type.name === this.name;
+
+        if (isCodeBlock) {
+          // Monaco 내부 Enter는 Monaco가 처리
+          return false;
+        }
+
+        // 기본 줄바꿈 실행
+        return editor.commands.splitBlock();
+      },
     };
   },
 });

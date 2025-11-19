@@ -20,18 +20,15 @@ export default function Layout() {
 
   return (
     <div className={`flex flex-col h-screen overflow-hidden`}>
-      {/* Navbar */}
       <Navbar />
 
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-y-auto">
-          <main className="flex-1">
+      <div className="flex-1 overflow-y-auto">
+        <main className="block w-full">
             <Outlet />
           </main>
-          {/* Footer */}
+
           <Footer />
         </div>
       </div>
-    </div>
   );
 }

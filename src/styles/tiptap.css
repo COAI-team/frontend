@@ -34,9 +34,7 @@
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: #9ca3af;
-  float: left;
-  pointer-events: none;
-  height: 0;
+  display: block;
 }
 
 /* Headings */
@@ -103,6 +101,7 @@ html.dark .tiptap th {
 /* Image */
 .tiptap img {
   display: block;
+  margin: 1rem 0;
   max-width: 100%;
   height: auto;
   margin: 18px 0;
@@ -113,6 +112,13 @@ html.dark .tiptap th {
 }
 html.dark .tiptap img {
   filter: brightness(0.9);
+}
+
+.editor-wrapper {
+  display: block !important;
+  flex: none !important;      
+  width: 100%;
+  align-self: stretch;
 }
 
 /* --------------------------------------------------------------

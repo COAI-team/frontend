@@ -27,108 +27,171 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
 
   const isDark = theme === "dark";
 
-  const ToolbarButton = ({ onClick, active, children, title, label }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "0.25rem",
-        padding: "0.5rem 0.625rem",
-        borderRadius: "0.5rem",
-        fontSize: "0.75rem",
-        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-        backgroundColor: active
-          ? isDark 
-            ? "rgba(168, 85, 247, 0.15)" 
-            : "rgba(168, 85, 247, 0.1)"
-          : "transparent",
-        color: active
-          ? isDark ? "rgb(216, 180, 254)" : "rgb(147, 51, 234)"
-          : isDark ? "rgb(156, 163, 175)" : "rgb(107, 114, 128)",
-        border: active 
-          ? `1px solid ${isDark ? "rgba(168, 85, 247, 0.3)" : "rgba(168, 85, 247, 0.2)"}`
-          : "1px solid transparent",
-        cursor: "pointer",
-        minWidth: label ? "3.5rem" : "auto",
-      }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          e.currentTarget.style.backgroundColor = isDark ? "rgba(55, 65, 81, 0.6)" : "rgba(243, 244, 246, 0.8)";
-          e.currentTarget.style.transform = "translateY(-1px)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          e.currentTarget.style.backgroundColor = "transparent";
-          e.currentTarget.style.transform = "translateY(0)";
-        }
-      }}
-    >
-      {children}
-      {label && (
-        <span style={{ 
-          fontSize: "0.65rem", 
-          fontWeight: "500",
-          whiteSpace: "nowrap",
-        }}>
-          {label}
-        </span>
-      )}
-    </button>
-  );
+  // 공통 버튼 – label 있으면 아이콘+텍스트 세로, 없으면 아이콘만
+  const ToolbarButton = ({ onClick, active, children, title, label }) => {
+    const hasLabel = !!label;
+
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        title={title}
+        style={{
+          display: "flex",
+          flexDirection: hasLabel ? "column" : "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: hasLabel ? "0.25rem" : "0.35rem",
+          padding: hasLabel ? "0.55rem 0.7rem" : "0.45rem",
+          borderRadius: "0.5rem",
+          fontSize: hasLabel ? "0.7rem" : "0.8rem",
+          transition: "all 0.15s",
+          backgroundColor: active
+            ? isDark
+              ? "rgba(139, 92, 246, 0.2)"
+              : "rgba(139, 92, 246, 0.15)"
+            : "transparent",
+          color: active
+            ? isDark
+              ? "rgb(196, 181, 253)"
+              : "rgb(109, 40, 217)"
+            : isDark
+              ? "rgb(156, 163, 175)"
+              : "rgb(107, 114, 128)",
+          border: active
+            ? `1px solid ${
+                isDark ? "rgba(139, 92, 246, 0.4)" : "rgba(139, 92, 246, 0.3)"
+              }`
+            : "1px solid transparent",
+          cursor: "pointer",
+          minWidth: hasLabel ? "3.5rem" : "auto",
+        }}
+        onMouseEnter={(e) => {
+          if (!active) {
+            e.currentTarget.style.backgroundColor = isDark
+              ? "rgba(55, 65, 81, 0.6)"
+              : "rgba(243, 244, 246, 0.9)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!active) {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }
+        }}
+      >
+        {children}
+        {hasLabel && (
+          <span
+            style={{
+              fontSize: "0.65rem",
+              fontWeight: 500,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {label}
+          </span>
+        )}
+      </button>
+    );
+  };
 
   const Divider = () => (
     <div
       style={{
         width: "1px",
-        height: "2.5rem",
-        background: isDark 
-          ? "linear-gradient(to bottom, transparent, rgb(75, 85, 99), transparent)"
-          : "linear-gradient(to bottom, transparent, rgb(209, 213, 219), transparent)",
-        margin: "0 0.5rem",
+        height: "2rem",
+        backgroundColor: isDark
+          ? "rgba(75, 85, 99, 0.6)"
+          : "rgba(209, 213, 219, 0.8)",
+        margin: "0 0.4rem",
       }}
     />
   );
 
-  const addImage = async () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.click();
+const addImage = async () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.click();
 
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
 
-      const compressed = await imageCompression(file, {
-        maxSizeMB: 10,
-        maxWidthOrHeight: 1920,
-      });
+    const compressed = await imageCompression(file, {
+      maxSizeMB: 10,
+      maxWidthOrHeight: 1920,
+    });
 
+    const LOADING = "이미지 업로드 중...";
+
+    // 현재 커서 위치
+    const pos = editor.state.selection.from;
+
+    // placeholder 삽입
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(pos, LOADING)
+      .run();
+
+    try {
       const formData = new FormData();
       formData.append("file", compressed);
 
-      try {
-        const res = await axios.post(
-          "http://localhost:8090/api/images/upload",
-          formData
-        );
+      const res = await axios.post(
+        "http://localhost:8090/api/images/upload",
+        formData
+      );
 
-        editor
-          .chain()
-          .focus()
-          .insertContent({ type: "image", attrs: { src: res.data } })
-          .run();
-      } catch (err) {
-        console.error("이미지 업로드 실패:", err);
-        alert("이미지 업로드 실패");
-      }
-    };
+      // 서버 응답 URL 처리
+      const url =
+        typeof res.data === "string"
+          ? res.data
+          : res.data.url || res.data.path || res.data.src;
+
+      if (!url) throw new Error("이미지 URL 없음");
+
+      // ---- ■ placeholder 지우기
+      editor
+        .chain()
+        .focus()
+        .setTextSelection({ from: pos, to: pos + LOADING.length })
+        .deleteSelection()
+        .run();
+
+      // ---- ■ paragraph 밖으로 커서 이동 후 block 분리
+      editor
+        .chain()
+        .focus()
+        .setTextSelection(pos)
+        .splitBlock()
+        .insertContent({
+          type: "image",
+          attrs: { src: url },
+        })
+        .splitBlock()
+        .run();
+
+    } catch (err) {
+      console.error("이미지 업로드 실패:", err);
+
+      // 실패하면 placeholder 삭제
+      editor
+        .chain()
+        .focus()
+        .setTextSelection({ from: pos, to: pos + LOADING.length })
+        .deleteSelection()
+        .run();
+
+      alert("이미지 업로드 실패");
+    }
   };
+};
+
+
+
+
 
   const addLink = () => {
     const url = window.prompt("링크 입력:");
@@ -136,31 +199,33 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
   };
 
   return (
-    <div 
-      style={{ 
-        display: "flex", 
-        flexDirection: "column", 
-        gap: "1rem",
-        backgroundColor: isDark ? "rgba(26, 26, 26, 0.95)" : "rgba(255, 255, 255, 0.95)",
-        padding: "1.25rem",
-        borderRadius: "0.875rem",
-        border: `1px solid ${isDark ? "rgba(75, 85, 99, 0.3)" : "rgba(229, 231, 235, 0.5)"}`,
-        backdropFilter: "blur(10px)",
-        boxShadow: isDark
-          ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)"
-          : "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.6rem",
+        backgroundColor: isDark ? "rgba(31, 41, 55, 0.5)" : "rgba(249, 250, 251, 0.9)",
+        padding: "0.9rem 1rem",
+        borderRadius: "0.75rem",
+        border: `1px solid ${
+          isDark ? "rgba(75, 85, 99, 0.5)" : "rgba(229, 231, 235, 0.8)"
+        }`,
       }}
     >
-      {/* 주요 기능 버튼 */}
+      {/* 1줄: 아이콘 + 텍스트 라벨 */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "0.5rem",
+          gap: "0.4rem",
           flexWrap: "wrap",
+          paddingBottom: "0.6rem",
+          borderBottom: `1px solid ${
+            isDark ? "rgba(75, 85, 99, 0.5)" : "rgba(229, 231, 235, 0.8)"
+          }`,
         }}
       >
-        <ToolbarButton onClick={addImage} title="이미지 추가" label="이미지">
+        <ToolbarButton onClick={addImage} title="이미지" label="이미지">
           <ImageIcon size={18} />
         </ToolbarButton>
 
@@ -177,7 +242,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() =>
             editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run()
           }
-          title="표 삽입"
+          title="표"
           label="표"
         >
           <Table size={18} />
@@ -185,122 +250,56 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
 
         <Divider />
 
-        <button
-          type="button"
+        <ToolbarButton
           onClick={insertCodeBlock}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            padding: "0.625rem 1.25rem",
-            borderRadius: "0.625rem",
-            background: isDark
-              ? "linear-gradient(135deg, rgb(139, 92, 246) 0%, rgb(219, 39, 119) 100%)"
-              : "linear-gradient(135deg, rgb(168, 85, 247) 0%, rgb(236, 72, 153) 100%)",
-            color: "white",
-            fontSize: "0.875rem",
-            fontWeight: "600",
-            border: "none",
-            cursor: "pointer",
-            boxShadow: isDark 
-              ? "0 4px 12px -2px rgba(168, 85, 247, 0.4)" 
-              : "0 4px 12px -2px rgba(168, 85, 247, 0.3)",
-            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "translateY(-2px)";
-            e.currentTarget.style.boxShadow = isDark 
-              ? "0 8px 16px -4px rgba(168, 85, 247, 0.5)" 
-              : "0 8px 16px -4px rgba(168, 85, 247, 0.4)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "translateY(0)";
-            e.currentTarget.style.boxShadow = isDark 
-              ? "0 4px 12px -2px rgba(168, 85, 247, 0.4)" 
-              : "0 4px 12px -2px rgba(168, 85, 247, 0.3)";
-          }}
+          title="코드 작성"
+          label="코드작성"
         >
-          <Code size={17} />
-          <span>코드 블록</span>
-        </button>
+          <Code size={18} />
+        </ToolbarButton>
 
         <Divider />
 
-        <button
-          type="button"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            padding: "0.625rem 1.25rem",
-            borderRadius: "0.625rem",
-            backgroundColor: isDark 
-              ? "rgba(59, 130, 246, 0.15)" 
-              : "rgba(59, 130, 246, 0.1)",
-            color: isDark ? "rgb(147, 197, 253)" : "rgb(37, 99, 235)",
-            fontSize: "0.875rem",
-            fontWeight: "600",
-            border: `1px solid ${isDark ? "rgba(59, 130, 246, 0.3)" : "rgba(59, 130, 246, 0.2)"}`,
-            cursor: "pointer",
-            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = isDark 
-              ? "rgba(59, 130, 246, 0.25)" 
-              : "rgba(59, 130, 246, 0.15)";
-            e.currentTarget.style.transform = "translateY(-1px)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = isDark 
-              ? "rgba(59, 130, 246, 0.15)" 
-              : "rgba(59, 130, 246, 0.1)";
-            e.currentTarget.style.transform = "translateY(0)";
-          }}
-        >
-          <Upload size={17} />
-          <span>AI 분석</span>
-        </button>
+        <ToolbarButton title="AI 분석 결과" label="AI 분석">
+          <Upload size={18} />
+        </ToolbarButton>
       </div>
 
-      {/* 구분선 */}
+      {/* 2줄: 아이콘만 */}
       <div
         style={{
-          height: "1px",
-          background: isDark 
-            ? "linear-gradient(to right, transparent, rgba(75, 85, 99, 0.5), transparent)"
-            : "linear-gradient(to right, transparent, rgba(229, 231, 235, 0.8), transparent)",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.25rem",
+          flexWrap: "wrap",
         }}
-      />
-
-      {/* 텍스트 서식 */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>
-        {/* 헤딩 */}
+      >
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
           active={editor.isActive("heading", { level: 1 })}
           title="제목 1"
-          label="제목1"
         >
           <Heading1 size={18} />
         </ToolbarButton>
 
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
           active={editor.isActive("heading", { level: 2 })}
           title="제목 2"
-          label="제목2"
         >
           <Heading2 size={18} />
         </ToolbarButton>
 
         <Divider />
 
-        {/* 기본 서식 */}
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive("bold")}
-          title="굵게 (Ctrl+B)"
-          label="굵게"
+          title="굵게"
         >
           <Bold size={18} />
         </ToolbarButton>
@@ -308,8 +307,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
           active={editor.isActive("italic")}
-          title="기울임 (Ctrl+I)"
-          label="기울임"
+          title="기울임"
         >
           <Italic size={18} />
         </ToolbarButton>
@@ -317,8 +315,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           active={editor.isActive("underline")}
-          title="밑줄 (Ctrl+U)"
-          label="밑줄"
+          title="밑줄"
         >
           <UnderlineIcon size={18} />
         </ToolbarButton>
@@ -327,19 +324,16 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().toggleStrike().run()}
           active={editor.isActive("strike")}
           title="취소선"
-          label="취소선"
         >
           <Strikethrough size={18} />
         </ToolbarButton>
 
         <Divider />
 
-        {/* 정렬 */}
         <ToolbarButton
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
           active={editor.isActive({ textAlign: "left" })}
           title="왼쪽 정렬"
-          label="왼쪽"
         >
           <AlignLeft size={18} />
         </ToolbarButton>
@@ -348,7 +342,6 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().setTextAlign("center").run()}
           active={editor.isActive({ textAlign: "center" })}
           title="가운데 정렬"
-          label="가운데"
         >
           <AlignCenter size={18} />
         </ToolbarButton>
@@ -357,19 +350,16 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().setTextAlign("right").run()}
           active={editor.isActive({ textAlign: "right" })}
           title="오른쪽 정렬"
-          label="오른쪽"
         >
           <AlignRight size={18} />
         </ToolbarButton>
 
         <Divider />
 
-        {/* 리스트 */}
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           active={editor.isActive("bulletList")}
           title="글머리 기호"
-          label="목록"
         >
           <List size={18} />
         </ToolbarButton>
@@ -378,7 +368,6 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           active={editor.isActive("orderedList")}
           title="번호 매기기"
-          label="번호"
         >
           <ListOrdered size={18} />
         </ToolbarButton>
@@ -387,14 +376,13 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           active={editor.isActive("blockquote")}
           title="인용구"
-          label="인용"
         >
           <Quote size={18} />
         </ToolbarButton>
 
         <Divider />
 
-        <ToolbarButton title="이모지" label="이모지">
+        <ToolbarButton title="이모지">
           <Smile size={18} />
         </ToolbarButton>
       </div>
