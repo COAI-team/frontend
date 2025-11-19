@@ -34,11 +34,11 @@ const MonacoCodeBlock = Node.create({
 
   renderHTML({ HTMLAttributes }) {
     return [
-      "div",
+      "pre",
       {
         ...HTMLAttributes,
         "data-type": "monaco-code-block",
-        class: "monaco-code-block-wrapper",
+        class: "monaco-code monaco-code-block-wrapper",
       },
     ];
   },

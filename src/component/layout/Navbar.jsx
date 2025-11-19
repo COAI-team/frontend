@@ -13,7 +13,7 @@ import {
 import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import PropTypes from 'prop-types' // ✅ 추가
+import PropTypes from 'prop-types' // 추가
 
 const initialNavigation = [
     { name: '코드 분석', href: '/codeAnalysis' },
