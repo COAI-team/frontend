@@ -13,7 +13,7 @@ import {
 import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import PropTypes from 'prop-types' // ✅ 추가
+import PropTypes from 'prop-types'
 
 const initialNavigation = [
     { name: '코드 분석', href: '/codeAnalysis' },
@@ -67,7 +67,6 @@ function NavLinks({ mobile = false, navigation, onLinkClick }) {
     )
 }
 
-// ✅ PropTypes 추가 (ESLint props validation 경고 제거)
 NavLinks.propTypes = {
     mobile: PropTypes.bool,
     navigation: PropTypes.arrayOf(
@@ -211,7 +210,7 @@ export default function Navbar() {
 
                         {/* Login Button */}
                         <Link
-                            to="/login"
+                            to="/SignIn"
                             className={`ml-2 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-indigo-600 
                                 ${
                                 theme === 'light'

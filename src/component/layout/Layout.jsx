@@ -35,7 +35,7 @@ export default function Layout() {
                 <div className="flex-1 flex flex-col overflow-y-auto">
                     <main className="flex-1">
                         {/*본문(WriteEditor) 콘텐츠를 화면 중앙에 고정하기 위한 Wrapper*/}
-                        <div className="max-w-[900px] mx-auto px-6 pt-10 pb-20"></div>
+                        <div className="mx-auto px-6"></div>
                         <Outlet />
                     </main>
                     <Footer />
