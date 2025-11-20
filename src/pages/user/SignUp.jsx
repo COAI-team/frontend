@@ -215,7 +215,7 @@ export default function SignUp() {
         // 모달 닫힌 후 로그인 페이지 이동
         setTimeout(() => {
             navigate("/SignIn");
-        }, 1000);
+        }, 5000);
     };
 
     return (

@@ -9,10 +9,15 @@ export const axiosInstance = axios.create({
 // 요청 인터셉터
 axiosInstance.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem("accessToken");
+        // ✔ localStorage 또는 sessionStorage 둘 중 하나에서 가져오기
+        const token =
+            localStorage.getItem("accessToken") ||
+            sessionStorage.getItem("accessToken");
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
         return config;
     },
     (error) => Promise.reject(error)
