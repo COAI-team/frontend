@@ -15,7 +15,6 @@ import FreeboardList from "./pages/freeboard/FreeboardList";
 import FreeboardDetail from "./pages/freeboard/FreeboardDetail";
 import FreeboardWrite from "./pages/freeboard/FreeboardWrite";
 
-// 🔥 LoginProvider 임포트
 import { LoginProvider } from "./context/LoginContext.js";
 
 createRoot(document.getElementById("root")).render(
