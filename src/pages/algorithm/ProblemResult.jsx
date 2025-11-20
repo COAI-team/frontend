@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import NavBar from '../../components/common/NavBar';
+import NavBar from '../../components/layout/NavBar';
 
 const ProblemResult = () => {
   const [showShareModal, setShowShareModal] = useState(false);

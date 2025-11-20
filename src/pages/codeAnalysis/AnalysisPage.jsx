@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import RepositorySelector from '../components/RepositorySelector';
-import BranchSelector from '../components/BranchSelector';
-import FileTree from '../components/FileTree';
-import FileContentDisplay from '../components/FileContentDisplay';
-import AnalysisForm from '../components/AnalysisForm';
+import RepositorySelector from '../../components/github/RepositorySelector';
+import BranchSelector from '../../components/github/BranchSelector';
+import FileTree from '../../components/github/FileTree';
+import FileContentDisplay from '../../components/github/FileContentDisplay';
+import AnalysisForm from '../../components/github/AnalysisForm';
 
 const AnalysisPage = () => {
     // Selection state
