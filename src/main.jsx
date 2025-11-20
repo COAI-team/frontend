@@ -13,19 +13,17 @@ import FreeboardWrite from "./pages/freeboard/FreeboardWrite";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
-      <BrowserRouter>
+    <BrowserRouter>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Main />} />
-
-            {/* 자유게시판 라우트 */}
             <Route path="freeboard/list" element={<FreeboardList />} />
             <Route path="freeboard/write" element={<FreeboardWrite />} />
             <Route path="freeboard/:id" element={<FreeboardDetail />} />
           </Route>
         </Routes>
-      </BrowserRouter>
-    </ThemeProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   </StrictMode>
 );
