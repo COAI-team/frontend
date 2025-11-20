@@ -107,7 +107,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
     />
   );
 
-  // 이미지 업로드 (S3 사용)
+  // 이미지 업로드 (S3 사용) - 수정된 버전
   const addImage = async () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -118,20 +118,39 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
       const file = input.files?.[0];
       if (!file) return;
 
-      const compressed = await imageCompression(file, {
-        maxSizeMB: 10,
-        maxWidthOrHeight: 1920,
-      });
-
-      const LOADING = "이미지 업로드 중...";
-
-      const pos = editor.state.selection.from;
-
-      editor.chain().focus().insertContentAt(pos, LOADING).run();
+      // ✅ 원본 파일명 저장
+      const originalFileName = file.name;
+      console.log("원본 파일명:", originalFileName);
 
       try {
+        // ✅ 1MB로 압축 (10MB에서 변경)
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        });
+
+        console.log("압축 후 크기:", (compressed.size / 1024 / 1024).toFixed(2) + "MB");
+
+        const LOADING = "이미지 업로드 중...";
+        const pos = editor.state.selection.from;
+
+        editor.chain().focus().insertContentAt(pos, LOADING).run();
+
         const formData = new FormData();
-        formData.append("file", compressed);
+        
+        // ✅ 압축된 파일을 원본 파일명으로 새로 생성
+        const fileToUpload = new File(
+          [compressed],
+          originalFileName,  // 원본 파일명 사용
+          { 
+            type: compressed.type || file.type,
+            lastModified: Date.now()
+          }
+        );
+        
+        console.log("업로드할 파일명:", fileToUpload.name);
+        formData.append("file", fileToUpload);
 
         const res = await axios.post(
           "http://localhost:8090/upload/image",
@@ -168,9 +187,15 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           })
           .splitBlock()
           .run();
+
+        console.log("업로드 성공:", url);
+
       } catch (err) {
         console.error("이미지 업로드 실패:", err);
 
+        const pos = editor.state.selection.from;
+        const LOADING = "이미지 업로드 중...";
+        
         editor
           .chain()
           .focus()
@@ -178,7 +203,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           .deleteSelection()
           .run();
 
-        alert("이미지 업로드 실패");
+        alert(`이미지 업로드 실패: ${err.message}`);
       }
     };
   };

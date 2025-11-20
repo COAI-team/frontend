@@ -7,11 +7,13 @@ import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
+import imageCompression from "browser-image-compression";
 
 import MonacoCodeBlock from "./extensions/MonacoCodeBlock";
 import Toolbar from "./Toolbar";
 import { useTheme } from "next-themes";
 import "../../styles/tiptap.css";
+import axios from "axios";
 
 const WriteEditor = ({ onSubmit }) => {
   const [title, setTitle] = useState("");
@@ -44,11 +46,89 @@ const WriteEditor = ({ onSubmit }) => {
     ],
 
     editorProps: {
-      attributes: {
-        class: "tiptap",
-      },
-    },
+      handleDrop(view, event, _slice, moved) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (moved) {
+          return false;
+        }
+
+        const files = Array.from(event.dataTransfer.files);
+        if (!files.length) return false;
+
+        const file = files[0];
+
+        if (file.type.startsWith("image/")) {
+          // 우리가 만든 업로드 함수로 연결 (프론트 이미지 업로드 로직)
+          uploadImageByDrop(file);
+          return true;
+        }
+
+        return false;
+      }
+    }
   });
+
+  async function uploadImageByDrop(file) {
+    // ✅ 원본 파일명 저장
+    const originalFileName = file.name;
+    console.log("드롭한 파일명:", originalFileName);
+    
+    try {
+      // ✅ 1MB로 압축
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+
+      const compressed = await imageCompression(file, options);
+      
+      console.log("압축 후 크기:", (compressed.size / 1024 / 1024).toFixed(2) + "MB");
+
+      const formData = new FormData();
+      
+      // ✅ 압축된 파일을 원본 파일명으로 새로 생성
+      const fileToUpload = new File(
+        [compressed],
+        originalFileName,
+        { 
+          type: compressed.type || file.type,
+          lastModified: Date.now()
+        }
+      );
+      
+      console.log("업로드할 파일명:", fileToUpload.name);
+      formData.append("file", fileToUpload);
+
+      // 업로드 요청
+      const res = await axios.post(
+        "http://localhost:8090/upload/image",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      const url = res.data;
+      console.log("드래그 업로드 성공:", url);
+
+      // 커서가 이미지 위라면 새로운 줄 추가해서 덮어쓰기 방지
+      const { state } = editor;
+      const node = state.selection.$from.parent;
+      if (node.type.name === "image") {
+        editor.commands.insertContent("<p></p>");
+      }
+
+      editor.chain().focus().setImage({ src: url }).run();
+    } catch (error) {
+      console.error("드래그 이미지 업로드 실패:", error);
+      alert(`이미지 업로드 실패: ${error.message}`);
+    }
+  }
 
   const insertCodeBlock = () => {
     if (editor) {
