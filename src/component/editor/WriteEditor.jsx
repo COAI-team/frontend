@@ -2,14 +2,11 @@ import React, { useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
-import Gapcursor from "@tiptap/extension-gapcursor";
 
 import MonacoCodeBlock from "./extensions/MonacoCodeBlock";
 import Toolbar from "./Toolbar";
@@ -26,7 +23,6 @@ const WriteEditor = ({ onSubmit }) => {
         codeBlock: false,
       }),
 
-      // ⭐ 이미지 기능 복구 (필수)
       Image.configure({
         allowBase64: true,
         inline: false,
@@ -34,9 +30,6 @@ const WriteEditor = ({ onSubmit }) => {
           class: "tiptap-image",
         },
       }),
-
-      Link.configure({ openOnClick: false }),
-      Underline,
 
       TextAlign.configure({
         types: ["heading", "paragraph", "image"],
@@ -48,7 +41,6 @@ const WriteEditor = ({ onSubmit }) => {
       TableHeader,
 
       MonacoCodeBlock,
-      Gapcursor,
     ],
 
     editorProps: {
@@ -68,6 +60,12 @@ const WriteEditor = ({ onSubmit }) => {
 
   const isDark = theme === "dark";
 
+  // 본문 HTML에서 첫 번째 이미지 URL 추출
+  const extractFirstImage = (html) => {
+    const match = html.match(/<img[^>]+src=["']?([^>"']+)["']?[^>]*>/);
+    return match ? match[1] : null;
+  };
+
   return (
     <div
       style={{
@@ -84,7 +82,6 @@ const WriteEditor = ({ onSubmit }) => {
         transition: "all 0.3s",
       }}
     >
-      {/* 제목 */}
       <div
         style={{
           padding: "2rem",
@@ -110,16 +107,10 @@ const WriteEditor = ({ onSubmit }) => {
         />
       </div>
 
-      {/* Toolbar */}
       <div style={{ padding: "1.5rem" }}>
-        <Toolbar
-          editor={editor}
-          insertCodeBlock={insertCodeBlock}
-          theme={theme}
-        />
+        <Toolbar editor={editor} insertCodeBlock={insertCodeBlock} theme={theme} />
       </div>
 
-      {/* Editor */}
       <div
         style={{
           padding: "1.5rem 2rem",
@@ -135,7 +126,6 @@ const WriteEditor = ({ onSubmit }) => {
         <EditorContent editor={editor} />
       </div>
 
-      {/* Footer */}
       <div
         style={{
           padding: "1.5rem 2rem",
@@ -165,7 +155,11 @@ const WriteEditor = ({ onSubmit }) => {
         </button>
 
         <button
-          onClick={() => onSubmit({ title, content: editor.getHTML() })}
+          onClick={() => {
+            const html = editor.getHTML();
+            const representImage = extractFirstImage(html);
+            onSubmit({ title, content: html, representImage });
+          }}
           style={{
             padding: "0.625rem 2rem",
             borderRadius: "0.5rem",

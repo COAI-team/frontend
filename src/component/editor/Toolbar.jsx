@@ -27,7 +27,6 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
 
   const isDark = theme === "dark";
 
-  // 공통 버튼 – label 있으면 아이콘+텍스트 세로, 없으면 아이콘만
   const ToolbarButton = ({ onClick, active, children, title, label }) => {
     const hasLabel = !!label;
 
@@ -56,8 +55,8 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
               ? "rgb(196, 181, 253)"
               : "rgb(109, 40, 217)"
             : isDark
-              ? "rgb(156, 163, 175)"
-              : "rgb(107, 114, 128)",
+            ? "rgb(156, 163, 175)"
+            : "rgb(107, 114, 128)",
           border: active
             ? `1px solid ${
                 isDark ? "rgba(139, 92, 246, 0.4)" : "rgba(139, 92, 246, 0.3)"
@@ -108,90 +107,81 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
     />
   );
 
-const addImage = async () => {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "image/*";
-  input.click();
+  // 이미지 업로드 (S3 사용)
+  const addImage = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.click();
 
-  input.onchange = async () => {
-    const file = input.files?.[0];
-    if (!file) return;
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
 
-    const compressed = await imageCompression(file, {
-      maxSizeMB: 10,
-      maxWidthOrHeight: 1920,
-    });
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 10,
+        maxWidthOrHeight: 1920,
+      });
 
-    const LOADING = "이미지 업로드 중...";
+      const LOADING = "이미지 업로드 중...";
 
-    // 현재 커서 위치
-    const pos = editor.state.selection.from;
+      const pos = editor.state.selection.from;
 
-    // placeholder 삽입
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(pos, LOADING)
-      .run();
+      editor.chain().focus().insertContentAt(pos, LOADING).run();
 
-    try {
-      const formData = new FormData();
-      formData.append("file", compressed);
+      try {
+        const formData = new FormData();
+        formData.append("file", compressed);
 
-      const res = await axios.post(
-        "http://localhost:8090/api/images/upload",
-        formData
-      );
+        const res = await axios.post(
+          "http://localhost:8090/upload/image",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
 
-      // 서버 응답 URL 처리
-      const url =
-        typeof res.data === "string"
-          ? res.data
-          : res.data.url || res.data.path || res.data.src;
+        const url =
+          typeof res.data === "string"
+            ? res.data
+            : res.data.url || res.data.path || res.data.src;
 
-      if (!url) throw new Error("이미지 URL 없음");
+        if (!url) throw new Error("이미지 URL 없음");
 
-      // ---- ■ placeholder 지우기
-      editor
-        .chain()
-        .focus()
-        .setTextSelection({ from: pos, to: pos + LOADING.length })
-        .deleteSelection()
-        .run();
+        editor
+          .chain()
+          .focus()
+          .setTextSelection({ from: pos, to: pos + LOADING.length })
+          .deleteSelection()
+          .run();
 
-      // ---- ■ paragraph 밖으로 커서 이동 후 block 분리
-      editor
-        .chain()
-        .focus()
-        .setTextSelection(pos)
-        .splitBlock()
-        .insertContent({
-          type: "image",
-          attrs: { src: url },
-        })
-        .splitBlock()
-        .run();
+        editor
+          .chain()
+          .focus()
+          .setTextSelection(pos)
+          .splitBlock()
+          .insertContent({
+            type: "image",
+            attrs: { src: url },
+          })
+          .splitBlock()
+          .run();
+      } catch (err) {
+        console.error("이미지 업로드 실패:", err);
 
-    } catch (err) {
-      console.error("이미지 업로드 실패:", err);
+        editor
+          .chain()
+          .focus()
+          .setTextSelection({ from: pos, to: pos + LOADING.length })
+          .deleteSelection()
+          .run();
 
-      // 실패하면 placeholder 삭제
-      editor
-        .chain()
-        .focus()
-        .setTextSelection({ from: pos, to: pos + LOADING.length })
-        .deleteSelection()
-        .run();
-
-      alert("이미지 업로드 실패");
-    }
+        alert("이미지 업로드 실패");
+      }
+    };
   };
-};
-
-
-
-
 
   const addLink = () => {
     const url = window.prompt("링크 입력:");
@@ -204,7 +194,9 @@ const addImage = async () => {
         display: "flex",
         flexDirection: "column",
         gap: "0.6rem",
-        backgroundColor: isDark ? "rgba(31, 41, 55, 0.5)" : "rgba(249, 250, 251, 0.9)",
+        backgroundColor: isDark
+          ? "rgba(31, 41, 55, 0.5)"
+          : "rgba(249, 250, 251, 0.9)",
         padding: "0.9rem 1rem",
         borderRadius: "0.75rem",
         border: `1px solid ${
@@ -212,7 +204,7 @@ const addImage = async () => {
         }`,
       }}
     >
-      {/* 1줄: 아이콘 + 텍스트 라벨 */}
+      {/* 첫 번째 줄 */}
       <div
         style={{
           display: "flex",
@@ -250,11 +242,7 @@ const addImage = async () => {
 
         <Divider />
 
-        <ToolbarButton
-          onClick={insertCodeBlock}
-          title="코드 작성"
-          label="코드작성"
-        >
+        <ToolbarButton onClick={insertCodeBlock} title="코드 작성" label="코드작성">
           <Code size={18} />
         </ToolbarButton>
 
@@ -265,7 +253,7 @@ const addImage = async () => {
         </ToolbarButton>
       </div>
 
-      {/* 2줄: 아이콘만 */}
+      {/* 두 번째 줄 */}
       <div
         style={{
           display: "flex",
