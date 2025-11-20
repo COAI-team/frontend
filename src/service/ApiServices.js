@@ -17,16 +17,21 @@ export const login = async (payload) => {
 // 회원가입
 export const signup = async (payload) => {
     try {
-        const res = await axiosInstance.post("/users/register", payload, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            }
-        });
-        console.log("📨 [signup] 보내는 데이터:", payload);
+        const res = await axiosInstance.post("/users/register", payload);
         return res.data;
     } catch (err) {
         console.error("❌ [signup] axios error:", err);
-        return { error: err || "Unknown Error" };
+
+        // 🔥 백엔드에서 내려준 코드/메시지 있는 경우 그대로 반환
+        if (err.response && err.response.data) {
+            return {
+                error: true,
+                code: err.response.data.code,
+                message: err.response.data.message
+            };
+        }
+
+        return { error: true, message: "Unknown error" };
     }
 };
 

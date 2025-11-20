@@ -1,7 +1,16 @@
 import {useState, useRef} from "react";
 import {signup, sendEmailCode, verifyEmailCode} from "../../service/ApiServices";
+import AlertModal from "../../component/modal/AlertModal";
+import { useNavigate } from "react-router-dom";
 
 export default function SignUp() {
+    const navigate = useNavigate();
+    const [alertModal, setAlertModal] = useState({
+        open: false,
+        type: "success",
+        title: "",
+        message: "",
+    });
     const [profilePreview, setProfilePreview] = useState(null);
     const [profileFile, setProfileFile] = useState(null);
     const [password, setPassword] = useState("");
@@ -36,20 +45,35 @@ export default function SignUp() {
         const email = document.getElementById("email").value;
 
         if (!email) {
-            alert("이메일을 입력해주세요!");
+            setAlertModal({
+                open: true,
+                type: "warning",
+                title: "입력 필요",
+                message: "이메일을 입력해주세요!",
+            });
             return;
         }
 
         const result = await sendEmailCode(email);
 
         if (result.error) {
-            alert("인증번호 발송 실패!");
+            setAlertModal({
+                open: true,
+                type: "error",
+                title: "발송 실패",
+                message: "인증번호 발송 실패!",
+            });
             return;
         }
 
         startTimer(result.expireAt);
         setIsVerified(false);
-        alert("인증번호가 발송되었습니다!");
+        setAlertModal({
+            open: true,
+            type: "success",
+            title: "전송 완료",
+            message: "인증번호가 발송되었습니다!",
+        });
     };
 
     // 타이머
@@ -77,7 +101,12 @@ export default function SignUp() {
         const email = document.getElementById("email").value;
 
         if (!email || !code) {
-            alert("이메일과 인증번호를 입력해주세요.");
+            setAlertModal({
+                open: true,
+                type: "warning",
+                title: "입력 필요",
+                message: "이메일과 인증번호를 입력해주세요.",
+            });
             return;
         }
 
@@ -85,10 +114,20 @@ export default function SignUp() {
 
         if (result === "인증 성공") {
             setIsVerified(true);
-            alert("이메일 인증 성공!");
+            setAlertModal({
+                open: true,
+                type: "success",
+                title: "이메일 인증 완료",
+                message: "이메일 인증이 성공적으로 완료되었습니다!",
+            });
         } else {
             setIsVerified(false);
-            alert("인증번호가 올바르지 않습니다.");
+            setAlertModal({
+                open: true,
+                type: "error",
+                title: "인증 실패",
+                message: "인증번호가 올바르지 않습니다.",
+            });
         }
     };
 
@@ -96,53 +135,92 @@ export default function SignUp() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // 이메일 인증 확인
         if (!isVerified) {
-            alert("이메일 인증을 완료해주세요!");
+            setAlertModal({
+                open: true,
+                type: "warning",
+                title: "이메일 인증 필요",
+                message: "회원가입을 위해 이메일 인증을 완료해주세요!",
+            });
             return;
         }
 
+        // 비밀번호 조건 오류
         if (passwordMessage) {
-            alert(passwordMessage);
+            setAlertModal({
+                open: true,
+                type: "error",
+                title: "비밀번호 조건 불충족",
+                message: passwordMessage,
+            });
             return;
         }
 
+        // 비밀번호 불일치
         if (!isPasswordMatch) {
-            alert("비밀번호가 일치하지 않습니다.");
+            setAlertModal({
+                open: true,
+                type: "error",
+                title: "비밀번호 불일치",
+                message: "비밀번호가 일치하지 않습니다.",
+            });
             return;
         }
 
+        // 폼 데이터 수집
         const form = e.target;
         const name = form.name.value;
         const nickname = form.nickname.value;
         const email = form.email.value;
-        const profileImage = form.profileImage?.files[0] ?? null;
 
         const formData = new FormData();
         formData.append("name", name);
         formData.append("nickname", nickname);
         formData.append("email", email);
         formData.append("password", password);
+
         if (profileFile) {
-            formData.append("profileImage", profileFile);
+            formData.append("image", profileFile);
         }
 
-        // ✅ FormData 디버깅 로그
-        console.log("📤 [handleSubmit] FormData 내용 확인 ↓↓↓");
+        // 디버깅 로그
+        console.log("📤 [handleSubmit] FormData 내용 ↓↓↓");
         for (let [key, value] of formData.entries()) {
             console.log(" -", key, value);
         }
 
+        // 회원가입 요청
         const res = await signup(formData);
 
+        // 실패 처리
         if (res.error) {
-            alert("회원가입 실패! 서버 오류가 발생했습니다.");
-        } else {
-            alert("회원가입 성공!");
+            setAlertModal({
+                open: true,
+                type: "error",
+                title: "회원가입 실패",
+                message: res.message,
+            });
+            return;
         }
+
+        // 성공 처리
+        setAlertModal({
+            open: true,
+            type: "success",
+            title: "회원가입 성공!",
+            message: "정상적으로 회원가입이 완료되었습니다!",
+        });
+
+        // 모달 닫힌 후 로그인 페이지 이동
+        setTimeout(() => {
+            navigate("/SignIn");
+        }, 1000);
     };
 
     return (
         <div className="flex h-full overflow-hidden">
+
             {/* Left image */}
             <div className="hidden lg:block w-1/2 relative">
                 <img
@@ -153,8 +231,7 @@ export default function SignUp() {
             </div>
 
             <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-16">
-                <div
-                    className="mx-auto w-full max-w-xl border dark:border-gray-700 rounded-xl shadow-lg p-8 dark:bg-gray-900">
+                <div className="mx-auto w-full max-w-xl border dark:border-gray-700 rounded-xl shadow-lg p-8 dark:bg-gray-900">
 
                     <h2 className="mt-2 text-2xl font-bold dark:text-white text-center">
                         회원가입
@@ -165,10 +242,9 @@ export default function SignUp() {
                         <div className="relative w-28 h-28">
                             <div className="w-full h-full rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
                                 {profilePreview ? (
-                                    <img src={profilePreview} className="object-cover w-full h-full" alt=""/>
+                                    <img src={profilePreview} className="object-cover w-full h-full" alt="" />
                                 ) : (
-                                    <div
-                                        className="flex items-center justify-center w-full h-full text-gray-500 text-sm dark:text-gray-300">
+                                    <div className="flex items-center justify-center w-full h-full text-gray-500 text-sm dark:text-gray-300">
                                         미리보기
                                     </div>
                                 )}
@@ -190,7 +266,7 @@ export default function SignUp() {
                                     const file = e.target.files?.[0];
                                     if (file) {
                                         setProfilePreview(URL.createObjectURL(file));
-                                        setProfileFile(file); // ← 저장
+                                        setProfileFile(file);
                                     }
                                 }}
                             />
@@ -203,9 +279,9 @@ export default function SignUp() {
                         {/* 이름 + 닉네임 */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div>
-                                <label
-                                    htmlFor="name"
-                                    className="block text-sm font-medium dark:text-gray-100">이름</label>
+                                <label htmlFor="name" className="block text-sm font-medium dark:text-gray-100">
+                                    이름
+                                </label>
                                 <input
                                     id="name"
                                     name="name"
@@ -217,9 +293,9 @@ export default function SignUp() {
                             </div>
 
                             <div>
-                                <label
-                                    htmlFor="nickname"
-                                    className="block text-sm font-medium dark:text-gray-100">닉네임</label>
+                                <label htmlFor="nickname" className="block text-sm font-medium dark:text-gray-100">
+                                    닉네임
+                                </label>
                                 <input
                                     id="nickname"
                                     name="nickname"
@@ -233,9 +309,9 @@ export default function SignUp() {
 
                         {/* 이메일 + 인증 */}
                         <div>
-                            <label
-                                htmlFor="email"
-                                className="block text-sm font-medium dark:text-gray-100">이메일</label>
+                            <label htmlFor="email" className="block text-sm font-medium dark:text-gray-100">
+                                이메일
+                            </label>
 
                             <div className="mt-2 flex gap-2">
                                 <input
@@ -287,9 +363,9 @@ export default function SignUp() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
                             <div>
-                                <label
-                                    htmlFor="password"
-                                    className="block text-sm font-medium dark:text-gray-100">비밀번호</label>
+                                <label htmlFor="password" className="block text-sm font-medium dark:text-gray-100">
+                                    비밀번호
+                                </label>
                                 <input
                                     id="password"
                                     name="password"
@@ -307,9 +383,9 @@ export default function SignUp() {
                             </div>
 
                             <div>
-                                <label
-                                    htmlFor="passwordConfirm"
-                                    className="block text-sm font-medium dark:text-gray-100">비밀번호 확인</label>
+                                <label htmlFor="passwordConfirm" className="block text-sm font-medium dark:text-gray-100">
+                                    비밀번호 확인
+                                </label>
                                 <input
                                     id="passwordConfirm"
                                     name="passwordConfirm"
@@ -332,7 +408,7 @@ export default function SignUp() {
                             type="submit"
                             disabled={!isVerified}
                             className={`mt-4 flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold 
-                                ${
+              ${
                                 isVerified
                                     ? "bg-indigo-600 text-white hover:bg-indigo-500"
                                     : "bg-gray-400 cursor-not-allowed"
@@ -343,6 +419,14 @@ export default function SignUp() {
                     </form>
                 </div>
             </div>
+            <AlertModal
+                open={alertModal.open}
+                onClose={() => setAlertModal((prev) => ({ ...prev, open: false }))}
+                type={alertModal.type}
+                title={alertModal.title}
+                message={alertModal.message}
+            />
+
         </div>
     );
 }

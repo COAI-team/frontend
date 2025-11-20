@@ -10,23 +10,24 @@ import {
     MoonIcon,
     SunIcon,
 } from '@heroicons/react/24/outline'
-import { Link, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { useTheme } from 'next-themes'
-import PropTypes from 'prop-types'
+import {Link, useLocation} from 'react-router-dom'
+import {useState, useEffect} from 'react'
+import {useTheme} from 'next-themes'
+import {NavLinksPropTypes} from "../../utils/propTypes";
+import AlertModal from "../modal/AlertModal.jsx";
 
 const initialNavigation = [
-    { name: '코드 분석', href: '/codeAnalysis' },
-    { name: '알고리즘', href: '/algorithms' },
-    { name: '결제', href: '/payments' },
+    {name: '코드 분석', href: '/codeAnalysis'},
+    {name: '알고리즘', href: '/algorithms'},
+    {name: '결제', href: '/payments'},
 ]
 
 function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
 }
 
-function NavLinks({ mobile = false, navigation, onLinkClick }) {
-    const { theme } = useTheme()
+function NavLinks({mobile = false, navigation, onLinkClick}) {
+    const {theme} = useTheme()
 
     const baseClass = mobile
         ? 'block rounded-md px-3 py-2 text-base font-bold'
@@ -67,25 +68,13 @@ function NavLinks({ mobile = false, navigation, onLinkClick }) {
     )
 }
 
-NavLinks.propTypes = {
-    mobile: PropTypes.bool,
-    navigation: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string.isRequired,
-            href: PropTypes.string.isRequired,
-            current: PropTypes.bool,
-        })
-    ).isRequired,
-    onLinkClick: PropTypes.func.isRequired,
-}
-
 export default function Navbar() {
     const location = useLocation()
     const [navigation, setNavigation] = useState(
-        initialNavigation.map((item) => ({ ...item, current: false }))
+        initialNavigation.map((item) => ({...item, current: false}))
     )
 
-    const { theme, setTheme } = useTheme()
+    const {theme, setTheme} = useTheme()
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => setMounted(true), [])
@@ -174,7 +163,8 @@ export default function Navbar() {
                     </div>
 
                     {/* Right side icons */}
-                    <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+                    <div
+                        className="absolute inset-y-0 right-0 flex items-center gap-2 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
                         {/* Notification Button */}
                         <button
                             type="button"
@@ -186,7 +176,7 @@ export default function Navbar() {
                             }`}
                         >
                             <span className="sr-only">View notifications</span>
-                            <BellIcon aria-hidden="true" className="size-6" />
+                            <BellIcon aria-hidden="true" className="size-6"/>
                         </button>
 
                         {/* Theme toggle */}
@@ -202,9 +192,9 @@ export default function Navbar() {
                             }`}
                         >
                             {theme === 'light' ? (
-                                <MoonIcon className="w-5 h-5" />
+                                <MoonIcon className="w-5 h-5"/>
                             ) : (
-                                <SunIcon className="w-5 h-5" />
+                                <SunIcon className="w-5 h-5"/>
                             )}
                         </button>
 
@@ -237,3 +227,5 @@ export default function Navbar() {
         </Disclosure>
     )
 }
+
+AlertModal.propTypes = NavLinksPropTypes;

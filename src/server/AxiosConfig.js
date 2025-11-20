@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const axiosInstance = axios.create({
-    baseURL: "/api",     // 🔥 반드시 /api로 변경 (proxy 강제 사용)
+    baseURL: "/api",
     timeout: 10000,
     withCredentials: false,
 });
