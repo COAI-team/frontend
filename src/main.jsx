@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import Layout from "./component/layout/Layout";
+import Layout from "./components/layout/Layout";
 import Main from "./pages/Main";
 
 // 사용자 관련 컴포넌트

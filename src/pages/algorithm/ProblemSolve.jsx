@@ -1,6 +1,5 @@
-// src/pages/algorithm/ProblemSolve.jsx
 import React, { useState, useEffect } from 'react';
-import NavBar from '../../components/common/NavBar';
+import NavBar from '../../components/layout/NavBar';
 
 const ProblemSolve = () => {
   const [code, setCode] = useState('// Type some code ->');
