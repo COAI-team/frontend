@@ -1,7 +1,7 @@
 import React from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import WriteEditor from "../../component/editor/WriteEditor";
+import WriteEditor from "../../components/editor/WriteEditor";
 
 const FreeboardWrite = () => {
   const navigate = useNavigate();
