@@ -14,6 +14,7 @@ import MonacoCodeBlock from "./extensions/MonacoCodeBlock";
 import LinkPreview from "./extensions/LinkPreview";
 import { BlockImage } from "./extensions/ImageBlock.js";
 import { ImageLoading } from "./extensions/ImageLoading.js";
+import { InlineSticker } from "./extensions/InlineSticker.js";
 import Toolbar from "./Toolbar";
 import { useTheme } from "next-themes";
 import "../../styles/tiptap.css";
@@ -44,9 +45,9 @@ const WriteEditor = ({ onSubmit }) => {
     let hasAnyImage = false;
     let firstImagePos = null;
 
-    // 대표 이미지가 있는지, 이미지가 있는지 확인
+    // 대표 이미지가 있는지, 이미지가 있는지 확인 (스티커 제외)
     editor.state.doc.descendants((node, pos) => {
-      if (node.type.name === "blockImage") {
+      if (node.type.name === "blockImage" && !node.attrs.isSticker) {
         hasAnyImage = true;
         if (firstImagePos === null) {
           firstImagePos = pos;
@@ -83,6 +84,7 @@ const WriteEditor = ({ onSubmit }) => {
 
       BlockImage, // 대표이미지 기능 포함
       ImageLoading, // 이미지 업로드 로딩 스피너
+      InlineSticker, // 인라인 스티커 (텍스트와 같은 줄)
 
       TextAlign.configure({
         types: ["heading", "paragraph"],
@@ -228,7 +230,7 @@ const WriteEditor = ({ onSubmit }) => {
     let firstImage = null;
 
     editor.state.doc.descendants((node) => {
-      if (node.type.name === "blockImage") {
+      if (node.type.name === "blockImage" && !node.attrs.isSticker) {
         if (!firstImage) firstImage = node.attrs.src;
         if (node.attrs.isRepresentative) {
           representImage = node.attrs.src;
@@ -304,6 +306,9 @@ const WriteEditor = ({ onSubmit }) => {
         style={{
           padding: "1.5rem 2rem",
           minHeight: "400px",
+          fontSize: "1.125rem", // 18px - 벨로그 스타일
+          lineHeight: "1.7", // 줄간격
+          color: isDark ? "rgb(229, 231, 235)" : "rgb(31, 41, 55)",
         }}
       >
         <EditorContent editor={editor} />

@@ -99,18 +99,6 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker}) => {
           <Table size={18} />
         </ToolbarButton>
 
-
-        <ToolbarButton
-          onClick={() =>
-            editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run()
-          }
-          title="표"
-          label="표"
-          isDark={isDark}
-        >
-          <Table size={18} />
-        </ToolbarButton>
-
         <Divider />
 
         <ToolbarButton

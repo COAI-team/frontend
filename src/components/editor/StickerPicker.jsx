@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { STICKER_GROUPS, stickerToImageNode } from "./extensions/OpenmojiStickers.js";
+import { STICKER_GROUPS, openmojiUrl } from "./extensions/OpenmojiStickers";
 
 // 이모티콘 카테고리 탭 + 미리보기
 const StickerPicker = ({ editor, onClose, isDark }) => {
@@ -11,7 +11,12 @@ const StickerPicker = ({ editor, onClose, isDark }) => {
   const handleSelect = (sticker) => {
     if (!editor || !sticker.hex) return;
 
-    editor.chain().focus().insertContent(stickerToImageNode(sticker)).run();
+    // 인라인 스티커로 삽입
+    editor.chain().focus().insertInlineSticker({
+      src: openmojiUrl(sticker.hex),
+      alt: sticker.label,
+    }).run();
+    
     onClose?.();
   };
 
@@ -23,7 +28,7 @@ const StickerPicker = ({ editor, onClose, isDark }) => {
         left: "1.5rem",
         zIndex: 40,
         width: "420px",
-        maxHeight: "360px",
+        maxHeight: "400px",
         display: "flex",
         flexDirection: "column",
         backgroundColor: isDark ? "#111827" : "#ffffff",
@@ -95,15 +100,16 @@ const StickerPicker = ({ editor, onClose, isDark }) => {
       {/* 스티커 그리드 */}
       <div
         style={{
-          padding: "0.6rem 0.7rem 0.8rem",
+          padding: "0.8rem",
           overflowY: "auto",
+          maxHeight: "320px",
         }}
       >
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
-            gap: "0.4rem",
+            gap: "0.5rem",
           }}
         >
           {activeGroup.items.map((sticker) => (
@@ -117,40 +123,72 @@ const StickerPicker = ({ editor, onClose, isDark }) => {
                 border: "none",
                 cursor: sticker.hex ? "pointer" : "not-allowed",
                 background: "transparent",
-                padding: "0.25rem",
+                padding: "0.5rem",
                 borderRadius: "0.5rem",
                 transition: "background 0.15s",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "0.25rem",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = isDark
-                  ? "rgba(55, 65, 81, 0.8)"
-                  : "rgba(243, 244, 246, 1)";
+                if (sticker.hex) {
+                  e.currentTarget.style.backgroundColor = isDark
+                    ? "rgba(55, 65, 81, 0.8)"
+                    : "rgba(243, 244, 246, 1)";
+                }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
-              {/* PNG 스티커 미리보기 대신, 텍스트 이모티콘 + 라벨 간단히 */}
-              {sticker.emoji ? (
-                <div
-                  style={{
-                    fontSize: "1.4rem",
-                    textAlign: "center",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  {sticker.emoji}
-                </div>
+              {/* OpenMoji SVG 미리보기 */}
+              {sticker.hex ? (
+                <>
+                  <img
+                    src={openmojiUrl(sticker.hex)}
+                    alt={sticker.label}
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      objectFit: "contain",
+                    }}
+                    onError={(e) => {
+                      // 이미지 로드 실패 시 이모티콘으로 대체
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                  <div
+                    style={{
+                      fontSize: "1.8rem",
+                      display: "none",
+                    }}
+                  >
+                    {sticker.emoji || "📦"}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.6rem",
+                      color: isDark ? "#9CA3AF" : "#6B7280",
+                      textAlign: "center",
+                      lineHeight: 1,
+                      marginTop: "0.15rem",
+                    }}
+                  >
+                    {sticker.label}
+                  </div>
+                </>
               ) : (
                 <div
                   style={{
-                    fontSize: "0.65rem",
+                    fontSize: "0.7rem",
                     textAlign: "center",
                     lineHeight: 1.2,
-                    color: isDark ? "#D1D5DB" : "#4B5563",
+                    color: isDark ? "#6B7280" : "#9CA3AF",
                   }}
                 >
-                  {sticker.label}
+                  준비중
                 </div>
               )}
             </button>

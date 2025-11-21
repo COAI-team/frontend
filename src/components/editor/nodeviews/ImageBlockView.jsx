@@ -130,7 +130,8 @@ const ImageBlockView = ({ node, updateAttributes, deleteNode, editor }) => {
         <img
           src={src}
           alt={alt || ""}
-          draggable={false}
+          draggable={true}
+          data-drag-handle
           style={{
             maxWidth: "100%",
             borderRadius: "0.5rem",
@@ -138,6 +139,14 @@ const ImageBlockView = ({ node, updateAttributes, deleteNode, editor }) => {
             border: isRepresentative
               ? "3px solid rgb(234, 179, 8)"
               : "1px solid transparent",
+            cursor: "move",
+            // 스티커용 스타일 추가
+            minWidth: src.includes('openmoji') ? "80px" : "auto",
+            minHeight: src.includes('openmoji') ? "80px" : "auto",
+            width: src.includes('openmoji') ? "80px" : "auto",
+            height: src.includes('openmoji') ? "80px" : "auto",
+            objectFit: "contain",
+            backgroundColor: src.includes('openmoji') ? "transparent" : "transparent",
           }}
         />
       </div>
