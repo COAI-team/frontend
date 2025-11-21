@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { Table } from "@tiptap/extension-table";
@@ -9,17 +8,65 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import imageCompression from "browser-image-compression";
+import StickerPicker from "./StickerPicker";
 
 import MonacoCodeBlock from "./extensions/MonacoCodeBlock";
 import LinkPreview from "./extensions/LinkPreview";
+import { BlockImage } from "./extensions/ImageBlock.js";
+import { ImageLoading } from "./extensions/ImageLoading.js";
 import Toolbar from "./Toolbar";
 import { useTheme } from "next-themes";
 import "../../styles/tiptap.css";
+
 import axios from "axios";
 
 const WriteEditor = ({ onSubmit }) => {
   const [title, setTitle] = useState("");
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { theme } = useTheme();
+
+  // 대표 이미지가 있는지 확인하는 헬퍼 함수
+  const checkIfHasRepresentative = (editor) => {
+    let hasRepresentative = false;
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === "blockImage" && node.attrs.isRepresentative) {
+        hasRepresentative = true;
+      }
+    });
+    return hasRepresentative;
+  };
+
+  // 첫 번째 이미지를 자동으로 대표로 설정하는 함수 (useEditor 위에 선언)
+  const updateFirstImageAsRepresentative = (editor) => {
+    if (!editor) return;
+
+    let hasRepresentative = false;
+    let hasAnyImage = false;
+    let firstImagePos = null;
+
+    // 대표 이미지가 있는지, 이미지가 있는지 확인
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "blockImage") {
+        hasAnyImage = true;
+        if (firstImagePos === null) {
+          firstImagePos = pos;
+        }
+        if (node.attrs.isRepresentative) {
+          hasRepresentative = true;
+        }
+      }
+    });
+
+    // 이미지가 있는데 대표가 하나도 없으면 첫 번째를 대표로 설정
+    if (hasAnyImage && !hasRepresentative && firstImagePos !== null) {
+      editor.view.dispatch(
+        editor.state.tr.setNodeMarkup(firstImagePos, null, {
+          ...editor.state.doc.nodeAt(firstImagePos).attrs,
+          isRepresentative: true,
+        })
+      );
+    }
+  };
 
   const editor = useEditor({
     extensions: [
@@ -34,23 +81,17 @@ const WriteEditor = ({ onSubmit }) => {
         autolink: false,
       }),
 
-      Image.configure({
-        allowBase64: true,
-        inline: false,
-        HTMLAttributes: {
-          class: "tiptap-image",
-        },
-      }),
+      BlockImage, // 대표이미지 기능 포함
+      ImageLoading, // 이미지 업로드 로딩 스피너
 
       TextAlign.configure({
-        types: ["heading", "paragraph", "image"],
+        types: ["heading", "paragraph"],
       }),
 
       Table.configure({ resizable: true }),
       TableRow,
       TableCell,
       TableHeader,
-
       MonacoCodeBlock,
       LinkPreview,
     ],
@@ -60,9 +101,7 @@ const WriteEditor = ({ onSubmit }) => {
         event.preventDefault();
         event.stopPropagation();
 
-        if (moved) {
-          return false;
-        }
+        if (moved) return false;
 
         const files = Array.from(event.dataTransfer.files);
         if (!files.length) return false;
@@ -70,72 +109,105 @@ const WriteEditor = ({ onSubmit }) => {
         const file = files[0];
 
         if (file.type.startsWith("image/")) {
-          // 우리가 만든 업로드 함수로 연결 (프론트 이미지 업로드 로직)
           uploadImageByDrop(file);
           return true;
         }
 
         return false;
-      }
-    }
+      },
+    },
   });
 
   async function uploadImageByDrop(file) {
-    // 원본 파일명 저장
     const originalFileName = file.name;
-    console.log("드롭한 파일명:", originalFileName);
-    
+
     try {
-      // 1MB로 압축
-      const options = {
+      // 로딩 스피너 먼저 삽입
+      editor.chain().focus().insertImageLoading().run();
+
+      // 이미지 압축
+      const compressed = await imageCompression(file, {
         maxSizeMB: 1,
         maxWidthOrHeight: 1920,
         useWebWorker: true,
-      };
-
-      const compressed = await imageCompression(file, options);
-      
-      console.log("압축 후 크기:", (compressed.size / 1024 / 1024).toFixed(2) + "MB");
+      });
 
       const formData = new FormData();
-      
-      // 압축된 파일을 원본 파일명으로 새로 생성
-      const fileToUpload = new File(
-        [compressed],
-        originalFileName,
-        { 
-          type: compressed.type || file.type,
-          lastModified: Date.now()
-        }
-      );
-      
-      console.log("업로드할 파일명:", fileToUpload.name);
+
+      const fileToUpload = new File([compressed], originalFileName, {
+        type: compressed.type || file.type,
+        lastModified: Date.now(),
+      });
+
       formData.append("file", fileToUpload);
 
-      // 업로드 요청
       const res = await axios.post(
         "http://localhost:8090/upload/image",
         formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          headers: { "Content-Type": "multipart/form-data" },
         }
       );
 
       const url = res.data;
-      console.log("드래그 업로드 성공:", url);
 
-      // 커서가 이미지 위라면 새로운 줄 추가해서 덮어쓰기 방지
-      const { state } = editor;
-      const node = state.selection.$from.parent;
-      if (node.type.name === "image") {
-        editor.commands.insertContent("<p></p>");
+      // 로딩 스피너 찾아서 이미지로 교체 (마지막 로딩 스피너)
+      let loadingPos = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "imageLoading") {
+          loadingPos = pos; // 마지막 것으로 계속 업데이트
+        }
+      });
+
+      if (loadingPos !== null) {
+        // 스피너 삭제하고 같은 위치에 이미지 삽입
+        const hasRepresentative = checkIfHasRepresentative(editor);
+        
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: loadingPos, to: loadingPos + 1 })
+          .setTextSelection(loadingPos)
+          .setBlockImage({ 
+            src: url,
+            isRepresentative: !hasRepresentative // 대표가 없으면 자동으로 설정
+          })
+          .run();
+        
+        // 이미지 다음 위치로 커서 이동
+        setTimeout(() => {
+          const newPos = loadingPos + 1;
+          editor
+            .chain()
+            .focus()
+            .setTextSelection(newPos)
+            .run();
+        }, 0);
+      } else {
+        // 로딩 스피너를 못 찾으면 현재 위치에 삽입
+        const hasRepresentative = checkIfHasRepresentative(editor);
+        editor.chain().focus().setBlockImage({ 
+          src: url,
+          isRepresentative: !hasRepresentative
+        }).run();
+      }
+    } catch (error) {
+      // 에러 발생 시 로딩 스피너 삭제 (마지막 것)
+      let loadingPos = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "imageLoading") {
+          loadingPos = pos; // 마지막 것으로 계속 업데이트
+        }
+      });
+
+      if (loadingPos !== null) {
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: loadingPos, to: loadingPos + 1 })
+          .run();
       }
 
-      editor.chain().focus().setImage({ src: url }).run();
-    } catch (error) {
-      console.error("드래그 이미지 업로드 실패:", error);
       alert(`이미지 업로드 실패: ${error.message}`);
     }
   }
@@ -150,10 +222,21 @@ const WriteEditor = ({ onSubmit }) => {
 
   const isDark = theme === "dark";
 
-  // 본문 HTML에서 첫 번째 이미지 URL 추출
-  const extractFirstImage = (html) => {
-    const match = html.match(/<img[^>]+src=["']?([^>"']+)["']?[^>]*>/);
-    return match ? match[1] : null;
+  // 대표 이미지 추출
+  const getRepresentativeImage = () => {
+    let representImage = null;
+    let firstImage = null;
+
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === "blockImage") {
+        if (!firstImage) firstImage = node.attrs.src;
+        if (node.attrs.isRepresentative) {
+          representImage = node.attrs.src;
+        }
+      }
+    });
+
+    return representImage || firstImage;
   };
 
   return (
@@ -172,6 +255,7 @@ const WriteEditor = ({ onSubmit }) => {
         transition: "all 0.3s",
       }}
     >
+      {/* 제목 입력 */}
       <div
         style={{
           padding: "2rem",
@@ -197,25 +281,35 @@ const WriteEditor = ({ onSubmit }) => {
         />
       </div>
 
-      <div style={{ padding: "1.5rem" }}>
-        <Toolbar editor={editor} insertCodeBlock={insertCodeBlock} theme={theme} />
+      {/* 툴바 + 스티커 */}
+      <div style={{ padding: "1.5rem", position: "relative" }}>
+        <Toolbar
+          editor={editor}
+          insertCodeBlock={insertCodeBlock}
+          theme={theme}
+          onToggleSticker={() => setShowStickerPicker((v) => !v)}
+        />
+
+        {showStickerPicker && (
+          <StickerPicker
+            editor={editor}
+            isDark={isDark}
+            onClose={() => setShowStickerPicker(false)}
+          />
+        )}
       </div>
 
+      {/* 에디터 본문 */}
       <div
         style={{
           padding: "1.5rem 2rem",
           minHeight: "400px",
-          backgroundColor: isDark ? "#1a1a1a" : "white",
-          display: "block",
-          flex: "none",
-          alignSelf: "stretch",
-          width: "100%",
-          overflow: "visible",
         }}
       >
         <EditorContent editor={editor} />
       </div>
 
+      {/* 하단 버튼 */}
       <div
         style={{
           padding: "1.5rem 2rem",
@@ -247,7 +341,7 @@ const WriteEditor = ({ onSubmit }) => {
         <button
           onClick={() => {
             const html = editor.getHTML();
-            const representImage = extractFirstImage(html);
+            const representImage = getRepresentativeImage();
             onSubmit({ title, content: html, representImage });
           }}
           style={{

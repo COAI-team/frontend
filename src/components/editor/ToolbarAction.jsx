@@ -1,6 +1,17 @@
 import axios from "axios";
 import imageCompression from "browser-image-compression";
 
+// 대표 이미지가 있는지 확인하는 헬퍼 함수
+const checkIfHasRepresentative = (editor) => {
+  let hasRepresentative = false;
+  editor.state.doc.descendants((node) => {
+    if (node.type.name === "blockImage" && node.attrs.isRepresentative) {
+      hasRepresentative = true;
+    }
+  });
+  return hasRepresentative;
+};
+
 // 이미지 업로드
 export const addImage = async (editor) => {
   const input = document.createElement("input");
@@ -15,16 +26,14 @@ export const addImage = async (editor) => {
     const originalFileName = file.name;
 
     try {
+      // 로딩 스피너 먼저 삽입
+      editor.chain().focus().insertImageLoading().run();
+
       const compressed = await imageCompression(file, {
         maxSizeMB: 1,
         maxWidthOrHeight: 1920,
         useWebWorker: true,
       });
-
-      const LOADING = "이미지 업로드 중...";
-      const pos = editor.state.selection.from;
-
-      editor.chain().focus().insertContentAt(pos, LOADING).run();
 
       const fileToUpload = new File([compressed], originalFileName, {
         type: compressed.type || file.type,
@@ -49,34 +58,63 @@ export const addImage = async (editor) => {
 
       if (!url) throw new Error("이미지 URL 없음");
 
-      editor
-        .chain()
-        .focus()
-        .setTextSelection({ from: pos, to: pos + LOADING.length })
-        .deleteSelection()
-        .run();
+      // 로딩 스피너 찾아서 이미지로 교체 (마지막 로딩 스피너)
+      let loadingPos = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "imageLoading") {
+          loadingPos = pos; // 마지막 것으로 계속 업데이트
+        }
+      });
 
-      editor
-        .chain()
-        .focus()
-        .setTextSelection(pos)
-        .splitBlock()
-        .insertContent({
-          type: "image",
-          attrs: { src: url },
-        })
-        .splitBlock()
-        .run();
+      if (loadingPos !== null) {
+        // 스피너 삭제하고 같은 위치에 이미지 삽입
+        const hasRepresentative = checkIfHasRepresentative(editor);
+        
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: loadingPos, to: loadingPos + 1 })
+          .setTextSelection(loadingPos)
+          .setBlockImage({ 
+            src: url,
+            isRepresentative: !hasRepresentative // 대표가 없으면 자동으로 설정
+          })
+          .run();
+        
+        // 이미지 다음 위치로 커서 이동
+        setTimeout(() => {
+          const newPos = loadingPos + 1;
+          editor
+            .chain()
+            .focus()
+            .setTextSelection(newPos)
+            .run();
+        }, 0);
+      } else {
+        // 로딩 스피너를 못 찾으면 현재 위치에 삽입
+        const hasRepresentative = checkIfHasRepresentative(editor);
+        editor.chain().focus().setBlockImage({ 
+          src: url,
+          isRepresentative: !hasRepresentative
+        }).run();
+      }
+
     } catch (err) {
-      const pos = editor.state.selection.from;
-      const LOADING = "이미지 업로드 중...";
+      // 에러 발생 시 로딩 스피너 삭제 (마지막 것)
+      let loadingPos = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "imageLoading") {
+          loadingPos = pos; // 마지막 것으로 계속 업데이트
+        }
+      });
 
-      editor
-        .chain()
-        .focus()
-        .setTextSelection({ from: pos, to: pos + LOADING.length })
-        .deleteSelection()
-        .run();
+      if (loadingPos !== null) {
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: loadingPos, to: loadingPos + 1 })
+          .run();
+      }
 
       alert(`이미지 업로드 실패: ${err.message}`);
     }

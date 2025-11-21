@@ -21,9 +21,9 @@ import {
 } from "lucide-react";
 
 import ToolbarButton from "./ToolbarButton";
-import { addImage, addLink, removeLink, addLinkCard } from "./ToolbarAction";
+import { addImage, addLink, addLinkCard } from "./ToolbarAction";
 
-const Toolbar = ({ editor, insertCodeBlock, theme }) => {
+const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker}) => {
   if (!editor) return null;
 
   const isDark = theme === "dark";
@@ -271,7 +271,13 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
 
         <Divider />
 
-        <ToolbarButton title="이모지" isDark={isDark}>
+        <ToolbarButton
+          onClick={onToggleSticker}
+          title="스티커"
+          label="스티커"
+          isDark={isDark}
+        >
+          {/* 아이콘은 적당히 Smile 쓰거나, 나중에 다른 걸로 변경 */}
           <Smile size={18} />
         </ToolbarButton>
       </div>
