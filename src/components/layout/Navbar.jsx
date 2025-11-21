@@ -15,9 +15,8 @@ import {useState, useEffect} from 'react'
 import {useTheme} from 'next-themes'
 import {NavLinksPropTypes} from "../../utils/propTypes";
 import AlertModal from "../modal/AlertModal.jsx";
-
-// 🔥 LoginContext 추가
 import { useLogin } from "../../context/LoginContext.js";
+import Dropdown from "../dropdown/Dropdown";
 
 const initialNavigation = [
     {name: '코드 분석', href: '/codeAnalysis'},
@@ -77,10 +76,10 @@ export default function Navbar() {
 
     const {theme, setTheme} = useTheme()
     const [mounted, setMounted] = useState(false)
-
+    const BASE_URL = import.meta.env.VITE_API_URL;
     // 🔥 로그인 정보 불러오기
     const { user, logout } = useLogin();
-
+    console.log("🟦 Navbar user 값:", user);
     useEffect(() => setMounted(true), [])
 
     // 현재 경로에 따라 활성 메뉴 업데이트
@@ -199,27 +198,30 @@ export default function Navbar() {
 
                         {/* 🔥 로그인 상태 UI */}
                         {user ? (
-                            <>
-                                <span className="text-sm font-semibold mr-2">
-                                    {user.username} 님
-                                </span>
-
-                                <button
-                                    onClick={logout}
-                                    className={`ml-2 rounded-md px-3 py-1.5 text-sm font-semibold 
-                                        ${theme === 'light'
-                                        ? 'bg-red-500 text-white hover:bg-red-400'
-                                        : 'bg-red-600 text-white hover:bg-red-500'
-                                    }`}
-                                >
-                                    로그아웃
-                                </button>
-                            </>
+                            <div className="flex items-center">
+                                <Dropdown
+                                    button={
+                                        <img
+                                            src={
+                                                user.image?.startsWith("http")
+                                                    ? user.image
+                                                    : `${BASE_URL}${user.image || ""}`
+                                            }
+                                            className="w-8 h-8 rounded-full object-cover border border-gray-300"
+                                            alt="프로필"
+                                        />
+                                    }
+                                    items={[
+                                        { label: "마이페이지", href: "/mypage" },
+                                        { label: "로그아웃", onClick: logout }
+                                    ]}
+                                />
+                            </div>
                         ) : (
                             <Link
                                 to="/signin"
                                 className={`ml-2 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm
-                                    ${theme === 'light'
+            ${theme === 'light'
                                     ? 'bg-indigo-600 text-white hover:bg-indigo-500'
                                     : 'bg-indigo-500 text-white hover:bg-indigo-400'
                                 }`}
@@ -247,3 +249,4 @@ export default function Navbar() {
 }
 
 AlertModal.propTypes = NavLinksPropTypes;
+NavLinks.propTypes = NavLinksPropTypes;

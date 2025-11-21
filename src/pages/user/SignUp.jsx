@@ -1,6 +1,6 @@
 import {useState, useRef} from "react";
 import {signup, sendEmailCode, verifyEmailCode} from "../../service/ApiServices";
-import AlertModal from "../../component/modal/AlertModal";
+import AlertModal from "../../components/modal/AlertModal";
 import { useNavigate } from "react-router-dom";
 
 export default function SignUp() {
@@ -210,12 +210,8 @@ export default function SignUp() {
             type: "success",
             title: "회원가입 성공!",
             message: "정상적으로 회원가입이 완료되었습니다!",
+            onConfirm: () => navigate("/SignIn"),
         });
-
-        // 모달 닫힌 후 로그인 페이지 이동
-        setTimeout(() => {
-            navigate("/SignIn");
-        }, 5000);
     };
 
     return (
@@ -422,11 +418,11 @@ export default function SignUp() {
             <AlertModal
                 open={alertModal.open}
                 onClose={() => setAlertModal((prev) => ({ ...prev, open: false }))}
+                onConfirm={alertModal.onConfirm}
                 type={alertModal.type}
                 title={alertModal.title}
                 message={alertModal.message}
             />
-
         </div>
     );
 }

@@ -27,3 +27,19 @@ export const NavLinksPropTypes = {
     ).isRequired,
     onLinkClick: PropTypes.func.isRequired,
 };
+
+
+/* ----------------------------------------
+ * Dropdown PropTypes
+ * ---------------------------------------- */
+export const DropdownPropTypes = {
+    button: PropTypes.node.isRequired,
+    items: PropTypes.arrayOf(
+        PropTypes.shape({
+            label: PropTypes.string.isRequired,   // 메뉴 이름
+            href: PropTypes.string,               // 링크 이동
+            onClick: PropTypes.func,              // 클릭 이벤트
+        })
+    ).isRequired,
+    width: PropTypes.string,                     // 메뉴 너비 (옵션)
+};
