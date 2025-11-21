@@ -21,17 +21,14 @@ export default function Footer() {
     return (
         <footer className={`${footerStyle} transition-colors border-t ${borderStyle} py-10`}>
             <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-                {/* 좌측 이름 및 설명 */}
-                <div className="text-center md:text-left">
-                    <h2 className={`font-bold text-xl ${theme === "light" ? "text-gray-900" : "text-white"}`}>
-                        CodeNemsy
-                    </h2>
-                    <p className="text-sm mt-1 opacity-80">
-                        Creating code with purpose and design with passion.
-                    </p>
+                {/* 좌측 영역 (카피라이트 포함) */}
+                <div className="flex items-center h-full text-center md:text-left">
+                    <div className={`text-sm ${textStyle}`}>
+                        {'\u00A9'} {new Date().getFullYear()} COAI — All rights reserved.
+                    </div>
                 </div>
 
-                {/* ✅ 소셜 아이콘 렌더링 (중복 제거) */}
+                {/* 소셜 아이콘 */}
                 <div className="flex space-x-6 text-2xl">
                     {socialLinks.map((link, index) => (
                         <Link
@@ -45,11 +42,6 @@ export default function Footer() {
                         </Link>
                     ))}
                 </div>
-            </div>
-
-            {/* 하단 카피라이트 */}
-            <div className={`mt-6 border-t ${borderStyle} pt-4 text-center text-sm ${textStyle}`}>
-                {'\u00A9'} {new Date().getFullYear()} CodeNemsy — All rights reserved.
             </div>
         </footer>
     );
