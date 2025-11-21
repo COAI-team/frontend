@@ -20,7 +20,7 @@ import { useLogin } from "../../context/LoginContext.js";
 
 const initialNavigation = [
     {name: '코드 분석', href: '/codeAnalysis'},
-    {name: '알고리즘', href: '/algorithms'},
+    {name: '알고리즘', href: '/algorithm'},
     {name: '결제', href: '/payments'},
 ]
 
