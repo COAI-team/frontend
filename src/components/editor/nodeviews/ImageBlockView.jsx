@@ -35,16 +35,18 @@ const ImageBlockView = ({ node, updateAttributes, deleteNode, editor }) => {
   };
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper as="div" data-drag-handle>
       <div
         style={{
           position: "relative",
           display: "inline-block",
           margin: "1rem 0",
           maxWidth: "100%",
+          cursor: isHovered ? "move" : "default",
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        data-drag-handle
       >
         {/* 대표 이미지 뱃지 */}
         {isRepresentative && (

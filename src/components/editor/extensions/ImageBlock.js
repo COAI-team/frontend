@@ -27,7 +27,9 @@ export const BlockImage = Node.create({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(ImageBlockView);
+    return ReactNodeViewRenderer(ImageBlockView, {
+      contentDOMElementTag: 'div',
+    });
   },
 
   addCommands() {
