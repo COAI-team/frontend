@@ -15,6 +15,12 @@ import FreeboardList from "./pages/freeboard/FreeboardList";
 import FreeboardDetail from "./pages/freeboard/FreeboardDetail";
 import FreeboardWrite from "./pages/freeboard/FreeboardWrite";
 
+// 알고리즘 도메인 컴포넌트
+import ProblemList from "./pages/algorithm/ProblemList";
+import ProblemGenerator from "./pages/algorithm/ProblemGenerator";
+import ProblemSolve from "./pages/algorithm/ProblemSolveTest"; 
+import SubmissionResult from "./pages/algorithm/SubmissionResult";  
+
 import { LoginProvider } from "./context/LoginContext.js";
 
 createRoot(document.getElementById("root")).render(
@@ -34,6 +40,13 @@ createRoot(document.getElementById("root")).render(
                             <Route path="freeboard/list" element={<FreeboardList/>}/>
                             <Route path="freeboard/write" element={<FreeboardWrite/>}/>
                             <Route path="freeboard/:id" element={<FreeboardDetail/>}/>
+
+                            {/* 알고리즘 도메인 라우트 */}
+                            <Route path="algorithm" element={<ProblemList/>}/>
+                            <Route path="algorithm/problems" element={<ProblemList/>}/>
+                            <Route path="algorithm/problems/generate" element={<ProblemGenerator/>}/>
+                            <Route path="algorithm/problems/:problemId/solve" element={<ProblemSolve/>}/>
+                            <Route path="algorithm/submissions/:submissionId" element={<SubmissionResult/>}/>
                         </Route>
                     </Routes>
                 </BrowserRouter>
