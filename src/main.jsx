@@ -22,9 +22,16 @@ import FreeboardList from "./pages/freeboard/FreeboardList";
 import FreeboardDetail from "./pages/freeboard/FreeboardDetail";
 import FreeboardWrite from "./pages/freeboard/FreeboardWrite";
 
+// 알고리즘 도메인 컴포넌트
+import ProblemList from "./pages/algorithm/ProblemList";
+import ProblemGenerator from "./pages/algorithm/ProblemGenerator";
+import ProblemSolve from "./pages/algorithm/ProblemSolve"; 
+import SubmissionResult from "./pages/algorithm/SubmissionResult";  
+
 import { LoginProvider } from "./context/LoginContext.js";
 
 createRoot(document.getElementById("root")).render(
+
   <StrictMode>
     <BrowserRouter>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
@@ -50,6 +57,14 @@ createRoot(document.getElementById("root")).render(
             <Route path="pages/payment/buy" element={<PaymentPage />} />
             <Route path="pages/payment/PaymentSuccess" element={<PaymentSuccess />} />
             <Route path="pages/payment/PaymentFail" element={<PaymentFail />} />
+              
+              
+              {/* 알고리즘 도메인 라우트 */}
+              <Route path="algorithm" element={<ProblemList/>}/>
+              <Route path="algorithm/problems" element={<ProblemList/>}/>
+              <Route path="algorithm/problems/generate" element={<ProblemGenerator/>}/>
+              <Route path="algorithm/problems/:problemId/solve" element={<ProblemSolve/>}/>
+              <Route path="algorithm/submissions/:submissionId" element={<SubmissionResult/>}/>
           </Route>
 
           {/* 🔹 혹시 모를 나머지 이상한 경로는 전부 홈으로 */}
