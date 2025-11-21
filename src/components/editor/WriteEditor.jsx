@@ -255,6 +255,7 @@ const WriteEditor = ({ onSubmit }) => {
           ? "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
           : "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
         transition: "all 0.3s",
+        position: "relative",
       }}
     >
       {/* 제목 입력 */}
@@ -283,8 +284,19 @@ const WriteEditor = ({ onSubmit }) => {
         />
       </div>
 
-      {/* 툴바 + 스티커 */}
-      <div style={{ padding: "1.5rem", position: "relative" }}>
+      {/* 플로팅 툴바 */}
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          padding: "1rem 1.5rem",
+          backgroundColor: isDark ? "#1a1a1a" : "white",
+          borderBottom: `1px solid ${
+            isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
+          }`,
+        }}
+      >
         <Toolbar
           editor={editor}
           insertCodeBlock={insertCodeBlock}
@@ -304,8 +316,8 @@ const WriteEditor = ({ onSubmit }) => {
       {/* 에디터 본문 */}
       <div
         style={{
-          padding: "1.5rem 2rem",
-          minHeight: "400px",
+          padding: "1.5rem 2rem 3rem",
+          minHeight: "500px",
           fontSize: "1.125rem", // 18px - 벨로그 스타일
           lineHeight: "1.7", // 줄간격
           color: isDark ? "rgb(229, 231, 235)" : "rgb(31, 41, 55)",

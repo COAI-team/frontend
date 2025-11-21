@@ -102,6 +102,18 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker}) => {
         <Divider />
 
         <ToolbarButton
+          onClick={onToggleSticker}
+          title="스티커"
+          label="스티커"
+          isDark={isDark}
+        >
+          {/* 아이콘은 적당히 Smile 쓰거나, 나중에 다른 걸로 변경 */}
+          <Smile size={18} />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton
           onClick={insertCodeBlock}
           title="코드 작성"
           label="코드작성"
@@ -259,15 +271,6 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker}) => {
 
         <Divider />
 
-        <ToolbarButton
-          onClick={onToggleSticker}
-          title="스티커"
-          label="스티커"
-          isDark={isDark}
-        >
-          {/* 아이콘은 적당히 Smile 쓰거나, 나중에 다른 걸로 변경 */}
-          <Smile size={18} />
-        </ToolbarButton>
       </div>
     </div>
   );
