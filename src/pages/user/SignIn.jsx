@@ -6,7 +6,6 @@ import {LoginContext} from "../../context/LoginContext.js";
 
 export default function SignIn() {
     const navigate = useNavigate();
-
     const {setLoginResult, login: loginContextLogin} = useContext(LoginContext);
 
     const [alertModal, setAlertModal] = useState({

@@ -10,17 +10,18 @@ import {
     MoonIcon,
     SunIcon,
 } from '@heroicons/react/24/outline'
-import {Link, useLocation} from 'react-router-dom'
-import {useState, useEffect} from 'react'
-import {useTheme} from 'next-themes'
-import {NavLinksPropTypes} from "../../utils/propTypes";
+import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
+import PropTypes from 'prop-types'
+import { NavLinksPropTypes } from "../../utils/propTypes";
 import AlertModal from "../modal/AlertModal.jsx";
 import { useLogin } from "../../context/LoginContext.js";
 import Dropdown from "../dropdown/Dropdown";
 
 const initialNavigation = [
     {name: '코드 분석', href: '/codeAnalysis'},
-    {name: '알고리즘', href: '/algorithms'},
+    {name: '알고리즘', href: '/algorithm'},
     {name: '결제', href: '/payments'},
 ]
 
@@ -66,6 +67,19 @@ function NavLinks({mobile = false, navigation, onLinkClick}) {
             })}
         </>
     )
+}
+
+// PropTypes 추가 (ESLint props validation 경고 제거)
+NavLinks.propTypes = {
+    mobile: PropTypes.bool,
+    navigation: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string.isRequired,
+            href: PropTypes.string.isRequired,
+            current: PropTypes.bool,
+        })
+    ).isRequired,
+    onLinkClick: PropTypes.func.isRequired,
 }
 
 export default function Navbar() {
