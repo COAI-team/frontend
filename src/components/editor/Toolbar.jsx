@@ -19,80 +19,14 @@ import {
   Heading2,
   Quote,
 } from "lucide-react";
-import axios from "axios";
-import imageCompression from "browser-image-compression";
+
+import ToolbarButton from "./ToolbarButton";
+import { addImage, addLink, removeLink, addLinkCard } from "./ToolbarAction";
 
 const Toolbar = ({ editor, insertCodeBlock, theme }) => {
   if (!editor) return null;
 
   const isDark = theme === "dark";
-
-  const ToolbarButton = ({ onClick, active, children, title, label }) => {
-    const hasLabel = !!label;
-
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        title={title}
-        style={{
-          display: "flex",
-          flexDirection: hasLabel ? "column" : "row",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: hasLabel ? "0.25rem" : "0.35rem",
-          padding: hasLabel ? "0.55rem 0.7rem" : "0.45rem",
-          borderRadius: "0.5rem",
-          fontSize: hasLabel ? "0.7rem" : "0.8rem",
-          transition: "all 0.15s",
-          backgroundColor: active
-            ? isDark
-              ? "rgba(139, 92, 246, 0.2)"
-              : "rgba(139, 92, 246, 0.15)"
-            : "transparent",
-          color: active
-            ? isDark
-              ? "rgb(196, 181, 253)"
-              : "rgb(109, 40, 217)"
-            : isDark
-            ? "rgb(156, 163, 175)"
-            : "rgb(107, 114, 128)",
-          border: active
-            ? `1px solid ${
-                isDark ? "rgba(139, 92, 246, 0.4)" : "rgba(139, 92, 246, 0.3)"
-              }`
-            : "1px solid transparent",
-          cursor: "pointer",
-          minWidth: hasLabel ? "3.5rem" : "auto",
-        }}
-        onMouseEnter={(e) => {
-          if (!active) {
-            e.currentTarget.style.backgroundColor = isDark
-              ? "rgba(55, 65, 81, 0.6)"
-              : "rgba(243, 244, 246, 0.9)";
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!active) {
-            e.currentTarget.style.backgroundColor = "transparent";
-          }
-        }}
-      >
-        {children}
-        {hasLabel && (
-          <span
-            style={{
-              fontSize: "0.65rem",
-              fontWeight: 500,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {label}
-          </span>
-        )}
-      </button>
-    );
-  };
 
   const Divider = () => (
     <div
@@ -106,112 +40,6 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
       }}
     />
   );
-
-  // 이미지 업로드 (S3 사용) - 수정된 버전
-  const addImage = async () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.click();
-
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-
-      // ✅ 원본 파일명 저장
-      const originalFileName = file.name;
-      console.log("원본 파일명:", originalFileName);
-
-      try {
-        // ✅ 1MB로 압축 (10MB에서 변경)
-        const compressed = await imageCompression(file, {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-        });
-
-        console.log("압축 후 크기:", (compressed.size / 1024 / 1024).toFixed(2) + "MB");
-
-        const LOADING = "이미지 업로드 중...";
-        const pos = editor.state.selection.from;
-
-        editor.chain().focus().insertContentAt(pos, LOADING).run();
-
-        const formData = new FormData();
-        
-        // ✅ 압축된 파일을 원본 파일명으로 새로 생성
-        const fileToUpload = new File(
-          [compressed],
-          originalFileName,  // 원본 파일명 사용
-          { 
-            type: compressed.type || file.type,
-            lastModified: Date.now()
-          }
-        );
-        
-        console.log("업로드할 파일명:", fileToUpload.name);
-        formData.append("file", fileToUpload);
-
-        const res = await axios.post(
-          "http://localhost:8090/upload/image",
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-
-        const url =
-          typeof res.data === "string"
-            ? res.data
-            : res.data.url || res.data.path || res.data.src;
-
-        if (!url) throw new Error("이미지 URL 없음");
-
-        editor
-          .chain()
-          .focus()
-          .setTextSelection({ from: pos, to: pos + LOADING.length })
-          .deleteSelection()
-          .run();
-
-        editor
-          .chain()
-          .focus()
-          .setTextSelection(pos)
-          .splitBlock()
-          .insertContent({
-            type: "image",
-            attrs: { src: url },
-          })
-          .splitBlock()
-          .run();
-
-        console.log("업로드 성공:", url);
-
-      } catch (err) {
-        console.error("이미지 업로드 실패:", err);
-
-        const pos = editor.state.selection.from;
-        const LOADING = "이미지 업로드 중...";
-        
-        editor
-          .chain()
-          .focus()
-          .setTextSelection({ from: pos, to: pos + LOADING.length })
-          .deleteSelection()
-          .run();
-
-        alert(`이미지 업로드 실패: ${err.message}`);
-      }
-    };
-  };
-
-  const addLink = () => {
-    const url = window.prompt("링크 입력:");
-    if (url) editor.chain().focus().setLink({ href: url }).run();
-  };
 
   return (
     <div
@@ -242,15 +70,20 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           }`,
         }}
       >
-        <ToolbarButton onClick={addImage} title="이미지" label="이미지">
+        <ToolbarButton
+          onClick={() => addImage(editor)}
+          title="이미지"
+          label="이미지"
+          isDark={isDark}
+        >
           <ImageIcon size={18} />
         </ToolbarButton>
 
         <ToolbarButton
-          onClick={addLink}
-          active={editor.isActive("link")}
-          title="링크"
-          label="링크"
+          onClick={() => addLinkCard(editor)}
+          title="링크 카드"
+          label="링크카드"
+          isDark={isDark}
         >
           <LinkIcon size={18} />
         </ToolbarButton>
@@ -261,19 +94,37 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           }
           title="표"
           label="표"
+          isDark={isDark}
+        >
+          <Table size={18} />
+        </ToolbarButton>
+
+
+        <ToolbarButton
+          onClick={() =>
+            editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run()
+          }
+          title="표"
+          label="표"
+          isDark={isDark}
         >
           <Table size={18} />
         </ToolbarButton>
 
         <Divider />
 
-        <ToolbarButton onClick={insertCodeBlock} title="코드 작성" label="코드작성">
+        <ToolbarButton
+          onClick={insertCodeBlock}
+          title="코드 작성"
+          label="코드작성"
+          isDark={isDark}
+        >
           <Code size={18} />
         </ToolbarButton>
 
         <Divider />
 
-        <ToolbarButton title="AI 분석 결과" label="AI 분석">
+        <ToolbarButton title="AI 분석 결과" label="AI 분석" isDark={isDark}>
           <Upload size={18} />
         </ToolbarButton>
       </div>
@@ -287,12 +138,14 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           flexWrap: "wrap",
         }}
       >
+        {/* 제목 */}
         <ToolbarButton
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 1 }).run()
           }
           active={editor.isActive("heading", { level: 1 })}
           title="제목 1"
+          isDark={isDark}
         >
           <Heading1 size={18} />
         </ToolbarButton>
@@ -303,16 +156,19 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           }
           active={editor.isActive("heading", { level: 2 })}
           title="제목 2"
+          isDark={isDark}
         >
           <Heading2 size={18} />
         </ToolbarButton>
 
         <Divider />
 
+        {/* 텍스트 스타일 */}
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive("bold")}
           title="굵게"
+          isDark={isDark}
         >
           <Bold size={18} />
         </ToolbarButton>
@@ -321,6 +177,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().toggleItalic().run()}
           active={editor.isActive("italic")}
           title="기울임"
+          isDark={isDark}
         >
           <Italic size={18} />
         </ToolbarButton>
@@ -329,6 +186,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           active={editor.isActive("underline")}
           title="밑줄"
+          isDark={isDark}
         >
           <UnderlineIcon size={18} />
         </ToolbarButton>
@@ -337,16 +195,19 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().toggleStrike().run()}
           active={editor.isActive("strike")}
           title="취소선"
+          isDark={isDark}
         >
           <Strikethrough size={18} />
         </ToolbarButton>
 
         <Divider />
 
+        {/* 정렬 */}
         <ToolbarButton
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
           active={editor.isActive({ textAlign: "left" })}
           title="왼쪽 정렬"
+          isDark={isDark}
         >
           <AlignLeft size={18} />
         </ToolbarButton>
@@ -355,6 +216,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().setTextAlign("center").run()}
           active={editor.isActive({ textAlign: "center" })}
           title="가운데 정렬"
+          isDark={isDark}
         >
           <AlignCenter size={18} />
         </ToolbarButton>
@@ -363,16 +225,19 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().setTextAlign("right").run()}
           active={editor.isActive({ textAlign: "right" })}
           title="오른쪽 정렬"
+          isDark={isDark}
         >
           <AlignRight size={18} />
         </ToolbarButton>
 
         <Divider />
 
+        {/* 리스트 */}
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           active={editor.isActive("bulletList")}
           title="글머리 기호"
+          isDark={isDark}
         >
           <List size={18} />
         </ToolbarButton>
@@ -381,6 +246,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           active={editor.isActive("orderedList")}
           title="번호 매기기"
+          isDark={isDark}
         >
           <ListOrdered size={18} />
         </ToolbarButton>
@@ -389,13 +255,23 @@ const Toolbar = ({ editor, insertCodeBlock, theme }) => {
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           active={editor.isActive("blockquote")}
           title="인용구"
+          isDark={isDark}
         >
           <Quote size={18} />
         </ToolbarButton>
 
+        <ToolbarButton
+          onClick={() => addLink(editor)}
+          active={editor.isActive("link")}
+          title="텍스트 링크"
+          isDark={isDark}
+        >
+          <LinkIcon size={18} />
+        </ToolbarButton>
+
         <Divider />
 
-        <ToolbarButton title="이모지">
+        <ToolbarButton title="이모지" isDark={isDark}>
           <Smile size={18} />
         </ToolbarButton>
       </div>

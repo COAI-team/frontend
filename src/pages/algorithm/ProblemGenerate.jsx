@@ -1,6 +1,5 @@
-// src/pages/algorithm/ProblemGenerate.jsx
 import React, { useState } from 'react';
-import NavBar from '../../components/common/NavBar';
+import NavBar from '../../components/layout/NavBar';
 
 const ProblemGenerate = () => {
   const [isLoading, setIsLoading] = useState(false);

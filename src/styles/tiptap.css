@@ -7,14 +7,12 @@
   background: transparent !important;
 }
 
-/* -----------------------------
-   Evelyn 요청대로 교체된 부분
------------------------------ */
+/* TipTap Editor 기본 스타일 */
 .tiptap {
   outline: none;
   min-height: 400px;
   color: #111827;
-  padding: 1rem; /* 기존 padding 유지 */
+  padding: 1rem; 
 }
 
 .dark .tiptap {
@@ -28,7 +26,6 @@
 .tiptap:focus {
   outline: none;
 }
-/* ----------------------------- */
 
 /* Placeholder */
 .tiptap p.is-editor-empty:first-child::before {
@@ -50,10 +47,10 @@
 /* Link */
 .tiptap a {
   text-decoration: underline;
-  color: #7e22ce;
+  color: #0066cc;
 }
 html.dark .tiptap a {
-  color: #c084fc;
+  color: #4ea1ff;
 }
 
 /* Blockquote */

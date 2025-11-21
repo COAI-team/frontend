@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
@@ -10,6 +11,7 @@ import { TableHeader } from "@tiptap/extension-table-header";
 import imageCompression from "browser-image-compression";
 
 import MonacoCodeBlock from "./extensions/MonacoCodeBlock";
+import LinkPreview from "./extensions/LinkPreview";
 import Toolbar from "./Toolbar";
 import { useTheme } from "next-themes";
 import "../../styles/tiptap.css";
@@ -23,6 +25,13 @@ const WriteEditor = ({ onSubmit }) => {
     extensions: [
       StarterKit.configure({
         codeBlock: false,
+        link: false,
+      }),
+
+      Link.configure({
+        openOnClick: true,
+        linkOnPaste: true,
+        autolink: false,
       }),
 
       Image.configure({
@@ -43,6 +52,7 @@ const WriteEditor = ({ onSubmit }) => {
       TableHeader,
 
       MonacoCodeBlock,
+      LinkPreview,
     ],
 
     editorProps: {
@@ -71,12 +81,12 @@ const WriteEditor = ({ onSubmit }) => {
   });
 
   async function uploadImageByDrop(file) {
-    // ✅ 원본 파일명 저장
+    // 원본 파일명 저장
     const originalFileName = file.name;
     console.log("드롭한 파일명:", originalFileName);
     
     try {
-      // ✅ 1MB로 압축
+      // 1MB로 압축
       const options = {
         maxSizeMB: 1,
         maxWidthOrHeight: 1920,
@@ -89,7 +99,7 @@ const WriteEditor = ({ onSubmit }) => {
 
       const formData = new FormData();
       
-      // ✅ 압축된 파일을 원본 파일명으로 새로 생성
+      // 압축된 파일을 원본 파일명으로 새로 생성
       const fileToUpload = new File(
         [compressed],
         originalFileName,

@@ -14,19 +14,22 @@ import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import PropTypes from 'prop-types'
+import { NavLinksPropTypes } from "../../utils/propTypes";
+import AlertModal from "../modal/AlertModal.jsx";
+import { useLogin } from "../../context/LoginContext.js";
 
 const initialNavigation = [
-    { name: '코드 분석', href: '/codeAnalysis' },
-    { name: '알고리즘', href: '/algorithms' },
-    { name: '결제', href: '/payments' },
+    {name: '코드 분석', href: '/codeAnalysis'},
+    {name: '알고리즘', href: '/algorithms'},
+    {name: '결제', href: '/payments'},
 ]
 
 function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
 }
 
-function NavLinks({ mobile = false, navigation, onLinkClick }) {
-    const { theme } = useTheme()
+function NavLinks({mobile = false, navigation, onLinkClick}) {
+    const {theme} = useTheme()
 
     const baseClass = mobile
         ? 'block rounded-md px-3 py-2 text-base font-bold'
@@ -44,11 +47,9 @@ function NavLinks({ mobile = false, navigation, onLinkClick }) {
                         themeClass = 'bg-gray-900 text-white'
                     }
                 } else if (theme === 'light') {
-                    themeClass =
-                        'text-gray-700 hover:text-black hover:bg-gray-100'
+                    themeClass = 'text-gray-700 hover:text-black hover:bg-gray-100'
                 } else {
-                    themeClass =
-                        'text-gray-300 hover:text-white hover:bg-white/5'
+                    themeClass = 'text-gray-300 hover:text-white hover:bg-white/5'
                 }
 
                 return (
@@ -83,11 +84,14 @@ NavLinks.propTypes = {
 export default function Navbar() {
     const location = useLocation()
     const [navigation, setNavigation] = useState(
-        initialNavigation.map((item) => ({ ...item, current: false }))
+        initialNavigation.map((item) => ({...item, current: false}))
     )
 
-    const { theme, setTheme } = useTheme()
+    const {theme, setTheme} = useTheme()
     const [mounted, setMounted] = useState(false)
+
+    // 🔥 로그인 정보 불러오기
+    const { user, logout } = useLogin();
 
     useEffect(() => setMounted(true), [])
 
@@ -116,23 +120,22 @@ export default function Navbar() {
         <Disclosure
             as="nav"
             className={`relative transition-colors border-b border-gray-500
-                ${
-                theme === 'light'
-                    ? 'bg-white text-gray-700'
-                    : 'dark:bg-gray-800/50 text-gray-300'
+                ${theme === 'light'
+                ? 'bg-white text-gray-700'
+                : 'dark:bg-gray-800/50 text-gray-300'
             }
                 dark:after:pointer-events-none dark:after:absolute dark:after:inset-x-0 dark:after:bottom-0 dark:after:h-px dark:after:bg-white/10`}
         >
             <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
                 <div className="relative flex h-16 items-center justify-between">
+
                     {/* Mobile menu button */}
                     <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
                         <DisclosureButton
                             className={`group relative inline-flex items-center justify-center rounded-md p-2 focus:outline-2 focus:-outline-offset-1 focus:outline-indigo-500
-                                ${
-                                theme === 'light'
-                                    ? 'text-gray-700 hover:bg-gray-100 hover:text-black'
-                                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                ${theme === 'light'
+                                ? 'text-gray-700 hover:bg-gray-100 hover:text-black'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white'
                             }`}
                         >
                             <span className="sr-only">Open main menu</span>
@@ -176,14 +179,14 @@ export default function Navbar() {
 
                     {/* Right side icons */}
                     <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+
                         {/* Notification Button */}
                         <button
                             type="button"
                             className={`relative rounded-full p-1 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500 
-                                ${
-                                theme === 'light'
-                                    ? 'text-gray-700 hover:text-black'
-                                    : 'text-gray-300 hover:text-white'
+                                ${theme === 'light'
+                                ? 'text-gray-700 hover:text-black'
+                                : 'text-gray-300 hover:text-white'
                             }`}
                         >
                             <span className="sr-only">View notifications</span>
@@ -192,14 +195,11 @@ export default function Navbar() {
 
                         {/* Theme toggle */}
                         <button
-                            onClick={() =>
-                                setTheme(theme === 'light' ? 'dark' : 'light')
-                            }
+                            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                             className={`rounded-md p-1.5 focus:outline-none transition-transform hover:scale-110 
-                                ${
-                                theme === 'light'
-                                    ? 'text-gray-700 hover:text-black'
-                                    : 'text-gray-300 hover:text-white'
+                                ${theme === 'light'
+                                ? 'text-gray-700 hover:text-black'
+                                : 'text-gray-300 hover:text-white'
                             }`}
                         >
                             {theme === 'light' ? (
@@ -209,18 +209,37 @@ export default function Navbar() {
                             )}
                         </button>
 
-                        {/* Login Button */}
-                        <Link
-                            to="/login"
-                            className={`ml-2 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-indigo-600 
-                                ${
-                                theme === 'light'
+                        {/* 🔥 로그인 상태 UI */}
+                        {user ? (
+                            <>
+                                <span className="text-sm font-semibold mr-2">
+                                    {user.username} 님
+                                </span>
+
+                                <button
+                                    onClick={logout}
+                                    className={`ml-2 rounded-md px-3 py-1.5 text-sm font-semibold 
+                                        ${theme === 'light'
+                                        ? 'bg-red-500 text-white hover:bg-red-400'
+                                        : 'bg-red-600 text-white hover:bg-red-500'
+                                    }`}
+                                >
+                                    로그아웃
+                                </button>
+                            </>
+                        ) : (
+                            <Link
+                                to="/signin"
+                                className={`ml-2 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm
+                                    ${theme === 'light'
                                     ? 'bg-indigo-600 text-white hover:bg-indigo-500'
                                     : 'bg-indigo-500 text-white hover:bg-indigo-400'
-                            }`}
-                        >
-                            로그인
-                        </Link>
+                                }`}
+                            >
+                                로그인
+                            </Link>
+                        )}
+
                     </div>
                 </div>
             </div>
@@ -238,3 +257,5 @@ export default function Navbar() {
         </Disclosure>
     )
 }
+
+AlertModal.propTypes = NavLinksPropTypes;
