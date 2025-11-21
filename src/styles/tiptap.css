@@ -211,6 +211,55 @@ html.dark .monaco-code-block-wrapper {
   background: #1a1a1a !important;
 }
 
+
+
+/* 테이블 */
+/* 표 전체 스타일 */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 16px 0;
+  overflow: hidden;
+}
+
+/* 셀 스타일 */
+.ProseMirror td,
+.ProseMirror th {
+  min-width: 1em;
+  border: 2px solid #e5e7eb;
+  padding: 8px 12px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* 헤더 셀 스타일 */
+.ProseMirror th {
+  font-weight: bold;
+  text-align: left;
+  background-color: #f9fafb;
+}
+
+/* 선택된 셀 스타일 */
+.ProseMirror .selectedCell {
+  background-color: #dbeafe;
+}
+
+/* 다크모드 */
+.dark .ProseMirror table {
+  border-color: #374151;
+}
+
+.dark .ProseMirror td,
+.dark .ProseMirror th {
+  border-color: #374151;
+}
+
+.dark .ProseMirror th {
+  background-color: #1f2937;
+}
+
 /* --------------------------------------------------------------
    반응형 - 모바일 대응
 -------------------------------------------------------------- */
