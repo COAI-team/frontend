@@ -18,7 +18,7 @@ import FreeboardWrite from "./pages/freeboard/FreeboardWrite";
 // 알고리즘 도메인 컴포넌트
 import ProblemList from "./pages/algorithm/ProblemList";
 import ProblemGenerator from "./pages/algorithm/ProblemGenerator";
-import ProblemSolve from "./pages/algorithm/ProblemSolveTest"; 
+import ProblemSolve from "./pages/algorithm/ProblemSolve"; 
 import SubmissionResult from "./pages/algorithm/SubmissionResult";  
 
 import { LoginProvider } from "./context/LoginContext.js";
