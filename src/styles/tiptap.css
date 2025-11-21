@@ -1,20 +1,22 @@
 /* --------------------------------------------------------------
-   TipTap Base
+   TipTap Base - 벨로그 스타일 폰트 크기 적용
 -------------------------------------------------------------- */
 
 /* ProseMirror 기본 배경 제거 */
 .ProseMirror {
   background: transparent !important;
+  font-size: 1.125rem; /* 18px - 벨로그 스타일 */
+  line-height: 1.7;
 }
 
-/* -----------------------------
-   Evelyn 요청대로 교체된 부분
------------------------------ */
+/* TipTap Editor 기본 스타일 */
 .tiptap {
   outline: none;
   min-height: 400px;
   color: #111827;
-  padding: 1rem; /* 기존 padding 유지 */
+  padding: 1rem;
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.7;
 }
 
 .dark .tiptap {
@@ -22,78 +24,137 @@
 }
 
 .tiptap p {
-  margin: 0.5em 0;
+  margin: 1rem 0;
+  line-height: 1.7;
 }
 
 .tiptap:focus {
   outline: none;
 }
-/* ----------------------------- */
 
 /* Placeholder */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: #9ca3af;
   display: block;
+  font-size: 1.125rem;
 }
 
-/* Headings */
-.tiptap h1 { font-size: 2rem; font-weight: 700; margin: 2rem 0 1rem; }
-.tiptap h2 { font-size: 1.6rem; font-weight: 600; margin: 1.6rem 0 1rem; }
-.tiptap h3 { font-size: 1.3rem; font-weight: 600; margin: 1.4rem 0 0.8rem; }
+/* Headings - 벨로그 스타일 */
+.tiptap h1 {
+  font-size: 2.5rem; /* 40px */
+  font-weight: 700;
+  margin: 2.5rem 0 1.5rem;
+  line-height: 1.3;
+}
+
+.tiptap h2 {
+  font-size: 2rem; /* 32px */
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+  line-height: 1.4;
+}
+
+.tiptap h3 {
+  font-size: 1.5rem; /* 24px */
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem;
+  line-height: 1.4;
+}
 
 /* List */
-.tiptap ul { list-style: disc; padding-left: 1.4rem; margin: 1rem 0; }
-.tiptap ol { list-style: decimal; padding-left: 1.4rem; margin: 1rem 0; }
-.tiptap li { margin: 0.3rem 0; }
+.tiptap ul {
+  list-style: disc;
+  padding-left: 1.75rem;
+  margin: 1.25rem 0;
+}
+
+.tiptap ol {
+  list-style: decimal;
+  padding-left: 1.75rem;
+  margin: 1.25rem 0;
+}
+
+.tiptap li {
+  margin: 0.5rem 0;
+  line-height: 1.7;
+}
 
 /* Link */
 .tiptap a {
   text-decoration: underline;
-  color: #7e22ce;
+  color: #0066cc;
+  transition: color 0.2s;
 }
+
+.tiptap a:hover {
+  color: #0052a3;
+}
+
 html.dark .tiptap a {
+  color: #4ea1ff;
+}
+
+html.dark .tiptap a:hover {
+  color: #7bb8ff;
+}
+
+/* Blockquote - 벨로그 스타일 */
+.tiptap blockquote {
+  border-left: 4px solid #a855f7;
+  padding-left: 1.25rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-style: italic;
+  margin: 1.75rem 0;
+  color: #6b7280;
+}
+
+html.dark .tiptap blockquote {
+  border-left-color: #c084fc;
+  color: #9ca3af;
+}
+
+/* Inline code - 벨로그 스타일 */
+.tiptap code {
+  background: rgba(168, 85, 247, 0.1);
+  border-radius: 0.25rem;
+  padding: 0.2em 0.4em;
+  font-family: "Consolas", "Monaco", "JetBrains Mono", monospace;
+  font-size: 0.9em;
+  color: #a855f7;
+}
+
+html.dark .tiptap code {
+  background: rgba(168, 85, 247, 0.15);
   color: #c084fc;
 }
 
-/* Blockquote */
-.tiptap blockquote {
-  border-left: 4px solid #9333ea;
-  padding-left: 1rem;
-  font-style: italic;
-  margin: 1.5rem 0;
-}
-html.dark .tiptap blockquote {
-  border-left-color: #a855f7;
-}
-
-/* Inline code */
-.tiptap code {
-  background: #eeeeee;
-  border-radius: 4px;
-  padding: 3px 6px;
-  font-family: "JetBrains Mono", monospace;
-}
-html.dark .tiptap code {
-  background: #1e1e1e;
-}
-
-/* Table */
+/* Table - 벨로그 스타일 */
 .tiptap table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1.4rem 0;
+  margin: 1.75rem 0;
+  font-size: 1rem;
 }
-.tiptap td, .tiptap th {
-  border: 1px solid #d1d5db;
-  padding: 8px;
+
+.tiptap td,
+.tiptap th {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem 1rem;
+  text-align: left;
 }
-html.dark .tiptap td, html.dark .tiptap th {
+
+html.dark .tiptap td,
+html.dark .tiptap th {
   border: 1px solid #4b5563;
 }
+
 .tiptap th {
-  background: #f3f4f6;
+  background: #f9fafb;
+  font-weight: 600;
 }
+
 html.dark .tiptap th {
   background: #1f2937;
 }
@@ -101,22 +162,35 @@ html.dark .tiptap th {
 /* Image */
 .tiptap img {
   display: block;
-  margin: 1rem 0;
+  margin: 1.75rem 0;
   max-width: 100%;
   height: auto;
-  margin: 18px 0;
+  border-radius: 0.5rem;
   cursor: grab;
 }
+
 .tiptap img:active {
   cursor: grabbing;
 }
+
 html.dark .tiptap img {
-  filter: brightness(0.9);
+  filter: brightness(0.92);
+}
+
+/* 인라인 스티커 스타일 */
+.tiptap img[data-sticker] {
+  display: inline-block;
+  width: 1.5em;
+  height: 1.5em;
+  vertical-align: -0.3em;
+  margin: 0 0.1em;
+  cursor: default;
+  border-radius: 0;
 }
 
 .editor-wrapper {
   display: block !important;
-  flex: none !important;      
+  flex: none !important;
   width: 100%;
   align-self: stretch;
 }
@@ -126,12 +200,85 @@ html.dark .tiptap img {
 -------------------------------------------------------------- */
 
 .monaco-code-block-wrapper {
-  margin: 24px 0 !important;
-  padding: 8px 0 !important;
-  border-radius: 10px;
+  margin: 1.75rem 0 !important;
+  padding: 0.5rem 0 !important;
+  border-radius: 0.75rem;
   background: #1e1e1e !important;
+  overflow: hidden;
 }
 
 html.dark .monaco-code-block-wrapper {
   background: #1a1a1a !important;
+}
+
+
+
+/* 테이블 */
+/* 표 전체 스타일 */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 16px 0;
+  overflow: hidden;
+}
+
+/* 셀 스타일 */
+.ProseMirror td,
+.ProseMirror th {
+  min-width: 1em;
+  border: 2px solid #e5e7eb;
+  padding: 8px 12px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* 헤더 셀 스타일 */
+.ProseMirror th {
+  font-weight: bold;
+  text-align: left;
+  background-color: #f9fafb;
+}
+
+/* 선택된 셀 스타일 */
+.ProseMirror .selectedCell {
+  background-color: #dbeafe;
+}
+
+/* 다크모드 */
+.dark .ProseMirror table {
+  border-color: #374151;
+}
+
+.dark .ProseMirror td,
+.dark .ProseMirror th {
+  border-color: #374151;
+}
+
+.dark .ProseMirror th {
+  background-color: #1f2937;
+}
+
+/* --------------------------------------------------------------
+   반응형 - 모바일 대응
+-------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .ProseMirror,
+  .tiptap {
+    font-size: 1rem; /* 16px */
+  }
+
+  .tiptap h1 {
+    font-size: 2rem; /* 32px */
+  }
+
+  .tiptap h2 {
+    font-size: 1.5rem; /* 24px */
+  }
+
+  .tiptap h3 {
+    font-size: 1.25rem; /* 20px */
+  }
 }
