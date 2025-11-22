@@ -1,6 +1,6 @@
 import {useState, useContext} from "react";
 import {Link, useNavigate} from "react-router-dom";
-import {login as apiLogin} from "../../service/ApiServices";
+import {login as apiLogin} from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
 import {LoginContext} from "../../context/LoginContext.js";
 

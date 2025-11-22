@@ -43,3 +43,10 @@ export const DropdownPropTypes = {
     ).isRequired,
     width: PropTypes.string,                     // 메뉴 너비 (옵션)
 };
+
+/* ----------------------------------------
+ * LoginProvider PropTypes
+ * ---------------------------------------- */
+export const LoginProviderPropTypes = {
+    children: PropTypes.node.isRequired,
+};

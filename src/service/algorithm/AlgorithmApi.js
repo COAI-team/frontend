@@ -1,10 +1,11 @@
 /**
  * 알고리즘 API 서비스
  * 백엔드 알고리즘 도메인과 통신하는 모든 API 함수들
- * 위치: src/service/algorithm/algorithmApi.js
+ * 위치: src/service/algorithm/AlgorithmApi.js
  */
 
 import axios from 'axios';
+import process from "prop-types/prop-types.js";
 
 // API 기본 설정
 const BASE_URL = process.env.REACT_APP_API_URL || 'https://localhost:9443';

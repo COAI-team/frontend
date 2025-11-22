@@ -14,10 +14,10 @@ import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import PropTypes from 'prop-types'
-import { NavLinksPropTypes } from "../../utils/propTypes";
-import AlertModal from "../modal/AlertModal.jsx";
-import { useLogin } from "../../context/LoginContext.js";
-import Dropdown from "../dropdown/Dropdown";
+import { NavLinksPropTypes } from "../../../utils/propTypes";
+import AlertModal from "../../modal/AlertModal.jsx";
+import { useLogin } from "../../../context/LoginContext.js";
+import Dropdown from "../../dropdown/Dropdown";
 
 const initialNavigation = [
     {name: '코드 분석', href: '/codeAnalysis'},

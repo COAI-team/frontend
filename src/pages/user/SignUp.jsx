@@ -1,5 +1,5 @@
 import {useState, useRef} from "react";
-import {signup, sendEmailCode, verifyEmailCode} from "../../service/ApiServices";
+import {signup, sendEmailCode, verifyEmailCode} from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
 import { useNavigate } from "react-router-dom";
 
