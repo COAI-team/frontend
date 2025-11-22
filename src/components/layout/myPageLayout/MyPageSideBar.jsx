@@ -63,8 +63,8 @@ export default function MyPageSidebar() {
             {/* 메뉴 */}
             <nav className="flex flex-col px-6 space-y-6">
 
-                {menuItems.map((section, idx) => (
-                    <div key={idx} className="flex flex-col">
+                {menuItems.map((section) => (
+                    <div key={section.type} className="flex flex-col">
 
                         {/* 단일 메뉴 */}
                         {section.type === "single" && (
@@ -80,7 +80,7 @@ export default function MyPageSidebar() {
                         {section.type === "group" && (
                             <>
                                 {/* 부모 제목 */}
-                                <p className="text-base font-bold text-black dark:text-gray-300 mb-2">
+                                <p className="text-base font-bold mb-2">
                                     {section.name}
                                 </p>
 

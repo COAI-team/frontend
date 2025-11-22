@@ -32,9 +32,10 @@ import SubmissionResult from "./pages/algorithm/SubmissionResult";
 
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
-
-// 🔥 새로 만든 페이지 import 추가!
 import ProfilePage from "./pages/mypage/ProfilePage";
+
+//관리자 레이아웃
+import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
 
 createRoot(document.getElementById("root")).render(
     <StrictMode>
@@ -63,6 +64,9 @@ createRoot(document.getElementById("root")).render(
                             <Route path="mypage" element={<MyPageLayout/>}>
                                 <Route index element={<Navigate to="profile" replace />} />
                                 <Route path="profile" element={<ProfilePage/>} />
+                            </Route>
+
+                            <Route path="admin" element={<AdminPageLayout/>}>
                             </Route>
 
                             {/* 자유게시판 */}

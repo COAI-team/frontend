@@ -10,13 +10,13 @@ import {
     MoonIcon,
     SunIcon,
 } from '@heroicons/react/24/outline'
-import { Link, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { useTheme } from 'next-themes'
+import {Link, useLocation} from 'react-router-dom'
+import {useState, useEffect} from 'react'
+import {useTheme} from 'next-themes'
 import PropTypes from 'prop-types'
-import { NavLinksPropTypes } from "../../../utils/propTypes";
+import {NavLinksPropTypes} from "../../../utils/propTypes";
 import AlertModal from "../../modal/AlertModal.jsx";
-import { useLogin } from "../../../context/LoginContext.js";
+import {useLogin} from "../../../context/LoginContext.js";
 import Dropdown from "../../dropdown/Dropdown";
 
 const initialNavigation = [
@@ -92,7 +92,7 @@ export default function Navbar() {
     const [mounted, setMounted] = useState(false)
     const BASE_URL = import.meta.env.VITE_API_URL;
     // 🔥 로그인 정보 불러오기
-    const { user, logout } = useLogin();
+    const {user, logout} = useLogin();
     console.log("🟦 Navbar user 값:", user);
     useEffect(() => setMounted(true), [])
 
@@ -179,7 +179,8 @@ export default function Navbar() {
                     </div>
 
                     {/* Right side icons */}
-                    <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+                    <div
+                        className="absolute inset-y-0 right-0 flex items-center gap-2 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
 
                         {/* Notification Button */}
                         <button
@@ -191,7 +192,7 @@ export default function Navbar() {
                             }`}
                         >
                             <span className="sr-only">View notifications</span>
-                            <BellIcon aria-hidden="true" className="size-6" />
+                            <BellIcon aria-hidden="true" className="size-6"/>
                         </button>
 
                         {/* Theme toggle */}
@@ -204,33 +205,35 @@ export default function Navbar() {
                             }`}
                         >
                             {theme === 'light' ? (
-                                <MoonIcon className="w-5 h-5" />
+                                <MoonIcon className="w-5 h-5"/>
                             ) : (
-                                <SunIcon className="w-5 h-5" />
+                                <SunIcon className="w-5 h-5"/>
                             )}
                         </button>
 
                         {/* 🔥 로그인 상태 UI */}
                         {user ? (
-                            <div className="flex items-center">
-                                <Dropdown
-                                    button={
-                                        <img
-                                            src={
-                                                user.image?.startsWith("http")
-                                                    ? user.image
-                                                    : `${BASE_URL}${user.image || ""}`
-                                            }
-                                            className="w-8 h-8 rounded-full object-cover border border-gray-300"
-                                            alt="프로필"
-                                        />
-                                    }
-                                    items={[
-                                        { label: "마이페이지", href: "/mypage" },
-                                        { label: "로그아웃", onClick: logout }
-                                    ]}
-                                />
-                            </div>
+                            <Dropdown
+                                button={
+                                    <img
+                                        src={
+                                            user.image?.startsWith("http")
+                                                ? user.image
+                                                : `${BASE_URL}${user.image || ""}`
+                                        }
+                                        className="w-8 h-8 rounded-full object-cover border border-gray-300"
+                                        alt="프로필"
+                                    />
+                                }
+                                items={[
+                                    {label: "마이페이지", href: "/mypage"},
+                                    ...(user?.role === "ROLE_ADMIN"
+                                        ? [{label: "관리자 페이지", href: "/admin"}]
+                                        : []),
+
+                                    {label: "로그아웃", onClick: logout}
+                                ]}
+                            />
                         ) : (
                             <Link
                                 to="/signin"
