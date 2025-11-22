@@ -99,34 +99,26 @@ export const checkProblemExists = async (problemId) => {
 
 /**
  * AI 문제 생성
- * @param {Object} requestData - 생성 요청 데이터
- * @param {string} requestData.difficulty - 난이도 (BRONZE, SILVER, GOLD, PLATINUM)
- * @param {string} requestData.topic - 주제 (DP, 그래프, 구현 등)
- * @param {string} requestData.language - 언어 (ALL, JAVA, PYTHON 등)
- * @param {string} requestData.additionalRequirements - 추가 요구사항
+ * @param {Object} data - 생성 요청 데이터
+ * @returns {Promise<Object>} 생성 결과
  */
-export const generateProblem = async (requestData) => {
+export const generateProblem = async (data) => {
     try {
-        console.log("📨 [generateProblem] 요청 시작:", requestData);
-
-        const res = await axiosInstance.post('/algo/problems/generate', requestData);
-
-        console.log("✅ [generateProblem] 응답 성공:", res.data);
-        return res.data;
-    } catch (err) {
-        console.error("❌ [generateProblem] 요청 실패:", err);
-
-        if (err.response && err.response.data) {
-            return {
-                error: true,
-                code: err.response.data.code,
-                message: err.response.data.message
-            };
-        }
-
-        return { error: true, message: "문제 생성에 실패했습니다." };
+      const response = await axiosInstance.post('/algo/problems/generate', {
+        difficulty: data.difficulty,
+        topic: data.topic,
+        language: data.language || 'ALL',
+        additionalRequirements: data.additionalRequirements || null,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('AI 문제 생성 실패:', error);
+      return {
+        error: true,
+        message: error.response?.data?.message || '문제 생성에 실패했습니다.'
+      };
     }
-};
+  };
 
 /**
  * 서버 헬스 체크
