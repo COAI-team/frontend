@@ -1,5 +1,5 @@
 /* --------------------------------------------------------------
-   TipTap Base - 벨로그 스타일 폰트 크기 적용
+   TipTap Base
 -------------------------------------------------------------- */
 
 /* ProseMirror 기본 배경 제거 */
@@ -130,35 +130,6 @@ html.dark .tiptap code {
   color: #c084fc;
 }
 
-/* Table - 벨로그 스타일 */
-.tiptap table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1.75rem 0;
-  font-size: 1rem;
-}
-
-.tiptap td,
-.tiptap th {
-  border: 1px solid #e5e7eb;
-  padding: 0.75rem 1rem;
-  text-align: left;
-}
-
-html.dark .tiptap td,
-html.dark .tiptap th {
-  border: 1px solid #4b5563;
-}
-
-.tiptap th {
-  background: #f9fafb;
-  font-weight: 600;
-}
-
-html.dark .tiptap th {
-  background: #1f2937;
-}
-
 /* Image */
 .tiptap img {
   display: block;
@@ -211,53 +182,188 @@ html.dark .monaco-code-block-wrapper {
   background: #1a1a1a !important;
 }
 
+/* ==========================================
+   표(Table) 스타일
+   ========================================== */
 
-
-/* 테이블 */
-/* 표 전체 스타일 */
-.ProseMirror table {
-  border-collapse: collapse;
+/* 표 기본 스타일 */
+.ProseMirror table,
+.tiptap table {
+  border-collapse: separate;
+  border-spacing: 0;
   table-layout: fixed;
   width: 100%;
-  margin: 16px 0;
+  margin: 1.5rem 0;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
   overflow: hidden;
 }
 
-/* 셀 스타일 */
+.dark .ProseMirror table,
+html.dark .tiptap table {
+  border: 2px solid #4b5563;
+}
+
+/* 표 셀 기본 스타일 */
 .ProseMirror td,
-.ProseMirror th {
+.ProseMirror th,
+.tiptap td,
+.tiptap th {
   min-width: 1em;
-  border: 2px solid #e5e7eb;
-  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem 1rem;
   vertical-align: top;
   box-sizing: border-box;
   position: relative;
+  background-color: transparent;
+  text-align: left;
+}
+
+.dark .ProseMirror td,
+.dark .ProseMirror th,
+html.dark .tiptap td,
+html.dark .tiptap th {
+  border-color: #374151;
+  background-color: transparent;
+}
+
+/* 첫 번째 행의 셀 상단 테두리 제거 */
+.ProseMirror tr:first-child td,
+.ProseMirror tr:first-child th,
+.tiptap tr:first-child td,
+.tiptap tr:first-child th {
+  border-top: none;
+}
+
+/* 마지막 행의 셀 하단 테두리 제거 */
+.ProseMirror tr:last-child td,
+.ProseMirror tr:last-child th,
+.tiptap tr:last-child td,
+.tiptap tr:last-child th {
+  border-bottom: none;
+}
+
+/* 첫 번째 열의 셀 왼쪽 테두리 제거 */
+.ProseMirror td:first-child,
+.ProseMirror th:first-child,
+.tiptap td:first-child,
+.tiptap th:first-child {
+  border-left: none;
+}
+
+/* 마지막 열의 셀 오른쪽 테두리 제거 */
+.ProseMirror td:last-child,
+.ProseMirror th:last-child,
+.tiptap td:last-child,
+.tiptap th:last-child {
+  border-right: none;
 }
 
 /* 헤더 셀 스타일 */
-.ProseMirror th {
-  font-weight: bold;
-  text-align: left;
-  background-color: #f9fafb;
+.ProseMirror th,
+.tiptap th {
+  font-weight: 700;
+  color: inherit;
+}
+
+.dark .ProseMirror th,
+html.dark .tiptap th {
+  color: inherit;
 }
 
 /* 선택된 셀 스타일 */
 .ProseMirror .selectedCell {
-  background-color: #dbeafe;
+  background-color: #dbeafe !important;
 }
 
-/* 다크모드 */
-.dark .ProseMirror table {
-  border-color: #374151;
+.dark .ProseMirror .selectedCell {
+  background-color: #1e3a8a !important;
 }
 
-.dark .ProseMirror td,
-.dark .ProseMirror th {
-  border-color: #374151;
+/* 셀 크기 조절 핸들 */
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #3b82f6;
+  cursor: col-resize;
+  z-index: 20;
 }
 
-.dark .ProseMirror th {
-  background-color: #1f2937;
+.dark .ProseMirror .column-resize-handle {
+  background-color: #60a5fa;
+}
+
+/* 표 호버 효과 */
+.ProseMirror td:hover,
+.ProseMirror th:hover,
+.tiptap td:hover,
+.tiptap th:hover {
+  background-color: rgba(243, 244, 246, 0.5);
+}
+
+.dark .ProseMirror td:hover,
+.dark .ProseMirror th:hover,
+html.dark .tiptap td:hover,
+html.dark .tiptap th:hover {
+  background-color: rgba(55, 65, 81, 0.5);
+}
+
+/* 배경색이 설정된 셀은 호버 시 약간 어둡게 */
+.ProseMirror td[style*="background-color"]:hover,
+.ProseMirror th[style*="background-color"]:hover,
+.tiptap td[style*="background-color"]:hover,
+.tiptap th[style*="background-color"]:hover {
+  opacity: 0.9;
+}
+
+/* 빈 셀에 placeholder */
+.ProseMirror td:empty::before,
+.ProseMirror th:empty::before {
+  content: "";
+  display: inline-block;
+}
+
+/* 표 내부 p 태그 마진 제거 */
+.ProseMirror table p,
+.tiptap table p {
+  margin: 0;
+}
+
+/* 표 전체 선택 시 */
+.ProseMirror table.ProseMirror-selectednode {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.dark .ProseMirror table.ProseMirror-selectednode {
+  outline-color: #60a5fa;
+}
+
+/* 표 안의 리스트 스타일 조정 */
+.ProseMirror table ul,
+.ProseMirror table ol,
+.tiptap table ul,
+.tiptap table ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+/* 반응형 표 */
+@media (max-width: 768px) {
+  .ProseMirror table,
+  .tiptap table {
+    font-size: 0.875rem;
+  }
+  
+  .ProseMirror td,
+  .ProseMirror th,
+  .tiptap td,
+  .tiptap th {
+    padding: 0.5rem 0.75rem;
+  }
 }
 
 /* --------------------------------------------------------------

@@ -231,46 +231,70 @@ const TableContextMenu = ({ editor, isDark }) => {
       </div>
 
       {/* 헤더 행 토글 */}
-      <button
-        onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+      <div
         style={{
-          ...buttonStyle,
-          backgroundColor: editor.isActive("table", { hasHeaderRow: true })
-            ? isDark
-              ? "#1e40af"
-              : "#dbeafe"
-            : "transparent",
+          display: "flex",
+          gap: "2px",
+          paddingRight: "8px",
+          borderRight: `1px solid ${isDark ? "#4b5563" : "#e5e7eb"}`,
         }}
-        onMouseEnter={(e) => {
-          if (!editor.isActive("table", { hasHeaderRow: true })) {
-            e.currentTarget.style.backgroundColor = buttonHoverBg;
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = editor.isActive("table", {
-            hasHeaderRow: true,
-          })
-            ? isDark
-              ? "#1e40af"
-              : "#dbeafe"
-            : "transparent";
-        }}
-        title="헤더 행 토글"
       >
-        📋 헤더
+        <button
+          onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+          style={{
+            ...buttonStyle,
+            backgroundColor: editor.isActive("table", { hasHeaderRow: true })
+              ? isDark
+                ? "#1e40af"
+                : "#dbeafe"
+              : "transparent",
+          }}
+          onMouseEnter={(e) => {
+            if (!editor.isActive("table", { hasHeaderRow: true })) {
+              e.currentTarget.style.backgroundColor = buttonHoverBg;
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = editor.isActive("table", {
+              hasHeaderRow: true,
+            })
+              ? isDark
+                ? "#1e40af"
+                : "#dbeafe"
+              : "transparent";
+          }}
+          title="헤더 행 토글"
+        >
+          📋 헤더
+        </button>
+      </div>
+
+      {/* 표 삭제 */}
+      <button
+        onClick={() => editor.chain().focus().deleteTable().run()}
+        style={{ ...buttonStyle, color: "#dc2626" }}
+        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = buttonHoverBg)}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+        title="표 삭제"
+      >
+        🗑️ 표 삭제
       </button>
     </div>
   );
 };
 
-// 표 버튼 컴포넌트 (ToolbarButton 스타일 적용)
+// 표 버튼 컴포넌트
 const TableButton = ({ editor, isDark }) => {
   const [showSizeSelector, setShowSizeSelector] = useState(false);
 
   if (!editor) return null;
 
   const insertTable = (rows, cols) => {
-    editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+    editor
+      .chain()
+      .focus()
+      .insertTable({ rows, cols, withHeaderRow: true })
+      .run();
   };
 
   const isActive = editor.isActive("table");
