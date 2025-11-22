@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getProblems, DIFFICULTY_OPTIONS, SOURCE_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/algorithmApi';
 import DifficultyBadge from '../../components/algorithm/problem/DifficultyBadge';
+import ProblemCard from '../../components/algorithm/problem/ProblemCard'; 
 
 const ProblemList = () => {
   // ===== 상태 관리 =====
@@ -88,17 +89,6 @@ const ProblemList = () => {
 
   const handleProblemClick = (problemId) => {
     navigate(`/algorithm/problems/${problemId}`);
-  };
-
-  // ===== 유틸리티 함수 =====
-
-  const getSourceIcon = (source) => {
-    const icons = {
-      AI_GENERATED: '🤖',
-      BOJ: '🏛️',
-      CUSTOM: '✏️'
-    };
-    return icons[source] || '📝';
   };
 
   // ===== 렌더링 =====
@@ -236,54 +226,11 @@ const ProblemList = () => {
             ) : (
               <div className="space-y-3">
                 {problems.map((problem) => (
-                  <div
+                  <ProblemCard
                     key={problem.algoProblemId}
-                    onClick={() => handleProblemClick(problem.algoProblemId)}
-                    className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer p-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-lg font-medium text-gray-900">
-                            #{problem.algoProblemId}
-                          </span>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {problem.algoProblemTitle}
-                          </h3>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <DifficultyBadge difficulty={problem.algoProblemDifficulty} />
-                          <span className="flex items-center gap-1">
-                            {getSourceIcon(problem.algoProblemSource)}
-                            {SOURCE_OPTIONS.find(opt => opt.value === problem.algoProblemSource)?.label}
-                          </span>
-                          <span>⏱️ {problem.timelimit}ms</span>
-                          <span>💾 {problem.memorylimit}MB</span>
-                        </div>
-
-                        {/* 태그들 */}
-                        {problem.tagsAsList && problem.tagsAsList.length > 0 && (
-                          <div className="mt-2 flex gap-2">
-                            {problem.tagsAsList.map((tag, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
-                              >
-                                {tag.replace(/["[\]]/g, '')}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center text-gray-400">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
+                    problem={problem}
+                    onClick={handleProblemClick}
+                  />
                 ))}
               </div>
             )}
