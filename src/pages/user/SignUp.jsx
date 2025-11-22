@@ -1,6 +1,6 @@
 import {useState, useRef} from "react";
 import {signup, sendEmailCode, verifyEmailCode} from "../../service/ApiServices";
-import AlertModal from "../../component/modal/AlertModal";
+import AlertModal from "../../components/modal/AlertModal";
 import { useNavigate } from "react-router-dom";
 
 export default function SignUp() {
