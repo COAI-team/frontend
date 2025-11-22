@@ -1,13 +1,13 @@
 import React from "react";
 
-const ToolbarButton = ({ onClick, active, children, title, label, isDark }) => {
+const ToolbarButton = ({ onClick, active, children, title, label, isDark, disabled }) => {
   const hasLabel = !!label;
-
   return (
     <button
       type="button"
       onClick={onClick}
       title={title}
+      disabled={disabled}
       style={{
         display: "flex",
         flexDirection: hasLabel ? "column" : "row",
@@ -32,21 +32,24 @@ const ToolbarButton = ({ onClick, active, children, title, label, isDark }) => {
           : "rgb(107, 114, 128)",
         border: active
           ? `1px solid ${
-              isDark ? "rgba(139, 92, 246, 0.4)" : "rgba(139, 92, 246, 0.3)"
+              isDark
+                ? "rgba(139, 92, 246, 0.4)"
+                : "rgba(139, 92, 246, 0.3)"
             }`
           : "1px solid transparent",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         minWidth: hasLabel ? "3.5rem" : "auto",
+        opacity: disabled ? 0.5 : 1,
       }}
       onMouseEnter={(e) => {
-        if (!active) {
+        if (!active && !disabled) {
           e.currentTarget.style.backgroundColor = isDark
             ? "rgba(55, 65, 81, 0.6)"
             : "rgba(243, 244, 246, 0.9)";
         }
       }}
       onMouseLeave={(e) => {
-        if (!active) {
+        if (!active && !disabled) {
           e.currentTarget.style.backgroundColor = "transparent";
         }
       }}
@@ -67,4 +70,4 @@ const ToolbarButton = ({ onClick, active, children, title, label, isDark }) => {
   );
 };
 
-export default ToolbarButton;
+export { ToolbarButton };
