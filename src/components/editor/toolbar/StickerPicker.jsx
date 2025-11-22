@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { STICKER_GROUPS, openmojiUrl } from "./extensions/OpenmojiStickers";
+import { STICKER_GROUPS, openmojiUrl } from "../extensions/OpenmojiStickers";
 
 // 이모티콘 카테고리 탭 + 미리보기
 const StickerPicker = ({ editor, onClose, isDark }) => {

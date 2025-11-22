@@ -1,74 +1,50 @@
-/**
- * 알고리즘 API 서비스
- * 백엔드 알고리즘 도메인과 통신하는 모든 API 함수들
- * 위치: src/service/algorithm/AlgorithmApi.js
- */
+import axiosInstance from "../../server/AxiosConfig";
 
-import axios from 'axios';
-import process from "prop-types/prop-types.js";
-
-// API 기본 설정
-const BASE_URL = process.env.REACT_APP_API_URL || 'https://localhost:9443';
-
-// Axios 인스턴스 생성 (알고리즘 전용)
-const algorithmApi = axios.create({
-  baseURL: `${BASE_URL}/algo`,
-  timeout: 30000, // 30초 (AI 호출 고려)
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// 요청 인터셉터 (JWT 토큰 자동 추가)
-algorithmApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// 응답 인터셉터 (에러 처리)
-algorithmApi.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // 토큰 만료 처리
-    if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-// ================================
-// 문제 관리 API
-// ================================
+// ============== 알고리즘 문제 관리 API ==============
 
 /**
  * 문제 목록 조회
- * @param {Object} params - 조회 파라미터
+ * @param {Object} params - 쿼리 파라미터
+ * @param {number} params.page - 페이지 번호 (기본: 1)
+ * @param {number} params.size - 페이지 크기 (기본: 10)
  * @param {string} params.difficulty - 난이도 필터
  * @param {string} params.source - 출처 필터
  * @param {string} params.keyword - 검색 키워드
- * @param {number} params.page - 페이지 번호
- * @param {number} params.size - 페이지 크기
  */
 export const getProblems = async (params = {}) => {
-  try {
-    const response = await algorithmApi.get('/problems', { params });
-    return response.data;
-  } catch (error) {
-    console.error('문제 목록 조회 실패:', error);
-    throw error;
-  }
+    try {
+        console.log("📨 [getProblems] 요청 시작:", params);
+
+        const queryParams = new URLSearchParams();
+        
+        // 기본값 설정
+        const { page = 1, size = 10, difficulty, source, keyword } = params;
+        
+        queryParams.append('page', page);
+        queryParams.append('size', size);
+        
+        if (difficulty) queryParams.append('difficulty', difficulty);
+        if (source) queryParams.append('source', source);
+        if (keyword) queryParams.append('keyword', keyword);
+        
+        const res = await axiosInstance.get(`/algo/problems?${queryParams}`);
+
+        console.log("✅ [getProblems] 응답 성공:", res.data);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getProblems] 요청 실패:", err);
+        
+        // 백엔드에서 내려준 코드/메시지가 있는 경우 그대로 반환
+        if (err.response && err.response.data) {
+            return {
+                error: true,
+                code: err.response.data.code,
+                message: err.response.data.message
+            };
+        }
+
+        return { error: true, message: "문제 목록을 가져오는데 실패했습니다." };
+    }
 };
 
 /**
@@ -76,175 +52,181 @@ export const getProblems = async (params = {}) => {
  * @param {number} problemId - 문제 ID
  */
 export const getProblem = async (problemId) => {
-  try {
-    const response = await algorithmApi.get(`/problems/${problemId}`);
-    return response.data;
-  } catch (error) {
-    console.error('문제 상세 조회 실패:', error);
-    throw error;
-  }
+    try {
+        console.log("📨 [getProblem] 요청 시작:", problemId);
+
+        const res = await axiosInstance.get(`/algo/problems/${problemId}`);
+
+        console.log("✅ [getProblem] 응답 성공:", res.data);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getProblem] 요청 실패:", err);
+
+        if (err.response && err.response.data) {
+            return {
+                error: true,
+                code: err.response.data.code,
+                message: err.response.data.message
+            };
+        }
+
+        return { error: true, message: "문제 상세 정보를 가져오는데 실패했습니다." };
+    }
 };
 
 /**
- * AI 문제 생성 요청
- * @param {Object} requestData - 문제 생성 요청 데이터
- * @param {string} requestData.difficulty - 난이도
- * @param {string} requestData.topic - 주제
- * @param {string} requestData.language - 언어
- */
-export const generateProblem = async (requestData) => {
-  try {
-    const response = await algorithmApi.post('/problems/generate', requestData);
-    return response.data;
-  } catch (error) {
-    console.error('AI 문제 생성 실패:', error);
-    throw error;
-  }
-};
-
-// ================================
-// 문제 풀이 API
-// ================================
-
-/**
- * 문제 풀이 세션 시작
+ * 문제 존재 여부 확인
  * @param {number} problemId - 문제 ID
  */
-export const startSolvingSession = async (problemId) => {
-  try {
-    const response = await algorithmApi.get(`/problems/${problemId}/solve`);
-    return response.data;
-  } catch (error) {
-    console.error('문제 풀이 세션 시작 실패:', error);
-    throw error;
-  }
+export const checkProblemExists = async (problemId) => {
+    try {
+        console.log("📨 [checkProblemExists] 요청 시작:", problemId);
+
+        await axiosInstance.head(`/algo/problems/${problemId}`);
+
+        console.log("✅ [checkProblemExists] 문제 존재 확인");
+        return { success: true, exists: true };
+    } catch (err) {
+        console.error("❌ [checkProblemExists] 요청 실패:", err);
+
+        if (err.response?.status === 404) {
+            return { success: true, exists: false };
+        }
+
+        return { error: true, message: "문제 존재 여부 확인에 실패했습니다." };
+    }
 };
 
 /**
- * 코드 제출
- * @param {Object} submissionData - 제출 데이터
- * @param {number} submissionData.problemId - 문제 ID
- * @param {string} submissionData.language - 언어
- * @param {string} submissionData.sourceCode - 소스코드
- * @param {number} submissionData.elapsedTime - 소요 시간
+ * AI 문제 생성
+ * @param {Object} requestData - 생성 요청 데이터
+ * @param {string} requestData.difficulty - 난이도 (BRONZE, SILVER, GOLD, PLATINUM)
+ * @param {string} requestData.topic - 주제 (DP, 그래프, 구현 등)
+ * @param {string} requestData.language - 언어 (ALL, JAVA, PYTHON 등)
+ * @param {string} requestData.additionalRequirements - 추가 요구사항
  */
-export const submitCode = async (submissionData) => {
-  try {
-    const response = await algorithmApi.post('/submissions', submissionData);
-    return response.data;
-  } catch (error) {
-    console.error('코드 제출 실패:', error);
-    throw error;
-  }
+export const generateProblem = async (requestData) => {
+    try {
+        console.log("📨 [generateProblem] 요청 시작:", requestData);
+
+        const res = await axiosInstance.post('/algo/problems/generate', requestData);
+
+        console.log("✅ [generateProblem] 응답 성공:", res.data);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [generateProblem] 요청 실패:", err);
+
+        if (err.response && err.response.data) {
+            return {
+                error: true,
+                code: err.response.data.code,
+                message: err.response.data.message
+            };
+        }
+
+        return { error: true, message: "문제 생성에 실패했습니다." };
+    }
 };
 
 /**
- * 제출 결과 조회
- * @param {number} submissionId - 제출 ID
+ * 서버 헬스 체크
  */
-export const getSubmissionResult = async (submissionId) => {
-  try {
-    const response = await algorithmApi.get(`/submissions/${submissionId}`);
-    return response.data;
-  } catch (error) {
-    console.error('제출 결과 조회 실패:', error);
-    throw error;
-  }
+export const healthCheck = async () => {
+    try {
+        console.log("📨 [healthCheck] 요청 시작");
+
+        const res = await axiosInstance.get('/algo/problems/health');
+
+        console.log("✅ [healthCheck] 응답 성공:", res.data);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [healthCheck] 요청 실패:", err);
+        return { error: true, message: "서버에 연결할 수 없습니다." };
+    }
 };
 
-// ================================
-// 집중도 추적 API (Eye Tracking)
-// ================================
+// ============== 문제 필터링/검색 관련 ==============
 
 /**
- * 집중도 추적 세션 시작
- * @param {Object} sessionData - 세션 데이터
+ * 난이도별 문제 조회
+ * @param {string} difficulty - 난이도
+ * @param {Object} options - 추가 옵션
  */
-export const startFocusSession = async (sessionData) => {
-  try {
-    const response = await algorithmApi.post('/focus/sessions', sessionData);
-    return response.data;
-  } catch (error) {
-    console.error('집중도 세션 시작 실패:', error);
-    throw error;
-  }
+export const getProblemsByDifficulty = async (difficulty, options = {}) => {
+    return getProblems({ difficulty, ...options });
 };
 
 /**
- * 집중도 이벤트 전송 (배치)
- * @param {Array} events - 집중도 이벤트 배열
+ * 출처별 문제 조회
+ * @param {string} source - 출처
+ * @param {Object} options - 추가 옵션
  */
-export const sendFocusEvents = async (events) => {
-  try {
-    const response = await algorithmApi.post('/focus/events/batch', { events });
-    return response.data;
-  } catch (error) {
-    console.error('집중도 이벤트 전송 실패:', error);
-    throw error;
-  }
-};
-
-// ================================
-// 랭킹 API
-// ================================
-
-/**
- * 랭킹 조회
- * @param {Object} params - 랭킹 조회 파라미터
- */
-export const getRankings = async (params = {}) => {
-  try {
-    const response = await algorithmApi.get('/rankings', { params });
-    return response.data;
-  } catch (error) {
-    console.error('랭킹 조회 실패:', error);
-    throw error;
-  }
+export const getProblemsBySource = async (source, options = {}) => {
+    return getProblems({ source, ...options });
 };
 
 /**
- * 내 랭킹 조회
+ * 키워드 검색
+ * @param {string} keyword - 검색 키워드
+ * @param {Object} options - 추가 옵션
  */
-export const getMyRanking = async () => {
-  try {
-    const response = await algorithmApi.get('/rankings/me');
-    return response.data;
-  } catch (error) {
-    console.error('내 랭킹 조회 실패:', error);
-    throw error;
-  }
+export const searchProblems = async (keyword, options = {}) => {
+    return getProblems({ keyword, ...options });
 };
 
-// ================================
-// GitHub 연동 API
-// ================================
+// ============== 상수 정의 ==============
 
-/**
- * GitHub 레포지토리 목록 조회
- */
-export const getGithubRepositories = async () => {
-  try {
-    const response = await algorithmApi.get('/github/repositories');
-    return response.data;
-  } catch (error) {
-    console.error('GitHub 레포지토리 조회 실패:', error);
-    throw error;
-  }
-};
+// 난이도 옵션
+export const DIFFICULTY_OPTIONS = [
+    { value: '', label: '전체', color: 'gray' },
+    { value: 'BRONZE', label: '브론즈', color: 'amber' },
+    { value: 'SILVER', label: '실버', color: 'gray' },
+    { value: 'GOLD', label: '골드', color: 'yellow' },
+    { value: 'PLATINUM', label: '플래티넘', color: 'cyan' },
+];
 
-/**
- * GitHub 자동 커밋
- * @param {Object} commitData - 커밋 데이터
- */
-export const commitToGithub = async (commitData) => {
-  try {
-    const response = await algorithmApi.post('/github/commit', commitData);
-    return response.data;
-  } catch (error) {
-    console.error('GitHub 커밋 실패:', error);
-    throw error;
-  }
-};
+// 출처 옵션
+export const SOURCE_OPTIONS = [
+    { value: '', label: '전체', icon: '🔍' },
+    { value: 'AI_GENERATED', label: 'AI 생성', icon: '🤖' },
+    { value: 'BOJ', label: '백준', icon: '🏛️' },
+    { value: 'CUSTOM', label: '커스텀', icon: '✏️' },
+];
 
-// 기본 export
-export default algorithmApi;
+// 언어 옵션 (AI 생성용)
+export const LANGUAGE_OPTIONS = [
+    { value: 'ALL', label: '모든 언어' },
+    { value: 'JAVA', label: 'Java' },
+    { value: 'PYTHON', label: 'Python' },
+    { value: 'CPP', label: 'C++' },
+    { value: 'JAVASCRIPT', label: 'JavaScript' },
+];
+
+// 주제 옵션 (AI 생성용)
+export const TOPIC_OPTIONS = [
+    { value: '수학', label: '수학' },
+    { value: 'DP', label: '다이나믹 프로그래밍' },
+    { value: '그래프', label: '그래프' },
+    { value: '구현', label: '구현' },
+    { value: '그리디', label: '그리디' },
+    { value: 'BFS', label: '너비우선탐색' },
+    { value: 'DFS', label: '깊이우선탐색' },
+    { value: '이분탐색', label: '이분탐색' },
+    { value: '문자열', label: '문자열' },
+];
+
+// 페이지 크기 옵션
+export const PAGE_SIZE_OPTIONS = [
+    { value: 5, label: '5개씩' },
+    { value: 10, label: '10개씩' },
+    { value: 20, label: '20개씩' },
+    { value: 50, label: '50개씩' },
+];
+
+// 정렬 옵션
+export const SORT_OPTIONS = [
+    { value: 'recent', label: '최신순' },
+    { value: 'difficulty', label: '난이도순' },
+    { value: 'title', label: '제목순' },
+    { value: 'popular', label: '인기순' },
+];

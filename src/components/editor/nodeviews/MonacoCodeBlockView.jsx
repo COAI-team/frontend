@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import * as monaco from "monaco-editor";
 
 import "../monaco/setupMonaco";
-import CodeBlockLangDropdown from "./CodeBlockLangDropdown";
+import CodeBlockLangDropdown from "../ui/CodeBlockLangDropdown";
 
 const MonacoCodeBlockView = ({ node, updateAttributes }) => {
   const { code = "// 코드를 작성하세요\n", language = "javascript" } =
