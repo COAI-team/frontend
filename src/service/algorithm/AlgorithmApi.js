@@ -1,4 +1,3 @@
-// src/service/algorithm/algorithmApi.js
 import axiosInstance from "../../server/AxiosConfig";
 
 // ============== 알고리즘 문제 관리 API ==============

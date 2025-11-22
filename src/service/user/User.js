@@ -1,4 +1,4 @@
-import axiosInstance from "../server/AxiosConfig";
+import axiosInstance from "../../server/AxiosConfig";
 
 // 로그인
 export const login = async (payload) => {
