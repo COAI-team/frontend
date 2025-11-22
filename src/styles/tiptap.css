@@ -5,16 +5,18 @@
 /* ProseMirror 기본 배경 제거 */
 .ProseMirror {
   background: transparent !important;
+  font-size: 1.125rem; /* 18px - 벨로그 스타일 */
+  line-height: 1.7;
 }
 
-/* -----------------------------
-   Evelyn 요청대로 교체된 부분
------------------------------ */
+/* TipTap Editor 기본 스타일 */
 .tiptap {
   outline: none;
   min-height: 400px;
   color: #111827;
-  padding: 1rem; /* 기존 padding 유지 */
+  padding: 1rem;
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.7;
 }
 
 .dark .tiptap {
@@ -22,101 +24,144 @@
 }
 
 .tiptap p {
-  margin: 0.5em 0;
+  margin: 1rem 0;
+  line-height: 1.7;
 }
 
 .tiptap:focus {
   outline: none;
 }
-/* ----------------------------- */
 
 /* Placeholder */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: #9ca3af;
   display: block;
+  font-size: 1.125rem;
 }
 
-/* Headings */
-.tiptap h1 { font-size: 2rem; font-weight: 700; margin: 2rem 0 1rem; }
-.tiptap h2 { font-size: 1.6rem; font-weight: 600; margin: 1.6rem 0 1rem; }
-.tiptap h3 { font-size: 1.3rem; font-weight: 600; margin: 1.4rem 0 0.8rem; }
+/* Headings - 벨로그 스타일 */
+.tiptap h1 {
+  font-size: 2.5rem; /* 40px */
+  font-weight: 700;
+  margin: 2.5rem 0 1.5rem;
+  line-height: 1.3;
+}
+
+.tiptap h2 {
+  font-size: 2rem; /* 32px */
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+  line-height: 1.4;
+}
+
+.tiptap h3 {
+  font-size: 1.5rem; /* 24px */
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem;
+  line-height: 1.4;
+}
 
 /* List */
-.tiptap ul { list-style: disc; padding-left: 1.4rem; margin: 1rem 0; }
-.tiptap ol { list-style: decimal; padding-left: 1.4rem; margin: 1rem 0; }
-.tiptap li { margin: 0.3rem 0; }
+.tiptap ul {
+  list-style: disc;
+  padding-left: 1.75rem;
+  margin: 1.25rem 0;
+}
+
+.tiptap ol {
+  list-style: decimal;
+  padding-left: 1.75rem;
+  margin: 1.25rem 0;
+}
+
+.tiptap li {
+  margin: 0.5rem 0;
+  line-height: 1.7;
+}
 
 /* Link */
 .tiptap a {
   text-decoration: underline;
-  color: #7e22ce;
+  color: #0066cc;
+  transition: color 0.2s;
 }
+
+.tiptap a:hover {
+  color: #0052a3;
+}
+
 html.dark .tiptap a {
-  color: #c084fc;
+  color: #4ea1ff;
 }
 
-/* Blockquote */
+html.dark .tiptap a:hover {
+  color: #7bb8ff;
+}
+
+/* Blockquote - 벨로그 스타일 */
 .tiptap blockquote {
-  border-left: 4px solid #9333ea;
-  padding-left: 1rem;
+  border-left: 4px solid #a855f7;
+  padding-left: 1.25rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
   font-style: italic;
-  margin: 1.5rem 0;
+  margin: 1.75rem 0;
+  color: #6b7280;
 }
+
 html.dark .tiptap blockquote {
-  border-left-color: #a855f7;
+  border-left-color: #c084fc;
+  color: #9ca3af;
 }
 
-/* Inline code */
+/* Inline code - 벨로그 스타일 */
 .tiptap code {
-  background: #eeeeee;
-  border-radius: 4px;
-  padding: 3px 6px;
-  font-family: "JetBrains Mono", monospace;
-}
-html.dark .tiptap code {
-  background: #1e1e1e;
+  background: rgba(168, 85, 247, 0.1);
+  border-radius: 0.25rem;
+  padding: 0.2em 0.4em;
+  font-family: "Consolas", "Monaco", "JetBrains Mono", monospace;
+  font-size: 0.9em;
+  color: #a855f7;
 }
 
-/* Table */
-.tiptap table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1.4rem 0;
-}
-.tiptap td, .tiptap th {
-  border: 1px solid #d1d5db;
-  padding: 8px;
-}
-html.dark .tiptap td, html.dark .tiptap th {
-  border: 1px solid #4b5563;
-}
-.tiptap th {
-  background: #f3f4f6;
-}
-html.dark .tiptap th {
-  background: #1f2937;
+html.dark .tiptap code {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
 }
 
 /* Image */
 .tiptap img {
   display: block;
-  margin: 1rem 0;
+  margin: 1.75rem 0;
   max-width: 100%;
   height: auto;
-  margin: 18px 0;
+  border-radius: 0.5rem;
   cursor: grab;
 }
+
 .tiptap img:active {
   cursor: grabbing;
 }
+
 html.dark .tiptap img {
-  filter: brightness(0.9);
+  filter: brightness(0.92);
+}
+
+/* 인라인 스티커 스타일 */
+.tiptap img[data-sticker] {
+  display: inline-block;
+  width: 1.5em;
+  height: 1.5em;
+  vertical-align: -0.3em;
+  margin: 0 0.1em;
+  cursor: default;
+  border-radius: 0;
 }
 
 .editor-wrapper {
   display: block !important;
-  flex: none !important;      
+  flex: none !important;
   width: 100%;
   align-self: stretch;
 }
@@ -126,12 +171,220 @@ html.dark .tiptap img {
 -------------------------------------------------------------- */
 
 .monaco-code-block-wrapper {
-  margin: 24px 0 !important;
-  padding: 8px 0 !important;
-  border-radius: 10px;
+  margin: 1.75rem 0 !important;
+  padding: 0.5rem 0 !important;
+  border-radius: 0.75rem;
   background: #1e1e1e !important;
+  overflow: hidden;
 }
 
 html.dark .monaco-code-block-wrapper {
   background: #1a1a1a !important;
+}
+
+/* ==========================================
+   표(Table) 스타일
+   ========================================== */
+
+/* 표 기본 스타일 */
+.ProseMirror table,
+.tiptap table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1.5rem 0;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dark .ProseMirror table,
+html.dark .tiptap table {
+  border: 2px solid #4b5563;
+}
+
+/* 표 셀 기본 스타일 */
+.ProseMirror td,
+.ProseMirror th,
+.tiptap td,
+.tiptap th {
+  min-width: 1em;
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  background-color: transparent;
+  text-align: left;
+}
+
+.dark .ProseMirror td,
+.dark .ProseMirror th,
+html.dark .tiptap td,
+html.dark .tiptap th {
+  border-color: #374151;
+  background-color: transparent;
+}
+
+/* 첫 번째 행의 셀 상단 테두리 제거 */
+.ProseMirror tr:first-child td,
+.ProseMirror tr:first-child th,
+.tiptap tr:first-child td,
+.tiptap tr:first-child th {
+  border-top: none;
+}
+
+/* 마지막 행의 셀 하단 테두리 제거 */
+.ProseMirror tr:last-child td,
+.ProseMirror tr:last-child th,
+.tiptap tr:last-child td,
+.tiptap tr:last-child th {
+  border-bottom: none;
+}
+
+/* 첫 번째 열의 셀 왼쪽 테두리 제거 */
+.ProseMirror td:first-child,
+.ProseMirror th:first-child,
+.tiptap td:first-child,
+.tiptap th:first-child {
+  border-left: none;
+}
+
+/* 마지막 열의 셀 오른쪽 테두리 제거 */
+.ProseMirror td:last-child,
+.ProseMirror th:last-child,
+.tiptap td:last-child,
+.tiptap th:last-child {
+  border-right: none;
+}
+
+/* 헤더 셀 스타일 */
+.ProseMirror th,
+.tiptap th {
+  font-weight: 700;
+  color: inherit;
+}
+
+.dark .ProseMirror th,
+html.dark .tiptap th {
+  color: inherit;
+}
+
+/* 선택된 셀 스타일 */
+.ProseMirror .selectedCell {
+  background-color: #dbeafe !important;
+}
+
+.dark .ProseMirror .selectedCell {
+  background-color: #1e3a8a !important;
+}
+
+/* 셀 크기 조절 핸들 */
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #3b82f6;
+  cursor: col-resize;
+  z-index: 20;
+}
+
+.dark .ProseMirror .column-resize-handle {
+  background-color: #60a5fa;
+}
+
+/* 표 호버 효과 */
+.ProseMirror td:hover,
+.ProseMirror th:hover,
+.tiptap td:hover,
+.tiptap th:hover {
+  background-color: rgba(243, 244, 246, 0.5);
+}
+
+.dark .ProseMirror td:hover,
+.dark .ProseMirror th:hover,
+html.dark .tiptap td:hover,
+html.dark .tiptap th:hover {
+  background-color: rgba(55, 65, 81, 0.5);
+}
+
+/* 배경색이 설정된 셀은 호버 시 약간 어둡게 */
+.ProseMirror td[style*="background-color"]:hover,
+.ProseMirror th[style*="background-color"]:hover,
+.tiptap td[style*="background-color"]:hover,
+.tiptap th[style*="background-color"]:hover {
+  opacity: 0.9;
+}
+
+/* 빈 셀에 placeholder */
+.ProseMirror td:empty::before,
+.ProseMirror th:empty::before {
+  content: "";
+  display: inline-block;
+}
+
+/* 표 내부 p 태그 마진 제거 */
+.ProseMirror table p,
+.tiptap table p {
+  margin: 0;
+}
+
+/* 표 전체 선택 시 */
+.ProseMirror table.ProseMirror-selectednode {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.dark .ProseMirror table.ProseMirror-selectednode {
+  outline-color: #60a5fa;
+}
+
+/* 표 안의 리스트 스타일 조정 */
+.ProseMirror table ul,
+.ProseMirror table ol,
+.tiptap table ul,
+.tiptap table ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+/* 반응형 표 */
+@media (max-width: 768px) {
+  .ProseMirror table,
+  .tiptap table {
+    font-size: 0.875rem;
+  }
+  
+  .ProseMirror td,
+  .ProseMirror th,
+  .tiptap td,
+  .tiptap th {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* --------------------------------------------------------------
+   반응형 - 모바일 대응
+-------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .ProseMirror,
+  .tiptap {
+    font-size: 1rem; /* 16px */
+  }
+
+  .tiptap h1 {
+    font-size: 2rem; /* 32px */
+  }
+
+  .tiptap h2 {
+    font-size: 1.5rem; /* 24px */
+  }
+
+  .tiptap h3 {
+    font-size: 1.25rem; /* 20px */
+  }
 }

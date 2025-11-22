@@ -1,13 +1,13 @@
 import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../../service/ApiServices";
-import AlertModal from "../../component/modal/AlertModal";
+import AlertModal from "../../components/modal/AlertModal";
 import { LoginContext } from "../../context/LoginContext.js";
 
 export default function SignIn() {
     const navigate = useNavigate();
 
-    // 🔥 LoginContext 사용
+    // LoginContext 사용
     const { setLoginResult } = useContext(LoginContext);
 
     // AlertModal 상태
