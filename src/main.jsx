@@ -46,11 +46,6 @@ createRoot(document.getElementById("root")).render(
             <Route path="/" element={<Layout />}>
               <Route index element={<Main />} />
 
-              {/* 자유게시판 */}
-              <Route path="freeboard/list" element={<FreeboardList />} />
-              <Route path="freeboard/write" element={<FreeboardWrite />} />
-              <Route path="freeboard/:id" element={<FreeboardDetail />} />
-
               {/* 결제 */}
               <Route path="pages/payment/pricing" element={<PricingPage />} />
               <Route path="pages/payment/buy" element={<PaymentPage />} />
@@ -61,6 +56,8 @@ createRoot(document.getElementById("root")).render(
               <Route path="algorithm" element={<ProblemList />} />
               <Route path="algorithm/problems" element={<ProblemList />} />
               <Route path="algorithm/problems/generate" element={<ProblemGenerator />} />
+              {/* 알고리즘 문제 상세페이지(임시) */}
+              <Route path="algorithm/problems/:id" element={<ProblemSolve/>}/>
               <Route path="algorithm/problems/:problemId/solve" element={<ProblemSolve />} />
               <Route path="algorithm/submissions/:submissionId" element={<SubmissionResult />} />
             </Route>
