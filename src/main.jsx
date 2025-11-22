@@ -63,6 +63,8 @@ createRoot(document.getElementById("root")).render(
               <Route path="algorithm" element={<ProblemList/>}/>
               <Route path="algorithm/problems" element={<ProblemList/>}/>
               <Route path="algorithm/problems/generate" element={<ProblemGenerator/>}/>
+              {/* 알고리즘 문제 상세페이지(임시) */}
+              <Route path="algorithm/problems/:id" element={<ProblemSolve/>}/>
               <Route path="algorithm/problems/:problemId/solve" element={<ProblemSolve/>}/>
               <Route path="algorithm/submissions/:submissionId" element={<SubmissionResult/>}/>
           </Route>
