@@ -180,7 +180,7 @@ const CodeAnalysisModal = ({ isOpen, onClose }) => {
     const handleConfirmFile = async () => {
         try {
             // Save file to DB using API: POST /api/github/save-file
-            const saveResponse = await axiosInstance.post('/github/save-file', {
+            const saveResponse = await axiosInstance.post('api/github/save-file', {
                 repositoryUrl: selectedRepo.repoUrl,
                 owner: selectedRepo.owner,
                 repo: selectedRepo.name,
@@ -188,16 +188,20 @@ const CodeAnalysisModal = ({ isOpen, onClose }) => {
                 userId: 1 // TODO: Get from auth context
             });
 
-            const analysisId = saveResponse.data.Data.analysisId;
+            console.log('Save response:', saveResponse.data); // 디버깅용
+
+
+            const fileId = saveResponse.data.Data.fileId || saveResponse.data.fileId;
+            console.log('File ID:', fileId);
 
             // Navigate to analysis options page with file data
             navigate('/code-analysis/options', {
                 state: {
-                    analysisId,
+                    analysisId: fileId,
                     repositoryUrl: selectedRepo.repoUrl,
                     filePath: selectedFile.path,
-                    fileContent,
-                    repoName: selectedRepo.fullName
+                    fileContent: fileContent,
+                    repoName: selectedRepo.name
                 }
             });
 
