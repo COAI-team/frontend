@@ -1,33 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import CodeEditor from '../../components/algorithm/editor/CodeEditor';
+import { codeTemplates, editorUtils } from '../../components/algorithm/editor/editorUtils';
 
 /**
- * 문제 풀이 페이지 - Step 3 버전
+ * 문제 풀이 페이지 - Monaco Editor 통합 버전
  */
 const ProblemSolve = () => {
   const { problemId } = useParams();
   const navigate = useNavigate();
+  const editorRef = useRef(null);
   
   // 상태 관리
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [code, setCode] = useState('');
   const [timeLeft, setTimeLeft] = useState(1800); // 30분
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [isEditorReady, setIsEditorReady] = useState(false);
 
-  // 언어별 기본 코드 템플릿
-  const codeTemplates = {
-    javascript: '// JavaScript 코드를 작성하세요\nfunction solution() {\n    // 여기에 코드를 작성하세요\n}\n\nconsolution();',
-    python: '# Python 코드를 작성하세요\ndef solution():\n    # 여기에 코드를 작성하세요\n    pass\n\nsolution()',
-    java: 'public class Solution {\n    public static void main(String[] args) {\n        // Java 코드를 작성하세요\n        \n    }\n}',
-    cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    // C++ 코드를 작성하세요\n    \n    return 0;\n}'
-  };
+  // 코드 제출 (useCallback 적용 - 가장 먼저 정의)
+  const handleSubmit = useCallback(() => {
+    if (!code.trim()) {
+      alert('코드를 작성해주세요!');
+      return;
+    }
+    
+    // 타이머 정지
+    setIsTimerRunning(false);
+    
+    const submissionId = Math.floor(Math.random() * 1000) + 1;
+    const elapsedTime = 1800 - timeLeft; // 경과 시간(초)
+    const elapsedMinutes = Math.floor(elapsedTime / 60);
+    const elapsedSeconds = elapsedTime % 60;
+    
+    alert(`개발 중입니다!\nDay 10-11에 Judge0 API 연동과 함께 구현됩니다.\n\n모의 제출 정보:\n- 제출 ID: ${submissionId}\n- 언어: ${selectedLanguage.toUpperCase()}\n- 소요 시간: ${elapsedMinutes}분 ${elapsedSeconds}초\n- 코드 길이: ${code.length}자`);
+    
+    // 실제로는 결과 페이지로 이동
+    // navigate(`/algorithm/submissions/${submissionId}`);
+  }, [code, timeLeft, selectedLanguage]);
 
   // 타이머 시작/정지
   const toggleTimer = () => {
     setIsTimerRunning(!isTimerRunning);
   };
 
-  // 타이머 효과
+  // 타이머 효과 (handleSubmit 의존성 추가)
   useEffect(() => {
     let interval = null;
     if (isTimerRunning && timeLeft > 0) {
@@ -37,8 +54,15 @@ const ProblemSolve = () => {
     } else if (!isTimerRunning && timeLeft !== 0) {
       clearInterval(interval);
     }
+
+    // 시간 초과 시 자동 제출
+    if (timeLeft === 0 && isTimerRunning) {
+      handleSubmit();
+      setIsTimerRunning(false);
+    }
+
     return () => clearInterval(interval);
-  }, [isTimerRunning, timeLeft]);
+  }, [isTimerRunning, timeLeft, handleSubmit]);
 
   // 시간 포맷팅 (MM:SS)
   const formatTime = (seconds) => {
@@ -49,27 +73,71 @@ const ProblemSolve = () => {
 
   // 언어 변경
   const handleLanguageChange = (language) => {
-    setSelectedLanguage(language);
-    setCode(codeTemplates[language]);
+    const confirmChange = window.confirm(
+      `언어를 ${language.toUpperCase()}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`
+    );
+    
+    if (confirmChange) {
+      setSelectedLanguage(language);
+      setCode(codeTemplates[language] || '');
+    }
   };
 
   // 초기 코드 설정
   useEffect(() => {
-    setCode(codeTemplates[selectedLanguage]);
-  }, []);
+    setCode(codeTemplates[selectedLanguage] || '');
+  }, [selectedLanguage]);
 
-  // 코드 제출
-  const handleSubmit = () => {
+  // 코드 변경 핸들러
+  const handleCodeChange = (newCode) => {
+    setCode(newCode);
+  };
+
+  // 에디터 마운트 핸들러
+  const handleEditorMount = (editor, monaco) => {
+    editorRef.current = { editor, monaco };
+    setIsEditorReady(true);
+    
+    // 에디터에 포커스
+    setTimeout(() => {
+      editorUtils.focusEditor(editor);
+    }, 100);
+  };
+
+  // 코드 포맷팅
+  const handleFormatCode = () => {
+    if (editorRef.current?.editor) {
+      editorUtils.formatCode(editorRef.current.editor);
+    }
+  };
+
+  // 코드 초기화
+  const handleResetCode = () => {
+    const confirmReset = window.confirm('코드를 초기화하시겠습니까?\n현재 작성한 코드가 모두 사라집니다.');
+    if (confirmReset) {
+      setCode(codeTemplates[selectedLanguage] || '');
+    }
+  };
+
+  // 코드 복사
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      alert('코드가 클립보드에 복사되었습니다!');
+    } catch (err) {
+      console.error('복사 실패:', err);
+      alert('코드 복사에 실패했습니다.');
+    }
+  };
+
+  // 테스트 실행
+  const handleTestRun = () => {
     if (!code.trim()) {
       alert('코드를 작성해주세요!');
       return;
     }
     
-    const submissionId = Math.floor(Math.random() * 1000) + 1;
-    alert(`개발 중입니다!\nDay 10-11에 Judge0 API 연동과 함께 구현됩니다.\n\n모의 제출 ID: ${submissionId}`);
-    
-    // 실제로는 결과 페이지로 이동
-    // navigate(`/algorithm/submissions/${submissionId}`);
+    alert('테스트 실행 기능은 Day 10-11에 구현됩니다!\n\n현재 코드:\n' + code.substring(0, 200) + (code.length > 200 ? '...' : ''));
   };
 
   // 샘플 문제 데이터 (실제로는 API에서 가져옴)
@@ -77,7 +145,7 @@ const ProblemSolve = () => {
     1: { title: '두 수의 합', difficulty: 'BRONZE', description: '두 정수를 입력받아 합을 출력하는 프로그램을 작성하시오.' },
     2: { title: '피보나치 수', difficulty: 'SILVER', description: 'n번째 피보나치 수를 구하는 프로그램을 작성하시오.' },
     3: { title: '최단경로', difficulty: 'GOLD', description: '그래프에서 최단경로를 구하는 프로그램을 작성하시오.' },
-    123: { title: '테스트 문제', difficulty: 'BRONZE', description: '이것은 Step 3 테스트를 위한 샘플 문제입니다.' }
+    123: { title: '테스트 문제', difficulty: 'BRONZE', description: '이것은 Monaco Editor 테스트를 위한 샘플 문제입니다.' }
   };
 
   const currentProblem = problemData[problemId] || problemData['123'];
@@ -123,12 +191,12 @@ const ProblemSolve = () => {
         </div>
       </div>
 
-      {/* 개발 상태 알림 */}
+      {/* Monaco Editor 상태 알림 */}
       <div className="container mx-auto px-4 py-4">
-        <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
-          <strong>🚧 개발 예정</strong> - Day 8-9에 Monaco Editor와 함께 구현됩니다
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+          <strong>✅ Monaco Editor 통합 완료</strong> - 전문적인 코드 에디터가 적용되었습니다
           <br />
-          <small>현재는 기본 텍스트에어리어로 테스트 중입니다.</small>
+          <small>자동완성, 문법 하이라이팅, 포맷팅 등의 기능을 사용할 수 있습니다.</small>
         </div>
       </div>
 
@@ -205,7 +273,7 @@ const ProblemSolve = () => {
             <div className="p-6">
               {/* 에디터 헤더 */}
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">💻 코드 에디터</h3>
+                <h3 className="font-semibold text-gray-900">💻 Monaco Editor</h3>
                 
                 {/* 언어 선택 */}
                 <div className="flex items-center gap-2">
@@ -223,18 +291,16 @@ const ProblemSolve = () => {
                 </div>
               </div>
 
-              {/* 코드 에디터 (텍스트에어리어) */}
-              <div className="mb-4">
-                <textarea
+              {/* Monaco Editor */}
+              <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden group">
+                <CodeEditor
+                  language={selectedLanguage}
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="여기에 코드를 작성하세요..."
-                  className="w-full h-80 p-4 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                  style={{ 
-                    backgroundColor: '#1e1e1e', 
-                    color: '#d4d4d4',
-                    fontFamily: '"Fira Code", "Monaco", "Menlo", monospace'
-                  }}
+                  onChange={handleCodeChange}
+                  onMount={handleEditorMount}
+                  height="400px"
+                  theme="vs-dark"
+                  className="min-h-[400px]"
                 />
               </div>
 
@@ -242,32 +308,53 @@ const ProblemSolve = () => {
               <div className="flex items-center justify-between">
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setCode(codeTemplates[selectedLanguage])}
+                    onClick={handleResetCode}
                     className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+                    disabled={!isEditorReady}
                   >
                     🔄 초기화
                   </button>
-                  <button className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors">
+                  <button
+                    onClick={handleCopyCode}
+                    className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+                  >
                     📋 복사
+                  </button>
+                  <button
+                    onClick={handleFormatCode}
+                    className="px-3 py-1 text-sm bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition-colors"
+                    disabled={!isEditorReady}
+                  >
+                    ✨ 포맷팅
                   </button>
                 </div>
                 
                 <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+                  <button 
+                    onClick={handleTestRun}
+                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                  >
                     🧪 테스트 실행
                   </button>
                   <button
                     onClick={handleSubmit}
                     className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors font-medium"
+                    disabled={!code.trim()}
                   >
                     🚀 제출
                   </button>
                 </div>
               </div>
 
-              {/* 코드 통계 */}
+              {/* 에디터 상태 및 통계 */}
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">상태:</span>
+                    <span className="ml-2 font-medium">
+                      {isEditorReady ? '🟢 준비됨' : '🟡 로딩중'}
+                    </span>
+                  </div>
                   <div>
                     <span className="text-gray-600">줄 수:</span>
                     <span className="ml-2 font-mono">{code.split('\n').length}</span>
@@ -286,10 +373,12 @@ const ProblemSolve = () => {
           </div>
         </div>
 
-        {/* Step 3 완료 상태 */}
+        {/* Monaco Editor 완료 상태 */}
         <div className="mt-6">
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded text-center">
-            <strong>✅ Step 3 테스트</strong> - ProblemSolve 페이지가 정상적으로 로드되었습니다! (문제 ID: {problemId})
+            <strong>✅ Monaco Editor 통합 테스트 완료</strong> - 전문 에디터가 정상적으로 로드되었습니다! (문제 ID: {problemId})
+            <br />
+            <small className="text-green-600">자동완성, 포맷팅, 문법 검사 등의 기능을 사용해보세요!</small>
           </div>
         </div>
       </div>
