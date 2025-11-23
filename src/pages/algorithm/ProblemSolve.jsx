@@ -4,7 +4,7 @@ import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates, editorUtils } from '../../components/algorithm/editor/editorUtils';
 
 /**
- * 문제 풀이 페이지 - Monaco Editor 통합 버전
+ * 문제 풀이 페이지 - 리사이저블 레이아웃 완전 수정 버전
  */
 const ProblemSolve = () => {
   const { problemId } = useParams();
@@ -17,26 +17,73 @@ const ProblemSolve = () => {
   const [timeLeft, setTimeLeft] = useState(1800); // 30분
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
+  
+  // 화면 분할 상태 관리
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // 좌측 패널 너비 (%)
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef(null);
 
-  // 코드 제출 (useCallback 적용 - 가장 먼저 정의)
+  // 리사이저 드래그 시작
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    setIsResizing(true);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  // 리사이저 드래그 중
+  const handleResize = useCallback((e) => {
+    if (!isResizing || !containerRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const mouseX = e.clientX - containerRect.left;
+    
+    // 최소/최대 너비 제한 (20% ~ 80%)
+    const minWidth = containerWidth * 0.2;
+    const maxWidth = containerWidth * 0.8;
+    
+    const clampedX = Math.max(minWidth, Math.min(maxWidth, mouseX));
+    const newLeftPanelWidth = (clampedX / containerWidth) * 100;
+    
+    setLeftPanelWidth(newLeftPanelWidth);
+  }, [isResizing]);
+
+  // 리사이저 드래그 종료
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
+  // 리사이저 이벤트 리스너
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResize);
+      document.addEventListener('mouseup', handleResizeEnd);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleResize);
+        document.removeEventListener('mouseup', handleResizeEnd);
+      };
+    }
+  }, [isResizing, handleResize, handleResizeEnd]);
+
+  // 코드 제출 (useCallback 적용)
   const handleSubmit = useCallback(() => {
     if (!code.trim()) {
       alert('코드를 작성해주세요!');
       return;
     }
     
-    // 타이머 정지
     setIsTimerRunning(false);
     
     const submissionId = Math.floor(Math.random() * 1000) + 1;
-    const elapsedTime = 1800 - timeLeft; // 경과 시간(초)
+    const elapsedTime = 1800 - timeLeft;
     const elapsedMinutes = Math.floor(elapsedTime / 60);
     const elapsedSeconds = elapsedTime % 60;
     
     alert(`개발 중입니다!\nDay 10-11에 Judge0 API 연동과 함께 구현됩니다.\n\n모의 제출 정보:\n- 제출 ID: ${submissionId}\n- 언어: ${selectedLanguage.toUpperCase()}\n- 소요 시간: ${elapsedMinutes}분 ${elapsedSeconds}초\n- 코드 길이: ${code.length}자`);
-    
-    // 실제로는 결과 페이지로 이동
-    // navigate(`/algorithm/submissions/${submissionId}`);
   }, [code, timeLeft, selectedLanguage]);
 
   // 타이머 시작/정지
@@ -44,7 +91,7 @@ const ProblemSolve = () => {
     setIsTimerRunning(!isTimerRunning);
   };
 
-  // 타이머 효과 (handleSubmit 의존성 추가)
+  // 타이머 효과
   useEffect(() => {
     let interval = null;
     if (isTimerRunning && timeLeft > 0) {
@@ -55,7 +102,6 @@ const ProblemSolve = () => {
       clearInterval(interval);
     }
 
-    // 시간 초과 시 자동 제출
     if (timeLeft === 0 && isTimerRunning) {
       handleSubmit();
       setIsTimerRunning(false);
@@ -64,7 +110,7 @@ const ProblemSolve = () => {
     return () => clearInterval(interval);
   }, [isTimerRunning, timeLeft, handleSubmit]);
 
-  // 시간 포맷팅 (MM:SS)
+  // 시간 포맷팅
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -98,7 +144,6 @@ const ProblemSolve = () => {
     editorRef.current = { editor, monaco };
     setIsEditorReady(true);
     
-    // 에디터에 포커스
     setTimeout(() => {
       editorUtils.focusEditor(editor);
     }, 100);
@@ -140,7 +185,7 @@ const ProblemSolve = () => {
     alert('테스트 실행 기능은 Day 10-11에 구현됩니다!\n\n현재 코드:\n' + code.substring(0, 200) + (code.length > 200 ? '...' : ''));
   };
 
-  // 샘플 문제 데이터 (실제로는 API에서 가져옴)
+  // 샘플 문제 데이터
   const problemData = {
     1: { title: '두 수의 합', difficulty: 'BRONZE', description: '두 정수를 입력받아 합을 출력하는 프로그램을 작성하시오.' },
     2: { title: '피보나치 수', difficulty: 'SILVER', description: 'n번째 피보나치 수를 구하는 프로그램을 작성하시오.' },
@@ -191,20 +236,24 @@ const ProblemSolve = () => {
         </div>
       </div>
 
-      {/* Monaco Editor 상태 알림 */}
+      {/* 리사이저블 레이아웃 상태 알림 */}
       <div className="container mx-auto px-4 py-4">
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-          <strong>✅ Monaco Editor 통합 완료</strong> - 전문적인 코드 에디터가 적용되었습니다
+          <strong>✅ 리사이저블 레이아웃 적용</strong> - 두 패널 사이의 바를 드래그하여 화면 크기를 조절하세요
           <br />
-          <small>자동완성, 문법 하이라이팅, 포맷팅 등의 기능을 사용할 수 있습니다.</small>
+          <small>좌측: 문제 설명 ({leftPanelWidth.toFixed(1)}%) | 우측: 코드 에디터 ({(100 - leftPanelWidth).toFixed(1)}%)</small>
         </div>
       </div>
 
-      {/* 메인 컨텐츠 */}
-      <div className="container mx-auto px-4 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 문제 설명 패널 */}
-          <div className="bg-white rounded-lg shadow-sm border">
+      {/* 메인 컨텐츠 - 올바른 리사이저블 레이아웃 */}
+      <div className="container mx-auto px-4 pb-8" ref={containerRef}>
+        <div className="flex h-[calc(100vh-200px)] gap-1">
+          
+          {/* 좌측: 문제 설명 패널 (단일) */}
+          <div 
+            className="bg-white rounded-lg shadow-sm border overflow-auto"
+            style={{ width: `${leftPanelWidth}%` }}
+          >
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900">{currentProblem.title}</h2>
@@ -268,9 +317,24 @@ const ProblemSolve = () => {
             </div>
           </div>
 
-          {/* 코드 에디터 패널 */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6">
+          {/* 중앙: 리사이저 바 */}
+          <div 
+            className={`w-2 bg-gray-300 hover:bg-blue-400 cursor-col-resize rounded transition-colors duration-200 flex items-center justify-center group ${
+              isResizing ? 'bg-blue-500' : ''
+            }`}
+            onMouseDown={handleResizeStart}
+            title="드래그하여 화면 크기 조절"
+          >
+            <div className="w-1 h-8 bg-gray-500 rounded group-hover:bg-white transition-colors duration-200"></div>
+          </div>
+
+          {/* 우측: 코드 에디터 패널 */}
+          <div 
+            className="bg-white rounded-lg shadow-sm border overflow-hidden flex flex-col"
+            style={{ width: `${100 - leftPanelWidth}%` }}
+          >
+            {/* 에디터 헤더 및 툴바 */}
+            <div className="p-6 flex-shrink-0">
               {/* 에디터 헤더 */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">💻 Monaco Editor</h3>
@@ -289,19 +353,6 @@ const ProblemSolve = () => {
                     <option value="cpp">C++</option>
                   </select>
                 </div>
-              </div>
-
-              {/* Monaco Editor */}
-              <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden group">
-                <CodeEditor
-                  language={selectedLanguage}
-                  value={code}
-                  onChange={handleCodeChange}
-                  onMount={handleEditorMount}
-                  height="400px"
-                  theme="vs-dark"
-                  className="min-h-[400px]"
-                />
               </div>
 
               {/* 에디터 툴바 */}
@@ -345,40 +396,44 @@ const ProblemSolve = () => {
                   </button>
                 </div>
               </div>
+            </div>
 
-              {/* 에디터 상태 및 통계 */}
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">상태:</span>
-                    <span className="ml-2 font-medium">
-                      {isEditorReady ? '🟢 준비됨' : '🟡 로딩중'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">줄 수:</span>
-                    <span className="ml-2 font-mono">{code.split('\n').length}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">문자 수:</span>
-                    <span className="ml-2 font-mono">{code.length}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">언어:</span>
-                    <span className="ml-2 font-medium">{selectedLanguage.toUpperCase()}</span>
-                  </div>
+            {/* Monaco Editor - 확장 가능한 영역 */}
+            <div className="flex-1 border-t border-gray-200 overflow-hidden">
+              <CodeEditor
+                language={selectedLanguage}
+                value={code}
+                onChange={handleCodeChange}
+                onMount={handleEditorMount}
+                height="100%"
+                theme="vs-dark"
+                className="h-full"
+              />
+            </div>
+
+            {/* 에디터 상태 및 통계 */}
+            <div className="p-4 border-t border-gray-200 flex-shrink-0 bg-gray-50">
+              <div className="grid grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">상태:</span>
+                  <span className="ml-2 font-medium">
+                    {isEditorReady ? '🟢 준비됨' : '🟡 로딩중'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">줄 수:</span>
+                  <span className="ml-2 font-mono">{code.split('\n').length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">문자 수:</span>
+                  <span className="ml-2 font-mono">{code.length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">언어:</span>
+                  <span className="ml-2 font-medium">{selectedLanguage.toUpperCase()}</span>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Monaco Editor 완료 상태 */}
-        <div className="mt-6">
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded text-center">
-            <strong>✅ Monaco Editor 통합 테스트 완료</strong> - 전문 에디터가 정상적으로 로드되었습니다! (문제 ID: {problemId})
-            <br />
-            <small className="text-green-600">자동완성, 포맷팅, 문법 검사 등의 기능을 사용해보세요!</small>
           </div>
         </div>
       </div>
