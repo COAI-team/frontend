@@ -4,14 +4,19 @@ import {
     ChartBarIcon,
     UsersIcon,
     Cog6ToothIcon,
-    HomeIcon,
+    ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
 const adminMenu = [
-    { name: "관리자 홈", href: "/admin", icon: HomeIcon },
-    { name: "유저 관리", href: "/admin/users", icon: UsersIcon },
-    { name: "통계 대시보드", href: "/admin/stats", icon: ChartBarIcon },
-    { name: "설정", href: "/admin/settings", icon: Cog6ToothIcon },
+    {
+        name: "관리자",
+        icon: ShieldCheckIcon,
+        children: [
+            { name: "통계 대시보드", href: "/admin/stats", icon: ChartBarIcon },
+            { name: "유저 관리", href: "/admin/users", icon: UsersIcon },
+            { name: "설정", href: "/admin/settings", icon: Cog6ToothIcon },
+        ],
+    },
 ];
 
 export default function AdminPageSideBar() {
@@ -40,19 +45,40 @@ export default function AdminPageSideBar() {
                 ${theme === "light" ? "border-black bg-white" : "border-gray-700 bg-gray-900"}
             `}
         >
-            <nav className="flex flex-col space-y-1 p-4">
-                {adminMenu.map((item) => {
-                    const Icon = item.icon;
+            <nav className="flex flex-col space-y-6 p-4">
+                {adminMenu.map((section) => {
+                    const ParentIcon = section.icon;
 
                     return (
-                        <Link
-                            key={item.name}
-                            to={item.href}
-                            className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition ${getItemClass(item.href)}`}
-                        >
-                            <Icon className="w-5 h-5" />
-                            {item.name}
-                        </Link>
+                        <div key={section.name} className="flex flex-col gap-2">
+
+                            {/* 부모 메뉴 */}
+                            <div className="flex items-center gap-3 px-2 py-1 text-lg font-bold">
+                                <ParentIcon className="w-6 h-6" />
+                                {section.name}
+                            </div>
+
+                            {/* 자식 메뉴 */}
+                            <div className="flex flex-col space-y-1 ml-2">
+                                {section.children.map((child) => {
+                                    const ChildIcon = child.icon;
+
+                                    return (
+                                        <Link
+                                            key={child.name}
+                                            to={child.href}
+                                            className={`flex items-center gap-3 px-3 py-2 rounded-md font-semibold transition ${getItemClass(
+                                                child.href
+                                            )}`}
+                                        >
+                                            <ChildIcon className="w-5 h-5" />
+                                            {child.name}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+
+                        </div>
                     );
                 })}
             </nav>

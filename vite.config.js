@@ -7,7 +7,7 @@ export default defineConfig({
     server: {
         proxy: {
             "/api": {
-                baseURL: "/api", // "https://localhost:9443/api" 이거 잠깐 내비둬줘요.. 
+                target: "https://114.204.9.108:10443",
                 changeOrigin: true,
                 secure: false,
                 rewrite: (p) => p.replace(/^\/api/, "")

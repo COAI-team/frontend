@@ -36,6 +36,7 @@ import ProfilePage from "./pages/mypage/ProfilePage";
 
 //관리자 레이아웃
 import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
+import AdminStatsDashboard from "./pages/admin/AdminStatsDashboard";
 
 createRoot(document.getElementById("root")).render(
     <StrictMode>
@@ -67,6 +68,8 @@ createRoot(document.getElementById("root")).render(
                             </Route>
 
                             <Route path="admin" element={<AdminPageLayout/>}>
+                                <Route index element={<Navigate to="stats" replace />} />
+                                <Route path="stats" element={<AdminStatsDashboard/>} />
                             </Route>
 
                             {/* 자유게시판 */}

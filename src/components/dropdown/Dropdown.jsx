@@ -7,7 +7,7 @@ export default function Dropdown({ button, items, width = "w-40" }) {
     const theme = useApplyThemeClass();
 
     return (
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className="relative inline-block">
             {/* 버튼 */}
             <MenuButton className="inline-flex items-center gap-1 focus:outline-none">
                 <span
@@ -15,7 +15,7 @@ export default function Dropdown({ button, items, width = "w-40" }) {
                         theme === "dark" ? "text-gray-200" : "text-gray-700"
                     }`}
                 >
-                    {button}
+                    <strong>{button}</strong>
                 </span>
 
                 <ChevronDownIcon
@@ -52,14 +52,14 @@ export default function Dropdown({ button, items, width = "w-40" }) {
 
                                 return item.href ? (
                                     <a href={item.href} className={baseClass}>
-                                        {item.label}
+                                        <strong>{item.label}</strong>
                                     </a>
                                 ) : (
                                     <button
                                         onClick={item.onClick}
                                         className={`${baseClass} text-center`}
                                     >
-                                        {item.label}
+                                        <strong>{item.label}</strong>
                                     </button>
                                 );
                             }}
