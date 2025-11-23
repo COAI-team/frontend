@@ -12,7 +12,6 @@ export const AlertModalPropTypes = {
     confirmText: PropTypes.string,
 };
 
-
 /* ----------------------------------------
  * NavLinks PropTypes
  * ---------------------------------------- */
@@ -27,7 +26,6 @@ export const NavLinksPropTypes = {
     ).isRequired,
     onLinkClick: PropTypes.func.isRequired,
 };
-
 
 /* ----------------------------------------
  * Dropdown PropTypes
@@ -49,4 +47,12 @@ export const DropdownPropTypes = {
  * ---------------------------------------- */
 export const LoginProviderPropTypes = {
     children: PropTypes.node.isRequired,
+};
+
+/* ----------------------------------------
+ * ResetPasswordModal PropTypes  ← ★ 추가됨
+ * ---------------------------------------- */
+export const ResetPasswordModalPropTypes = {
+    open: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
 };

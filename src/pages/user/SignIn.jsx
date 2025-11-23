@@ -2,11 +2,13 @@ import {useState, useContext} from "react";
 import {Link, useNavigate} from "react-router-dom";
 import {login as apiLogin} from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
-import {LoginContext} from "../../context/LoginContext.js";
+import {LoginContext} from "../../context/LoginContext";
+import ResetPasswordModal from "../../components/modal/ResetPasswordModal";
 
 export default function SignIn() {
     const navigate = useNavigate();
     const {setLoginResult, login: loginContextLogin} = useContext(LoginContext);
+    const [resetModalOpen, setResetModalOpen] = useState(false);
 
     const [alertModal, setAlertModal] = useState({
         open: false,
@@ -140,14 +142,15 @@ export default function SignIn() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-end">
-                                <Link
-                                    to="/forgot-password"
+                            <div className="flex justify-end w-full">
+                                <button
+                                    type="button"
+                                    onClick={() => setResetModalOpen(true)}
                                     className="text-sm font-semibold text-indigo-600 hover:text-indigo-500
-        dark:text-indigo-400 dark:hover:text-indigo-300"
+            dark:text-indigo-400 dark:hover:text-indigo-300"
                                 >
                                     비밀번호 재설정
-                                </Link>
+                                </button>
                             </div>
 
                             <button
@@ -214,6 +217,12 @@ export default function SignIn() {
                 type={alertModal.type}
                 title={alertModal.title}
                 message={alertModal.message}
+            />
+
+            {/* 🔥 ResetPasswordModal 추가 */}
+            <ResetPasswordModal
+                open={resetModalOpen}
+                onClose={() => setResetModalOpen(false)}
             />
         </div>
     );

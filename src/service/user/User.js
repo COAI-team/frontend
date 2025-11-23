@@ -83,3 +83,15 @@ export const verifyEmailCode = async (email, code) => {
         return { error: err };
     }
 };
+
+// 임시 비밀번호 발급 요청
+export const requestPasswordReset = async (email) => {
+    try {
+        const res = await axiosInstance.post("/users/password/reset/request", {
+            email: email,
+        });
+        return res.data;
+    } catch (err) {
+        return { error: err };
+    }
+};
