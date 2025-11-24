@@ -60,17 +60,20 @@ const AnalysisOptions = () => {
             const response = await axiosInstance.post('/analysis/analyze-stored', {
                 repositoryUrl,
                 filePath,
-                code: fileContent,
+                fileContent,
                 analysisTypes,
                 toneLevel,
                 customRequirements,
+                analysisId,
                 userId: 1 // TODO: Get from auth context
             });
+
+            console.log('Analysis response:', response.data);
 
             // Navigate to results page with analysis data
             navigate('/code-analysis/result', {
                 state: {
-                    analysisResult: response.data,
+                    analysisResult: response.data.data || response.data,
                     repoName,
                     filePath,
                     toneLevel
