@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates, editorUtils } from '../../components/algorithm/editor/editorUtils';
+import { useResizableLayout } from '../../hooks/algorithm/useResizableLayout';
 
 /**
- * 문제 풀이 페이지 - 리사이저블 레이아웃 완전 수정 버전
+ * 문제 풀이 페이지 - useResizableLayout Hook 적용
  */
 const ProblemSolve = () => {
   const { problemId } = useParams();
@@ -18,45 +19,17 @@ const ProblemSolve = () => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
   
-  // 화면 분할 상태 관리
-  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // 좌측 패널 너비 (%)
-  const [isResizing, setIsResizing] = useState(false);
-  const containerRef = useRef(null);
+  // 리사이저블 레이아웃 Hook 사용 (필요한 것들만)
+  const {
+    leftPanelWidth,
+    isResizing,
+    handleResizeStart,
+    handleResize,
+    handleResizeEnd,
+    containerRef
+  } = useResizableLayout(50, 20, 80);
 
-  // 리사이저 드래그 시작
-  const handleResizeStart = useCallback((e) => {
-    e.preventDefault();
-    setIsResizing(true);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, []);
-
-  // 리사이저 드래그 중
-  const handleResize = useCallback((e) => {
-    if (!isResizing || !containerRef.current) return;
-    
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const containerWidth = containerRect.width;
-    const mouseX = e.clientX - containerRect.left;
-    
-    // 최소/최대 너비 제한 (20% ~ 80%)
-    const minWidth = containerWidth * 0.2;
-    const maxWidth = containerWidth * 0.8;
-    
-    const clampedX = Math.max(minWidth, Math.min(maxWidth, mouseX));
-    const newLeftPanelWidth = (clampedX / containerWidth) * 100;
-    
-    setLeftPanelWidth(newLeftPanelWidth);
-  }, [isResizing]);
-
-  // 리사이저 드래그 종료
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  }, []);
-
-  // 리사이저 이벤트 리스너
+  // 리사이저 이벤트 리스너 (기존과 동일)
   useEffect(() => {
     if (isResizing) {
       document.addEventListener('mousemove', handleResize);
@@ -245,7 +218,7 @@ const ProblemSolve = () => {
         </div>
       </div>
 
-      {/* 메인 컨텐츠 - 올바른 리사이저블 레이아웃 */}
+      {/* 메인 컨텐츠 - 리사이저블 레이아웃 */}
       <div className="container mx-auto px-4 pb-8" ref={containerRef}>
         <div className="flex h-[calc(100vh-200px)] gap-1">
           
@@ -290,7 +263,7 @@ const ProblemSolve = () => {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">🔍 예제</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">📝 예제</h3>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
