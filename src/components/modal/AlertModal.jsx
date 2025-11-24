@@ -9,7 +9,10 @@ import {
     CheckCircleIcon,
     ExclamationTriangleIcon,
     XCircleIcon,
+    InformationCircleIcon,
 } from "@heroicons/react/24/outline";
+import { useTheme } from "next-themes";
+import { useEffect } from "react";
 
 export default function AlertModal({
                                        open,
@@ -20,36 +23,48 @@ export default function AlertModal({
                                        message,
                                        confirmText = "확인",
                                    }) {
-    // 상태별 스타일 매핑
-    const TYPE_CONFIG = {
-        success: {
-            bg: "bg-green-100",
-            iconColor: "text-green-600",
-            Icon: CheckCircleIcon,
-            buttonColor: "bg-green-600 hover:bg-green-500",
+    const { theme } = useTheme();
+
+    useEffect(() => {
+        console.log("current theme =", theme);
+    }, [theme]);
+
+    // HEX 색상 매핑
+    const COLOR_MAP = {
+        light: {
+            success: "#2DD4BF",
+            warning: "#CC67FA",
+            error: "#FF90CD",
+            info: "#04BDF2",
         },
-        warning: {
-            bg: "bg-yellow-100",
-            iconColor: "text-yellow-600",
-            Icon: ExclamationTriangleIcon,
-            buttonColor: "bg-yellow-600 hover:bg-yellow-500",
-        },
-        error: {
-            bg: "bg-red-100",
-            iconColor: "text-red-600",
-            Icon: XCircleIcon,
-            buttonColor: "bg-red-600 hover:bg-red-500",
+        dark: {
+            success: "#FFFA99",
+            warning: "#2DD4BF",
+            error: "#FF90CD",
+            info: "#CC67FA",
         },
     };
 
-    const { bg, iconColor, Icon, buttonColor } = TYPE_CONFIG[type];
+    // 아이콘 매핑
+    const ICON_MAP = {
+        success: CheckCircleIcon,
+        warning: ExclamationTriangleIcon,
+        error: XCircleIcon,
+        info: InformationCircleIcon,
+    };
+
+    const currentBg = theme === "dark"
+        ? COLOR_MAP.dark[type]
+        : COLOR_MAP.light[type];
+
+    const Icon = ICON_MAP[type] ?? CheckCircleIcon;
 
     return (
         <Dialog open={open} onClose={onClose} className="relative z-50">
             <DialogBackdrop
                 transition
-                className="fixed inset-0 bg-gray-500/75 transition-opacity
-                data-closed:opacity-0 data-enter:duration-300 data-leave:duration-200"
+                className={`fixed inset-0 transition-opacity
+                    ${theme === "dark" ? "bg-black/70" : "bg-gray-500/75"}`}
             />
 
             <div className="fixed inset-0 z-50 w-screen overflow-y-auto">
@@ -57,24 +72,33 @@ export default function AlertModal({
 
                     <DialogPanel
                         transition
-                        className="relative transform overflow-hidden rounded-lg bg-white
-                        px-4 pt-5 pb-4 text-left shadow-xl transition-all
-                        data-closed:translate-y-4 data-closed:opacity-0 data-enter:duration-300
-                        sm:my-8 sm:w-full sm:max-w-lg sm:p-6 data-closed:sm:scale-95"
+                        className={`
+                            relative transform overflow-hidden rounded-lg shadow-xl transition-all
+                            ${theme === "dark" ? "bg-gray-800" : "bg-white"}
+                            px-4 pt-5 pb-4 text-left
+                            sm:my-8 sm:w-full sm:max-w-lg sm:p-6
+                        `}
                     >
+
+                        {/* 아이콘 + 배경 컬러 */}
                         <div className="sm:flex sm:items-start">
                             <div
-                                className={`mx-auto flex size-12 shrink-0 items-center justify-center rounded-full ${bg} sm:mx-0 sm:size-10`}
+                                className="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full sm:mx-0 sm:size-10"
+                                style={{ backgroundColor: currentBg }}
                             >
-                                <Icon aria-hidden="true" className={`size-6 ${iconColor}`} />
+                                <Icon aria-hidden="true" className="size-6 text-black" />
                             </div>
 
                             <div className="mt-3 sm:ml-4 sm:mt-0 sm:text-left text-center">
-                                <DialogTitle className="text-base font-semibold text-gray-900">
+                                <DialogTitle
+                                    className={`text-base font-semibold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                                >
                                     {title}
                                 </DialogTitle>
                                 <div className="mt-2">
-                                    <p className="text-sm text-gray-600">{message}</p>
+                                    <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                        {message}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -86,12 +110,13 @@ export default function AlertModal({
                                     if (onConfirm) onConfirm();
                                     onClose();
                                 }}
-                                className={`inline-flex w-full justify-center rounded-md px-3 py-2
-                                text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto ${buttonColor}`}
+                                className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-black shadow-sm sm:ml-3 sm:w-auto`}
+                                style={{ backgroundColor: currentBg }}
                             >
                                 {confirmText}
                             </button>
                         </div>
+
                     </DialogPanel>
                 </div>
             </div>

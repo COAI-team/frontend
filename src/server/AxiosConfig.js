@@ -1,34 +1,119 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 
-export const axiosInstance = axios.create({
-    baseURL: "/api", // "https://localhost:9443/api" 이거 잠깐 내비둬줘요.. 
+const axiosInstance = axios.create({
+    baseURL: "https://114.204.9.108:10443",
     timeout: 10000,
-    withCredentials: false,
 });
 
-// 요청 인터셉터
+// -----------------------
+// 1) 요청 인터셉터: AccessToken 자동 추가
+// -----------------------
 axiosInstance.interceptors.request.use(
     (config) => {
-        // ✔ localStorage 또는 sessionStorage 둘 중 하나에서 가져오기
-        const token =
-            localStorage.getItem("accessToken") ||
-            sessionStorage.getItem("accessToken");
-
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        const accessToken = localStorage.getItem("accessToken");
+        if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`;
         }
-
         return config;
     },
-    (error) => Promise.reject(error)
+    (error) => {
+        throw error;
+    }
 );
 
-// 응답 인터셉터
+// -----------------------
+// 2) 응답 인터셉터 (401 → 자동 토큰 재발급)
+// -----------------------
+
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+function onTokenRefreshed(newToken) {
+    for (const cb of refreshSubscribers) {
+        cb(newToken);
+    }
+    refreshSubscribers = [];
+}
+
 axiosInstance.interceptors.response.use(
     (response) => response,
-    (error) => {
-        console.error("[Axios Error]", error);
-        return Promise.reject(error);
+    async (error) => {
+
+        const originalRequest = error.config;
+
+        // 서버 응답 없음 (CORS/HTTPS/network fail)
+        if (!error.response) {
+            console.error("❌ No server response:", error);
+
+            throw new AxiosError(
+                "서버에 연결할 수 없습니다.",
+                "NO_RESPONSE",
+                error.config,
+                error.request,
+                {
+                    status: 0,
+                    data: { message: "서버에 연결할 수 없습니다." }
+                }
+            );
+        }
+
+        const { status, data } = error.response;
+
+        // -----------------------------------------
+        // 🔄 AccessToken 만료 (401 + TOKEN_EXPIRED)
+        // -----------------------------------------
+        if (status === 401 && data?.code === "TOKEN_EXPIRED") {
+            console.warn("⛔ AccessToken expired → Refreshing...");
+
+            // 동시에 여러 요청이 실패하면 첫 요청만 Refresh 실행
+            if (!isRefreshing) {
+                isRefreshing = true;
+
+                try {
+                    const refreshToken = localStorage.getItem("refreshToken");
+
+                    // Backend 스펙에 맞는 Refresh 호출
+                    const res = await axios.post(
+                        "https://114.204.9.108:10443/users/refresh",
+                        {},
+                        {
+                            headers: {
+                                Authorization: `Bearer ${refreshToken}`
+                            }
+                        }
+                    );
+
+                    const newAccessToken = res.data.accessToken;
+                    console.log("🔄 새 AccessToken:", newAccessToken);
+
+                    localStorage.setItem("accessToken", newAccessToken);
+
+                    isRefreshing = false;
+                    onTokenRefreshed(newAccessToken);
+
+                } catch (refreshError) {
+                    console.error("❌ Refresh Token expired or invalid.");
+
+                    isRefreshing = false;
+                    localStorage.removeItem("accessToken");
+                    localStorage.removeItem("refreshToken");
+
+                    globalThis.location.replace("/login");
+                    throw refreshError;
+                }
+            }
+
+            // Refresh 진행 중이면 기다렸다가 다시 실행
+            return new Promise((resolve) => {
+                refreshSubscribers.push((token) => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
+                    resolve(axiosInstance(originalRequest));
+                });
+            });
+        }
+
+        // 기본 에러 처리
+        throw error;
     }
 );
 

@@ -12,7 +12,6 @@ const myMenu = [
         icon: UserIcon,
         children: [
             { name: "프로필 설정", href: "/mypage/profile", icon: UserCircleIcon },
-            { name: "계정 설정", href: "/mypage/settings", icon: Cog6ToothIcon },
         ],
     },
 ];
@@ -38,7 +37,7 @@ export default function MyPageSidebar() {
 
     return (
         <aside
-            className={`h-screen w-64 border-r 
+            className={`w-64 border-r 
                 ${theme === "light" ? "border-black bg-white" : "border-gray-700 bg-gray-900"}
             `}
         >

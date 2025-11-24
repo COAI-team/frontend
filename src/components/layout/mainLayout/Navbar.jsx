@@ -13,7 +13,6 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import PropTypes from 'prop-types'
 import { NavLinksPropTypes } from "../../../utils/propTypes";
 import AlertModal from "../../modal/AlertModal.jsx";
 import { useLogin } from "../../../context/LoginContext.js";
@@ -68,21 +67,9 @@ function NavLinks({ mobile = false, navigation, onLinkClick }) {
     )
 }
 
-NavLinks.propTypes = {
-    mobile: PropTypes.bool,
-    navigation: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string.isRequired,
-            href: PropTypes.string.isRequired,
-            current: PropTypes.bool,
-        })
-    ).isRequired,
-    onLinkClick: PropTypes.func.isRequired,
-}
-
 export default function Navbar() {
     const location = useLocation()
-    const navigate = useNavigate()   // ⭐ 추가됨
+    const navigate = useNavigate()
     const [navigation, setNavigation] = useState(
         initialNavigation.map((item) => ({ ...item, current: false }))
     )

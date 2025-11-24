@@ -1,9 +1,11 @@
 import {useState, useRef} from "react";
 import {signup, sendEmailCode, verifyEmailCode} from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
-import { useNavigate } from "react-router-dom";
+import {useNavigate} from "react-router-dom";
+import {useTheme} from "next-themes";
 
 export default function SignUp() {
+    const {theme} = useTheme();
     const navigate = useNavigate();
     const [alertModal, setAlertModal] = useState({
         open: false,
@@ -21,6 +23,16 @@ export default function SignUp() {
 
     const [isVerified, setIsVerified] = useState(false);
     const [code, setCode] = useState("");
+
+    // 🎨 테마별 버튼 색상
+    const uploadBtn = theme === "light" ? "bg-[#04BDF2]" : "bg-[#CC67FA]";
+
+    const sendEmailBtn = theme === "light" ? "bg-[#2DD4BF]" : "bg-[#2DD4BF]";
+
+    const verifyBtn = theme === "light" ? "bg-[#CC67FA]" : "bg-[#FFFA99]";
+
+    const signupBtn = theme === "light" ? "bg-[#FF90CD]" : "bg-[#FF90CD]";
+
 
     // 비밀번호 조건 체크
     const isMinLength = password.length >= 8 && password.length <= 20;
@@ -227,7 +239,8 @@ export default function SignUp() {
             </div>
 
             <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-16">
-                <div className="mx-auto w-full max-w-xl border dark:border-gray-700 rounded-xl shadow-lg p-8 dark:bg-gray-900">
+                <div
+                    className="mx-auto w-full max-w-xl border dark:border-gray-700 rounded-xl shadow-lg p-8 dark:bg-gray-900">
 
                     <h2 className="mt-2 text-2xl font-bold dark:text-white text-center">
                         회원가입
@@ -238,9 +251,10 @@ export default function SignUp() {
                         <div className="relative w-28 h-28">
                             <div className="w-full h-full rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
                                 {profilePreview ? (
-                                    <img src={profilePreview} className="object-cover w-full h-full" alt="" />
+                                    <img src={profilePreview} className="object-cover w-full h-full" alt=""/>
                                 ) : (
-                                    <div className="flex items-center justify-center w-full h-full text-gray-500 text-sm dark:text-gray-300">
+                                    <div
+                                        className="flex items-center justify-center w-full h-full text-gray-500 text-sm dark:text-gray-300">
                                         미리보기
                                     </div>
                                 )}
@@ -248,7 +262,7 @@ export default function SignUp() {
 
                             <label
                                 htmlFor="profileImage"
-                                className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white shadow-lg cursor-pointer"
+                                className={`absolute bottom-1 right-1 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-lg cursor-pointer hover:opacity-80 ${uploadBtn}`}
                             >
                                 📷
                             </label>
@@ -322,7 +336,7 @@ export default function SignUp() {
                                 <button
                                     type="button"
                                     onClick={handleSendEmail}
-                                    className="whitespace-nowrap rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+                                    className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-semibold text-black hover:opacity-80 ${sendEmailBtn}`}
                                 >
                                     인증번호 발송
                                 </button>
@@ -344,7 +358,7 @@ export default function SignUp() {
                                 <button
                                     type="button"
                                     onClick={handleVerifyCode}
-                                    className="rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-500"
+                                    className={`rounded-md px-3 py-2 text-sm font-semibold text-black hover:opacity-80 ${verifyBtn}`}
                                 >
                                     인증 확인
                                 </button>
@@ -379,7 +393,8 @@ export default function SignUp() {
                             </div>
 
                             <div>
-                                <label htmlFor="passwordConfirm" className="block text-sm font-medium dark:text-gray-100">
+                                <label htmlFor="passwordConfirm"
+                                       className="block text-sm font-medium dark:text-gray-100">
                                     비밀번호 확인
                                 </label>
                                 <input
@@ -404,9 +419,9 @@ export default function SignUp() {
                             type="submit"
                             disabled={!isVerified}
                             className={`mt-4 flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold 
-              ${
+                            ${
                                 isVerified
-                                    ? "bg-indigo-600 text-white hover:bg-indigo-500"
+                                    ? `${signupBtn} text-white hover:opacity-80`
                                     : "bg-gray-400 cursor-not-allowed"
                             }`}
                         >
@@ -417,7 +432,7 @@ export default function SignUp() {
             </div>
             <AlertModal
                 open={alertModal.open}
-                onClose={() => setAlertModal((prev) => ({ ...prev, open: false }))}
+                onClose={() => setAlertModal((prev) => ({...prev, open: false}))}
                 onConfirm={alertModal.onConfirm}
                 type={alertModal.type}
                 title={alertModal.title}

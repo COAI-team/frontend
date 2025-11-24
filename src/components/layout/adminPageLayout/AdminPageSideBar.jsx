@@ -41,7 +41,7 @@ export default function AdminPageSideBar() {
 
     return (
         <aside
-            className={`h-screen w-64 border-r 
+            className={`w-64 border-r 
                 ${theme === "light" ? "border-black bg-white" : "border-gray-700 bg-gray-900"}
             `}
         >
