@@ -1,0 +1,209 @@
+/* src/styles/FreeboardDetail.css */
+
+.freeboard-content {
+  color: #e5e7eb;
+  line-height: 1.8;
+  font-size: 1rem;
+}
+
+/* ========== 제목 스타일 ========== */
+.freeboard-content h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+  color: #f9fafb;
+  letter-spacing: -0.025em;
+}
+
+.freeboard-content h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #f9fafb;
+  letter-spacing: -0.025em;
+}
+
+.freeboard-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #f3f4f6;
+}
+
+/* ========== 문단 ========== */
+.freeboard-content p {
+  margin-bottom: 1.25rem;
+  color: #d1d5db;
+  line-height: 1.8;
+}
+
+/* ========== 이미지 ========== */
+.freeboard-content img {
+  border-radius: 0.75rem;
+  margin: 2rem 0;
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+/* ========== Monaco 코드 블록 ========== */
+.freeboard-content pre[data-type="monaco-code-block"] {
+  background-color: #1e1e1e;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin: 2rem 0;
+  border: 1px solid #2d2d2d;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.freeboard-content .monaco-code-header {
+  background: linear-gradient(to bottom, #2d2d2d, #252526);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #1e1e1e;
+  display: flex;
+  align-items: center;
+}
+
+.freeboard-content .monaco-language {
+  color: #858585;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.freeboard-content pre[data-type="monaco-code-block"] code {
+  display: block;
+  padding: 1.25rem !important;
+  background: transparent !important;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+.freeboard-content pre[data-type="monaco-code-block"] code::-webkit-scrollbar {
+  height: 8px;
+}
+
+.freeboard-content pre[data-type="monaco-code-block"] code::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.freeboard-content pre[data-type="monaco-code-block"] code::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 4px;
+}
+
+/* ========== 일반 코드 블록 ========== */
+.freeboard-content pre:not([data-type="monaco-code-block"]) {
+  background-color: #1f2937;
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+.freeboard-content code:not(pre code) {
+  background-color: #374151;
+  color: #f472b6;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* ========== 링크 ========== */
+.freeboard-content a {
+  color: #60a5fa;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+
+.freeboard-content a:hover {
+  color: #93c5fd;
+}
+
+/* ========== 리스트 ========== */
+.freeboard-content ul,
+.freeboard-content ol {
+  margin-left: 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.freeboard-content ul {
+  list-style-type: disc;
+}
+
+.freeboard-content ol {
+  list-style-type: decimal;
+}
+
+.freeboard-content li {
+  margin-bottom: 0.5rem;
+  color: #d1d5db;
+  line-height: 1.7;
+}
+
+/* ========== 텍스트 강조 ========== */
+.freeboard-content strong {
+  font-weight: 700;
+  color: #f9fafb;
+}
+
+.freeboard-content em {
+  font-style: italic;
+  color: #e5e7eb;
+}
+
+/* ========== 인용구 ========== */
+.freeboard-content blockquote {
+  border-left: 4px solid #60a5fa;
+  background-color: #1f2937;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: #d1d5db;
+  font-style: italic;
+}
+
+/* ========== 표 ========== */
+.freeboard-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.freeboard-content th,
+.freeboard-content td {
+  border: 1px solid #374151;
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+.freeboard-content th {
+  background-color: #1f2937;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.freeboard-content td {
+  background-color: #111827;
+  color: #d1d5db;
+}
+
+/* ========== 수평선 ========== */
+.freeboard-content hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #4b5563, transparent);
+  margin: 2.5rem 0;
+}

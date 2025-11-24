@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const axiosInstance = axios.create({
-    baseURL: "/api", // "https://localhost:9443/api" 이거 잠깐 내비둬줘요.. 
+    baseURL: "", // "https://localhost:9443/api" 이거 잠깐 내비둬줘요.. 
     timeout: 10000,
     withCredentials: false,
 });

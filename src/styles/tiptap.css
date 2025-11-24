@@ -366,6 +366,24 @@ html.dark .tiptap th:hover {
   }
 }
 
+
+/* DB에서 스타일 복원 */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prose table th,
+.prose table td {
+  border: 1px solid #444;
+  padding: 8px;
+}
+
+.prose table th {
+  background: #333;
+  font-weight: 600;
+}
+
 /* --------------------------------------------------------------
    반응형 - 모바일 대응
 -------------------------------------------------------------- */

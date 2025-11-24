@@ -32,8 +32,6 @@ import SubmissionResult from "./pages/algorithm/SubmissionResult";
 
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
-
-// 🔥 새로 만든 페이지 import 추가!
 import ProfilePage from "./pages/mypage/ProfilePage";
 
 createRoot(document.getElementById("root")).render(
