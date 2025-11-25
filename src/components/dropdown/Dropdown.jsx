@@ -4,7 +4,7 @@ import { DropdownPropTypes } from "../../utils/propTypes";
 import { useApplyThemeClass } from "../../hooks/useApplyThemeClass";
 
 export default function Dropdown({ button, items, width = "w-40" }) {
-    const theme = useApplyThemeClass(); // ✅ theme 가져오기
+    const theme = useApplyThemeClass(); // theme 가져오기
 
     return (
         <Menu as="div" className="relative inline-block text-left">
