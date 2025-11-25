@@ -182,6 +182,22 @@ html.dark .monaco-code-block-wrapper {
   background: #1a1a1a !important;
 }
 
+
+/* BD에서 복원 */
+.monaco-code-block-wrapper {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+/* pre 내부 텍스트가 안 보이는 문제 방지 */
+.monaco-code-block-wrapper code {
+  color: #e5e5e5;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: pre;
+}
+
 /* ==========================================
    표(Table) 스타일
    ========================================== */
@@ -366,6 +382,24 @@ html.dark .tiptap th:hover {
   }
 }
 
+
+/* DB에서 스타일 복원 */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prose table th,
+.prose table td {
+  border: 1px solid #444;
+  padding: 8px;
+}
+
+.prose table th {
+  background: #333;
+  font-weight: 600;
+}
+
 /* --------------------------------------------------------------
    반응형 - 모바일 대응
 -------------------------------------------------------------- */
@@ -387,4 +421,133 @@ html.dark .tiptap th:hover {
   .tiptap h3 {
     font-size: 1.25rem; /* 20px */
   }
+}
+
+/* --------------------------------------------------------------
+   Monaco Code Block - 라이트/다크 모드 대응
+-------------------------------------------------------------- */
+
+/* 코드 블록 래퍼 */
+.monaco-code-block-wrapper {
+  margin: 1.75rem 0 !important;
+  padding: 0 !important;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+html.dark .monaco-code-block-wrapper {
+  background: #1e1e1e !important;
+  border: 1px solid #2d2d2d;
+}
+
+html:not(.dark) .monaco-code-block-wrapper {
+  background: #f6f8fa !important;
+  border: 1px solid #d0d7de;
+}
+
+/* Monaco 에디터 자체 */
+.monaco-code-block-wrapper .monaco-editor {
+  background: transparent !important;
+}
+
+html.dark .monaco-code-block-wrapper .monaco-editor {
+  background: #1e1e1e !important;
+}
+
+html:not(.dark) .monaco-code-block-wrapper .monaco-editor {
+  background: #f6f8fa !important;
+}
+
+/* Monaco 에디터 내부 코드 영역 */
+html.dark .monaco-code-block-wrapper .view-lines {
+  color: #d4d4d4 !important;
+}
+
+html:not(.dark) .monaco-code-block-wrapper .view-lines {
+  color: #24292f !important;
+}
+
+/* 언어 선택 셀렉트 박스 */
+.monaco-language-select,
+select[class*="language"] {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 12px;
+}
+
+html.dark .monaco-language-select,
+html.dark select[class*="language"] {
+  background-color: #2d2d2d;
+  border: 1px solid #3d3d3d;
+  color: #d4d4d4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23d4d4d4' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+html:not(.dark) .monaco-language-select,
+html:not(.dark) select[class*="language"] {
+  background-color: #ffffff;
+  border: 1px solid #d0d7de;
+  color: #24292f;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2324292f' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+html.dark .monaco-language-select:hover,
+html.dark select[class*="language"]:hover {
+  background-color: #333333;
+  border-color: #4d4d4d;
+}
+
+html:not(.dark) .monaco-language-select:hover,
+html:not(.dark) select[class*="language"]:hover {
+  background-color: #f6f8fa;
+  border-color: #afb8c1;
+}
+
+html.dark .monaco-language-select:focus,
+html.dark select[class*="language"]:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+  border-color: #4d4d4d;
+}
+
+html:not(.dark) .monaco-language-select:focus,
+html:not(.dark) select[class*="language"]:focus {
+  outline: 2px solid #0969da;
+  outline-offset: 2px;
+  border-color: #0969da;
+}
+
+/* Monaco 에디터 라인 넘버 */
+html.dark .monaco-code-block-wrapper .line-numbers {
+  color: #858585 !important;
+}
+
+html:not(.dark) .monaco-code-block-wrapper .line-numbers {
+  color: #57606a !important;
+}
+
+/* Monaco 에디터 선택 영역 */
+html.dark .monaco-code-block-wrapper .selected-text {
+  background-color: #264f78 !important;
+}
+
+html:not(.dark) .monaco-code-block-wrapper .selected-text {
+  background-color: #b3d7ff !important;
+}
+
+/* Monaco 에디터 커서 */
+html.dark .monaco-code-block-wrapper .cursor {
+  background-color: #aeafad !important;
+}
+
+html:not(.dark) .monaco-code-block-wrapper .cursor {
+  background-color: #24292f !important;
 }

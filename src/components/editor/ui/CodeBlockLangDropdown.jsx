@@ -36,12 +36,16 @@ const LANGUAGES = [
 const CodeBlockLangDropdown = ({ language, onChange }) => {
   return (
     <select
-      className="bg-[#2a2a2a] text-gray-200 px-2 py-1 rounded text-sm"
+      className="bg-white dark:bg-[#2a2a2a] text-gray-800 dark:text-gray-200 px-2 py-1 rounded text-sm border border-gray-300 dark:border-gray-600"
       value={language}
       onChange={(e) => onChange(e.target.value)}
     >
       {LANGUAGES.map((lang) => (
-        <option key={lang.value} value={lang.value}>
+        <option 
+          key={lang.value} 
+          value={lang.value}
+          className="bg-[#2a2a2a] text-gray-200"
+        >
           {lang.label}
         </option>
       ))}

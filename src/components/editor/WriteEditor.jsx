@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -26,8 +26,13 @@ import "../../styles/tiptap.css";
 
 import axios from "axios";
 
-const WriteEditor = ({ onSubmit }) => {
-  const [title, setTitle] = useState("");
+const WriteEditor = ({ 
+  onSubmit, 
+  mode = "create", 
+  initialTitle = "", 
+  initialContent = "" 
+}) => {
+  const [title, setTitle] = useState(initialTitle);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { theme, systemTheme } = useTheme();
   
@@ -81,6 +86,8 @@ const WriteEditor = ({ onSubmit }) => {
       LinkPreview,
     ],
 
+    content: initialContent,
+
     editorProps: {
       handleDrop(view, event, _slice, moved) {
         event.preventDefault();
@@ -102,6 +109,20 @@ const WriteEditor = ({ onSubmit }) => {
       },
     },
   });
+
+  // initialTitle이 변경될 때 title 업데이트
+  useEffect(() => {
+    if (initialTitle) {
+      setTitle(initialTitle);
+    }
+  }, [initialTitle]);
+
+  // initialContent가 변경될 때 editor 내용 업데이트
+  useEffect(() => {
+    if (editor && initialContent) {
+      editor.commands.setContent(initialContent);
+    }
+  }, [editor, initialContent]);
 
   async function uploadImageByDrop(file) {
     const originalFileName = file.name;
@@ -314,6 +335,7 @@ const WriteEditor = ({ onSubmit }) => {
         }}
       >
         <button
+          onClick={() => window.history.back()}
           style={{
             padding: "0.625rem 1.5rem",
             borderRadius: "0.5rem",
@@ -351,7 +373,7 @@ const WriteEditor = ({ onSubmit }) => {
             transition: "all 0.15s",
           }}
         >
-          발행하기
+          {mode === "edit" ? "수정하기" : "발행하기"}
         </button>
       </div>
     </div>

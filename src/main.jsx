@@ -23,6 +23,7 @@ import {LoginProvider} from "./context/LoginContext.js";
 import FreeboardList from "./pages/freeboard/FreeboardList";
 import FreeboardDetail from "./pages/freeboard/FreeboardDetail";
 import FreeboardWrite from "./pages/freeboard/FreeboardWrite";
+import FreeboardEdit from "./pages/freeboard/FreeboardEdit";
 
 // 알고리즘 도메인
 import ProblemList from "./pages/algorithm/ProblemList";
@@ -32,8 +33,6 @@ import SubmissionResult from "./pages/algorithm/SubmissionResult";
 
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
-
-// 🔥 새로 만든 페이지 import 추가!
 import ProfilePage from "./pages/mypage/ProfilePage";
 
 createRoot(document.getElementById("root")).render(
@@ -68,6 +67,7 @@ createRoot(document.getElementById("root")).render(
                             {/* 자유게시판 */}
                             <Route path="freeboard/list" element={<FreeboardList/>}/>
                             <Route path="freeboard/write" element={<FreeboardWrite/>}/>
+                            <Route path="freeboard/edit/:id" element={<FreeboardEdit/>}/>
                             <Route path="freeboard/:id" element={<FreeboardDetail/>}/>
 
                             {/* 결제 */}

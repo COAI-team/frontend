@@ -21,11 +21,34 @@ const LinkPreview = Node.create({
   },
 
   parseHTML() {
-    return [{ tag: "div[data-type=link-preview]" }];
+    return [
+      { 
+        tag: "div[data-type=link-preview]",
+        getAttrs: (element) => {
+          return {
+            title: element.getAttribute("data-title") || "",
+            description: element.getAttribute("data-description") || "",
+            image: element.getAttribute("data-image") || "",
+            site: element.getAttribute("data-site") || "",
+            url: element.getAttribute("data-url") || "",
+          };
+        },
+      }
+    ];
   },
 
-  renderHTML({ HTMLAttributes }) {
-    return ["div", mergeAttributes(HTMLAttributes, { "data-type": "link-preview" }), 0];
+  renderHTML({ node, HTMLAttributes }) {
+    return [
+      "div", 
+      mergeAttributes(HTMLAttributes, { 
+        "data-type": "link-preview",
+        "data-title": node.attrs.title,
+        "data-description": node.attrs.description,
+        "data-image": node.attrs.image,
+        "data-site": node.attrs.site,
+        "data-url": node.attrs.url,
+      })
+    ];
   },
 
   addNodeView() {
