@@ -7,8 +7,27 @@ const FreeboardList = () => {
   const [boards, setBoards] = useState([]);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [isDark, setIsDark] = useState(false);
   const size = 5;
   const navigate = useNavigate();
+
+  // 다크모드 감지
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkDarkMode();
+    
+    // MutationObserver로 dark 클래스 변경 감지
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     axios
@@ -31,7 +50,6 @@ const FreeboardList = () => {
     if (!htmlString) return "내용 없음";
     
     try {
-      // freeboardContent가 JSON 배열 문자열인 경우 파싱
       let content = htmlString;
       if (htmlString.startsWith('[')) {
         const blocks = JSON.parse(htmlString);
@@ -40,14 +58,9 @@ const FreeboardList = () => {
         }
       }
       
-      // HTML 태그 제거
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = content;
-      
-      // 텍스트만 추출
       const text = tempDiv.textContent || tempDiv.innerText || "";
-      
-      // 150자까지만 표시
       return text.trim().slice(0, 150) || "내용 없음";
       
     } catch (e) {
@@ -58,8 +71,13 @@ const FreeboardList = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">자유게시판</h1>
+      <div className="mb-8">
+        <h1 className={`text-3xl font-bold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+          자유게시판
+        </h1>
+        <p className={`mt-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          개발과 관련된 다양한 주제로 자유롭게 이야기를 나눠보세요
+        </p>
       </div>
 
       {boards.length === 0 ? (
@@ -71,36 +89,31 @@ const FreeboardList = () => {
           {boards.map((b) => (
             <div
               key={b.freeboardId}
-              className="bg-white dark:bg-[#1f1f1f] rounded-xl p-5 shadow-md hover:shadow-xl dark:hover:bg-[#262626] cursor-pointer transition-all duration-200 flex gap-5"
+              className={`${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-100'} rounded-xl p-5 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 flex gap-5 border`}
               onClick={() => navigate(`/freeboard/${b.freeboardId}`)}
             >
-              {/* 왼쪽 본문 */}
               <div className="flex-1">
-                {/* 프로필, 닉네임, 작성시간 */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-sm text-gray-700 dark:text-gray-200">
+                  <div className={`w-9 h-9 rounded-full ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-300 text-gray-700'} flex items-center justify-center text-sm`}>
                     {String(b.userId).slice(0, 1)}
                   </div>
-                  <div className="text-sm text-gray-700 dark:text-gray-300">
+                  <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>
                     사용자 {b.userId}
-                    <span className="ml-2 text-gray-400 dark:text-gray-500">
+                    <span className={`ml-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
                       · {new Date(b.freeboardCreatedAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
 
-                {/* 제목 */}
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <h3 className={`text-xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'} mb-2`}>
                   {b.freeboardTitle || "제목 없음"}
                 </h3>
 
-                {/* 내용(요약) */}
-                <div className="text-gray-600 dark:text-gray-400 line-clamp-2">
+                <div className="text-gray-500 line-clamp-2">
                   {extractTextFromHTML(b.freeboardContent)}
                 </div>
 
-                {/* 하단 정보 */}
-                <div className="flex items-center gap-6 mt-4 text-gray-500 dark:text-gray-500 text-sm">
+                <div className={`flex items-center gap-6 mt-4 text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
                   <span className="flex items-center gap-1">
                     <Eye size={16} />
                     {b.freeboardClick}
@@ -116,7 +129,6 @@ const FreeboardList = () => {
                 </div>
               </div>
 
-              {/* 오른쪽 대표 이미지 */}
               {b.freeboardRepresentImage && (
                 <img
                   src={b.freeboardRepresentImage}
@@ -129,34 +141,30 @@ const FreeboardList = () => {
         </div>
       )}
 
-      {/* 페이지네이션 */}
       {totalCount > 0 && (
         <div className="mt-10 flex justify-center items-center gap-3">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded disabled:opacity-40"
+            className={`px-3 py-1 rounded disabled:opacity-40 ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700'}`}
           >
             이전
           </button>
 
-          <span className="text-gray-700 dark:text-gray-300">
+          <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
             {page} / {Math.ceil(totalCount / size)}
           </span>
 
           <button
-            onClick={() =>
-              setPage((p) => (p * size < totalCount ? p + 1 : p))
-            }
+            onClick={() => setPage((p) => (p * size < totalCount ? p + 1 : p))}
             disabled={page * size >= totalCount}
-            className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded disabled:opacity-40"
+            className={`px-3 py-1 rounded disabled:opacity-40 ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700'}`}
           >
             다음
           </button>
         </div>
       )}
 
-      {/* 플로팅 글쓰기 버튼 */}
       <button
         onClick={() => navigate("/freeboard/write")}
         className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
