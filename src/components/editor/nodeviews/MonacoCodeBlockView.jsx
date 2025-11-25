@@ -35,33 +35,35 @@ const MonacoCodeBlockView = ({ node, updateAttributes }) => {
     return () => observer.disconnect();
   }, []);
 
-  // 커스텀 라이트 테마 정의
+  // 커스텀 라이트 테마 정의 (GitHub 스타일)
   const defineCustomTheme = (monaco) => {
     monaco.editor.defineTheme('github-light', {
       base: 'vs',
       inherit: true,
       rules: [
-        { token: 'comment', foreground: '6a737d', fontStyle: 'italic' },
-        { token: 'keyword', foreground: 'd73a49' },
-        { token: 'string', foreground: '032f62' },
-        { token: 'number', foreground: '005cc5' },
-        { token: 'type', foreground: '22863a' },
-        { token: 'class', foreground: '6f42c1' },
-        { token: 'function', foreground: '6f42c1' },
-        { token: 'variable', foreground: 'e36209' },
-        { token: 'constant', foreground: '005cc5' },
-        { token: 'operator', foreground: 'd73a49' },
+        { token: 'comment', foreground: '6e7781', fontStyle: 'italic' },
+        { token: 'keyword', foreground: 'cf222e' },
+        { token: 'string', foreground: '0a3069' },
+        { token: 'number', foreground: '0550ae' },
+        { token: 'type', foreground: '116329' },
+        { token: 'class', foreground: '8250df' },
+        { token: 'function', foreground: '8250df' },
+        { token: 'variable', foreground: '953800' },
+        { token: 'constant', foreground: '0550ae' },
+        { token: 'operator', foreground: 'cf222e' },
       ],
       colors: {
         'editor.background': '#f6f8fa',
-        'editor.foreground': '#24292f',
+        'editor.foreground': '#1f2328',
         'editorLineNumber.foreground': '#8c959f',
-        'editorLineNumber.activeForeground': '#24292f',
-        'editor.selectionBackground': '#b3d7ff',
-        'editor.inactiveSelectionBackground': '#d0e8ff',
-        'editor.lineHighlightBackground': '#f3f4f6',
-        'editorCursor.foreground': '#24292f',
-        'editorWhitespace.foreground': '#d1d5db',
+        'editorLineNumber.activeForeground': '#1f2328',
+        'editor.selectionBackground': '#addcff66',
+        'editor.inactiveSelectionBackground': '#d0e8ff66',
+        'editor.lineHighlightBackground': '#eaeef2',
+        'editorCursor.foreground': '#1f2328',
+        'editorWhitespace.foreground': '#d0d7de',
+        'editorIndentGuide.background': '#d0d7de',
+        'editorIndentGuide.activeBackground': '#8c959f',
       }
     });
   };
@@ -117,7 +119,7 @@ const MonacoCodeBlockView = ({ node, updateAttributes }) => {
           border transition-colors duration-200
           ${isDark 
             ? 'bg-[#1e1e1e] text-[#e1e1e1] border-gray-700' 
-            : 'bg-[#f6f8fa] text-[#24292f] border-gray-300'
+            : 'bg-[#f6f8fa] text-[#1f2328] border-[#d0d7de]'
           }
         `}
       >

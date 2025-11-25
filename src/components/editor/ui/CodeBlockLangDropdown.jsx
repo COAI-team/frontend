@@ -36,7 +36,7 @@ const LANGUAGES = [
 const CodeBlockLangDropdown = ({ language, onChange }) => {
   return (
     <select
-      className="bg-[#2a2a2a] text-gray-200 px-2 py-1 rounded text-sm border border-gray-600"
+      className="bg-white dark:bg-[#2a2a2a] text-gray-800 dark:text-gray-200 px-2 py-1 rounded text-sm border border-gray-300 dark:border-gray-600"
       value={language}
       onChange={(e) => onChange(e.target.value)}
     >
