@@ -182,6 +182,22 @@ html.dark .monaco-code-block-wrapper {
   background: #1a1a1a !important;
 }
 
+
+/* BD에서 복원 */
+.monaco-code-block-wrapper {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+/* pre 내부 텍스트가 안 보이는 문제 방지 */
+.monaco-code-block-wrapper code {
+  color: #e5e5e5;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: pre;
+}
+
 /* ==========================================
    표(Table) 스타일
    ========================================== */

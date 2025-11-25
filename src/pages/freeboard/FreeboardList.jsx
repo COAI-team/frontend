@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Heart, MessageCircle, Eye } from "lucide-react";
 
 const FreeboardList = () => {
   const [boards, setBoards] = useState([]);
@@ -56,15 +57,9 @@ const FreeboardList = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 text-gray-100">
+    <div className="max-w-5xl mx-auto p-6">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">자유게시판</h1>
-        <button
-          onClick={() => navigate("/freeboard/write")}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"
-        >
-          글쓰기
-        </button>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">자유게시판</h1>
       </div>
 
       {boards.length === 0 ? (
@@ -76,39 +71,48 @@ const FreeboardList = () => {
           {boards.map((b) => (
             <div
               key={b.freeboardId}
-              className="bg-[#1f1f1f] rounded-xl p-5 shadow-md hover:shadow-xl hover:bg-[#262626] cursor-pointer transition-all duration-200 flex gap-5"
+              className="bg-white dark:bg-[#1f1f1f] rounded-xl p-5 shadow-md hover:shadow-xl dark:hover:bg-[#262626] cursor-pointer transition-all duration-200 flex gap-5"
               onClick={() => navigate(`/freeboard/${b.freeboardId}`)}
             >
               {/* 왼쪽 본문 */}
               <div className="flex-1">
                 {/* 프로필, 닉네임, 작성시간 */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-full bg-gray-600 flex items-center justify-center text-sm">
+                  <div className="w-9 h-9 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-sm text-gray-700 dark:text-gray-200">
                     {String(b.userId).slice(0, 1)}
                   </div>
-                  <div className="text-sm text-gray-300">
+                  <div className="text-sm text-gray-700 dark:text-gray-300">
                     사용자 {b.userId}
-                    <span className="ml-2 text-gray-500">
+                    <span className="ml-2 text-gray-400 dark:text-gray-500">
                       · {new Date(b.freeboardCreatedAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
 
                 {/* 제목 */}
-                <h3 className="text-xl font-semibold text-gray-100 mb-2">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   {b.freeboardTitle || "제목 없음"}
                 </h3>
 
                 {/* 내용(요약) */}
-                <div className="text-gray-400 line-clamp-2">
+                <div className="text-gray-600 dark:text-gray-400 line-clamp-2">
                   {extractTextFromHTML(b.freeboardContent)}
                 </div>
 
                 {/* 하단 정보 */}
-                <div className="flex items-center gap-6 mt-4 text-gray-500 text-sm">
-                  <span>조회수 {b.freeboardClick}</span>
-                  <span>❤️ 0</span>
-                  <span>💬 0</span>
+                <div className="flex items-center gap-6 mt-4 text-gray-500 dark:text-gray-500 text-sm">
+                  <span className="flex items-center gap-1">
+                    <Eye size={16} />
+                    {b.freeboardClick}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Heart size={16} />
+                    0
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MessageCircle size={16} />
+                    0
+                  </span>
                 </div>
               </div>
 
@@ -131,12 +135,12 @@ const FreeboardList = () => {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-40"
+            className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded disabled:opacity-40"
           >
             이전
           </button>
 
-          <span className="text-gray-300">
+          <span className="text-gray-700 dark:text-gray-300">
             {page} / {Math.ceil(totalCount / size)}
           </span>
 
@@ -145,12 +149,20 @@ const FreeboardList = () => {
               setPage((p) => (p * size < totalCount ? p + 1 : p))
             }
             disabled={page * size >= totalCount}
-            className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-40"
+            className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded disabled:opacity-40"
           >
             다음
           </button>
         </div>
       )}
+
+      {/* 플로팅 글쓰기 버튼 */}
+      <button
+        onClick={() => navigate("/freeboard/write")}
+        className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+      >
+        글쓰기
+      </button>
     </div>
   );
 };
