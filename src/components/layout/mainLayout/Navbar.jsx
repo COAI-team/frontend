@@ -10,27 +10,26 @@ import {
     MoonIcon,
     SunIcon,
 } from '@heroicons/react/24/outline'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import PropTypes from 'prop-types'
 import { NavLinksPropTypes } from "../../../utils/propTypes";
 import AlertModal from "../../modal/AlertModal.jsx";
 import { useLogin } from "../../../context/LoginContext.js";
 import Dropdown from "../../dropdown/Dropdown";
 
 const initialNavigation = [
-    {name: '코드 분석', href: '/codeAnalysis'},
-    {name: '알고리즘', href: '/algorithm'},
-    {name: '결제', href: '/payments'},
+    { name: '코드 분석', href: '/codeAnalysis' },
+    { name: '알고리즘', href: '/algorithm' },
+    { name: '결제', href: '/payments' },
 ]
 
 function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
 }
 
-function NavLinks({mobile = false, navigation, onLinkClick}) {
-    const {theme} = useTheme()
+function NavLinks({ mobile = false, navigation, onLinkClick }) {
+    const { theme } = useTheme()
 
     const baseClass = mobile
         ? 'block rounded-md px-3 py-2 text-base font-bold'
@@ -42,11 +41,10 @@ function NavLinks({mobile = false, navigation, onLinkClick}) {
                 let themeClass
 
                 if (item.current) {
-                    if (theme === 'light') {
-                        themeClass = 'bg-gray-200 text-gray-900'
-                    } else {
-                        themeClass = 'bg-gray-900 text-white'
-                    }
+                    themeClass =
+                        theme === 'light'
+                            ? 'bg-gray-200 text-gray-900'
+                            : 'bg-gray-900 text-white'
                 } else if (theme === 'light') {
                     themeClass = 'text-gray-700 hover:text-black hover:bg-gray-100'
                 } else {
@@ -69,34 +67,21 @@ function NavLinks({mobile = false, navigation, onLinkClick}) {
     )
 }
 
-// PropTypes 추가 (ESLint props validation 경고 제거)
-NavLinks.propTypes = {
-    mobile: PropTypes.bool,
-    navigation: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string.isRequired,
-            href: PropTypes.string.isRequired,
-            current: PropTypes.bool,
-        })
-    ).isRequired,
-    onLinkClick: PropTypes.func.isRequired,
-}
-
 export default function Navbar() {
     const location = useLocation()
+    const navigate = useNavigate()
     const [navigation, setNavigation] = useState(
-        initialNavigation.map((item) => ({...item, current: false}))
+        initialNavigation.map((item) => ({ ...item, current: false }))
     )
 
-    const {theme, setTheme} = useTheme()
+    const { theme, setTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
     const BASE_URL = import.meta.env.VITE_API_URL;
-    // 🔥 로그인 정보 불러오기
-    const { user, logout } = useLogin();
-    console.log("🟦 Navbar user 값:", user);
+    const { user, logout } = useLogin()
+
     useEffect(() => setMounted(true), [])
 
-    // 현재 경로에 따라 활성 메뉴 업데이트
+    // 현재 경로에 따라 active 메뉴 변경
     useEffect(() => {
         setNavigation((prev) =>
             prev.map((item) => ({
@@ -157,17 +142,18 @@ export default function Navbar() {
                             <Link to="/">
                                 <div
                                     className={`p-1.5 rounded-md transition-colors duration-300 ${
-                                        theme === 'dark' ? 'bg-white' : ''
+                                        theme === 'dark' ? '' : 'bg-black'
                                     }`}
                                 >
                                     <img
                                         alt="Your Company"
-                                        src="/vite.svg"
+                                        src="/Logo.png"
                                         className="h-8 w-auto cursor-pointer"
                                     />
                                 </div>
                             </Link>
                         </div>
+
                         <div className="hidden sm:flex sm:flex-1 sm:justify-center">
                             <div className="flex space-x-6">
                                 <NavLinks
@@ -210,32 +196,39 @@ export default function Navbar() {
                             )}
                         </button>
 
-                        {/* 🔥 로그인 상태 UI */}
+                        {/* 로그인 상태 */}
                         {user ? (
-                            <div className="flex items-center">
-                                <Dropdown
-                                    button={
-                                        <img
-                                            src={
-                                                user.image?.startsWith("http")
-                                                    ? user.image
-                                                    : `${BASE_URL}${user.image || ""}`
-                                            }
-                                            className="w-8 h-8 rounded-full object-cover border border-gray-300"
-                                            alt="프로필"
-                                        />
-                                    }
-                                    items={[
-                                        { label: "마이페이지", href: "/mypage" },
-                                        { label: "로그아웃", onClick: logout }
-                                    ]}
-                                />
-                            </div>
+                            <Dropdown
+                                button={
+                                    <img
+                                        src={
+                                            user.image?.startsWith("http")
+                                                ? user.image
+                                                : `${BASE_URL}${user.image || ""}`
+                                        }
+                                        className="w-8 h-8 rounded-full object-cover border border-gray-300"
+                                        alt="프로필"
+                                    />
+                                }
+                                items={[
+                                    { label: "마이페이지", href: "/mypage" },
+                                    ...(user?.role === "ROLE_ADMIN"
+                                        ? [{ label: "관리자 페이지", href: "/admin" }]
+                                        : []),
+                                    {
+                                        label: "로그아웃",
+                                        onClick: () => {
+                                            logout();
+                                            navigate("/");  // ⭐ 로그아웃 후 메인 페이지 이동
+                                        },
+                                    },
+                                ]}
+                            />
                         ) : (
                             <Link
                                 to="/signin"
                                 className={`ml-2 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm
-            ${theme === 'light'
+                                ${theme === 'light'
                                     ? 'bg-indigo-600 text-white hover:bg-indigo-500'
                                     : 'bg-indigo-500 text-white hover:bg-indigo-400'
                                 }`}

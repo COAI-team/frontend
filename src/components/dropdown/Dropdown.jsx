@@ -4,15 +4,20 @@ import { DropdownPropTypes } from "../../utils/propTypes";
 import { useApplyThemeClass } from "../../hooks/useApplyThemeClass";
 
 export default function Dropdown({ button, items, width = "w-40" }) {
-    const theme = useApplyThemeClass(); // ✅ theme 가져오기
+    const theme = useApplyThemeClass();
 
     return (
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className="relative inline-block">
             {/* 버튼 */}
             <MenuButton className="inline-flex items-center gap-1 focus:outline-none">
-                <span className={theme === "dark" ? "text-gray-200" : "text-gray-700"}>
-                    {button}
+                <span
+                    className={`w-full text-center ${
+                        theme === "dark" ? "text-gray-200" : "text-gray-700"
+                    }`}
+                >
+                    <strong>{button}</strong>
                 </span>
+
                 <ChevronDownIcon
                     className={`w-4 h-4 ${
                         theme === "dark" ? "text-gray-300" : "text-gray-500"
@@ -34,29 +39,27 @@ export default function Dropdown({ button, items, width = "w-40" }) {
                     {items.map((item) => (
                         <MenuItem key={item.label}>
                             {({ focus }) => {
-                                // hover 배경
                                 let hoverBg = "";
                                 if (focus) {
                                     hoverBg =
                                         theme === "dark" ? "bg-white/10" : "bg-gray-100";
                                 }
 
-                                // 텍스트 색
                                 const textColor =
                                     theme === "dark" ? "text-gray-200" : "text-gray-700";
 
-                                const baseClass = `block px-4 py-2 text-sm ${textColor} ${hoverBg}`;
+                                const baseClass = `block px-4 py-2 text-sm w-full text-center ${textColor} ${hoverBg}`;
 
                                 return item.href ? (
                                     <a href={item.href} className={baseClass}>
-                                        {item.label}
+                                        <strong>{item.label}</strong>
                                     </a>
                                 ) : (
                                     <button
                                         onClick={item.onClick}
-                                        className={`${baseClass} text-left w-full`}
+                                        className={`${baseClass} text-center`}
                                     >
-                                        {item.label}
+                                        <strong>{item.label}</strong>
                                     </button>
                                 );
                             }}
