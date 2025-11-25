@@ -17,13 +17,11 @@ const FreeboardDetail = () => {
       const darkMode = document.documentElement.classList.contains('dark');
       setIsDark(darkMode);
       
-      // 기존 highlight.js 스타일 제거
       const existingStyle = document.getElementById('hljs-theme');
       if (existingStyle) {
         existingStyle.remove();
       }
       
-      // 테마에 맞는 스타일 추가
       const link = document.createElement('link');
       link.id = 'hljs-theme';
       link.rel = 'stylesheet';
@@ -56,17 +54,17 @@ const FreeboardDetail = () => {
     axios
       .get(`http://localhost:8090/freeboard/${id}`)
       .then((res) => {
-        console.log("📄 상세 데이터:", res.data);
         setBoard(res.data);
       })
       .catch((err) => console.error("게시글 불러오기 실패:", err));
   }, [id]);
 
-  // Monaco 코드 블록 렌더링 처리 + Syntax Highlighting
+  // Monaco 코드 블록 및 링크 프리뷰 렌더링 처리
   useEffect(() => {
     if (!contentRef.current) return;
 
     const timer = setTimeout(() => {
+      // Monaco 코드 블록 처리
       const monacoBlocks = contentRef.current.querySelectorAll('pre[data-type="monaco-code-block"]');
       
       monacoBlocks.forEach(block => {
@@ -83,9 +81,8 @@ const FreeboardDetail = () => {
           
           const decodedCode = decodeHTML(code);
           
-          // 기존 클래스 유지하되 내용 재구성
           block.innerHTML = '';
-          block.className = 'code-block-wrapper'; // 새로운 클래스명
+          block.className = 'code-block-wrapper';
           block.removeAttribute('data-type');
           
           const header = document.createElement('div');
@@ -99,12 +96,112 @@ const FreeboardDetail = () => {
           block.appendChild(header);
           block.appendChild(codeElement);
           
+          // Syntax Highlighting 적용
           codeElement.classList.remove('hljs');
           codeElement.removeAttribute('data-highlighted');
           hljs.highlightElement(codeElement);
         }
       });
 
+      // 링크 프리뷰 처리
+      const linkPreviews = contentRef.current.querySelectorAll('div[data-type="link-preview"]');
+      
+      linkPreviews.forEach(preview => {
+        const title = preview.getAttribute('data-title');
+        const description = preview.getAttribute('data-description');
+        const image = preview.getAttribute('data-image');
+        const site = preview.getAttribute('data-site');
+        const url = preview.getAttribute('data-url');
+        
+        if (url) {
+          preview.innerHTML = '';
+          preview.className = `link-preview-card ${isDark ? 'dark' : 'light'}`;
+          preview.style.cssText = `
+            border: 1px solid ${isDark ? '#374151' : '#e5e7eb'};
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            display: flex;
+            gap: 1rem;
+            background: ${isDark ? '#1f2937' : '#ffffff'};
+            cursor: pointer;
+            transition: all 0.2s;
+          `;
+          
+          preview.addEventListener('mouseenter', () => {
+            preview.style.borderColor = isDark ? '#60a5fa' : '#3b82f6';
+          });
+          
+          preview.addEventListener('mouseleave', () => {
+            preview.style.borderColor = isDark ? '#374151' : '#e5e7eb';
+          });
+          
+          preview.addEventListener('click', () => {
+            window.open(url, '_blank');
+          });
+          
+          // 이미지가 있으면 표시
+          if (image) {
+            const imgContainer = document.createElement('div');
+            imgContainer.style.cssText = 'flex-shrink: 0; width: 120px; height: 120px; overflow: hidden; border-radius: 0.375rem;';
+            
+            const img = document.createElement('img');
+            img.src = image;
+            img.alt = title || 'Link preview';
+            img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+            
+            imgContainer.appendChild(img);
+            preview.appendChild(imgContainer);
+          }
+          
+          const textContainer = document.createElement('div');
+          textContainer.style.cssText = 'flex: 1; min-width: 0;';
+          
+          if (site) {
+            const siteSpan = document.createElement('div');
+            siteSpan.textContent = site;
+            siteSpan.style.cssText = `
+              font-size: 0.875rem;
+              color: ${isDark ? '#9ca3af' : '#6b7280'};
+              margin-bottom: 0.25rem;
+            `;
+            textContainer.appendChild(siteSpan);
+          }
+          
+          if (title) {
+            const titleDiv = document.createElement('div');
+            titleDiv.textContent = title;
+            titleDiv.style.cssText = `
+              font-weight: 600;
+              font-size: 1rem;
+              color: ${isDark ? '#f3f4f6' : '#111827'};
+              margin-bottom: 0.25rem;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            `;
+            textContainer.appendChild(titleDiv);
+          }
+          
+          if (description) {
+            const descDiv = document.createElement('div');
+            descDiv.textContent = description;
+            descDiv.style.cssText = `
+              font-size: 0.875rem;
+              color: ${isDark ? '#d1d5db' : '#4b5563'};
+              overflow: hidden;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+            `;
+            textContainer.appendChild(descDiv);
+          }
+          
+          preview.appendChild(textContainer);
+        }
+      });
+
+      // 일반 코드 블록 Syntax Highlighting
       const allCodeBlocks = contentRef.current.querySelectorAll('pre code:not([class*="language-"])');
       allCodeBlocks.forEach(block => {
         block.classList.remove('hljs');
@@ -117,7 +214,9 @@ const FreeboardDetail = () => {
   }, [board, isDark]);
 
   const getRenderedContent = (content) => {
-    if (!content) return "";
+    if (!content) {
+      return "";
+    }
     
     try {
       if (content.startsWith('[')) {

@@ -6,13 +6,13 @@ const MonacoCodeBlock = Node.create({
   name: "monacoCodeBlock",
 
   group: "block",
-  atom: true, // 내용은 전부 attribute(code)에 저장
-  isolating: true, // 있으면 오탈자 방지에 도움
+  atom: true,
+  isolating: true,
 
   addAttributes() {
     return {
       language: {
-        default: "java",
+        default: "javascript",
         parseHTML: (element) => element.getAttribute("data-language"),
         renderHTML: (attributes) => ({
           "data-language": attributes.language,
@@ -29,7 +29,26 @@ const MonacoCodeBlock = Node.create({
   },
 
   parseHTML() {
-    return [{ tag: 'div[data-type="monaco-code-block"]' }];
+    return [
+      { 
+        tag: 'pre[data-type="monaco-code-block"]',
+        getAttrs: (element) => {
+          return {
+            language: element.getAttribute('data-language') || 'javascript',
+            code: element.getAttribute('data-code') || '// 코드를 작성하세요\n',
+          };
+        },
+      },
+      {
+        tag: 'div[data-type="monaco-code-block"]',
+        getAttrs: (element) => {
+          return {
+            language: element.getAttribute('data-language') || 'javascript',
+            code: element.getAttribute('data-code') || '// 코드를 작성하세요\n',
+          };
+        },
+      },
+    ];
   },
 
   renderHTML({ HTMLAttributes }) {
@@ -40,6 +59,7 @@ const MonacoCodeBlock = Node.create({
         "data-type": "monaco-code-block",
         class: "monaco-code monaco-code-block-wrapper",
       },
+      // atom 노드는 content를 가질 수 없으므로 0을 반환하거나 아예 생략
     ];
   },
 
@@ -82,11 +102,9 @@ const MonacoCodeBlock = Node.create({
         const isCodeBlock = $anchor.parent.type.name === this.name;
 
         if (isCodeBlock) {
-          // Monaco 내부 Enter는 Monaco가 처리
           return false;
         }
 
-        // 기본 줄바꿈 실행
         return editor.commands.splitBlock();
       },
     };
