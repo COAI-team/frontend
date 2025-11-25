@@ -71,6 +71,12 @@ axiosInstance.interceptors.response.use(
 
                 try {
                     const refreshToken = localStorage.getItem("refreshToken");
+                    if (!refreshToken) {
+                        console.error("❌ Refresh Token 없음 → 로그인 페이지 이동");
+                        localStorage.removeItem("accessToken");
+                        globalThis.location.replace("/login");
+                        return;
+                    }
 
                     // Backend 스펙에 맞는 Refresh 호출
                     const res = await axios.post(
@@ -106,6 +112,9 @@ axiosInstance.interceptors.response.use(
             // Refresh 진행 중이면 기다렸다가 다시 실행
             return new Promise((resolve) => {
                 refreshSubscribers.push((token) => {
+                    if (!originalRequest.headers) {
+                        originalRequest.headers = {};
+                    }
                     originalRequest.headers.Authorization = `Bearer ${token}`;
                     resolve(axiosInstance(originalRequest));
                 });

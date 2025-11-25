@@ -141,11 +141,13 @@ export default function Navbar() {
                         <div className="flex shrink-0 items-center">
                             <Link to="/">
                                 <div
-                                    className={`p-1.5 rounded-md transition-colors duration-300 ${theme === 'dark' ? 'bg-white' : ''}`}
+                                    className={`p-1.5 rounded-md transition-colors duration-300 ${
+                                        theme === 'dark' ? '' : 'bg-black'
+                                    }`}
                                 >
                                     <img
                                         alt="Your Company"
-                                        src="/vite.svg"
+                                        src="/Logo.png"
                                         className="h-8 w-auto cursor-pointer"
                                     />
                                 </div>

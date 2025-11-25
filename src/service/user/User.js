@@ -131,3 +131,24 @@ export const updatePassword = async (payload, accessToken) => {
         };
     }
 };
+
+export const validateResetToken = async (token) => {
+    try {
+        const res = await axiosInstance.get(`/users/password/reset/validate?token=${token}`);
+        return res.data;
+    } catch (err) {
+        return {error: err};
+    }
+};
+
+export const confirmPasswordReset = async (token, newPassword) => {
+    try {
+        const res = await axiosInstance.post("/users/password/reset/confirm", {
+            token,
+            newPassword,
+        });
+        return res.data;
+    } catch (err) {
+        return {error: err};
+    }
+};

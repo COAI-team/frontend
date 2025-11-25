@@ -34,12 +34,12 @@ export const DropdownPropTypes = {
     button: PropTypes.node.isRequired,
     items: PropTypes.arrayOf(
         PropTypes.shape({
-            label: PropTypes.string.isRequired,   // 메뉴 이름
-            href: PropTypes.string,               // 링크 이동
-            onClick: PropTypes.func,              // 클릭 이벤트
+            label: PropTypes.string.isRequired,
+            href: PropTypes.string,
+            onClick: PropTypes.func,
         })
     ).isRequired,
-    width: PropTypes.string,                     // 메뉴 너비 (옵션)
+    width: PropTypes.string,
 };
 
 /* ----------------------------------------
@@ -50,9 +50,95 @@ export const LoginProviderPropTypes = {
 };
 
 /* ----------------------------------------
- * ResetPasswordModal PropTypes  ← ★ 추가됨
+ * ResetPasswordModal PropTypes
  * ---------------------------------------- */
 export const ResetPasswordModalPropTypes = {
     open: PropTypes.bool.isRequired,
     onClose: PropTypes.func.isRequired,
+};
+
+/* ----------------------------------------
+ * SignUp용 PropTypes
+ * ---------------------------------------- */
+
+/** ProfileUpload */
+export const ProfileUploadPropTypes = {
+    profilePreview: PropTypes.string,
+    uploadBtn: PropTypes.string.isRequired,
+    setProfilePreview: PropTypes.func.isRequired,
+    setProfileFile: PropTypes.func.isRequired,
+};
+
+/** SignUpForm */
+export const SignUpFormPropTypes = {
+    handleSubmit: PropTypes.func.isRequired,
+    handleSendEmail: PropTypes.func.isRequired,
+    handleVerifyCode: PropTypes.func.isRequired,
+    remainingTime: PropTypes.string,
+    setCode: PropTypes.func.isRequired,
+    code: PropTypes.string.isRequired,
+
+    password: PropTypes.string.isRequired,
+    setPassword: PropTypes.func.isRequired,
+    passwordConfirm: PropTypes.string.isRequired,
+    setPasswordConfirm: PropTypes.func.isRequired,
+
+    showPassword: PropTypes.bool.isRequired,
+    setShowPassword: PropTypes.func.isRequired,
+    showPasswordConfirm: PropTypes.bool.isRequired,
+    setShowPasswordConfirm: PropTypes.func.isRequired,
+
+    passwordMessage: PropTypes.string.isRequired,
+    isPasswordMatch: PropTypes.bool.isRequired,
+    isVerified: PropTypes.bool.isRequired,
+
+    verifyBtn: PropTypes.string.isRequired,
+    sendEmailBtn: PropTypes.string.isRequired,
+    signupBtn: PropTypes.string.isRequired,
+};
+
+/** InputField */
+export const InputFieldPropTypes = {
+    label: PropTypes.string.isRequired,
+    id: PropTypes.string.isRequired,
+    required: PropTypes.bool,
+    placeholder: PropTypes.string,
+};
+
+/** EmailSection */
+export const EmailSectionPropTypes = {
+    handleSendEmail: PropTypes.func.isRequired,
+    handleVerifyCode: PropTypes.func.isRequired,
+    remainingTime: PropTypes.string,
+    sendEmailBtn: PropTypes.string.isRequired,
+    verifyBtn: PropTypes.string.isRequired,
+    code: PropTypes.string.isRequired,
+    setCode: PropTypes.func.isRequired,
+    isVerified: PropTypes.bool.isRequired,
+};
+
+/** PasswordSection */
+export const PasswordSectionPropTypes = {
+    password: PropTypes.string.isRequired,
+    setPassword: PropTypes.func.isRequired,
+    passwordConfirm: PropTypes.string.isRequired,
+    setPasswordConfirm: PropTypes.func.isRequired,
+    showPassword: PropTypes.bool.isRequired,
+    setShowPassword: PropTypes.func.isRequired,
+    showPasswordConfirm: PropTypes.bool.isRequired,
+    setShowPasswordConfirm: PropTypes.func.isRequired,
+    passwordMessage: PropTypes.string.isRequired,
+    isPasswordMatch: PropTypes.bool.isRequired,
+};
+
+/** PasswordInput */
+export const PasswordInputPropTypes = {
+    label: PropTypes.string.isRequired,
+    id: PropTypes.string.isRequired,
+    value: PropTypes.string.isRequired,
+    onChange: PropTypes.func.isRequired,
+    show: PropTypes.bool.isRequired,
+    setShow: PropTypes.func.isRequired,
+    error: PropTypes.string,
+    placeholder: PropTypes.string,
 };

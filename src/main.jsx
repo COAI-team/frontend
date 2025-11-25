@@ -17,7 +17,8 @@ import PaymentFail from "./pages/payment/PaymentFail.jsx";
 // 사용자 관련
 import SignIn from "./pages/user/SignIn";
 import SignUp from "./pages/user/SignUp";
-import {LoginProvider} from "./context/LoginContext.js";
+import {LoginProvider} from "./context/LoginContext";
+import ResetPasswordPage from "./pages/user/ResetPasswordPage";
 
 // 자유게시판
 import FreeboardList from "./pages/freeboard/FreeboardList";
@@ -50,6 +51,9 @@ createRoot(document.getElementById("root")).render(
                             path="/payments/*"
                             element={<Navigate to="/pages/payment/pricing" replace/>}
                         />
+
+                        {/* 비밀번호 재설정 페이지 */}
+                        <Route path="reset-password" element={<ResetPasswordPage />} />
 
                         {/* 기본 레이아웃 */}
                         <Route path="/" element={<Layout/>}>

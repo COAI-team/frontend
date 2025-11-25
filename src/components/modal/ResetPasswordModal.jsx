@@ -1,4 +1,4 @@
-import {useState, useEffect} from "react";
+import {useState, useEffect, useCallback} from "react";
 import AlertModal from "./AlertModal";
 import {requestPasswordReset} from "../../service/user/User";
 import {ResetPasswordModalPropTypes} from "../../utils/propTypes";
@@ -17,44 +17,8 @@ export default function ResetPasswordModal({open, onClose}) {
     const {theme} = useTheme();
     const isDark = theme === "dark";
 
-    // 🔥 키보드 기능 추가: Enter = 제출, ESC = 취소
-    useEffect(() => {
-        if (!open) return;
-
-        const handleKey = (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                handleSubmit();
-            }
-            if (e.key === "Escape") {
-                e.preventDefault();
-                onClose();
-            }
-        };
-
-        window.addEventListener("keydown", handleKey);
-        return () => window.removeEventListener("keydown", handleKey);
-    }, [open, email]);  // email은 Enter시에 최신 email 반영
-
-    // 색상 팔레트
-    const COLORS = {
-        light: {
-            primary: "#04BDF2",
-            secondary: "#2DD4BF",
-            accent1: "#CC67FA",
-            accent2: "#FF90CD",
-        },
-        dark: {
-            primary: "#CC67FA",
-            secondary: "#2DD4BF",
-            accent1: "#FF90CD",
-            accent2: "#FFFA99",
-        }
-    };
-
-    const current = isDark ? COLORS.dark : COLORS.light;
-
-    const handleSubmit = async () => {
+    // ⭐ handleSubmit을 useEffect보다 위로 올려서 에러 해결!
+    const handleSubmit = useCallback(async () => {
         if (!email) {
             setAlert({
                 open: true,
@@ -80,14 +44,49 @@ export default function ResetPasswordModal({open, onClose}) {
         setAlert({
             open: true,
             type: "success",
-            title: "임시 비밀번호 발급됨",
-            message: "이메일로 임시 비밀번호가 전송되었습니다.",
+            title: "이메일 발송 완료",
+            message: "비밀번호 재설정 링크가 이메일로 전송되었습니다.",
             onConfirm: () => {
                 setAlert(prev => ({...prev, open: false}));
                 onClose();
             }
         });
+    }, [email, onClose]);
+
+    // ⭐ 키보드 핸들링 - ReferenceError 제거됨!
+    useEffect(() => {
+        if (!open) return;
+
+        const handleKey = (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit();
+            }
+            if (e.key === "Escape") {
+                e.preventDefault();
+                onClose();
+            }
+        };
+
+        globalThis.addEventListener("keydown", handleKey);
+        return () => globalThis.removeEventListener("keydown", handleKey);
+    }, [open, handleSubmit, onClose]);
+
+    const COLORS = {
+        light: {
+            primary: "#04BDF2",
+            secondary: "#2DD4BF",
+            accent1: "#CC67FA",
+            accent2: "#FF90CD",
+        },
+        dark: {
+            primary: "#CC67FA",
+            secondary: "#2DD4BF",
+            accent1: "#FF90CD",
+            accent2: "#FFFA99",
+        }
     };
+    const current = isDark ? COLORS.dark : COLORS.light;
 
     if (!open) return null;
 
@@ -99,25 +98,18 @@ export default function ResetPasswordModal({open, onClose}) {
                     ${isDark ? "bg-gray-900" : "bg-white"}
                 `}
             >
-                <h2
-                    className={`text-xl font-bold text-center 
-                    ${isDark ? "text-white" : "text-gray-900"}`}
-                >
+                <h2 className={`text-xl font-bold text-center ${isDark ? "text-white" : "text-gray-900"}`}>
                     비밀번호 재설정
                 </h2>
 
-                <p
-                    className={`mt-2 text-sm text-center 
-                    ${isDark ? "text-gray-400" : "text-gray-600"}`}
-                >
-                    가입한 이메일을 입력하면 임시 비밀번호가 발급됩니다.
+                <p className={`mt-2 text-sm text-center ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                    가입한 이메일을 입력하면 비밀번호 재설정 링크가 전송됩니다.
                 </p>
 
                 <div className="mt-6">
                     <label
                         htmlFor="email"
-                        className={`block text-sm font-medium
-                        ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                        className={`block text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
                     >
                         이메일 주소
                     </label>
@@ -131,8 +123,7 @@ export default function ResetPasswordModal({open, onClose}) {
                             mt-2 block w-full rounded-md px-3 py-2 placeholder:text-gray-400
                             ${isDark
                             ? "bg-gray-800 text-white outline outline-white/20"
-                            : "bg-white text-gray-900 outline outline-slate-300"
-                        }   
+                            : "bg-white text-gray-900 outline outline-slate-300"}
                         `}
                         style={{
                             outlineWidth: "1px",
@@ -148,35 +139,25 @@ export default function ResetPasswordModal({open, onClose}) {
                 </div>
 
                 <div className="mt-6 flex justify-end gap-2">
-                    {/* 취소 버튼 */}
                     <button
                         className={`
                             px-4 py-2 rounded-md text-sm font-semibold
-                            ${isDark
-                            ? "bg-gray-700 hover:bg-gray-600 text-white"
-                            : "bg-gray-300 hover:bg-gray-400 text-gray-900"}`}
+                            ${isDark ? "bg-gray-700 hover:bg-gray-600 text-white"
+                            : "bg-gray-300 hover:bg-gray-400 text-gray-900"}
+                        `}
                         onClick={onClose}
                     >
                         취소
                     </button>
 
-                    {/* 제출 버튼 */}
                     <button
                         className="px-4 py-2 rounded-md text-sm font-semibold text-white"
-                        style={{
-                            backgroundColor: current.primary,
-                        }}
-                        onMouseEnter={(e) =>
-                            (e.target.style.backgroundColor = isDark
-                                ? COLORS.dark.secondary
-                                : COLORS.light.secondary)
-                        }
-                        onMouseLeave={(e) =>
-                            (e.target.style.backgroundColor = current.primary)
-                        }
+                        style={{backgroundColor: current.primary}}
+                        onMouseEnter={(e) => (e.target.style.backgroundColor = current.secondary)}
+                        onMouseLeave={(e) => (e.target.style.backgroundColor = current.primary)}
                         onClick={handleSubmit}
                     >
-                        임시 비밀번호 받기
+                        비밀번호 재설정 메일 받기
                     </button>
                 </div>
             </div>
