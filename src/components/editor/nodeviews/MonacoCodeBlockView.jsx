@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { NodeViewWrapper } from "@tiptap/react";
 import Editor from "@monaco-editor/react";
-import { useTheme } from "next-themes";
 import * as monaco from "monaco-editor";
 
 import "../monaco/setupMonaco";
@@ -11,12 +10,8 @@ const MonacoCodeBlockView = ({ node, updateAttributes }) => {
   const { code = "// 코드를 작성하세요\n", language = "javascript" } =
     node.attrs || {};
 
-  const { theme, systemTheme } = useTheme();
   const [isDark, setIsDark] = useState(false);
   const [editorInstance, setEditorInstance] = useState(null);
-
-  // 실제 테마 결정
-  const currentTheme = theme === 'system' ? systemTheme : theme;
 
   // 다크모드 감지
   useEffect(() => {
