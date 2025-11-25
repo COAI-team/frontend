@@ -152,7 +152,7 @@ export default function SignIn() {
                                 type="submit"
                                 className={`flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-black ${loginBtnColor}`}
                             >
-                                로그인하기
+                                로그인
                             </button>
                         </form>
 

@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { FcCamera } from "react-icons/fc";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import { signup, sendEmailCode, verifyEmailCode } from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
@@ -256,7 +257,7 @@ function ProfileUpload({ profilePreview, uploadBtn, setProfilePreview, setProfil
                     htmlFor="profileImage"
                     className={`absolute bottom-1 right-1 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-lg cursor-pointer hover:opacity-80 ${uploadBtn}`}
                 >
-                    📷
+                    <FcCamera />
                 </label>
 
                 <input
@@ -299,7 +300,7 @@ function SignUpForm(props) {
                         : "bg-gray-400 cursor-not-allowed"
                 }`}
             >
-                회원가입 하기
+                회원가입
             </button>
         </form>
     );

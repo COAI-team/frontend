@@ -1,7 +1,7 @@
-import axios, { AxiosError } from "axios";
+import axios, {AxiosError} from "axios";
 
-const axiosInstance = axios.create({
-    baseURL: "https://114.204.9.108:10443",
+export const axiosInstance = axios.create({
+    baseURL: "", // "https://localhost:9443/api" 이거 잠깐 내비둬줘요..
     timeout: 10000,
 });
 
@@ -52,12 +52,12 @@ axiosInstance.interceptors.response.use(
                 error.request,
                 {
                     status: 0,
-                    data: { message: "서버에 연결할 수 없습니다." }
+                    data: {message: "서버에 연결할 수 없습니다."}
                 }
             );
         }
 
-        const { status, data } = error.response;
+        const {status, data} = error.response;
 
         // -----------------------------------------
         // 🔄 AccessToken 만료 (401 + TOKEN_EXPIRED)
