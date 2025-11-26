@@ -153,3 +153,35 @@ export const LoadingButtonPropTypes = {
     disabled: PropTypes.bool,
     className: PropTypes.string,
 };
+
+/* ----------------------------------------
+ * ViewModeCard PropTypes
+ * ---------------------------------------- */
+export const ViewModeCardPropTypes = {
+    profile: PropTypes.shape({
+        name: PropTypes.string,
+        nickname: PropTypes.string,
+        email: PropTypes.string,
+        preview: PropTypes.string,
+        image: PropTypes.string,
+    }).isRequired,
+    maskEmail: PropTypes.func.isRequired,
+    onEdit: PropTypes.func.isRequired,
+};
+
+/* ----------------------------------------
+ * EditModeCard PropTypes
+ * ---------------------------------------- */
+export const EditModeCardPropTypes = {
+    profile: PropTypes.shape({
+        name: PropTypes.string,
+        nickname: PropTypes.string,
+        email: PropTypes.string,
+        preview: PropTypes.string,
+        image: PropTypes.string,
+    }).isRequired,
+    setProfile: PropTypes.func.isRequired,
+    handleImageChange: PropTypes.func.isRequired,
+    onCancel: PropTypes.func.isRequired,
+    onSave: PropTypes.func.isRequired,
+};

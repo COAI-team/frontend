@@ -1,33 +1,46 @@
-import axios, {AxiosError} from "axios";
+import axios, { AxiosError } from "axios";
 
 export const axiosInstance = axios.create({
-    baseURL: "https://114.204.9.108:10443", // "https://localhost:9443/api" 이거 잠깐 내비둬줘요..
+    baseURL: "https://114.204.9.108:10443",
     timeout: 10000,
 });
 
-// -----------------------
-// 1) 요청 인터셉터: AccessToken 자동 추가
-// -----------------------
+// =====================================================
+// 1) 요청 시 AccessToken 자동 주입
+// =====================================================
 axiosInstance.interceptors.request.use(
     (config) => {
-        const accessToken = localStorage.getItem("accessToken");
-        if (accessToken) {
-            config.headers.Authorization = `Bearer ${accessToken}`;
+        const saved = localStorage.getItem("auth") || sessionStorage.getItem("auth");
+
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                const token = parsed?.accessToken;
+
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+            } catch (err) {
+                console.error("⚠ auth 파싱 실패 → 초기화", err);
+
+                localStorage.removeItem("auth");
+                sessionStorage.removeItem("auth");
+            }
         }
+
         return config;
     },
-    (error) => {
-        throw error;
-    }
+    (error) => Promise.reject(error)
 );
 
-// -----------------------
-// 2) 응답 인터셉터 (401 → 자동 토큰 재발급)
-// -----------------------
+// =====================================================
+// 2) 응답 인터셉터 — AccessToken 만료 처리
+// =====================================================
 
 let isRefreshing = false;
 let refreshSubscribers = [];
 
+// 모든 구독자에게 새 토큰 적용
 function onTokenRefreshed(newToken) {
     for (const cb of refreshSubscribers) {
         cb(newToken);
@@ -35,13 +48,52 @@ function onTokenRefreshed(newToken) {
     refreshSubscribers = [];
 }
 
+// 에러가 AccessToken 만료인지 판별
+function isTokenExpiredError(error) {
+    return (
+        error?.response?.status === 401 &&
+        error?.response?.data?.code === "TOKEN_EXPIRED"
+    );
+}
+
+// 저장된 auth 가져오기
+function loadAuth() {
+    const raw = localStorage.getItem("auth") || sessionStorage.getItem("auth");
+    return raw ? JSON.parse(raw) : null;
+}
+
+// auth 저장
+function saveAuth(data) {
+    if (localStorage.getItem("auth")) {
+        localStorage.setItem("auth", JSON.stringify(data));
+    } else {
+        sessionStorage.setItem("auth", JSON.stringify(data));
+    }
+}
+
+// refresh 토큰으로 AccessToken 재발급
+async function requestNewAccessToken(refreshToken) {
+    const res = await axios.post(
+        "https://114.204.9.108:10443/users/refresh",
+        {},
+        {
+            headers: {
+                Authorization: `Bearer ${refreshToken}`,
+            },
+        }
+    );
+
+    return res.data.accessToken;
+}
+
+// =====================================================
+// 응답 인터셉터 본문
+// =====================================================
 axiosInstance.interceptors.response.use(
     (response) => response,
+
     async (error) => {
-
-        const originalRequest = error.config;
-
-        // 서버 응답 없음 (CORS/HTTPS/network fail)
+        // 서버 응답 자체 없음
         if (!error.response) {
             console.error("❌ No server response:", error);
 
@@ -52,76 +104,67 @@ axiosInstance.interceptors.response.use(
                 error.request,
                 {
                     status: 0,
-                    data: {message: "서버에 연결할 수 없습니다."}
+                    data: { message: "서버에 연결할 수 없습니다." },
                 }
             );
         }
 
-        const {status, data} = error.response;
+        const originalRequest = error.config;
 
-        // -----------------------------------------
-        // 🔄 AccessToken 만료 (401 + TOKEN_EXPIRED)
-        // -----------------------------------------
-        if (status === 401 && data?.code === "TOKEN_EXPIRED") {
+        // --------------------------------------------------
+        // 🔥 AccessToken 만료 케이스
+        // --------------------------------------------------
+        if (isTokenExpiredError(error)) {
             console.warn("⛔ AccessToken expired → Refreshing...");
 
-            // 동시에 여러 요청이 실패하면 첫 요청만 Refresh 실행
+            const parsed = loadAuth();
+            const refreshToken = parsed?.refreshToken;
+
+            if (!refreshToken) {
+                console.error("❌ RefreshToken 없음 → 로그아웃");
+                localStorage.removeItem("auth");
+                sessionStorage.removeItem("auth");
+                globalThis.location.replace("/signin");
+                return;
+            }
+
+            // 🔹 최초 요청만 refresh 실행
             if (!isRefreshing) {
                 isRefreshing = true;
 
                 try {
-                    const refreshToken = localStorage.getItem("refreshToken");
-                    if (!refreshToken) {
-                        console.error("❌ Refresh Token 없음 → 로그인 페이지 이동");
-                        localStorage.removeItem("accessToken");
-                        globalThis.location.replace("/login");
-                        return;
-                    }
+                    const newAccessToken = await requestNewAccessToken(refreshToken);
 
-                    // Backend 스펙에 맞는 Refresh 호출
-                    const res = await axios.post(
-                        "https://114.204.9.108:10443/users/refresh",
-                        {},
-                        {
-                            headers: {
-                                Authorization: `Bearer ${refreshToken}`
-                            }
-                        }
-                    );
-
-                    const newAccessToken = res.data.accessToken;
-                    console.log("🔄 새 AccessToken:", newAccessToken);
-
-                    localStorage.setItem("accessToken", newAccessToken);
+                    // auth 업데이트
+                    const updatedAuth = { ...parsed, accessToken: newAccessToken };
+                    saveAuth(updatedAuth);
 
                     isRefreshing = false;
                     onTokenRefreshed(newAccessToken);
-
-                } catch (refreshError) {
-                    console.error("❌ Refresh Token expired or invalid.");
+                } catch (error_) {
+                    console.error("❌ RefreshToken invalid:", error_);
 
                     isRefreshing = false;
-                    localStorage.removeItem("accessToken");
-                    localStorage.removeItem("refreshToken");
+                    localStorage.removeItem("auth");
+                    sessionStorage.removeItem("auth");
 
-                    globalThis.location.replace("/login");
-                    throw refreshError;
+                    globalThis.location.replace("/signin");
+                    throw error_;
                 }
             }
 
-            // Refresh 진행 중이면 기다렸다가 다시 실행
+            // 🔹 refresh 진행 중 → 새 토큰 적용 후 retry
             return new Promise((resolve) => {
                 refreshSubscribers.push((token) => {
-                    if (!originalRequest.headers) {
-                        originalRequest.headers = {};
-                    }
                     originalRequest.headers.Authorization = `Bearer ${token}`;
                     resolve(axiosInstance(originalRequest));
                 });
             });
         }
 
-        // 기본 에러 처리
+        // --------------------------------------------------
+        // 다른 에러는 그대로 throw
+        // --------------------------------------------------
         throw error;
     }
 );

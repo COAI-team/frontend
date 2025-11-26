@@ -14,8 +14,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { NavLinksPropTypes } from "../../../utils/propTypes";
-import AlertModal from "../../modal/AlertModal.jsx";
-import { useLogin } from "../../../context/LoginContext.js";
+import AlertModal from "../../modal/AlertModal";
+import { useLogin } from "../../../context/LoginContext";
 import Dropdown from "../../dropdown/Dropdown";
 
 const initialNavigation = [

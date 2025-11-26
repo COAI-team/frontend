@@ -172,7 +172,10 @@ export default function SignUp() {
     async function processEmailVerify(email, code) {
         const result = await verifyEmailCode(email, code);
 
-        if (result === "인증 성공") {
+        console.log("🔍 verifyEmailCode result:", result);
+
+        /** ✔ 이메일 인증 성공 조건 정확히 처리 */
+        if (result?.success === true) {
             setIsVerified(true);
             return showAlert("success", "이메일 인증 완료", "이메일 인증이 완료되었습니다!");
         }
