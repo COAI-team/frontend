@@ -1,40 +1,125 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
-import { codeTemplates, editorUtils } from '../../components/algorithm/editor/editorUtils';
+import { codeTemplates } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout } from '../../hooks/algorithm/useResizableLayout';
+import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
 
 /**
- * 문제 풀이 페이지 - useResizableLayout Hook 적용
+ * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
+ * ✅ 수정: 백엔드 ProblemSolveResponseDto 필드명에 맞게 수정
  */
 const ProblemSolve = () => {
   const { problemId } = useParams();
   const navigate = useNavigate();
   const editorRef = useRef(null);
   
-  // 상태 관리
+  // 문제 데이터 상태
+  const [problem, setProblem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // 에디터 상태
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [code, setCode] = useState('');
-  const [timeLeft, setTimeLeft] = useState(1800); // 30분
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [isEditorReady, setIsEditorReady] = useState(false);
   
-  // 리사이저블 레이아웃 Hook 사용 (필요한 것들만)
-  const {
-    leftPanelWidth,
-    isResizing,
-    handleResizeStart,
-    handleResize,
-    handleResizeEnd,
-    containerRef
-  } = useResizableLayout(50, 20, 80);
+  // 타이머 상태
+  const [timeLeft, setTimeLeft] = useState(1800);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [startTime, setStartTime] = useState(null);
+  
+  // 실행 결과 상태
+  const [testResult, setTestResult] = useState(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 리사이저 이벤트 리스너 (기존과 동일)
+  // 리사이저블 레이아웃
+  const { leftPanelWidth, isResizing, handleResizeStart, handleResize, handleResizeEnd, containerRef } = useResizableLayout(35, 20, 60);
+
+  // 경과 시간 계산
+  const getElapsedTime = useCallback(() => {
+    if (!startTime) return 0;
+    return Math.floor((new Date() - startTime) / 1000);
+  }, [startTime]);
+
+  // 코드 제출
+  const handleSubmit = useCallback(async () => {
+    if (!code.trim()) {
+      alert('코드를 작성해주세요!');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setIsTimerRunning(false);
+    
+    try {
+      const res = await submitCode({
+        problemId: Number(problemId),
+        language: selectedLanguage.toUpperCase(),
+        sourceCode: code,
+        elapsedTime: getElapsedTime()
+      });
+      
+      if (res.error) {
+        alert(`제출 실패: ${res.message}`);
+      } else {
+        // ✅ 수정: Data (대문자 D) 필드 사용
+        const responseData = res.Data || res.data || res;
+        const submissionId = responseData?.algosubmissionId || responseData?.submissionId;
+        navigate(`/algorithm/result/${submissionId}`);
+      }
+    } catch {
+      alert('코드 제출 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [code, problemId, selectedLanguage, navigate, getElapsedTime]);
+
+  // 문제 데이터 로드
+  useEffect(() => {
+    const fetchProblem = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const res = await startProblemSolve(problemId);
+        console.log('📥 API 응답:', res); // 디버깅용
+        
+        if (res.error) {
+          setError(res.message);
+          return;
+        }
+        
+        // ✅ 수정: API 응답 구조에 맞게 데이터 설정
+        // 백엔드 ApiResponse는 "Data" (대문자 D) 필드 사용
+        const problemData = res.Data || res.data || res;
+        console.log('📋 문제 데이터:', problemData); // 디버깅용
+        setProblem(problemData);
+        
+        // ✅ 수정: 필드명 수정 (timelimit → timeLimit)
+        // timeLimit은 ms 단위, 기본 30분(1800초)
+        const limit = problemData.timeLimit ? Math.floor(problemData.timeLimit / 1000) : 1800;
+        setTimeLeft(limit);
+        setStartTime(new Date());
+        
+      } catch (err) {
+        console.error('❌ 문제 로드 실패:', err);
+        setError('문제를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (problemId) {
+      fetchProblem();
+    }
+  }, [problemId]);
+
+  // 리사이저 이벤트
   useEffect(() => {
     if (isResizing) {
       document.addEventListener('mousemove', handleResize);
       document.addEventListener('mouseup', handleResizeEnd);
-      
       return () => {
         document.removeEventListener('mousemove', handleResize);
         document.removeEventListener('mouseup', handleResizeEnd);
@@ -42,370 +127,306 @@ const ProblemSolve = () => {
     }
   }, [isResizing, handleResize, handleResizeEnd]);
 
-  // 코드 제출 (useCallback 적용)
-  const handleSubmit = useCallback(() => {
-    if (!code.trim()) {
-      alert('코드를 작성해주세요!');
-      return;
-    }
-    
-    setIsTimerRunning(false);
-    
-    const submissionId = Math.floor(Math.random() * 1000) + 1;
-    const elapsedTime = 1800 - timeLeft;
-    const elapsedMinutes = Math.floor(elapsedTime / 60);
-    const elapsedSeconds = elapsedTime % 60;
-    
-    alert(`개발 중입니다!\nDay 10-11에 Judge0 API 연동과 함께 구현됩니다.\n\n모의 제출 정보:\n- 제출 ID: ${submissionId}\n- 언어: ${selectedLanguage.toUpperCase()}\n- 소요 시간: ${elapsedMinutes}분 ${elapsedSeconds}초\n- 코드 길이: ${code.length}자`);
-  }, [code, timeLeft, selectedLanguage]);
-
-  // 타이머 시작/정지
-  const toggleTimer = () => {
-    setIsTimerRunning(!isTimerRunning);
-  };
-
   // 타이머 효과
   useEffect(() => {
     let interval = null;
     if (isTimerRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((time) => time - 1);
-      }, 1000);
-    } else if (!isTimerRunning && timeLeft !== 0) {
-      clearInterval(interval);
-    }
-
-    if (timeLeft === 0 && isTimerRunning) {
+      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    } else if (timeLeft === 0 && isTimerRunning) {
       handleSubmit();
       setIsTimerRunning(false);
     }
-
     return () => clearInterval(interval);
   }, [isTimerRunning, timeLeft, handleSubmit]);
-
-  // 시간 포맷팅
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  // 언어 변경
-  const handleLanguageChange = (language) => {
-    const confirmChange = window.confirm(
-      `언어를 ${language.toUpperCase()}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`
-    );
-    
-    if (confirmChange) {
-      setSelectedLanguage(language);
-      setCode(codeTemplates[language] || '');
-    }
-  };
 
   // 초기 코드 설정
   useEffect(() => {
     setCode(codeTemplates[selectedLanguage] || '');
   }, [selectedLanguage]);
 
-  // 코드 변경 핸들러
-  const handleCodeChange = (newCode) => {
-    setCode(newCode);
+  // 시간 포맷팅
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 에디터 마운트 핸들러
-  const handleEditorMount = (editor, monaco) => {
-    editorRef.current = { editor, monaco };
-    setIsEditorReady(true);
-    
-    setTimeout(() => {
-      editorUtils.focusEditor(editor);
-    }, 100);
-  };
-
-  // 코드 포맷팅
-  const handleFormatCode = () => {
-    if (editorRef.current?.editor) {
-      editorUtils.formatCode(editorRef.current.editor);
+  // 언어 변경
+  const handleLanguageChange = (lang) => {
+    if (window.confirm(`언어를 ${lang.toUpperCase()}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`)) {
+      setSelectedLanguage(lang);
+      setCode(codeTemplates[lang] || '');
     }
   };
 
-  // 코드 초기화
-  const handleResetCode = () => {
-    const confirmReset = window.confirm('코드를 초기화하시겠습니까?\n현재 작성한 코드가 모두 사라집니다.');
-    if (confirmReset) {
-      setCode(codeTemplates[selectedLanguage] || '');
-    }
-  };
-
-  // 코드 복사
-  const handleCopyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      alert('코드가 클립보드에 복사되었습니다!');
-    } catch (err) {
-      console.error('복사 실패:', err);
-      alert('코드 복사에 실패했습니다.');
-    }
-  };
-
-  // 테스트 실행
-  const handleTestRun = () => {
+  // 코드 테스트 실행
+  const handleTestRun = async () => {
     if (!code.trim()) {
       alert('코드를 작성해주세요!');
       return;
     }
     
-    alert('테스트 실행 기능은 Day 10-11에 구현됩니다!\n\n현재 코드:\n' + code.substring(0, 200) + (code.length > 200 ? '...' : ''));
+    setIsRunning(true);
+    setTestResult(null);
+    
+    try {
+      const res = await runTestCode({
+        problemId: Number(problemId),
+        language: selectedLanguage.toUpperCase(),
+        sourceCode: code
+      });
+      
+      console.log('🧪 테스트 결과:', res); // 디버깅용
+      
+      // ✅ 수정: 에러 체크 방식 개선
+      if (res.error || (res.code && res.code !== '0000')) {
+        setTestResult({ error: true, message: res.message || '테스트 실행 실패' });
+      } else {
+        // ✅ 수정: Data (대문자 D) 필드 사용
+        setTestResult(res.Data || res.data || res);
+      }
+    } catch (err) {
+      console.error('테스트 실행 오류:', err);
+      setTestResult({ error: true, message: '테스트 실행 중 오류가 발생했습니다.' });
+    } finally {
+      setIsRunning(false);
+    }
   };
 
-  // 샘플 문제 데이터
-  const problemData = {
-    1: { title: '두 수의 합', difficulty: 'BRONZE', description: '두 정수를 입력받아 합을 출력하는 프로그램을 작성하시오.' },
-    2: { title: '피보나치 수', difficulty: 'SILVER', description: 'n번째 피보나치 수를 구하는 프로그램을 작성하시오.' },
-    3: { title: '최단경로', difficulty: 'GOLD', description: '그래프에서 최단경로를 구하는 프로그램을 작성하시오.' },
-    123: { title: '테스트 문제', difficulty: 'BRONZE', description: '이것은 Monaco Editor 테스트를 위한 샘플 문제입니다.' }
+  // 에디터 마운트
+  const handleEditorMount = (editor, monaco) => {
+    editorRef.current = { editor, monaco };
   };
 
-  const currentProblem = problemData[problemId] || problemData['123'];
+  // 코드 초기화
+  const handleResetCode = () => {
+    if (window.confirm('코드를 초기화하시겠습니까?')) {
+      setCode(codeTemplates[selectedLanguage] || '');
+    }
+  };
+
+  // 난이도 색상
+  const getDifficultyColor = (diff) => {
+    const colors = {
+      'BRONZE': 'text-orange-400',
+      'SILVER': 'text-gray-400',
+      'GOLD': 'text-yellow-400',
+      'PLATINUM': 'text-cyan-400'
+    };
+    return colors[diff] || 'text-gray-400';
+  };
+
+  // 로딩 상태
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-400">문제를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 상태
+  if (error) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 text-xl mb-4">⚠️ {error}</p>
+          <button onClick={() => navigate('/algorithm')} className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+            문제 목록으로
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 상단 헤더 */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen bg-zinc-900 text-gray-100">
+      {/* 헤더 */}
+      <div className="bg-zinc-800 border-b border-zinc-700">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            {/* 네비게이션 */}
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => navigate('/algorithm')}
-                className="text-blue-600 hover:text-blue-800 transition-colors"
-              >
-                ← 문제 목록
-              </button>
-              <span className="text-gray-300">|</span>
-              <h1 className="text-lg font-semibold text-gray-900">
-                💻 문제 풀이
-              </h1>
-              <span className="text-gray-500">문제 #{problemId}</span>
+            <div>
+              {/* ✅ 수정: algoProblemTitle → title */}
+              <h1 className="text-xl font-bold">#{problemId} {problem?.title || '문제'}</h1>
+              <p className="text-sm text-gray-400 mt-1">
+                맞힌사람 {problem?.solvedCount || 0} • 제출한 사람 {problem?.submitCount || 0}
+              </p>
             </div>
-
-            {/* 타이머 */}
-            <div className="flex items-center gap-4">
-              <div className={`px-4 py-2 rounded-lg font-mono text-lg ${
-                timeLeft <= 300 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-              }`}>
-                ⏱️ {formatTime(timeLeft)}
+            
+            <div className="flex items-center gap-6">
+              {/* Eye Tracking 표시 */}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                <span className="text-sm">Eye Tracking</span>
+                <span className="font-mono">{formatTime(getElapsedTime())}</span>
               </div>
-              <button
-                onClick={toggleTimer}
-                className={`px-4 py-2 rounded-lg text-white ${
-                  isTimerRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
-                }`}
-              >
-                {isTimerRunning ? '⏸️ 일시정지' : '▶️ 시작'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 리사이저블 레이아웃 상태 알림 */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-          <strong>✅ 리사이저블 레이아웃 적용</strong> - 두 패널 사이의 바를 드래그하여 화면 크기를 조절하세요
-          <br />
-          <small>좌측: 문제 설명 ({leftPanelWidth.toFixed(1)}%) | 우측: 코드 에디터 ({(100 - leftPanelWidth).toFixed(1)}%)</small>
-        </div>
-      </div>
-
-      {/* 메인 컨텐츠 - 리사이저블 레이아웃 */}
-      <div className="container mx-auto px-4 pb-8" ref={containerRef}>
-        <div className="flex h-[calc(100vh-200px)] gap-1">
-          
-          {/* 좌측: 문제 설명 패널 (단일) */}
-          <div 
-            className="bg-white rounded-lg shadow-sm border overflow-auto"
-            style={{ width: `${leftPanelWidth}%` }}
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900">{currentProblem.title}</h2>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  currentProblem.difficulty === 'BRONZE' ? 'bg-orange-100 text-orange-800' :
-                  currentProblem.difficulty === 'SILVER' ? 'bg-gray-100 text-gray-800' :
-                  currentProblem.difficulty === 'GOLD' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-cyan-100 text-cyan-800'
-                }`}>
-                  {currentProblem.difficulty}
+              
+              {/* 제한시간 */}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                <span className="text-sm">제한시간</span>
+                <span className={`font-mono ${timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400'}`}>
+                  {formatTime(timeLeft)}
                 </span>
               </div>
+              
+              <button onClick={() => setIsTimerRunning(!isTimerRunning)}
+                className={`px-3 py-1 rounded text-sm ${isTimerRunning ? 'bg-red-600' : 'bg-green-600'}`}>
+                {isTimerRunning ? '일시정지' : '시작'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">📋 문제 설명</h3>
-                  <p className="text-gray-700 leading-relaxed">
-                    {currentProblem.description}
-                  </p>
-                </div>
+      {/* 문제 메타 정보 바 */}
+      <div className="bg-purple-900/30 border-b border-purple-800/50">
+        <div className="container mx-auto px-6 py-3">
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-purple-400">&lt;&gt;</span>
+            {/* ✅ 수정: algoProblemDifficulty → difficulty */}
+            <span className={getDifficultyColor(problem?.difficulty)}>
+              {problem?.difficulty || 'N/A'}
+            </span>
+            <span className="text-gray-500">/</span>
+            <span>{selectedLanguage.toUpperCase()}</span>
+            <span className="text-gray-500">/</span>
+            <span>AI_GENERATED</span>
+            <span className="text-gray-500">/</span>
+            {/* ✅ 수정: timelimit → timeLimit */}
+            <span>제한시간 {problem?.timeLimit ? `${problem.timeLimit}ms` : '1000ms'}</span>
+          </div>
+        </div>
+      </div>
 
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">📥 입력</h3>
-                  <p className="text-gray-700">
-                    첫째 줄에 정수 N이 주어진다. (1 ≤ N ≤ 100)
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">📤 출력</h3>
-                  <p className="text-gray-700">
-                    조건에 맞는 결과를 출력한다.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">📝 예제</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-600 mb-1">입력</h4>
-                        <pre className="text-sm bg-white p-2 rounded border">5</pre>
+      {/* 메인 컨텐츠 */}
+      <div className="container mx-auto px-6 py-6" ref={containerRef}>
+        <div className="flex h-[calc(100vh-220px)] gap-1">
+          
+          {/* 왼쪽: 문제 설명 */}
+          <div className="bg-zinc-800 rounded-lg overflow-auto" style={{ width: `${leftPanelWidth}%` }}>
+            <div className="p-6">
+              <h2 className="text-lg font-bold mb-4">문제 설명</h2>
+              
+              <div className="prose prose-invert prose-sm max-w-none space-y-4">
+                {/* ✅ 수정: algoProblemDescription → description */}
+                <p className="text-gray-300 whitespace-pre-wrap">
+                  {problem?.description || '문제 설명이 없습니다.'}
+                </p>
+                
+                {/* ✅ 수정: testcases → sampleTestCases, inputData → input */}
+                {problem?.sampleTestCases?.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-3">예제</h3>
+                    {problem.sampleTestCases.map((tc, idx) => (
+                      <div key={idx} className="bg-zinc-900 rounded p-4 mb-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">입력</p>
+                            {/* ✅ 수정: inputData → input */}
+                            <pre className="text-sm bg-zinc-950 p-2 rounded">{tc.input}</pre>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">출력</p>
+                            <pre className="text-sm bg-zinc-950 p-2 rounded">{tc.expectedOutput}</pre>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-600 mb-1">출력</h4>
-                        <pre className="text-sm bg-white p-2 rounded border">120</pre>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">⚠️ 제한사항</h3>
-                  <ul className="text-gray-700 text-sm space-y-1">
-                    <li>• 시간 제한: 1초</li>
-                    <li>• 메모리 제한: 128MB</li>
-                    <li>• 제출 제한: 없음</li>
-                  </ul>
-                </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* 중앙: 리사이저 바 */}
-          <div 
-            className={`w-2 bg-gray-300 hover:bg-blue-400 cursor-col-resize rounded transition-colors duration-200 flex items-center justify-center group ${
-              isResizing ? 'bg-blue-500' : ''
-            }`}
-            onMouseDown={handleResizeStart}
-            title="드래그하여 화면 크기 조절"
-          >
-            <div className="w-1 h-8 bg-gray-500 rounded group-hover:bg-white transition-colors duration-200"></div>
-          </div>
+          {/* 리사이저 */}
+          <div className={`w-1 bg-zinc-700 hover:bg-purple-500 cursor-col-resize ${isResizing ? 'bg-purple-500' : ''}`}
+            onMouseDown={handleResizeStart} />
 
-          {/* 우측: 코드 에디터 패널 */}
-          <div 
-            className="bg-white rounded-lg shadow-sm border overflow-hidden flex flex-col"
-            style={{ width: `${100 - leftPanelWidth}%` }}
-          >
-            {/* 에디터 헤더 및 툴바 */}
-            <div className="p-6 flex-shrink-0">
-              {/* 에디터 헤더 */}
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">💻 Monaco Editor</h3>
-                
-                {/* 언어 선택 */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">언어:</span>
-                  <select
-                    value={selectedLanguage}
-                    onChange={(e) => handleLanguageChange(e.target.value)}
-                    className="border border-gray-300 rounded px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="javascript">JavaScript</option>
-                    <option value="python">Python</option>
-                    <option value="java">Java</option>
-                    <option value="cpp">C++</option>
-                  </select>
-                </div>
+          {/* 오른쪽: 코드 에디터 */}
+          <div className="bg-zinc-800 rounded-lg flex flex-col overflow-hidden" style={{ width: `${100 - leftPanelWidth}%` }}>
+            {/* 에디터 헤더 */}
+            <div className="flex items-center justify-between p-3 border-b border-zinc-700">
+              <div className="flex items-center gap-2">
+                <select value={selectedLanguage} onChange={(e) => handleLanguageChange(e.target.value)}
+                  className="bg-zinc-700 border-none rounded px-3 py-1 text-sm">
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                </select>
               </div>
-
-              {/* 에디터 툴바 */}
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleResetCode}
-                    className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
-                    disabled={!isEditorReady}
-                  >
-                    🔄 초기화
-                  </button>
-                  <button
-                    onClick={handleCopyCode}
-                    className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
-                  >
-                    📋 복사
-                  </button>
-                  <button
-                    onClick={handleFormatCode}
-                    className="px-3 py-1 text-sm bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition-colors"
-                    disabled={!isEditorReady}
-                  >
-                    ✨ 포맷팅
-                  </button>
-                </div>
-                
-                <div className="flex gap-2">
-                  <button 
-                    onClick={handleTestRun}
-                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-                  >
-                    🧪 테스트 실행
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors font-medium"
-                    disabled={!code.trim()}
-                  >
-                    🚀 제출
-                  </button>
-                </div>
+              <div className="flex items-center gap-2">
+                <button className="p-2 hover:bg-zinc-700 rounded" title="복사">📋</button>
+                <button className="p-2 hover:bg-zinc-700 rounded" title="전체화면">⛶</button>
               </div>
             </div>
 
-            {/* Monaco Editor - 확장 가능한 영역 */}
-            <div className="flex-1 border-t border-gray-200 overflow-hidden">
+            {/* Monaco Editor */}
+            <div className="flex-1">
               <CodeEditor
                 language={selectedLanguage}
                 value={code}
-                onChange={handleCodeChange}
+                onChange={setCode}
                 onMount={handleEditorMount}
                 height="100%"
                 theme="vs-dark"
-                className="h-full"
               />
             </div>
 
-            {/* 에디터 상태 및 통계 */}
-            <div className="p-4 border-t border-gray-200 flex-shrink-0 bg-gray-50">
-              <div className="grid grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">상태:</span>
-                  <span className="ml-2 font-medium">
-                    {isEditorReady ? '🟢 준비됨' : '🟡 로딩중'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-600">줄 수:</span>
-                  <span className="ml-2 font-mono">{code.split('\n').length}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">문자 수:</span>
-                  <span className="ml-2 font-mono">{code.length}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">언어:</span>
-                  <span className="ml-2 font-medium">{selectedLanguage.toUpperCase()}</span>
+            {/* 실행결과 */}
+            <div className="border-t border-zinc-700">
+              <div className="p-3 bg-zinc-850">
+                <p className="text-sm text-gray-400 mb-2">실행결과</p>
+                <div className="bg-zinc-900 rounded p-3 h-[100px] overflow-auto text-sm">
+                  {isRunning ? (
+                    <span className="text-yellow-400">⏳ 실행 중...</span>
+                  ) : testResult ? (
+                    testResult.error ? (
+                      <span className="text-red-400">❌ {testResult.message}</span>
+                    ) : (
+                      <div>
+                        <div className={`font-bold mb-2 ${testResult.overallResult === 'AC' ? 'text-green-400' : 'text-red-400'}`}>
+                          {testResult.overallResult === 'AC' ? '✅ 정답!' : `❌ ${testResult.overallResult}`}
+                          <span className="ml-2 text-gray-400 font-normal">
+                            ({testResult.passedCount}/{testResult.totalCount} 통과)
+                          </span>
+                        </div>
+                        {testResult.testCaseResults?.map((tc, idx) => (
+                          <div key={idx} className="text-xs mt-1">
+                            <span className={tc.result === 'AC' ? 'text-green-400' : 'text-red-400'}>
+                              TC{tc.testCaseNumber}: {tc.result}
+                            </span>
+                            {tc.errorMessage && (
+                              <pre className="text-red-300 mt-1 text-xs whitespace-pre-wrap">{tc.errorMessage}</pre>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  ) : (
+                    <span className="text-gray-500">실행결과가 여기에 표시됩니다.</span>
+                  )}
                 </div>
               </div>
+            </div>
+
+            {/* 하단 버튼 - 항상 표시 */}
+            <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
+              <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white">
+                초기화
+              </button>
+              <button onClick={handleTestRun} disabled={isRunning}
+                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50">
+                코드 실행
+              </button>
+              <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2">
+                {isSubmitting ? '제출 중...' : '✓ 제출 후 채점하기'}
+              </button>
             </div>
           </div>
         </div>

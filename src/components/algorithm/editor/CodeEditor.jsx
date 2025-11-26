@@ -1,156 +1,169 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
+import { editorOptions, LANGUAGE_MAP } from './editorUtils';
 
 /**
- * Monaco Editor 컴포넌트 (ALG-04 관련)
+ * Monaco Editor 컴포넌트 (ALG-04)
  * 문제 풀이용 코드 에디터
  */
 const CodeEditor = ({ 
   language = 'javascript', 
   value = '', 
   onChange,
+  onMount,
   height = '400px',
   theme = 'vs-dark',
   readOnly = false,
   className = ''
 }) => {
   const editorRef = useRef(null);
+  const monacoRef = useRef(null);
 
-  // 언어별 Monaco 언어 매핑
-  const languageMap = {
-    'javascript': 'javascript',
-    'python': 'python',
-    'java': 'java',
-    'cpp': 'cpp',
-    'c': 'c'
-  };
+  // 코드 포맷팅
+  const formatCode = useCallback(() => {
+    editorRef.current?.getAction('editor.action.formatDocument')?.run();
+  }, []);
 
-  // 에디터 마운트 시 설정
-  const handleEditorDidMount = (editor, monaco) => {
+  // 전체 선택
+  const selectAll = useCallback(() => {
+    editorRef.current?.getAction('editor.action.selectAll')?.run();
+  }, []);
+
+  // 실행 취소
+  const undo = useCallback(() => {
+    editorRef.current?.trigger('keyboard', 'undo');
+  }, []);
+
+  // 다시 실행
+  const redo = useCallback(() => {
+    editorRef.current?.trigger('keyboard', 'redo');
+  }, []);
+
+  // 특정 라인으로 이동
+  const goToLine = useCallback((lineNumber) => {
+    if (editorRef.current) {
+      editorRef.current.revealLine(lineNumber);
+      editorRef.current.setPosition({ lineNumber, column: 1 });
+      editorRef.current.focus();
+    }
+  }, []);
+
+  // 에디터 마운트 핸들러
+  const handleEditorDidMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
     
-    // 에디터 기본 설정
+    // 기본 옵션 설정
     editor.updateOptions({
       fontSize: 14,
-      fontFamily: '"Fira Code", "Monaco", "Menlo", monospace',
+      fontFamily: '"Fira Code", "JetBrains Mono", "Monaco", "Menlo", monospace',
+      fontLigatures: true,
       lineNumbers: 'on',
       roundedSelection: false,
       scrollBeyondLastLine: false,
       automaticLayout: true,
       minimap: { enabled: false },
       wordWrap: 'on',
-      tabSize: 2,
-      insertSpaces: true,
-      renderWhitespace: 'boundary',
-      bracketPairColorization: { enabled: true }
-    });
-
-    // 키보드 단축키 설정
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-      // Ctrl+S 방지 (저장 기능 없음)
-      console.log('저장 단축키 차단됨');
-    });
-
-    // 자동완성 강화 설정
-    monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
-    monaco.languages.typescript.typescriptDefaults.setEagerModelSync(true);
-  };
-
-  // 언어별 기본 설정
-  const getEditorOptions = () => {
-    const baseOptions = {
-      selectOnLineNumbers: true,
-      automaticLayout: true,
-      scrollBeyondLastLine: false,
-      minimap: { enabled: false },
-      fontSize: 14,
-      fontFamily: '"Fira Code", "Monaco", "Menlo", monospace',
-      lineNumbers: 'on',
-      readOnly: readOnly,
-      wordWrap: 'on',
       tabSize: language === 'python' ? 4 : 2,
       insertSpaces: true,
       renderWhitespace: 'boundary',
       bracketPairColorization: { enabled: true },
-      formatOnPaste: true,
-      formatOnType: true
-    };
+      cursorBlinking: 'smooth',
+      cursorSmoothCaretAnimation: 'on',
+      smoothScrolling: true,
+      padding: { top: 16, bottom: 16 },
+      scrollbar: {
+        verticalScrollbarSize: 10,
+        horizontalScrollbarSize: 10
+      }
+    });
 
-    // 언어별 추가 설정
-    if (language === 'python') {
-      return { ...baseOptions, tabSize: 4 };
-    }
+    // Ctrl+S 저장 단축키 차단
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      // 저장 기능 없음 - 단축키만 차단
+    });
+
+    // Ctrl+Enter 실행 단축키 (부모에서 처리 가능하도록)
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      const event = new CustomEvent('editor-run', { detail: { code: editor.getValue() } });
+      window.dispatchEvent(event);
+    });
+
+    // 테마 커스터마이징
+    monaco.editor.defineTheme('algorithm-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },
+        { token: 'keyword', foreground: 'C586C0' },
+        { token: 'string', foreground: 'CE9178' },
+        { token: 'number', foreground: 'B5CEA8' },
+        { token: 'function', foreground: 'DCDCAA' },
+      ],
+      colors: {
+        'editor.background': '#1e1e1e',
+        'editor.foreground': '#d4d4d4',
+        'editorLineNumber.foreground': '#858585',
+        'editorLineNumber.activeForeground': '#c6c6c6',
+        'editor.selectionBackground': '#264f78',
+        'editor.lineHighlightBackground': '#2a2a2a',
+        'editorCursor.foreground': '#aeafad',
+        'editor.wordHighlightBackground': '#575757',
+      }
+    });
     
-    return baseOptions;
-  };
-
-  // 에디터 포커스
-  const focusEditor = () => {
-    if (editorRef.current) {
-      editorRef.current.focus();
+    if (theme === 'vs-dark') {
+      monaco.editor.setTheme('algorithm-dark');
     }
-  };
 
-  // 코드 포맷팅
-  const formatCode = () => {
-    if (editorRef.current) {
-      editorRef.current.getAction('editor.action.formatDocument').run();
+    // 부모 컴포넌트 콜백 호출
+    if (onMount) {
+      onMount(editor, monaco);
     }
-  };
 
-  // 에디터 내용 전체 선택
-  const selectAll = () => {
-    if (editorRef.current) {
-      editorRef.current.getAction('editor.action.selectAll').run();
-    }
-  };
+    // 에디터에 포커스
+    setTimeout(() => editor.focus(), 100);
+  }, [language, theme, onMount]);
 
-  // 컴포넌트가 마운트되면 포커스
+  // 언어 변경 시 에디터 옵션 업데이트
   useEffect(() => {
-    const timer = setTimeout(() => {
-      focusEditor();
-    }, 100);
+    if (editorRef.current) {
+      editorRef.current.updateOptions({
+        tabSize: language === 'python' ? 4 : 2
+      });
+    }
+  }, [language]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  // 외부에서 사용할 수 있도록 ref에 유틸리티 함수 노출
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.utils = { formatCode, selectAll, undo, redo, goToLine };
+    }
+  }, [formatCode, selectAll, undo, redo, goToLine]);
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative h-full ${className}`}>
       <Editor
         height={height}
-        language={languageMap[language] || 'javascript'}
+        language={LANGUAGE_MAP[language] || 'javascript'}
         value={value}
         onChange={onChange}
         onMount={handleEditorDidMount}
         theme={theme}
-        options={getEditorOptions()}
+        options={{
+          ...editorOptions.base,
+          readOnly,
+          tabSize: language === 'python' ? 4 : 2
+        }}
         loading={
-          <div className="flex items-center justify-center h-full bg-gray-100">
-            <div className="flex items-center gap-2 text-gray-600">
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
-              <span>Monaco Editor 로딩 중...</span>
+          <div className="flex items-center justify-center h-full bg-zinc-900">
+            <div className="flex items-center gap-3 text-gray-400">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-purple-500 border-t-transparent"></div>
+              <span>에디터 로딩 중...</span>
             </div>
           </div>
         }
       />
-      
-      {/* 에디터 툴바 (숨김 처리, 부모 컴포넌트에서 제어) */}
-      <div className="absolute top-2 right-2 hidden group-hover:flex gap-1">
-        <button
-          onClick={formatCode}
-          className="p-1 bg-black bg-opacity-50 text-white rounded text-xs hover:bg-opacity-70"
-          title="코드 포맷팅 (Alt+Shift+F)"
-        >
-          ✨
-        </button>
-        <button
-          onClick={selectAll}
-          className="p-1 bg-black bg-opacity-50 text-white rounded text-xs hover:bg-opacity-70"
-          title="전체 선택 (Ctrl+A)"
-        >
-          📋
-        </button>
-      </div>
     </div>
   );
 };
