@@ -64,6 +64,16 @@ const FreeboardDetail = () => {
     if (!contentRef.current) return;
 
     const timer = setTimeout(() => {
+      // 스티커 이미지 스타일 적용 (가장 먼저 처리)
+      const stickerImages = contentRef.current.querySelectorAll('img[data-sticker], img[src*="openmoji"]');
+      stickerImages.forEach(img => {
+        img.style.width = '1.5em';
+        img.style.height = '1.5em';
+        img.style.verticalAlign = '-0.3em';
+        img.style.display = 'inline-block';
+        img.style.margin = '0 0.1em';
+      });
+
       // Monaco 코드 블록 처리
       const monacoBlocks = contentRef.current.querySelectorAll('pre[data-type="monaco-code-block"]');
       
@@ -72,7 +82,6 @@ const FreeboardDetail = () => {
         const language = block.getAttribute('data-language');
         
         if (code) {
-          // HTML 엔티티 디코딩
           const decodeHTML = (html) => {
             const txt = document.createElement('textarea');
             txt.innerHTML = html;
@@ -96,9 +105,6 @@ const FreeboardDetail = () => {
           block.appendChild(header);
           block.appendChild(codeElement);
           
-          // Syntax Highlighting 적용
-          codeElement.classList.remove('hljs');
-          codeElement.removeAttribute('data-highlighted');
           hljs.highlightElement(codeElement);
         }
       });
@@ -140,7 +146,6 @@ const FreeboardDetail = () => {
             window.open(url, '_blank');
           });
           
-          // 이미지가 있으면 표시
           if (image) {
             const imgContainer = document.createElement('div');
             imgContainer.style.cssText = 'flex-shrink: 0; width: 120px; height: 120px; overflow: hidden; border-radius: 0.375rem;';
@@ -212,6 +217,7 @@ const FreeboardDetail = () => {
 
     return () => clearTimeout(timer);
   }, [board, isDark]);
+
 
   const getRenderedContent = (content) => {
     if (!content) {
