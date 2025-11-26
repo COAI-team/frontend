@@ -17,7 +17,8 @@ import PaymentFail from "./pages/payment/PaymentFail.jsx";
 // 사용자 관련
 import SignIn from "./pages/user/SignIn";
 import SignUp from "./pages/user/SignUp";
-import {LoginProvider} from "./context/LoginContext.js";
+import {LoginProvider} from "./context/LoginContext";
+import ResetPasswordPage from "./pages/user/ResetPasswordPage";
 
 // 자유게시판
 import FreeboardList from "./pages/freeboard/FreeboardList";
@@ -35,6 +36,10 @@ import SubmissionResult from "./pages/algorithm/SubmissionResult";
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
 import ProfilePage from "./pages/mypage/ProfilePage";
 
+//관리자 레이아웃
+import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
+import AdminStatsDashboard from "./pages/admin/AdminStatsDashboard";
+
 createRoot(document.getElementById("root")).render(
     <StrictMode>
         <LoginProvider>
@@ -47,6 +52,9 @@ createRoot(document.getElementById("root")).render(
                             path="/payments/*"
                             element={<Navigate to="/pages/payment/pricing" replace/>}
                         />
+
+                        {/* 비밀번호 재설정 페이지 */}
+                        <Route path="reset-password" element={<ResetPasswordPage />} />
 
                         {/* 기본 레이아웃 */}
                         <Route path="/" element={<Layout/>}>
@@ -62,6 +70,11 @@ createRoot(document.getElementById("root")).render(
                             <Route path="mypage" element={<MyPageLayout/>}>
                                 <Route index element={<Navigate to="profile" replace />} />
                                 <Route path="profile" element={<ProfilePage/>} />
+                            </Route>
+
+                            <Route path="admin" element={<AdminPageLayout/>}>
+                                <Route index element={<Navigate to="stats" replace />} />
+                                <Route path="stats" element={<AdminStatsDashboard/>} />
                             </Route>
 
                             {/* 자유게시판 */}
