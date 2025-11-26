@@ -7,7 +7,6 @@ import { startProblemSolve, submitCode, runTestCode } from '../../service/algori
 
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
- * ✅ 수정: 백엔드 ProblemSolveResponseDto 필드명에 맞게 수정
  */
 const ProblemSolve = () => {
   const { problemId } = useParams();
@@ -20,11 +19,11 @@ const ProblemSolve = () => {
   const [error, setError] = useState(null);
   
   // 에디터 상태
-  const [selectedLanguage, setSelectedLanguage] = useState('javascript');
+  const [selectedLanguage, setSelectedLanguage] = useState('python');
   const [code, setCode] = useState('');
   
-  // 타이머 상태
-  const [timeLeft, setTimeLeft] = useState(1800);
+  // 타이머 상태 (풀이 시간 - 기본 30분)
+  const [timeLeft, setTimeLeft] = useState(30 * 60); // 30분 = 1800초
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [startTime, setStartTime] = useState(null);
   
@@ -32,6 +31,7 @@ const ProblemSolve = () => {
   const [testResult, setTestResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [runProgress, setRunProgress] = useState(0); // 프로그레스 바용
 
   // 리사이저블 레이아웃
   const { leftPanelWidth, isResizing, handleResizeStart, handleResize, handleResizeEnd, containerRef } = useResizableLayout(35, 20, 60);
@@ -63,7 +63,6 @@ const ProblemSolve = () => {
       if (res.error) {
         alert(`제출 실패: ${res.message}`);
       } else {
-        // ✅ 수정: Data (대문자 D) 필드 사용
         const responseData = res.Data || res.data || res;
         const submissionId = responseData?.algosubmissionId || responseData?.submissionId;
         navigate(`/algorithm/result/${submissionId}`);
@@ -83,23 +82,19 @@ const ProblemSolve = () => {
       
       try {
         const res = await startProblemSolve(problemId);
-        console.log('📥 API 응답:', res); // 디버깅용
+        console.log('📥 API 응답:', res);
         
         if (res.error) {
           setError(res.message);
           return;
         }
         
-        // ✅ 수정: API 응답 구조에 맞게 데이터 설정
-        // 백엔드 ApiResponse는 "Data" (대문자 D) 필드 사용
         const problemData = res.Data || res.data || res;
-        console.log('📋 문제 데이터:', problemData); // 디버깅용
+        console.log('📋 문제 데이터:', problemData);
         setProblem(problemData);
         
-        // ✅ 수정: 필드명 수정 (timelimit → timeLimit)
-        // timeLimit은 ms 단위, 기본 30분(1800초)
-        const limit = problemData.timeLimit ? Math.floor(problemData.timeLimit / 1000) : 1800;
-        setTimeLeft(limit);
+        // ✅ 타이머: 문제 제한시간이 아닌 풀이 시간 (기본 30분)
+        setTimeLeft(30 * 60);
         setStartTime(new Date());
         
       } catch (err) {
@@ -159,7 +154,7 @@ const ProblemSolve = () => {
     }
   };
 
-  // 코드 테스트 실행
+  // 코드 테스트 실행 (프로그레스 바 포함)
   const handleTestRun = async () => {
     if (!code.trim()) {
       alert('코드를 작성해주세요!');
@@ -168,6 +163,18 @@ const ProblemSolve = () => {
     
     setIsRunning(true);
     setTestResult(null);
+    setRunProgress(0);
+    
+    // 프로그레스 바 애니메이션 (가상 진행률)
+    const progressInterval = setInterval(() => {
+      setRunProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90; // 90%에서 대기 (완료 시 100%로)
+        }
+        return prev + Math.random() * 15;
+      });
+    }, 300);
     
     try {
       const res = await runTestCode({
@@ -176,20 +183,25 @@ const ProblemSolve = () => {
         sourceCode: code
       });
       
-      console.log('🧪 테스트 결과:', res); // 디버깅용
+      console.log('🧪 테스트 결과:', res);
+      clearInterval(progressInterval);
+      setRunProgress(100);
       
-      // ✅ 수정: 에러 체크 방식 개선
       if (res.error || (res.code && res.code !== '0000')) {
         setTestResult({ error: true, message: res.message || '테스트 실행 실패' });
       } else {
-        // ✅ 수정: Data (대문자 D) 필드 사용
         setTestResult(res.Data || res.data || res);
       }
     } catch (err) {
+      clearInterval(progressInterval);
+      setRunProgress(0);
       console.error('테스트 실행 오류:', err);
       setTestResult({ error: true, message: '테스트 실행 중 오류가 발생했습니다.' });
     } finally {
-      setIsRunning(false);
+      setTimeout(() => {
+        setIsRunning(false);
+        setRunProgress(0);
+      }, 500);
     }
   };
 
@@ -214,6 +226,17 @@ const ProblemSolve = () => {
       'PLATINUM': 'text-cyan-400'
     };
     return colors[diff] || 'text-gray-400';
+  };
+
+  // 난이도 배지 스타일
+  const getDifficultyBadge = (diff) => {
+    const styles = {
+      'BRONZE': 'bg-orange-900/50 text-orange-400 border-orange-700',
+      'SILVER': 'bg-gray-700/50 text-gray-300 border-gray-600',
+      'GOLD': 'bg-yellow-900/50 text-yellow-400 border-yellow-700',
+      'PLATINUM': 'bg-cyan-900/50 text-cyan-400 border-cyan-700'
+    };
+    return styles[diff] || 'bg-gray-700/50 text-gray-400 border-gray-600';
   };
 
   // 로딩 상태
@@ -249,8 +272,7 @@ const ProblemSolve = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              {/* ✅ 수정: algoProblemTitle → title */}
-              <h1 className="text-xl font-bold">#{problemId} {problem?.title || '문제'}</h1>
+              <h1 className="text-xl font-bold">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
               <p className="text-sm text-gray-400 mt-1">
                 맞힌사람 {problem?.solvedCount || 0} • 제출한 사람 {problem?.submitCount || 0}
               </p>
@@ -264,10 +286,10 @@ const ProblemSolve = () => {
                 <span className="font-mono">{formatTime(getElapsedTime())}</span>
               </div>
               
-              {/* 제한시간 */}
+              {/* 풀이 제한시간 (30분) */}
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                <span className="text-sm">제한시간</span>
+                <span className="text-sm">풀이 시간</span>
                 <span className={`font-mono ${timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400'}`}>
                   {formatTime(timeLeft)}
                 </span>
@@ -287,7 +309,6 @@ const ProblemSolve = () => {
         <div className="container mx-auto px-6 py-3">
           <div className="flex items-center gap-4 text-sm">
             <span className="text-purple-400">&lt;&gt;</span>
-            {/* ✅ 수정: algoProblemDifficulty → difficulty */}
             <span className={getDifficultyColor(problem?.difficulty)}>
               {problem?.difficulty || 'N/A'}
             </span>
@@ -295,9 +316,6 @@ const ProblemSolve = () => {
             <span>{selectedLanguage.toUpperCase()}</span>
             <span className="text-gray-500">/</span>
             <span>AI_GENERATED</span>
-            <span className="text-gray-500">/</span>
-            {/* ✅ 수정: timelimit → timeLimit */}
-            <span>제한시간 {problem?.timeLimit ? `${problem.timeLimit}ms` : '1000ms'}</span>
           </div>
         </div>
       </div>
@@ -311,27 +329,38 @@ const ProblemSolve = () => {
             <div className="p-6">
               <h2 className="text-lg font-bold mb-4">문제 설명</h2>
               
+              {/* ✅ 제한 정보 표시 */}
+              <div className="flex flex-wrap gap-3 mb-6">
+                <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
+                  {problem?.difficulty || 'N/A'}
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs bg-blue-900/50 text-blue-400 border border-blue-700">
+                  ⏱ 시간제한: {problem?.timeLimit || 1000}ms
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs bg-green-900/50 text-green-400 border border-green-700">
+                  💾 메모리제한: {problem?.memoryLimit || 256}MB
+                </span>
+              </div>
+              
               <div className="prose prose-invert prose-sm max-w-none space-y-4">
-                {/* ✅ 수정: algoProblemDescription → description */}
-                <p className="text-gray-300 whitespace-pre-wrap">
+                <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
                   {problem?.description || '문제 설명이 없습니다.'}
                 </p>
                 
-                {/* ✅ 수정: testcases → sampleTestCases, inputData → input */}
+                {/* 테스트케이스 */}
                 {problem?.sampleTestCases?.length > 0 && (
                   <div className="mt-6">
-                    <h3 className="font-semibold mb-3">예제</h3>
+                    <h3 className="font-semibold mb-3 text-white">예제</h3>
                     {problem.sampleTestCases.map((tc, idx) => (
                       <div key={idx} className="bg-zinc-900 rounded p-4 mb-3">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">입력</p>
-                            {/* ✅ 수정: inputData → input */}
-                            <pre className="text-sm bg-zinc-950 p-2 rounded">{tc.input}</pre>
+                            <pre className="text-sm bg-zinc-950 p-2 rounded font-mono">{tc.input}</pre>
                           </div>
                           <div>
                             <p className="text-xs text-gray-500 mb-1">출력</p>
-                            <pre className="text-sm bg-zinc-950 p-2 rounded">{tc.expectedOutput}</pre>
+                            <pre className="text-sm bg-zinc-950 p-2 rounded font-mono">{tc.expectedOutput}</pre>
                           </div>
                         </div>
                       </div>
@@ -349,12 +378,12 @@ const ProblemSolve = () => {
           {/* 오른쪽: 코드 에디터 */}
           <div className="bg-zinc-800 rounded-lg flex flex-col overflow-hidden" style={{ width: `${100 - leftPanelWidth}%` }}>
             {/* 에디터 헤더 */}
-            <div className="flex items-center justify-between p-3 border-b border-zinc-700">
+            <div className="flex items-center justify-between p-3 border-b border-zinc-700 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <select value={selectedLanguage} onChange={(e) => handleLanguageChange(e.target.value)}
                   className="bg-zinc-700 border-none rounded px-3 py-1 text-sm">
-                  <option value="javascript">JavaScript</option>
                   <option value="python">Python</option>
+                  <option value="javascript">JavaScript</option>
                   <option value="java">Java</option>
                   <option value="cpp">C++</option>
                 </select>
@@ -366,7 +395,7 @@ const ProblemSolve = () => {
             </div>
 
             {/* Monaco Editor */}
-            <div className="flex-1">
+            <div className="flex-1 min-h-0">
               <CodeEditor
                 language={selectedLanguage}
                 value={code}
@@ -378,12 +407,32 @@ const ProblemSolve = () => {
             </div>
 
             {/* 실행결과 */}
-            <div className="border-t border-zinc-700">
+            <div className="border-t border-zinc-700 flex-shrink-0">
               <div className="p-3 bg-zinc-850">
                 <p className="text-sm text-gray-400 mb-2">실행결과</p>
+                
+                {/* ✅ 프로그레스 바 */}
+                {isRunning && (
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                      <span>⏳ 코드 실행 중...</span>
+                      <span>{Math.round(runProgress)}%</span>
+                    </div>
+                    <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                        style={{ width: `${runProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                
                 <div className="bg-zinc-900 rounded p-3 h-[100px] overflow-auto text-sm">
                   {isRunning ? (
-                    <span className="text-yellow-400">⏳ 실행 중...</span>
+                    <div className="flex items-center gap-2 text-yellow-400">
+                      <span className="animate-spin">⚙️</span>
+                      <span>Judge0 서버에서 코드를 실행하고 있습니다...</span>
+                    </div>
                   ) : testResult ? (
                     testResult.error ? (
                       <span className="text-red-400">❌ {testResult.message}</span>
@@ -394,34 +443,53 @@ const ProblemSolve = () => {
                           <span className="ml-2 text-gray-400 font-normal">
                             ({testResult.passedCount}/{testResult.totalCount} 통과)
                           </span>
+                          {testResult.maxExecutionTime && (
+                            <span className="ml-2 text-gray-500 font-normal text-xs">
+                              실행시간: {testResult.maxExecutionTime}ms
+                            </span>
+                          )}
                         </div>
                         {testResult.testCaseResults?.map((tc, idx) => (
                           <div key={idx} className="text-xs mt-1">
                             <span className={tc.result === 'AC' ? 'text-green-400' : 'text-red-400'}>
                               TC{tc.testCaseNumber}: {tc.result}
                             </span>
+                            {tc.result !== 'AC' && tc.actualOutput && (
+                              <span className="text-gray-500 ml-2">
+                                출력: "{tc.actualOutput?.trim()}"
+                              </span>
+                            )}
                             {tc.errorMessage && (
-                              <pre className="text-red-300 mt-1 text-xs whitespace-pre-wrap">{tc.errorMessage}</pre>
+                              <pre className="text-red-300 mt-1 text-xs whitespace-pre-wrap bg-red-900/20 p-2 rounded">
+                                {tc.errorMessage}
+                              </pre>
                             )}
                           </div>
                         ))}
                       </div>
                     )
                   ) : (
-                    <span className="text-gray-500">실행결과가 여기에 표시됩니다.</span>
+                    <span className="text-gray-500">💡 코드를 작성하고 "코드 실행" 버튼을 클릭하세요.</span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* 하단 버튼 - 항상 표시 */}
+            {/* 하단 버튼 */}
             <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
               <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white">
                 초기화
               </button>
               <button onClick={handleTestRun} disabled={isRunning}
-                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50">
-                코드 실행
+                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2">
+                {isRunning ? (
+                  <>
+                    <span className="animate-spin">⚙️</span>
+                    실행 중...
+                  </>
+                ) : (
+                  '코드 실행'
+                )}
               </button>
               <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
                 className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2">
