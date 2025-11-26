@@ -4,6 +4,7 @@ import { DropdownPropTypes } from "../../utils/propTypes";
 import { useApplyThemeClass } from "../../hooks/useApplyThemeClass";
 
 export default function Dropdown({ button, items, width = "w-40" }) {
+
     const theme = useApplyThemeClass();
 
     return (

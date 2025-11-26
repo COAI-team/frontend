@@ -54,6 +54,8 @@ const FreeboardDetail = () => {
     axios
       .get(`http://localhost:8090/freeboard/${id}`)
       .then((res) => {
+        console.log("API 응답:", res.data);
+        console.log("tags:", res.data.tags);
         setBoard(res.data);
       })
       .catch((err) => console.error("게시글 불러오기 실패:", err));
@@ -64,6 +66,16 @@ const FreeboardDetail = () => {
     if (!contentRef.current) return;
 
     const timer = setTimeout(() => {
+      // 스티커 이미지 스타일 적용 (가장 먼저 처리)
+      const stickerImages = contentRef.current.querySelectorAll('img[data-sticker], img[src*="openmoji"]');
+      stickerImages.forEach(img => {
+        img.style.width = '1.5em';
+        img.style.height = '1.5em';
+        img.style.verticalAlign = '-0.3em';
+        img.style.display = 'inline-block';
+        img.style.margin = '0 0.1em';
+      });
+
       // Monaco 코드 블록 처리
       const monacoBlocks = contentRef.current.querySelectorAll('pre[data-type="monaco-code-block"]');
       
@@ -72,7 +84,6 @@ const FreeboardDetail = () => {
         const language = block.getAttribute('data-language');
         
         if (code) {
-          // HTML 엔티티 디코딩
           const decodeHTML = (html) => {
             const txt = document.createElement('textarea');
             txt.innerHTML = html;
@@ -96,9 +107,6 @@ const FreeboardDetail = () => {
           block.appendChild(header);
           block.appendChild(codeElement);
           
-          // Syntax Highlighting 적용
-          codeElement.classList.remove('hljs');
-          codeElement.removeAttribute('data-highlighted');
           hljs.highlightElement(codeElement);
         }
       });
@@ -140,7 +148,6 @@ const FreeboardDetail = () => {
             window.open(url, '_blank');
           });
           
-          // 이미지가 있으면 표시
           if (image) {
             const imgContainer = document.createElement('div');
             imgContainer.style.cssText = 'flex-shrink: 0; width: 120px; height: 120px; overflow: hidden; border-radius: 0.375rem;';
@@ -266,21 +273,29 @@ const FreeboardDetail = () => {
         <span>조회수 {board.freeboardClick}</span>
       </div>
 
-      {board.freeboardRepresentImage && (
-        <div className="mb-6">
-          <img
-            src={board.freeboardRepresentImage}
-            alt="대표 이미지"
-            className="w-full max-w-2xl rounded-lg"
-          />
-        </div>
-      )}
-
       <div
         ref={contentRef}
         className="freeboard-content"
         dangerouslySetInnerHTML={{ __html: getRenderedContent(board.freeboardContent) }}
       ></div>
+
+      {/* 태그 표시 */}
+      {board.tags && board.tags.length > 0 && (
+        <div className={`mt-6 flex flex-wrap gap-2`}>
+          {board.tags.map((tag, index) => (
+            <span
+              key={index}
+              className={`px-3 py-1 rounded-full text-sm ${
+                isDark
+                  ? 'bg-blue-900 text-blue-200'
+                  : 'bg-blue-100 text-blue-800'
+              }`}
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className={`mt-10 pt-6 border-t flex gap-3 ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
         <button
