@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates } from '../../components/algorithm/editor/editorUtils';
-import { useResizableLayout } from '../../hooks/algorithm/useResizableLayout';
+import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
 import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
 
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
+ * ✅ 수평(좌우) + 수직(상하) 리사이저 지원
  */
 const ProblemSolve = () => {
   const { problemId } = useParams();
@@ -23,7 +24,7 @@ const ProblemSolve = () => {
   const [code, setCode] = useState('');
   
   // 타이머 상태 (풀이 시간 - 기본 30분)
-  const [timeLeft, setTimeLeft] = useState(30 * 60); // 30분 = 1800초
+  const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [startTime, setStartTime] = useState(null);
   
@@ -31,10 +32,23 @@ const ProblemSolve = () => {
   const [testResult, setTestResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [runProgress, setRunProgress] = useState(0); // 프로그레스 바용
+  const [runProgress, setRunProgress] = useState(0);
 
-  // 리사이저블 레이아웃
-  const { leftPanelWidth, isResizing, handleResizeStart, handleResize, handleResizeEnd, containerRef } = useResizableLayout(35, 20, 60);
+  // ✅ 수평 리사이저 (문제설명 | 에디터)
+  const { 
+    leftPanelWidth, 
+    isResizing: isHorizontalResizing, 
+    handleResizeStart: handleHorizontalResizeStart, 
+    containerRef 
+  } = useResizableLayout(35, 20, 60);
+
+  // ✅ 수직 리사이저 (에디터 | 실행결과)
+  const {
+    topPanelHeight: editorHeight,
+    isResizing: isVerticalResizing,
+    handleResizeStart: handleVerticalResizeStart,
+    containerRef: editorContainerRef
+  } = useVerticalResizable(70, 30, 85);
 
   // 경과 시간 계산
   const getElapsedTime = useCallback(() => {
@@ -92,8 +106,6 @@ const ProblemSolve = () => {
         const problemData = res.Data || res.data || res;
         console.log('📋 문제 데이터:', problemData);
         setProblem(problemData);
-        
-        // ✅ 타이머: 문제 제한시간이 아닌 풀이 시간 (기본 30분)
         setTimeLeft(30 * 60);
         setStartTime(new Date());
         
@@ -109,18 +121,6 @@ const ProblemSolve = () => {
       fetchProblem();
     }
   }, [problemId]);
-
-  // 리사이저 이벤트
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleResize);
-      document.addEventListener('mouseup', handleResizeEnd);
-      return () => {
-        document.removeEventListener('mousemove', handleResize);
-        document.removeEventListener('mouseup', handleResizeEnd);
-      };
-    }
-  }, [isResizing, handleResize, handleResizeEnd]);
 
   // 타이머 효과
   useEffect(() => {
@@ -154,7 +154,7 @@ const ProblemSolve = () => {
     }
   };
 
-  // 코드 테스트 실행 (프로그레스 바 포함)
+  // 코드 테스트 실행
   const handleTestRun = async () => {
     if (!code.trim()) {
       alert('코드를 작성해주세요!');
@@ -165,12 +165,11 @@ const ProblemSolve = () => {
     setTestResult(null);
     setRunProgress(0);
     
-    // 프로그레스 바 애니메이션 (가상 진행률)
     const progressInterval = setInterval(() => {
       setRunProgress(prev => {
         if (prev >= 90) {
           clearInterval(progressInterval);
-          return 90; // 90%에서 대기 (완료 시 100%로)
+          return 90;
         }
         return prev + Math.random() * 15;
       });
@@ -279,14 +278,12 @@ const ProblemSolve = () => {
             </div>
             
             <div className="flex items-center gap-6">
-              {/* Eye Tracking 표시 */}
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                 <span className="text-sm">Eye Tracking</span>
                 <span className="font-mono">{formatTime(getElapsedTime())}</span>
               </div>
               
-              {/* 풀이 제한시간 (30분) */}
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
                 <span className="text-sm">풀이 시간</span>
@@ -329,7 +326,7 @@ const ProblemSolve = () => {
             <div className="p-6">
               <h2 className="text-lg font-bold mb-4">문제 설명</h2>
               
-              {/* ✅ 제한 정보 표시 */}
+              {/* 제한 정보 표시 */}
               <div className="flex flex-wrap gap-3 mb-6">
                 <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
                   {problem?.difficulty || 'N/A'}
@@ -347,7 +344,6 @@ const ProblemSolve = () => {
                   {problem?.description || '문제 설명이 없습니다.'}
                 </p>
                 
-                {/* 테스트케이스 */}
                 {problem?.sampleTestCases?.length > 0 && (
                   <div className="mt-6">
                     <h3 className="font-semibold mb-3 text-white">예제</h3>
@@ -371,12 +367,18 @@ const ProblemSolve = () => {
             </div>
           </div>
 
-          {/* 리사이저 */}
-          <div className={`w-1 bg-zinc-700 hover:bg-purple-500 cursor-col-resize ${isResizing ? 'bg-purple-500' : ''}`}
-            onMouseDown={handleResizeStart} />
+          {/* ✅ 수평 리사이저 (좌우) */}
+          <div 
+            className={`w-1 bg-zinc-700 hover:bg-purple-500 cursor-col-resize transition-colors ${isHorizontalResizing ? 'bg-purple-500' : ''}`}
+            onMouseDown={handleHorizontalResizeStart} 
+          />
 
-          {/* 오른쪽: 코드 에디터 */}
-          <div className="bg-zinc-800 rounded-lg flex flex-col overflow-hidden" style={{ width: `${100 - leftPanelWidth}%` }}>
+          {/* 오른쪽: 에디터 + 실행결과 */}
+          <div 
+            className="bg-zinc-800 rounded-lg flex flex-col overflow-hidden" 
+            style={{ width: `${100 - leftPanelWidth}%` }}
+            ref={editorContainerRef}
+          >
             {/* 에디터 헤더 */}
             <div className="flex items-center justify-between p-3 border-b border-zinc-700 flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -394,8 +396,8 @@ const ProblemSolve = () => {
               </div>
             </div>
 
-            {/* Monaco Editor */}
-            <div className="flex-1 min-h-0">
+            {/* ✅ 에디터 영역 (수직 리사이저블) */}
+            <div style={{ height: `${editorHeight}%` }} className="min-h-0">
               <CodeEditor
                 language={selectedLanguage}
                 value={code}
@@ -406,12 +408,23 @@ const ProblemSolve = () => {
               />
             </div>
 
-            {/* 실행결과 */}
-            <div className="border-t border-zinc-700 flex-shrink-0">
-              <div className="p-3 bg-zinc-850">
+            {/* ✅ 수직 리사이저 (상하) */}
+            <div 
+              className={`h-1 bg-zinc-700 hover:bg-purple-500 cursor-row-resize transition-colors flex-shrink-0 ${isVerticalResizing ? 'bg-purple-500' : ''}`}
+              onMouseDown={handleVerticalResizeStart}
+            >
+              {/* 리사이저 핸들 표시 */}
+              <div className="flex justify-center items-center h-full">
+                <div className="w-8 h-0.5 bg-zinc-500 rounded-full"></div>
+              </div>
+            </div>
+
+            {/* ✅ 실행결과 영역 (수직 리사이저블) */}
+            <div style={{ height: `${100 - editorHeight}%` }} className="flex flex-col min-h-0">
+              <div className="p-3 bg-zinc-850 flex-1 overflow-auto">
                 <p className="text-sm text-gray-400 mb-2">실행결과</p>
                 
-                {/* ✅ 프로그레스 바 */}
+                {/* 프로그레스 바 */}
                 {isRunning && (
                   <div className="mb-3">
                     <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
@@ -427,7 +440,7 @@ const ProblemSolve = () => {
                   </div>
                 )}
                 
-                <div className="bg-zinc-900 rounded p-3 h-[100px] overflow-auto text-sm">
+                <div className="bg-zinc-900 rounded p-3 h-full overflow-auto text-sm">
                   {isRunning ? (
                     <div className="flex items-center gap-2 text-yellow-400">
                       <span className="animate-spin">⚙️</span>
@@ -473,28 +486,28 @@ const ProblemSolve = () => {
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* 하단 버튼 */}
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
-              <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white">
-                초기화
-              </button>
-              <button onClick={handleTestRun} disabled={isRunning}
-                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2">
-                {isRunning ? (
-                  <>
-                    <span className="animate-spin">⚙️</span>
-                    실행 중...
-                  </>
-                ) : (
-                  '코드 실행'
-                )}
-              </button>
-              <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
-                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2">
-                {isSubmitting ? '제출 중...' : '✓ 제출 후 채점하기'}
-              </button>
+              {/* 하단 버튼 */}
+              <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
+                <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white">
+                  초기화
+                </button>
+                <button onClick={handleTestRun} disabled={isRunning}
+                  className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2">
+                  {isRunning ? (
+                    <>
+                      <span className="animate-spin">⚙️</span>
+                      실행 중...
+                    </>
+                  ) : (
+                    '코드 실행'
+                  )}
+                </button>
+                <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
+                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2">
+                  {isSubmitting ? '제출 중...' : '✓ 제출 후 채점하기'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
