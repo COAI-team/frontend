@@ -266,16 +266,6 @@ const FreeboardDetail = () => {
         <span>조회수 {board.freeboardClick}</span>
       </div>
 
-      {board.freeboardRepresentImage && (
-        <div className="mb-6">
-          <img
-            src={board.freeboardRepresentImage}
-            alt="대표 이미지"
-            className="w-full max-w-2xl rounded-lg"
-          />
-        </div>
-      )}
-
       <div
         ref={contentRef}
         className="freeboard-content"
