@@ -21,6 +21,8 @@ import { InlineSticker } from "./extensions/InlineSticker.js";
 import CustomTableCell from "./extensions/CustomTableCell";
 import CustomTableHeader from "./extensions/CustomTableHeader";
 
+import TagInput from "../../components/tag/TagInput";
+
 import { useTheme } from "next-themes";
 import "../../styles/tiptap.css";
 
@@ -30,9 +32,11 @@ const WriteEditor = ({
   onSubmit, 
   mode = "create", 
   initialTitle = "", 
-  initialContent = "" 
+  initialContent = "",
+  initialTags = []
 }) => {
   const [title, setTitle] = useState(initialTitle);
+  const [tags, setTags] = useState(initialTags);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { theme, systemTheme } = useTheme();
   
@@ -123,6 +127,13 @@ const WriteEditor = ({
       editor.commands.setContent(initialContent);
     }
   }, [editor, initialContent]);
+
+  // initialTags가 변경될 때 tags 업데이트
+  useEffect(() => {
+    if (initialTags && initialTags.length > 0) {
+      setTags(initialTags);
+    }
+  }, [initialTags]);
 
   async function uploadImageByDrop(file) {
     const originalFileName = file.name;
@@ -322,6 +333,23 @@ const WriteEditor = ({
         <EditorContent editor={editor} />
       </div>
 
+      {/* 태그 입력 */}
+      <div
+        style={{
+          padding: "1.5rem 2rem",
+          borderTop: `1px solid ${
+            isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
+          }`,
+        }}
+      >
+        <TagInput
+          tags={tags}
+          onChange={setTags}
+          maxTags={5}
+          isDark={isDark}
+        />
+      </div>
+
       {/* 하단 버튼 */}
       <div
         style={{
@@ -354,9 +382,19 @@ const WriteEditor = ({
 
         <button
           onClick={() => {
+            if (!title.trim()) {
+              alert("제목을 입력하세요.");
+              return;
+            }
+            
             const html = editor.getHTML();
+            if (!html || html === "<p></p>") {
+              alert("내용을 입력하세요.");
+              return;
+            }
+
             const representImage = getRepresentativeImage();
-            onSubmit({ title, content: html, representImage });
+            onSubmit({ title: title.trim(), content: html, representImage, tags });
           }}
           style={{
             padding: "0.625rem 2rem",

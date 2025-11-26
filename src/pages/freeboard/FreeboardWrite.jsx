@@ -1,12 +1,12 @@
 import React from "react";
-import { axiosInstance } from "../../server/axiosConfig";  // ← 이렇게 변경!
+import { axiosInstance } from "../../server/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import WriteEditor from "../../components/editor/WriteEditor";
 
 const FreeboardWrite = () => {
   const navigate = useNavigate();
 
-  const handleSubmit = ({ title, content, representImage }) => {
+  const handleSubmit = ({ title, content, representImage, tags }) => {
     const blocks = [{
       id: `block-${Date.now()}`,
       type: "tiptap",
@@ -18,13 +18,15 @@ const FreeboardWrite = () => {
       freeboardTitle: title,
       blocks: blocks,
       freeboardRepresentImage: representImage || null,
+      tags: tags || [],
     });
 
     axiosInstance
       .post("http://localhost:8090/freeboard", {
         freeboardTitle: title,
-        blocks: blocks,  // 배열로 전송
+        blocks: blocks,
         freeboardRepresentImage: representImage || null,
+        tags: tags || [],
       })
       .then((response) => {
         console.log("✅ 응답:", response.data);

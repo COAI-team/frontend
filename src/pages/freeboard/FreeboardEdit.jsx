@@ -18,12 +18,23 @@ const FreeboardEdit = () => {
         
         console.log("불러온 데이터:", data);
         
-        // freeboardContent는 JSON 문자열이므로 파싱 필요
         let content = "";
         if (data.freeboardContent) {
           try {
             const blocks = JSON.parse(data.freeboardContent);
             content = blocks[0]?.content || "";
+            
+            // 스티커 이미지 확인
+            const stickerCount = (content.match(/data-sticker/g) || []).length;
+            console.log(`스티커 개수: ${stickerCount}`);
+            
+            // OpenMoji CDN 이미지에 data-sticker 속성 추가 (없는 경우)
+            content = content.replace(
+              /<img([^>]*src="https:\/\/cdn\.jsdelivr\.net\/gh\/hfg-gmuend\/openmoji[^"]*"[^>]*)(?!.*data-sticker)([^>]*)>/g,
+              '<img$1 data-sticker="true"$2>'
+            );
+            
+            console.log("처리 후 스티커 개수:", (content.match(/data-sticker/g) || []).length);
           } catch (e) {
             console.error("JSON 파싱 에러:", e);
             content = "";
@@ -31,12 +42,12 @@ const FreeboardEdit = () => {
         }
         
         console.log("추출한 content:", content);
-        console.log("제목:", data.freeboardTitle);
         
         setInitialData({
           title: data.freeboardTitle || "",
           content: content,
           representImage: data.freeboardRepresentImage,
+          tags: data.tags || [],
         });
       } catch (error) {
         console.error("Error:", error);
@@ -50,8 +61,12 @@ const FreeboardEdit = () => {
     fetchFreeboard();
   }, [id, navigate]);
 
-  const handleSubmit = async ({ title, content, representImage }) => {
+  const handleSubmit = async ({ title, content, representImage, tags }) => {
     try {
+      // 제출 전 스티커 확인
+      const stickerCount = (content.match(/data-sticker/g) || []).length;
+      console.log(`제출할 스티커 개수: ${stickerCount}`);
+      
       const blocks = [{
         id: `block-${Date.now()}`,
         type: "tiptap",
@@ -61,8 +76,9 @@ const FreeboardEdit = () => {
 
       await axios.put(`http://localhost:8090/freeboard/${id}`, {
         freeboardTitle: title,
-        blocks: blocks,  // 배열로 전송
+        blocks: blocks,
         freeboardRepresentImage: representImage || null,
+        tags: tags || [],
       });
 
       alert("게시글이 수정되었습니다.");
@@ -88,6 +104,7 @@ const FreeboardEdit = () => {
         mode="edit"
         initialTitle={initialData?.title}
         initialContent={initialData?.content}
+        initialTags={initialData?.tags}
         onSubmit={handleSubmit}
       />
     </div>
