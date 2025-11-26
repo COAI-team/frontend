@@ -1,7 +1,7 @@
 import axios, {AxiosError} from "axios";
 
 export const axiosInstance = axios.create({
-    baseURL: "", // "https://localhost:9443/api" 이거 잠깐 내비둬줘요..
+    baseURL: "https://114.204.9.108:10443", // "https://localhost:9443/api" 이거 잠깐 내비둬줘요..
     timeout: 10000,
 });
 

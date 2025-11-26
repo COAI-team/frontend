@@ -142,3 +142,14 @@ export const PasswordInputPropTypes = {
     error: PropTypes.string,
     placeholder: PropTypes.string,
 };
+
+/* ----------------------------------------
+ * LoadingButton PropTypes
+ * ---------------------------------------- */
+export const LoadingButtonPropTypes = {
+    text: PropTypes.string,
+    isLoading: PropTypes.bool.isRequired,
+    onClick: PropTypes.func,
+    disabled: PropTypes.bool,
+    className: PropTypes.string,
+};
