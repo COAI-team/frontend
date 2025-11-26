@@ -47,6 +47,7 @@ const FreeboardEdit = () => {
           title: data.freeboardTitle || "",
           content: content,
           representImage: data.freeboardRepresentImage,
+          tags: data.tags || [],
         });
       } catch (error) {
         console.error("Error:", error);
@@ -60,7 +61,7 @@ const FreeboardEdit = () => {
     fetchFreeboard();
   }, [id, navigate]);
 
-  const handleSubmit = async ({ title, content, representImage }) => {
+  const handleSubmit = async ({ title, content, representImage, tags }) => {
     try {
       // 제출 전 스티커 확인
       const stickerCount = (content.match(/data-sticker/g) || []).length;
@@ -77,6 +78,7 @@ const FreeboardEdit = () => {
         freeboardTitle: title,
         blocks: blocks,
         freeboardRepresentImage: representImage || null,
+        tags: tags || [],
       });
 
       alert("게시글이 수정되었습니다.");
@@ -102,6 +104,7 @@ const FreeboardEdit = () => {
         mode="edit"
         initialTitle={initialData?.title}
         initialContent={initialData?.content}
+        initialTags={initialData?.tags}
         onSubmit={handleSubmit}
       />
     </div>

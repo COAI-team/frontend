@@ -54,6 +54,8 @@ const FreeboardDetail = () => {
     axios
       .get(`http://localhost:8090/freeboard/${id}`)
       .then((res) => {
+        console.log("API 응답:", res.data);
+        console.log("tags:", res.data.tags);
         setBoard(res.data);
       })
       .catch((err) => console.error("게시글 불러오기 실패:", err));
@@ -218,7 +220,6 @@ const FreeboardDetail = () => {
     return () => clearTimeout(timer);
   }, [board, isDark]);
 
-
   const getRenderedContent = (content) => {
     if (!content) {
       return "";
@@ -277,6 +278,24 @@ const FreeboardDetail = () => {
         className="freeboard-content"
         dangerouslySetInnerHTML={{ __html: getRenderedContent(board.freeboardContent) }}
       ></div>
+
+      {/* 태그 표시 */}
+      {board.tags && board.tags.length > 0 && (
+        <div className={`mt-6 flex flex-wrap gap-2`}>
+          {board.tags.map((tag, index) => (
+            <span
+              key={index}
+              className={`px-3 py-1 rounded-full text-sm ${
+                isDark
+                  ? 'bg-blue-900 text-blue-200'
+                  : 'bg-blue-100 text-blue-800'
+              }`}
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className={`mt-10 pt-6 border-t flex gap-3 ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
         <button
