@@ -1,6 +1,6 @@
 import {useState, useEffect} from "react";
 import {AiFillGithub} from "react-icons/ai";
-import {getUserInfo} from "../../service/user/User";
+import {getUserInfo, updateMyInfo, updateEmail} from "../../service/user/User";
 import {useLogin} from "../../context/LoginContext";
 import {useNavigate} from "react-router-dom";
 
@@ -22,6 +22,7 @@ export default function ProfilePage() {
         image: null,
     });
 
+    const [originalEmail, setOriginalEmail] = useState("");
     const [githubConnected, setGithubConnected] = useState(false);
 
     // 이메일 마스킹
@@ -35,7 +36,7 @@ export default function ProfilePage() {
     useEffect(() => {
         if (!accessToken) return navigate("/signin");
 
-        const load = async () => {
+        const loadUserInfo = async () => {
             const res = await getUserInfo(accessToken);
             if (!res || res.error) return;
 
@@ -47,10 +48,11 @@ export default function ProfilePage() {
                 image: null,
             });
 
+            setOriginalEmail(res.email);
             setGithubConnected(res.githubConnected || false);
         };
 
-        load();
+        loadUserInfo();
     }, [accessToken, navigate]);
 
     // 프로필 이미지 변경
@@ -58,17 +60,52 @@ export default function ProfilePage() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        setProfile({
-            ...profile,
+        setProfile((prev) => ({
+            ...prev,
             image: file,
             preview: URL.createObjectURL(file),
-        });
+        }));
     };
 
-    // 저장
-    const handleSave = () => {
-        console.log("📌 저장 요청 데이터:", profile);
-        alert("프로필 저장 API 필요");
+    // 저장 버튼 클릭 처리 — 백엔드 API 호출
+    const handleSave = async () => {
+        console.log("📌 [프로필 저장 요청]:", profile);
+
+        /** 1) 이메일이 변경된 경우 먼저 이메일 업데이트 */
+        if (profile.email !== originalEmail) {
+            const emailResult = await updateEmail(profile.email);
+
+            if (!emailResult || emailResult.error) {
+                alert("❌ 이메일 변경 중 오류가 발생했습니다.");
+                console.error(emailResult);
+                return;
+            }
+
+            alert("📧 이메일이 성공적으로 변경되었습니다!");
+            setOriginalEmail(profile.email);
+        }
+
+        /** 2) 이름/닉네임/이미지 수정 */
+        const result = await updateMyInfo(accessToken, {
+            name: profile.name,
+            nickname: profile.nickname,
+            image: profile.image,
+        });
+
+        if (!result || result.error) {
+            alert("❌ 프로필 저장 중 오류가 발생했습니다.");
+            console.error(result);
+            return;
+        }
+
+        alert("✅ 프로필 정보가 업데이트되었습니다.");
+
+        // 화면 다시 로드 (이미지 반영)
+        setProfile((prev) => ({
+            ...prev,
+            preview: result.user?.profileImageUrl || prev.preview,
+        }));
+
         setEditMode(false);
     };
 
@@ -104,9 +141,8 @@ export default function ProfilePage() {
 
                         {/* 아이콘 + Github */}
                         <div className="flex items-center gap-4">
-                            <div
-                                className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white">
-                                <AiFillGithub className="w-7 h-7 text-black"/>
+                            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white">
+                                <AiFillGithub className="w-7 h-7 text-black" />
                             </div>
                             <span className="text-lg font-medium">Github</span>
                         </div>

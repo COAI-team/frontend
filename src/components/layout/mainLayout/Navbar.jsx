@@ -146,7 +146,7 @@ export default function Navbar() {
                                     }`}
                                 >
                                     <img
-                                        alt="Your Company"
+                                        alt="Logo"
                                         src="/Logo.png"
                                         className="h-8 w-auto cursor-pointer"
                                     />
@@ -200,26 +200,27 @@ export default function Navbar() {
                         {user ? (
                             <Dropdown
                                 button={
-                                    <img
-                                        src={
-                                            user.image?.startsWith("http")
-                                                ? user.image
-                                                : `${BASE_URL}${user.image || ""}`
-                                        }
-                                        className="w-8 h-8 rounded-full object-cover border border-gray-300"
-                                        alt="프로필"
-                                    />
+                                    <div className="flex items-center gap-2 cursor-pointer">
+                                        <img
+                                            src={
+                                                user.image?.startsWith("http")
+                                                    ? user.image
+                                                    : `${BASE_URL}${user.image || ""}`
+                                            }
+                                            className="w-8 h-8 rounded-full object-cover border border-gray-300"
+                                            alt="프로필"
+                                        />
+                                        <span className="text-sm font-bold">{user.nickname}</span>
+                                    </div>
                                 }
                                 items={[
                                     { label: "마이페이지", href: "/mypage" },
-                                    ...(user?.role === "ROLE_ADMIN"
-                                        ? [{ label: "관리자 페이지", href: "/admin" }]
-                                        : []),
+                                    ...(user?.role === "ROLE_ADMIN" ? [{ label: "관리자 페이지", href: "/admin" }] : []),
                                     {
                                         label: "로그아웃",
                                         onClick: () => {
                                             logout();
-                                            navigate("/");  // ⭐ 로그아웃 후 메인 페이지 이동
+                                            navigate("/");
                                         },
                                     },
                                 ]}

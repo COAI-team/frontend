@@ -118,3 +118,43 @@ export const confirmPasswordReset = async (token, newPassword) => {
         return {error: err};
     }
 };
+
+// 회원 정보 수정 (이름 / 닉네임 / 프로필 이미지)
+export const updateMyInfo = async (accessToken, payload) => {
+    try {
+        const formData = new FormData();
+
+        // DTO 필드들 추가
+        if (payload.name) formData.append("name", payload.name);
+        if (payload.nickname) formData.append("nickname", payload.nickname);
+
+        // 이미지 파일(optional)
+        if (payload.image) formData.append("image", payload.image);
+
+        const res = await axiosInstance.put("/users/me", formData, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        return res.data;
+    } catch (err) {
+        console.error("❌ [updateMyInfo] 오류:", err);
+        return { error: true, detail: err.response?.data };
+    }
+};
+
+// 이메일 변경
+export const updateEmail = async (newEmail) => {
+    try {
+        const res = await axiosInstance.put("/users/me/email", {
+            newEmail: newEmail
+        });
+
+        return res.data;
+    } catch (err) {
+        console.error("❌ [updateEmail] 오류:", err.response?.data);
+        return { error: true, detail: err.response?.data };
+    }
+};

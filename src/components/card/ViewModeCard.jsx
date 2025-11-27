@@ -16,6 +16,13 @@ export default function ViewModeCard({ profile, maskEmail, onEdit }) {
 
             <h2 className="text-2xl font-semibold text-center">{profile.name}</h2>
 
+            {/* 닉네임 추가 */}
+            {profile.nickname && (
+                <p className="text-center text-gray-500 text-lg mt-1">
+                    {profile.nickname}
+                </p>
+            )}
+
             <div className="flex justify-center mt-3 gap-2 items-center">
                 <span className="text-gray-600">{maskEmail(profile.email)}</span>
                 <span className="text-green-600 text-sm font-medium">✔ 인증 완료</span>
