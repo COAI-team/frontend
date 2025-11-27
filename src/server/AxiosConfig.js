@@ -1,7 +1,7 @@
 import axios, { AxiosError } from "axios";
 
 export const axiosInstance = axios.create({
-    baseURL: "https://114.204.9.108:10443",
+    baseURL: "http://localhost:8090/",
     timeout: 10000,
 });
 
