@@ -1,8 +1,6 @@
-// src/pages/algorithm/ProblemList.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getProblems, DIFFICULTY_OPTIONS, SOURCE_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/algorithmApi';
-import DifficultyBadge from '../../components/algorithm/problem/DifficultyBadge';
 import ProblemCard from '../../components/algorithm/problem/ProblemCard'; 
 
 const ProblemList = () => {

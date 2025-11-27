@@ -3,6 +3,7 @@ import AlertModal from "./AlertModal";
 import {requestPasswordReset} from "../../service/user/User";
 import {ResetPasswordModalPropTypes} from "../../utils/propTypes";
 import {useTheme} from "next-themes";
+import LoadingButton from "../button/LoadingButton";
 
 export default function ResetPasswordModal({open, onClose}) {
     const [email, setEmail] = useState("");
@@ -14,10 +15,11 @@ export default function ResetPasswordModal({open, onClose}) {
         onConfirm: null
     });
 
+    const [loadingReset, setLoadingReset] = useState(false);
+
     const {theme} = useTheme();
     const isDark = theme === "dark";
 
-    // ⭐ handleSubmit을 useEffect보다 위로 올려서 에러 해결!
     const handleSubmit = useCallback(async () => {
         if (!email) {
             setAlert({
@@ -29,7 +31,9 @@ export default function ResetPasswordModal({open, onClose}) {
             return;
         }
 
+        setLoadingReset(true);
         const result = await requestPasswordReset(email);
+        setLoadingReset(false);
 
         if (result.error) {
             setAlert({
@@ -53,7 +57,6 @@ export default function ResetPasswordModal({open, onClose}) {
         });
     }, [email, onClose]);
 
-    // ⭐ 키보드 핸들링 - ReferenceError 제거됨!
     useEffect(() => {
         if (!open) return;
 
@@ -86,6 +89,7 @@ export default function ResetPasswordModal({open, onClose}) {
             accent2: "#FFFA99",
         }
     };
+
     const current = isDark ? COLORS.dark : COLORS.light;
 
     if (!open) return null;
@@ -138,33 +142,38 @@ export default function ResetPasswordModal({open, onClose}) {
                     />
                 </div>
 
-                <div className="mt-6 flex justify-end gap-2">
+                <div className="mt-6 flex ml-auto gap-2">
+                    {/* 취소 버튼 - 전체의 1/3 */}
                     <button
                         className={`
-                            px-4 py-2 rounded-md text-sm font-semibold
-                            ${isDark ? "bg-gray-700 hover:bg-gray-600 text-white"
+            flex-[1] px-4 py-2 rounded-md text-sm font-semibold
+            ${isDark
+                            ? "bg-gray-700 hover:bg-gray-600 text-white"
                             : "bg-gray-300 hover:bg-gray-400 text-gray-900"}
-                        `}
+        `}
                         onClick={onClose}
                     >
                         취소
                     </button>
 
-                    <button
-                        className="px-4 py-2 rounded-md text-sm font-semibold text-white"
-                        style={{backgroundColor: current.primary}}
-                        onMouseEnter={(e) => (e.target.style.backgroundColor = current.secondary)}
-                        onMouseLeave={(e) => (e.target.style.backgroundColor = current.primary)}
-                        onClick={handleSubmit}
-                    >
-                        비밀번호 재설정 메일 받기
-                    </button>
+                    {/* 로딩 버튼 - 전체의 2/3 */}
+                    <div className="flex-[3]">
+                        <LoadingButton
+                            text="비밀번호 재설정 메일 받기"
+                            isLoading={loadingReset}
+                            onClick={handleSubmit}
+                            className="px-4 py-2 rounded-md text-sm font-semibold text-white w-full"
+                            style={{ backgroundColor: current.primary }}
+                            onMouseEnter={(e) => (e.target.style.backgroundColor = current.secondary)}
+                            onMouseLeave={(e) => (e.target.style.backgroundColor = current.primary)}
+                        />
+                    </div>
                 </div>
             </div>
 
             <AlertModal
                 open={alert.open}
-                onClose={() => setAlert((prev) => ({...prev, open: false}))}
+                onClose={() => setAlert(prev => ({...prev, open: false}))}
                 onConfirm={alert.onConfirm}
                 type={alert.type}
                 title={alert.title}
