@@ -157,11 +157,10 @@ const ProblemGenerator = () => {
                       key={option.value}
                       type="button"
                       onClick={() => handleInputChange('difficulty', option.value)}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        formData.difficulty === option.value
+                      className={`p-4 rounded-lg border-2 transition-all ${formData.difficulty === option.value
                           ? `${getDifficultyColorClass(option.value)} border-current`
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <div className="font-semibold">{option.label}</div>
                       <div className="text-xs text-gray-600 mt-1">{option.description}</div>
@@ -338,19 +337,29 @@ const ProblemGenerator = () => {
                 </div>
 
                 {/* 액션 버튼 */}
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-3">
                   <button
-                    onClick={() => handleGoToProblemDetail(generatedProblem.problemId)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-semibold transition-colors"
+                    onClick={() => navigate(`/algorithm/problems/${generatedProblem.problemId}/solve`)}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-3 rounded-md font-bold shadow-md transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
                   >
-                    문제 상세 보기
+                    <span>🚀</span>
+                    <span>바로 문제 풀러 가기</span>
                   </button>
-                  <button
-                    onClick={handleGoToProblemList}
-                    className="flex-1 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-md font-semibold transition-colors"
-                  >
-                    문제 목록으로
-                  </button>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleGoToProblemDetail(generatedProblem.problemId)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-semibold transition-colors"
+                    >
+                      문제 상세 보기
+                    </button>
+                    <button
+                      onClick={handleGoToProblemList}
+                      className="flex-1 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-md font-semibold transition-colors"
+                    >
+                      문제 목록으로
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
