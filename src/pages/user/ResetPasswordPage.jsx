@@ -9,7 +9,7 @@ import {
 } from "../../service/user/User";
 
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
-import LoadingButton from "../../components/loading/LoadingButton";
+import LoadingButton from "../../components/button/LoadingButton";
 
 /* ---- 비밀번호 규칙 검사 함수 ---- */
 function getPasswordError(pw) {

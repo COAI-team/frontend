@@ -5,7 +5,7 @@ import { signup, sendEmailCode, verifyEmailCode } from "../../service/user/User"
 import AlertModal from "../../components/modal/AlertModal";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
-import LoadingButton from "../../components/loading/LoadingButton";
+import LoadingButton from "../../components/button/LoadingButton";
 
 import {
     ProfileUploadPropTypes,

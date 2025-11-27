@@ -185,3 +185,47 @@ export const EditModeCardPropTypes = {
     onCancel: PropTypes.func.isRequired,
     onSave: PropTypes.func.isRequired,
 };
+
+/* ----------------------------------------
+ * MobileMenuButton PropTypes
+ * ---------------------------------------- */
+export const MobileMenuButtonPropTypes = {
+    theme: PropTypes.oneOf(["light", "dark"]).isRequired,
+};
+
+/* ----------------------------------------
+ * Logo PropTypes
+ * ---------------------------------------- */
+export const LogoPropTypes = {
+    theme: PropTypes.oneOf(["light", "dark"]).isRequired,
+};
+
+/* ----------------------------------------
+ * MobileNav PropTypes
+ * ---------------------------------------- */
+export const MobileNavPropTypes = {
+    navigation: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string.isRequired,
+            href: PropTypes.string.isRequired,
+            current: PropTypes.bool,
+        })
+    ).isRequired,
+    onLinkClick: PropTypes.func.isRequired,
+};
+
+/* ----------------------------------------
+ * RightActions PropTypes
+ * ---------------------------------------- */
+export const RightActionsPropTypes = {
+    theme: PropTypes.oneOf(["light", "dark"]).isRequired,
+    setTheme: PropTypes.func.isRequired,
+    user: PropTypes.shape({
+        nickname: PropTypes.string,
+        image: PropTypes.string,
+        role: PropTypes.string,
+    }),
+    logout: PropTypes.func.isRequired,
+    navigate: PropTypes.func.isRequired,
+    BASE_URL: PropTypes.string.isRequired,
+};

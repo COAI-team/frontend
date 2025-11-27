@@ -3,7 +3,7 @@ import AlertModal from "./AlertModal";
 import {requestPasswordReset} from "../../service/user/User";
 import {ResetPasswordModalPropTypes} from "../../utils/propTypes";
 import {useTheme} from "next-themes";
-import LoadingButton from "../loading/LoadingButton";
+import LoadingButton from "../button/LoadingButton";
 
 export default function ResetPasswordModal({open, onClose}) {
     const [email, setEmail] = useState("");

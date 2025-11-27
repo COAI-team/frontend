@@ -5,8 +5,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { login as apiLogin } from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
 import ResetPasswordModal from "../../components/modal/ResetPasswordModal";
-import { LoginContext } from "../../context/LoginContext";
-import LoadingButton from "../../components/loading/LoadingButton";
+import { LoginContext } from "../../context/LoginContext.js";
+import LoadingButton from "../../components/button/LoadingButton";
 import { useTheme } from "next-themes";
 
 export default function SignIn() {

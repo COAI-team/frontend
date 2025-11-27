@@ -9,15 +9,15 @@ import Layout from "./components/layout/mainLayout/Layout";
 import Main from "./pages/Main";
 
 // 결제 관련
-import PricingPage from "./pages/payment/PricingPage.jsx";
-import PaymentPage from "./pages/payment/PaymentPage.jsx";
-import PaymentSuccess from "./pages/payment/PaymentSuccess.jsx";
-import PaymentFail from "./pages/payment/PaymentFail.jsx";
+import PricingPage from "./pages/payment/PricingPage";
+import PaymentPage from "./pages/payment/PaymentPage";
+import PaymentSuccess from "./pages/payment/PaymentSuccess";
+import PaymentFail from "./pages/payment/PaymentFail";
 
 // 사용자 관련
 import SignIn from "./pages/user/SignIn";
 import SignUp from "./pages/user/SignUp";
-import {LoginProvider} from "./context/LoginContext";
+import LoginProvider from "./context/LoginProvider";
 import ResetPasswordPage from "./pages/user/ResetPasswordPage";
 
 // 자유게시판
