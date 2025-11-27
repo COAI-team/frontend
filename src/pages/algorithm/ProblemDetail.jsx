@@ -87,12 +87,12 @@ const ProblemDetail = () => {
                     <div className="flex justify-between items-start mb-4">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
-                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getDifficultyBadge(problem.difficulty)}`}>
-                                    {problem.difficulty}
+                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getDifficultyBadge(problem.algoProblemDifficulty)}`}>
+                                    {problem.algoProblemDifficulty}
                                 </span>
-                                <span className="text-gray-500 text-sm">#{problem.problemId}</span>
+                                <span className="text-gray-500 text-sm">#{problem.algoProblemId}</span>
                             </div>
-                            <h1 className="text-3xl font-bold text-gray-900">{problem.title}</h1>
+                            <h1 className="text-3xl font-bold text-gray-900">{problem.algoProblemTitle}</h1>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                             <Link
@@ -106,13 +106,13 @@ const ProblemDetail = () => {
 
                     <div className="flex gap-6 text-sm text-gray-600 border-t pt-4 mt-4">
                         <div>
-                            <span className="font-medium text-gray-900">시간 제한:</span> {problem.timeLimit || 1000}ms
+                            <span className="font-medium text-gray-900">시간 제한:</span> {problem.timelimit || 1000}ms
                         </div>
                         <div>
-                            <span className="font-medium text-gray-900">메모리 제한:</span> {problem.memoryLimit || 256}MB
+                            <span className="font-medium text-gray-900">메모리 제한:</span> {problem.memorylimit || 256}MB
                         </div>
                         <div>
-                            <span className="font-medium text-gray-900">출처:</span> {problem.source || 'Unknown'}
+                            <span className="font-medium text-gray-900">출처:</span> {problem.algoProblemSource || 'Unknown'}
                         </div>
                     </div>
                 </div>
@@ -121,16 +121,16 @@ const ProblemDetail = () => {
                 <div className="bg-white rounded-lg shadow-sm border p-8 mb-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">문제 설명</h2>
                     <div className="prose max-w-none text-gray-800 whitespace-pre-wrap leading-relaxed">
-                        {problem.description}
+                        {problem.algoProblemDescription}
                     </div>
                 </div>
 
                 {/* 예제 입출력 */}
-                {problem.sampleTestCases && problem.sampleTestCases.length > 0 && (
+                {problem.testcases && problem.testcases.length > 0 && (
                     <div className="bg-white rounded-lg shadow-sm border p-8">
                         <h2 className="text-xl font-bold text-gray-900 mb-6">예제</h2>
                         <div className="space-y-6">
-                            {problem.sampleTestCases.map((tc, idx) => (
+                            {problem.testcases.filter(tc => tc.isSample).map((tc, idx) => (
                                 <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <h3 className="text-sm font-medium text-gray-700 mb-2">예제 입력 {idx + 1}</h3>
