@@ -13,21 +13,21 @@ const ProblemSolve = () => {
   const { problemId } = useParams();
   const navigate = useNavigate();
   const editorRef = useRef(null);
-  
+
   // 문제 데이터 상태
   const [problem, setProblem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // 에디터 상태
   const [selectedLanguage, setSelectedLanguage] = useState('python');
   const [code, setCode] = useState('');
-  
+
   // 타이머 상태 (풀이 시간 - 기본 30분)
   const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [startTime, setStartTime] = useState(null);
-  
+
   // 실행 결과 상태
   const [testResult, setTestResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -35,11 +35,11 @@ const ProblemSolve = () => {
   const [runProgress, setRunProgress] = useState(0);
 
   // ✅ 수평 리사이저 (문제설명 | 에디터)
-  const { 
-    leftPanelWidth, 
-    isResizing: isHorizontalResizing, 
-    handleResizeStart: handleHorizontalResizeStart, 
-    containerRef 
+  const {
+    leftPanelWidth,
+    isResizing: isHorizontalResizing,
+    handleResizeStart: handleHorizontalResizeStart,
+    containerRef
   } = useResizableLayout(35, 20, 60);
 
   // ✅ 수직 리사이저 (에디터 | 실행결과)
@@ -62,10 +62,10 @@ const ProblemSolve = () => {
       alert('코드를 작성해주세요!');
       return;
     }
-    
+
     setIsSubmitting(true);
     setIsTimerRunning(false);
-    
+
     try {
       const res = await submitCode({
         problemId: Number(problemId),
@@ -73,13 +73,13 @@ const ProblemSolve = () => {
         sourceCode: code,
         elapsedTime: getElapsedTime()
       });
-      
+
       if (res.error) {
         alert(`제출 실패: ${res.message}`);
       } else {
         const responseData = res.Data || res.data || res;
         const submissionId = responseData?.algosubmissionId || responseData?.submissionId;
-        navigate(`/algorithm/result/${submissionId}`);
+        navigate(`/algorithm/submissions/${submissionId}`);
       }
     } catch {
       alert('코드 제출 중 오류가 발생했습니다.');
@@ -93,22 +93,22 @@ const ProblemSolve = () => {
     const fetchProblem = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         const res = await startProblemSolve(problemId);
         console.log('📥 API 응답:', res);
-        
+
         if (res.error) {
           setError(res.message);
           return;
         }
-        
+
         const problemData = res.Data || res.data || res;
         console.log('📋 문제 데이터:', problemData);
         setProblem(problemData);
         setTimeLeft(30 * 60);
         setStartTime(new Date());
-        
+
       } catch (err) {
         console.error('❌ 문제 로드 실패:', err);
         setError('문제를 불러오는데 실패했습니다.');
@@ -160,11 +160,11 @@ const ProblemSolve = () => {
       alert('코드를 작성해주세요!');
       return;
     }
-    
+
     setIsRunning(true);
     setTestResult(null);
     setRunProgress(0);
-    
+
     const progressInterval = setInterval(() => {
       setRunProgress(prev => {
         if (prev >= 90) {
@@ -174,18 +174,18 @@ const ProblemSolve = () => {
         return prev + Math.random() * 15;
       });
     }, 300);
-    
+
     try {
       const res = await runTestCode({
         problemId: Number(problemId),
         language: selectedLanguage.toUpperCase(),
         sourceCode: code
       });
-      
+
       console.log('🧪 테스트 결과:', res);
       clearInterval(progressInterval);
       setRunProgress(100);
-      
+
       if (res.error || (res.code && res.code !== '0000')) {
         setTestResult({ error: true, message: res.message || '테스트 실행 실패' });
       } else {
@@ -276,14 +276,14 @@ const ProblemSolve = () => {
                 맞힌사람 {problem?.solvedCount || 0} • 제출한 사람 {problem?.submitCount || 0}
               </p>
             </div>
-            
+
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                 <span className="text-sm">Eye Tracking</span>
                 <span className="font-mono">{formatTime(getElapsedTime())}</span>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
                 <span className="text-sm">풀이 시간</span>
@@ -291,7 +291,7 @@ const ProblemSolve = () => {
                   {formatTime(timeLeft)}
                 </span>
               </div>
-              
+
               <button onClick={() => setIsTimerRunning(!isTimerRunning)}
                 className={`px-3 py-1 rounded text-sm ${isTimerRunning ? 'bg-red-600' : 'bg-green-600'}`}>
                 {isTimerRunning ? '일시정지' : '시작'}
@@ -320,12 +320,12 @@ const ProblemSolve = () => {
       {/* 메인 컨텐츠 */}
       <div className="container mx-auto px-6 py-6" ref={containerRef}>
         <div className="flex h-[calc(100vh-220px)] gap-1">
-          
+
           {/* 왼쪽: 문제 설명 */}
           <div className="bg-zinc-800 rounded-lg overflow-auto" style={{ width: `${leftPanelWidth}%` }}>
             <div className="p-6">
               <h2 className="text-lg font-bold mb-4">문제 설명</h2>
-              
+
               {/* 제한 정보 표시 */}
               <div className="flex flex-wrap gap-3 mb-6">
                 <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
@@ -338,12 +338,12 @@ const ProblemSolve = () => {
                   💾 메모리제한: {problem?.memoryLimit || 256}MB
                 </span>
               </div>
-              
+
               <div className="prose prose-invert prose-sm max-w-none space-y-4">
                 <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
                   {problem?.description || '문제 설명이 없습니다.'}
                 </p>
-                
+
                 {problem?.sampleTestCases?.length > 0 && (
                   <div className="mt-6">
                     <h3 className="font-semibold mb-3 text-white">예제</h3>
@@ -368,14 +368,14 @@ const ProblemSolve = () => {
           </div>
 
           {/* ✅ 수평 리사이저 (좌우) */}
-          <div 
+          <div
             className={`w-1 bg-zinc-700 hover:bg-purple-500 cursor-col-resize transition-colors ${isHorizontalResizing ? 'bg-purple-500' : ''}`}
-            onMouseDown={handleHorizontalResizeStart} 
+            onMouseDown={handleHorizontalResizeStart}
           />
 
           {/* 오른쪽: 에디터 + 실행결과 */}
-          <div 
-            className="bg-zinc-800 rounded-lg flex flex-col overflow-hidden" 
+          <div
+            className="bg-zinc-800 rounded-lg flex flex-col overflow-hidden"
             style={{ width: `${100 - leftPanelWidth}%` }}
             ref={editorContainerRef}
           >
@@ -409,7 +409,7 @@ const ProblemSolve = () => {
             </div>
 
             {/* ✅ 수직 리사이저 (상하) */}
-            <div 
+            <div
               className={`h-1 bg-zinc-700 hover:bg-purple-500 cursor-row-resize transition-colors flex-shrink-0 ${isVerticalResizing ? 'bg-purple-500' : ''}`}
               onMouseDown={handleVerticalResizeStart}
             >
@@ -423,7 +423,7 @@ const ProblemSolve = () => {
             <div style={{ height: `${100 - editorHeight}%` }} className="flex flex-col min-h-0">
               <div className="p-3 bg-zinc-850 flex-1 overflow-auto">
                 <p className="text-sm text-gray-400 mb-2">실행결과</p>
-                
+
                 {/* 프로그레스 바 */}
                 {isRunning && (
                   <div className="mb-3">
@@ -432,14 +432,14 @@ const ProblemSolve = () => {
                       <span>{Math.round(runProgress)}%</span>
                     </div>
                     <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
                         style={{ width: `${runProgress}%` }}
                       />
                     </div>
                   </div>
                 )}
-                
+
                 <div className="bg-zinc-900 rounded p-3 h-full overflow-auto text-sm">
                   {isRunning ? (
                     <div className="flex items-center gap-2 text-yellow-400">
