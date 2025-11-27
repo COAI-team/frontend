@@ -1,75 +1,112 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { getSubmissionResult } from '../../service/algorithm/algorithmApi';
 
 /**
- * 제출 결과 페이지 - Step 4 버전
+ * 제출 결과 페이지 - 실시간 업데이트 버전
  */
 const SubmissionResult = () => {
   const { submissionId } = useParams();
   const navigate = useNavigate();
-  
+
   // 상태 관리
+  const [submission, setSubmission] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showAIFeedback, setShowAIFeedback] = useState(false);
+  const [error, setError] = useState(null);
+  const [showAIFeedback, setShowAIFeedback] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
 
-  // 페이지 로딩 효과 (모의)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  // 폴링을 위한 Ref
+  const pollingInterval = useRef(null);
 
-  // 샘플 제출 결과 데이터 (실제로는 API에서 가져옴)
-  const submissionData = {
-    456: {
-      problem: { id: 1, title: '두 수의 합', difficulty: 'BRONZE' },
-      judge: { result: 'AC', passedTests: 10, totalTests: 10, executionTime: 0.001, memory: 1024 },
-      ai: { score: 85, feedback: '코드가 깔끔하고 이해하기 쉽습니다. 변수명이 명확하고 로직이 간단합니다.', suggestions: ['더 효율적인 알고리즘 고려', '예외 처리 추가'] },
-      code: 'function solution(a, b) {\n    return a + b;\n}\n\nconsole.log(solution(5, 3));',
-      language: 'javascript',
-      submittedAt: '2025-11-21 14:30:25',
-      elapsedTime: 180
-    },
-    789: {
-      problem: { id: 2, title: '피보나치 수', difficulty: 'SILVER' },
-      judge: { result: 'WA', passedTests: 7, totalTests: 10, executionTime: 0.045, memory: 2048 },
-      ai: { score: 65, feedback: '기본 로직은 맞지만 큰 수에 대한 처리가 부족합니다.', suggestions: ['동적 프로그래밍 최적화', '메모이제이션 적용'] },
-      code: 'def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)',
-      language: 'python',
-      submittedAt: '2025-11-21 14:25:10',
-      elapsedTime: 420
+  // 데이터 조회 함수
+  const fetchResult = async () => {
+    try {
+      const res = await getSubmissionResult(submissionId);
+
+      if (res.error) {
+        // 아직 처리 중이거나 찾을 수 없는 경우 등
+        console.warn('제출 결과 조회 실패:', res.message);
+        // 404가 아니면 계속 폴링할 수도 있지만, 여기서는 에러 처리
+        if (res.code === 'ALGO_404') { // 가정: 404 코드
+          setError(res.message);
+          stopPolling();
+        }
+        return;
+      }
+
+      const data = res.Data || res.data || res;
+      setSubmission(data);
+      setLoading(false);
+
+      // 채점 완료 및 AI 평가 완료 여부 확인
+      // judgeStatus: PENDING, JUDGING, COMPLETED, ERROR
+      // aiFeedbackStatus: PENDING, PROCESSING, COMPLETED, ERROR
+
+      const isJudgeComplete = data.judgeStatus === 'COMPLETED' || data.judgeStatus === 'ERROR';
+      const isAiComplete = data.aiFeedbackStatus === 'COMPLETED' || data.aiFeedbackStatus === 'ERROR';
+
+      // 둘 다 완료되면 폴링 중지
+      if (isJudgeComplete && isAiComplete) {
+        stopPolling();
+      }
+
+    } catch (err) {
+      console.error('제출 결과 조회 중 오류:', err);
+      setError('서버 연결 오류가 발생했습니다.');
+      stopPolling();
     }
   };
 
-  const currentSubmission = submissionData[submissionId] || submissionData['456'];
+  const startPolling = () => {
+    // 즉시 실행
+    fetchResult();
+    // 주기적 실행 (2초마다)
+    pollingInterval.current = setInterval(fetchResult, 2000);
+  };
+
+  const stopPolling = () => {
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (submissionId) {
+      startPolling();
+    }
+    return () => stopPolling();
+  }, [submissionId]);
+
 
   // 결과 색상 및 아이콘
   const getResultInfo = (result) => {
-    switch(result) {
+    switch (result) {
       case 'AC': return { color: 'text-green-600', bg: 'bg-green-100', icon: '✅', text: 'Accepted' };
       case 'WA': return { color: 'text-red-600', bg: 'bg-red-100', icon: '❌', text: 'Wrong Answer' };
       case 'TLE': return { color: 'text-yellow-600', bg: 'bg-yellow-100', icon: '⏰', text: 'Time Limit Exceeded' };
       case 'MLE': return { color: 'text-purple-600', bg: 'bg-purple-100', icon: '💾', text: 'Memory Limit Exceeded' };
-      default: return { color: 'text-gray-600', bg: 'bg-gray-100', icon: '⏳', text: 'Pending' };
+      case 'CE': return { color: 'text-orange-600', bg: 'bg-orange-100', icon: '⚠️', text: 'Compilation Error' };
+      case 'RE': return { color: 'text-red-600', bg: 'bg-red-100', icon: '💥', text: 'Runtime Error' };
+      default: return { color: 'text-gray-600', bg: 'bg-gray-100', icon: '⏳', text: 'Judging...' };
     }
   };
-
-  const resultInfo = getResultInfo(currentSubmission.judge.result);
 
   // 공유하기
   const handleShare = () => {
     setIsSharing(true);
     setTimeout(() => {
       setIsSharing(false);
-      alert('개발 중입니다! Day 12-13에 공유 기능이 구현됩니다.');
+      alert('개발 중입니다! 공유 기능이 곧 구현됩니다.');
     }, 1500);
   };
 
   // 다시 풀기
   const handleRetry = () => {
-    navigate(`/algorithm/problems/${currentSubmission.problem.id}/solve`);
+    if (submission?.problemId) {
+      navigate(`/algorithm/problems/${submission.problemId}/solve`);
+    }
   };
 
   if (loading) {
@@ -78,11 +115,28 @@ const SubmissionResult = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-gray-600 text-lg">채점 결과를 불러오는 중...</p>
-          <p className="text-gray-500 text-sm mt-2">제출 ID: {submissionId}</p>
+          <p className="text-gray-500 text-sm mt-2">잠시만 기다려주세요.</p>
         </div>
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 text-xl mb-4">⚠️ {error}</p>
+          <button onClick={() => navigate('/algorithm')} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            문제 목록으로
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!submission) return null;
+
+  const resultInfo = getResultInfo(submission.judgeResult);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -92,7 +146,7 @@ const SubmissionResult = () => {
           <div className="flex items-center justify-between">
             {/* 네비게이션 */}
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 onClick={() => navigate('/algorithm')}
                 className="text-blue-600 hover:text-blue-800 transition-colors"
               >
@@ -116,11 +170,10 @@ const SubmissionResult = () => {
               <button
                 onClick={handleShare}
                 disabled={isSharing}
-                className={`px-4 py-2 rounded transition-colors ${
-                  isSharing 
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                    : 'bg-green-500 text-white hover:bg-green-600'
-                }`}
+                className={`px-4 py-2 rounded transition-colors ${isSharing
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-green-500 text-white hover:bg-green-600'
+                  }`}
               >
                 {isSharing ? '공유 중...' : '📤 공유하기'}
               </button>
@@ -129,17 +182,8 @@ const SubmissionResult = () => {
         </div>
       </div>
 
-      {/* 개발 상태 알림 */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-          <strong>🚧 개발 예정</strong> - Day 12-13에 AI 평가와 함께 구현됩니다
-          <br />
-          <small>현재는 샘플 데이터로 테스트 중입니다.</small>
-        </div>
-      </div>
-
       {/* 메인 컨텐츠 */}
-      <div className="container mx-auto px-4 pb-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
           {/* 결과 요약 카드 */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -147,14 +191,9 @@ const SubmissionResult = () => {
               {/* 문제 정보 */}
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-2">📝 문제</h3>
-                <p className="text-lg font-semibold text-gray-900">{currentSubmission.problem.title}</p>
-                <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium ${
-                  currentSubmission.problem.difficulty === 'BRONZE' ? 'bg-orange-100 text-orange-800' :
-                  currentSubmission.problem.difficulty === 'SILVER' ? 'bg-gray-100 text-gray-800' :
-                  currentSubmission.problem.difficulty === 'GOLD' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-cyan-100 text-cyan-800'
-                }`}>
-                  {currentSubmission.problem.difficulty}
+                <p className="text-lg font-semibold text-gray-900">{submission.problemTitle}</p>
+                <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800`}>
+                  {submission.difficulty || 'N/A'}
                 </span>
               </div>
 
@@ -171,12 +210,12 @@ const SubmissionResult = () => {
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-2">🧪 테스트</h3>
                 <p className="text-lg font-semibold text-gray-900">
-                  {currentSubmission.judge.passedTests}/{currentSubmission.judge.totalTests}
+                  {submission.passedTestCount || 0}/{submission.totalTestCount || 0}
                 </p>
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                  <div 
-                    className={`h-2 rounded-full ${currentSubmission.judge.result === 'AC' ? 'bg-green-500' : 'bg-red-500'}`}
-                    style={{ width: `${(currentSubmission.judge.passedTests / currentSubmission.judge.totalTests) * 100}%` }}
+                  <div
+                    className={`h-2 rounded-full ${submission.judgeResult === 'AC' ? 'bg-green-500' : 'bg-red-500'}`}
+                    style={{ width: `${submission.totalTestCount ? (submission.passedTestCount / submission.totalTestCount) * 100 : 0}%` }}
                   ></div>
                 </div>
               </div>
@@ -184,13 +223,22 @@ const SubmissionResult = () => {
               {/* AI 점수 */}
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-2">🤖 AI 점수</h3>
-                <p className="text-lg font-semibold text-gray-900">{currentSubmission.ai.score}/100</p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full"
-                    style={{ width: `${currentSubmission.ai.score}%` }}
-                  ></div>
-                </div>
+                {submission.aiFeedbackStatus === 'COMPLETED' ? (
+                  <>
+                    <p className="text-lg font-semibold text-gray-900">{submission.aiScore || 0}/100</p>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{ width: `${submission.aiScore || 0}%` }}
+                      ></div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <span className="animate-spin">⚙️</span>
+                    <span>분석 중...</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -201,46 +249,28 @@ const SubmissionResult = () => {
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">📈 실행 결과</h3>
-                
+
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">실행 시간:</span>
-                    <span className="font-mono text-gray-900">{currentSubmission.judge.executionTime}s</span>
+                    <span className="font-mono text-gray-900">{submission.executionTime ? `${submission.executionTime}s` : '-'}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">메모리 사용량:</span>
-                    <span className="font-mono text-gray-900">{currentSubmission.judge.memory}KB</span>
+                    <span className="font-mono text-gray-900">{submission.memoryUsage ? `${submission.memoryUsage}KB` : '-'}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">사용 언어:</span>
-                    <span className="font-medium text-gray-900">{currentSubmission.language.toUpperCase()}</span>
+                    <span className="font-medium text-gray-900">{submission.language}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">제출 시간:</span>
-                    <span className="font-mono text-gray-900">{currentSubmission.submittedAt}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">풀이 시간:</span>
-                    <span className="font-mono text-gray-900">{Math.floor(currentSubmission.elapsedTime / 60)}분 {currentSubmission.elapsedTime % 60}초</span>
+                    <span className="font-mono text-gray-900">{new Date(submission.submittedAt).toLocaleString()}</span>
                   </div>
                 </div>
 
-                {/* 테스트케이스 상세 */}
-                <div className="mt-6">
-                  <h4 className="font-medium text-gray-900 mb-3">테스트케이스 결과</h4>
-                  <div className="space-y-2">
-                    {Array.from({ length: currentSubmission.judge.totalTests }, (_, i) => (
-                      <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <span className="text-sm text-gray-600">테스트 {i + 1}</span>
-                        <span className={`text-sm font-medium ${
-                          i < currentSubmission.judge.passedTests ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {i < currentSubmission.judge.passedTests ? '✅ 통과' : '❌ 실패'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                {/* 테스트케이스 상세 (데이터가 있다면) */}
+                {/* 현재 API 응답 구조에 따라 다를 수 있음. 일단 생략하거나 추후 추가 */}
               </div>
             </div>
 
@@ -257,48 +287,21 @@ const SubmissionResult = () => {
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">📊 종합 평가</h4>
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <p className="text-blue-800">{currentSubmission.ai.feedback}</p>
+                {submission.aiFeedbackStatus === 'COMPLETED' ? (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">📊 종합 평가</h4>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <p className="text-blue-800 whitespace-pre-wrap">{submission.aiFeedback || '피드백이 없습니다.'}</p>
+                      </div>
                     </div>
                   </div>
-
-                  {showAIFeedback && (
-                    <>
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">💡 개선 제안</h4>
-                        <ul className="space-y-2">
-                          {currentSubmission.ai.suggestions.map((suggestion, index) => (
-                            <li key={index} className="flex items-start">
-                              <span className="text-yellow-500 mr-2 mt-1">💡</span>
-                              <span className="text-gray-700">{suggestion}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">📈 점수 상세</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">가독성:</span>
-                            <span className="font-mono">85/100</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">효율성:</span>
-                            <span className="font-mono">80/100</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">정확성:</span>
-                            <span className="font-mono">90/100</span>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-2"></div>
+                    <p>AI가 코드를 분석하고 있습니다...</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -309,26 +312,24 @@ const SubmissionResult = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">💻 제출된 코드</h3>
               <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
                 <pre className="text-gray-100 text-sm font-mono">
-                  <code>{currentSubmission.code}</code>
+                  <code>{submission.sourceCode}</code>
                 </pre>
               </div>
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-gray-600 text-sm">
-                  언어: {currentSubmission.language.toUpperCase()} | 
-                  줄 수: {currentSubmission.code.split('\n').length} | 
-                  문자 수: {currentSubmission.code.length}
+                  언어: {submission.language} |
+                  문자 수: {submission.sourceCode?.length || 0}
                 </span>
-                <button className="text-blue-600 hover:text-blue-800 text-sm">
+                <button
+                  onClick={() => navigator.clipboard.writeText(submission.sourceCode)}
+                  className="text-blue-600 hover:text-blue-800 text-sm"
+                >
                   📋 코드 복사
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Step 4 완료 상태 */}
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded text-center">
-            <strong>✅ Step 4 테스트</strong> - SubmissionResult 페이지가 정상적으로 로드되었습니다! (제출 ID: {submissionId})
-          </div>
         </div>
       </div>
     </div>
