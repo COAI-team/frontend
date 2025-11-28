@@ -158,8 +158,8 @@ const ProblemGenerator = () => {
                       type="button"
                       onClick={() => handleInputChange('difficulty', option.value)}
                       className={`p-4 rounded-lg border-2 transition-all ${formData.difficulty === option.value
-                          ? `${getDifficultyColorClass(option.value)} border-current`
-                          : 'border-gray-200 hover:border-gray-300'
+                        ? `${getDifficultyColorClass(option.value)} border-current`
+                        : 'border-gray-200 hover:border-gray-300'
                         }`}
                     >
                       <div className="font-semibold">{option.label}</div>
