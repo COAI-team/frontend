@@ -158,3 +158,33 @@ export const updateEmail = async (newEmail) => {
         return { error: true, detail: err.response?.data };
     }
 };
+
+// 회원 탈퇴 (90일 후 완전 삭제)
+export const deactivateUser = async (accessToken) => {
+    try {
+        const res = await axiosInstance.delete("/users/me", {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        return res.data;
+    } catch (err) {
+        console.error("❌ [deactivateUser] 오류:", err);
+        return { error: true };
+    }
+};
+
+// 계정 복구
+export const restoreUser = async (accessToken) => {
+    try {
+        const res = await axiosInstance.put("/users/me/restore", {}, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        return res.data;
+    } catch (err) {
+        console.error("❌ [restoreUser] 오류:", err);
+        return { error: true };
+    }
+};
