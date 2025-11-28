@@ -26,7 +26,7 @@ const MySubmissions = () => {
                 throw new Error(response.message);
             }
 
-            const newSubmissions = response.Data || [];
+            const newSubmissions = response.data || [];
             if (page === 0) {
                 setSubmissions(newSubmissions);
             } else {

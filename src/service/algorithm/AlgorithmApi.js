@@ -17,9 +17,15 @@ export const getProblems = async (params = {}) => {
         if (keyword) queryParams.append('keyword', keyword);
 
         const res = await axiosInstance.get(`/algo/problems?${queryParams}`);
+
+        // 🔍 디버깅: 응답 전체 구조 확인
+        console.log('✅ [getProblems] 전체 응답:', res);
+        console.log('✅ [getProblems] res.data:', res.data);
+
         return res.data;
     } catch (err) {
         console.error("❌ [getProblems] 요청 실패:", err);
+        console.error("❌ [getProblems] 에러 상세:", err.response);
         if (err.response?.data) {
             return { error: true, code: err.response.data.code, message: err.response.data.message };
         }
@@ -110,13 +116,14 @@ export const getMySubmissions = async (params = {}) => {
         queryParams.append('size', size);
 
         const res = await axiosInstance.get(`/algo/submissions/my?${queryParams}`);
+        console.log('✅ [getMySubmissions] 응답:', res.data);
         return res.data;
     } catch (err) {
         console.error("❌ [getMySubmissions] 요청 실패:", err);
         if (err.response?.data) {
             return { error: true, code: err.response.data.code, message: err.response.data.message };
         }
-        return { error: true, message: "제출 이력을 가져올 수 없습니다." };
+        return { error: true, message: "제출 이력을 가져오는데 실패했습니다." };
     }
 };
 

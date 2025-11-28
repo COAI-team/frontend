@@ -79,8 +79,8 @@ const ProblemGenerator = () => {
         return;
       }
 
-      console.log('AI 문제 생성 성공:', result.Data);
-      setGeneratedProblem(result.Data);
+      console.log('AI 문제 생성 성공:', result.data);
+      setGeneratedProblem(result.data);
 
     } catch (err) {
       console.error('문제 생성 에러:', err);
