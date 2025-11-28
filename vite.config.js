@@ -13,5 +13,7 @@ export default defineConfig({
                 rewrite: (p) => p.replace(/^\/api/, "")
             }
         }
+        // host: true,
+        // port: 5173
     }
 })

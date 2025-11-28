@@ -1,116 +1,152 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { AiFillGithub } from "react-icons/ai";
+import { getUserInfo, updateMyInfo, updateEmail } from "../../service/user/User";
+import { useLogin } from "../../context/useLogin";
+import { useNavigate } from "react-router-dom";
+
+import ViewModeCard from "../../components/card/ViewModeCard";
+import EditModeCard from "../../components/card/EditModeCard";
 
 export default function ProfilePage() {
-    const [name, setName] = useState("");
-    const [nickname, setNickname] = useState("");
-    const [email, setEmail] = useState("");
-    const [image, setImage] = useState(null);
-    const [preview, setPreview] = useState(null);
+    const navigate = useNavigate();
+    const { accessToken, setUser } = useLogin();
+
+    const [editMode, setEditMode] = useState(false);
+
+    const [profile, setProfile] = useState({
+        name: "",
+        nickname: "",
+        email: "",
+        preview: null,
+        image: null,
+    });
+
+    const [originalEmail, setOriginalEmail] = useState("");
+    const [githubConnected, setGithubConnected] = useState(false);
+
+    const maskEmail = (email) => {
+        if (!email.includes("@")) return email;
+        const [id, domain] = email.split("@");
+        return `${id.slice(0, 2)}****@${domain}`;
+    };
+
+    useEffect(() => {
+        const loadUserInfo = async () => {
+            const res = await getUserInfo(accessToken);
+            if (!res || res.error) return;
+
+            setProfile({
+                name: res.name,
+                nickname: res.nickname || "",
+                email: res.email,
+                preview: res.profileImageUrl || res.image || null,
+                image: null,
+            });
+
+            setOriginalEmail(res.email);
+            setGithubConnected(res.githubConnected || false);
+        };
+
+        loadUserInfo();
+    }, [accessToken, navigate]);
 
     const handleImageChange = (e) => {
         const file = e.target.files?.[0];
-        if (file) {
-            setImage(file);
-            setPreview(URL.createObjectURL(file));
+        if (!file) return;
+
+        setProfile((prev) => ({
+            ...prev,
+            image: file,
+            preview: URL.createObjectURL(file),
+        }));
+    };
+
+    const handleSave = async () => {
+        console.log("📌 [프로필 저장 요청]:", profile);
+
+        if (profile.email !== originalEmail) {
+            const emailResult = await updateEmail(profile.email);
+            if (!emailResult || emailResult.error) {
+                alert("❌ 이메일 변경 중 오류 발생");
+                return;
+            }
+            setOriginalEmail(profile.email);
         }
-    };
 
-    const handleSaveProfile = () => {
-        console.log("프로필 정보 저장:", { name, nickname, image });
-    };
+        const result = await updateMyInfo(accessToken, {
+            name: profile.name,
+            nickname: profile.nickname,
+            image: profile.image,
+        });
 
-    const handleSaveEmail = () => {
-        console.log("이메일 변경:", email);
+        if (!result || result.error) {
+            alert("❌ 프로필 저장 실패");
+            return;
+        }
+
+        alert("✅ 프로필 저장 성공!");
+
+        // LoginContext 업데이트 → Navbar 즉시 반영
+        setUser({
+            name: result.user.name,
+            nickname: result.user.nickname,
+            image: result.user.image, // 🔥 캐싱 방지용 URL은 Navbar에서 처리
+        });
+
+        setProfile((prev) => ({
+            ...prev,
+            preview: result.user.image,
+        }));
+
+        setEditMode(false);
     };
 
     return (
-        <div className="max-w-2xl mx-auto p-6 border rounded-xl shadow-md bg-white dark:bg-gray-900">
-            <h1 className="text-2xl font-bold mb-8">계정 / 프로필 관리</h1>
+        <div className="max-w-3xl mx-auto p-6">
+            <h1 className="text-xl font-bold mb-4">기본정보</h1>
 
-            {/* 프로필 이미지 */}
-            <div className="mb-10">
-                <h2 className="text-xl font-semibold mb-4">프로필 정보</h2>
-
-                <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2">
-                    프로필 이미지
-                </label>
-
-                <div className="flex items-center gap-4">
-                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
-                        {preview ? (
-                            <img
-                                src={preview}
-                                alt="preview"
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-500">
-                                No Image
-                            </div>
-                        )}
-                    </div>
-
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="block"
-                    />
-                </div>
-
-                {/* 이름 */}
-                <div className="mt-6">
-                    <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2">
-                        이름
-                    </label>
-                    <input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-                        placeholder="이름을 입력하세요"
-                    />
-                </div>
-
-                {/* 닉네임 */}
-                <div className="mt-6">
-                    <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2">
-                        닉네임
-                    </label>
-                    <input
-                        value={nickname}
-                        onChange={(e) => setNickname(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800"
-                        placeholder="닉네임을 입력하세요"
-                    />
-                </div>
-
-                <button
-                    onClick={handleSaveProfile}
-                    className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                    프로필 저장
-                </button>
-            </div>
-
-            {/* 이메일 변경 */}
-            <div className="mb-10">
-                <h2 className="text-xl font-semibold mb-4">이메일 변경</h2>
-
-                <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg mb-4 dark:bg-gray-800"
-                    placeholder="새 이메일을 입력하세요"
+            {editMode ? (
+                <EditModeCard
+                    profile={profile}
+                    setProfile={setProfile}
+                    handleImageChange={handleImageChange}
+                    onCancel={() => setEditMode(false)}
+                    onSave={handleSave}
                 />
+            ) : (
+                <ViewModeCard profile={profile} maskEmail={maskEmail} onEdit={() => setEditMode(true)} />
+            )}
 
-                <button
-                    onClick={handleSaveEmail}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                    이메일 저장
-                </button>
+            <div className="mt-14">
+                <h2 className="text-xl font-semibold mb-4">계정 연동</h2>
+
+                <div className="border rounded-2xl shadow-sm divide-y">
+                    <div className="flex items-center justify-between p-4">
+
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white">
+                                <AiFillGithub className="w-7 h-7 text-black" />
+                            </div>
+                            <span className="text-lg font-medium">Github</span>
+                        </div>
+
+                        <div>
+                            {githubConnected ? (
+                                <button className="px-4 py-1 border rounded-md hover:bg-gray-100">
+                                    연결 해제
+                                </button>
+                            ) : (
+                                <button className="px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200">
+                                    연결하기
+                                </button>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
+
         </div>
     );
 }

@@ -16,6 +16,14 @@ html.dark {
   background-color: #000 !important;
 }
 
+body {
+  background-color: #f7f7f7;
+}
+
+body.dark, html.dark body {
+  background-color: #000;
+}
+
 /* 기본 스크롤바 */
 ::-webkit-scrollbar {
   width: 8px;

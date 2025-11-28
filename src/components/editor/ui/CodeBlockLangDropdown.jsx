@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 const LANGUAGES = [
   // 알고리즘 문제 풀이용
@@ -34,14 +34,41 @@ const LANGUAGES = [
 ];
 
 const CodeBlockLangDropdown = ({ language, onChange }) => {
+  const [isDark, setIsDark] = useState(false);
+
+  // 다크모드 감지
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkDarkMode();
+    
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <select
-      className="bg-[#2a2a2a] text-gray-200 px-2 py-1 rounded text-sm"
+      className="px-2 py-1 rounded text-sm border transition-colors duration-200"
+      style={{
+        backgroundColor: isDark ? '#2a2a2a' : '#ffffff',
+        color: isDark ? '#e1e1e1' : '#1f2328',
+        borderColor: isDark ? '#444444' : '#d0d7de'
+      }}
       value={language}
       onChange={(e) => onChange(e.target.value)}
     >
       {LANGUAGES.map((lang) => (
-        <option key={lang.value} value={lang.value}>
+        <option 
+          key={lang.value} 
+          value={lang.value}
+        >
           {lang.label}
         </option>
       ))}

@@ -1,105 +1,82 @@
 import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "next-themes";
-import { useLogin } from "../../../context/LoginContext";
+import {
+    UserIcon,
+    UserCircleIcon,
+    Cog6ToothIcon,
+} from "@heroicons/react/24/outline";
+
+const myMenu = [
+    {
+        name: "프로필",
+        icon: UserIcon,
+        children: [
+            { name: "프로필 설정", href: "/mypage/profile", icon: UserCircleIcon },
+        ],
+    },
+];
 
 export default function MyPageSidebar() {
     const location = useLocation();
     const { theme } = useTheme();
-    const { user } = useLogin();
-
-    const menuItems = [
-        {
-            type: "group",
-            name: "프로필",
-            children: [
-                { name: "프로필 설정", href: "/mypage/profile" },
-            ]
-        },
-    ];
 
     const isActive = (href) => location.pathname === href;
 
-    const getMenuItemClass = (href) => {
+    const getItemClass = (href) => {
         const active = isActive(href);
 
         if (active) {
             return theme === "light"
-                ? "bg-indigo-100 text-indigo-700 font-semibold"
-                : "bg-indigo-600/40 text-indigo-200 font-semibold";
+                ? "bg-indigo-100 text-indigo-800"
+                : "bg-indigo-600/30 text-indigo-300";
         }
-
         return theme === "light"
-            ? "hover:bg-gray-100 font-medium"
-            : "hover:bg-gray-800 font-medium";
-    };
-
-    const getProfileImage = () => {
-        if (!user?.image) return "/default-profile.png";
-        if (user.image.startsWith("http")) return user.image;
-        return `${import.meta.env.VITE_API_URL}${user.image}`;
+            ? "hover:bg-gray-100 text-gray-800"
+            : "hover:bg-gray-800 text-gray-300";
     };
 
     return (
         <aside
-            className={`w-64 h-screen border-r flex flex-col ${
-                theme === "light"
-                    ? "bg-white border-black text-gray-800"
-                    : "bg-gray-900 border-gray-700 text-gray-100"
-            }`}
+            className={`w-64 border-r 
+                ${theme === "light" ? "border-black bg-white" : "border-gray-700 bg-gray-900"}
+            `}
         >
-            {/* 프로필 영역 */}
-            <div className="flex flex-col items-center py-6">
-                <img
-                    src={getProfileImage()}
-                    className="w-20 h-20 rounded-full object-cover border mb-3"
-                    alt="profile"
-                />
-                <h2 className="text-lg font-semibold">{user?.nickname || "사용자"}</h2>
-                <p className="text-sm text-gray-500">{user?.email}</p>
-            </div>
+            <nav className="flex flex-col space-y-6 p-4">
+                {myMenu.map((section) => {
+                    const ParentIcon = section.icon;
 
-            <hr className="my-6 w-full" />
+                    return (
+                        <div key={section.name} className="flex flex-col gap-2">
 
-            {/* 메뉴 */}
-            <nav className="flex flex-col px-6 space-y-6">
-
-                {menuItems.map((section, idx) => (
-                    <div key={idx} className="flex flex-col">
-
-                        {/* 단일 메뉴 */}
-                        {section.type === "single" && (
-                            <Link
-                                to={section.href}
-                                className={`px-3 py-2 rounded-lg transition ${getMenuItemClass(section.href)}`}
-                            >
+                            {/* 부모 메뉴 */}
+                            <div className="flex items-center gap-3 px-2 py-1 text-lg font-bold">
+                                <ParentIcon className="w-6 h-6" />
                                 {section.name}
-                            </Link>
-                        )}
+                            </div>
 
-                        {/* 그룹 메뉴 */}
-                        {section.type === "group" && (
-                            <>
-                                {/* 부모 제목 */}
-                                <p className="text-base font-bold text-black dark:text-gray-300 mb-2">
-                                    {section.name}
-                                </p>
+                            {/* 자식 메뉴 */}
+                            <div className="flex flex-col space-y-1 ml-2">
+                                {section.children.map((child) => {
+                                    const ChildIcon = child.icon;
 
-                                {/* 자식 메뉴 */}
-                                <div className="flex flex-col space-y-1 ml-1">
-                                    {section.children.map((child) => (
+                                    return (
                                         <Link
-                                            key={child.href}
+                                            key={child.name}
                                             to={child.href}
-                                            className={`px-3 py-2 rounded-lg transition ${getMenuItemClass(child.href)}`}
+                                            className={`flex items-center gap-3 px-3 py-2 rounded-md font-semibold transition ${getItemClass(
+                                                child.href
+                                            )}`}
                                         >
+                                            <ChildIcon className="w-5 h-5" />
                                             {child.name}
                                         </Link>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                ))}
+                                    );
+                                })}
+                            </div>
+
+                        </div>
+                    );
+                })}
             </nav>
         </aside>
     );

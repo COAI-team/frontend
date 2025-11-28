@@ -1,9 +1,9 @@
-// src/pages/algorithm/ProblemList.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getProblems, DIFFICULTY_OPTIONS, SOURCE_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/algorithmApi';
 import DifficultyBadge from '../../components/algorithm/problem/DifficultyBadge';
 import ProblemCard from '../../components/algorithm/problem/ProblemCard';
+
 
 const ProblemList = () => {
   // ===== 상태 관리 =====
@@ -262,8 +262,8 @@ const ProblemList = () => {
                         key={pageNum}
                         onClick={() => handlePageChange(pageNum)}
                         className={`px-3 py-2 rounded-md border ${pageNum === pagination.currentPage
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'hover:bg-gray-50'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'hover:bg-gray-50'
                           }`}
                       >
                         {pageNum}

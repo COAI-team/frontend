@@ -9,20 +9,22 @@ import Layout from "./components/layout/mainLayout/Layout";
 import Main from "./pages/Main";
 
 // 결제 관련
-import PricingPage from "./pages/payment/PricingPage.jsx";
-import PaymentPage from "./pages/payment/PaymentPage.jsx";
-import PaymentSuccess from "./pages/payment/PaymentSuccess.jsx";
-import PaymentFail from "./pages/payment/PaymentFail.jsx";
+import PricingPage from "./pages/payment/PricingPage";
+import PaymentPage from "./pages/payment/PaymentPage";
+import PaymentSuccess from "./pages/payment/PaymentSuccess";
+import PaymentFail from "./pages/payment/PaymentFail";
 
 // 사용자 관련
 import SignIn from "./pages/user/SignIn";
 import SignUp from "./pages/user/SignUp";
-import { LoginProvider } from "./context/LoginContext.js";
+import LoginProvider from "./context/LoginProvider";
+import ResetPasswordPage from "./pages/user/ResetPasswordPage";
 
 // 자유게시판
 import FreeboardList from "./pages/freeboard/FreeboardList";
 import FreeboardDetail from "./pages/freeboard/FreeboardDetail";
 import FreeboardWrite from "./pages/freeboard/FreeboardWrite";
+import FreeboardEdit from "./pages/freeboard/FreeboardEdit";
 
 // 알고리즘 도메인
 import ProblemList from "./pages/algorithm/ProblemList";
@@ -34,9 +36,11 @@ import MySubmissions from "./pages/algorithm/MySubmissions";
 
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
-
-// 🔥 새로 만든 페이지 import 추가!
 import ProfilePage from "./pages/mypage/ProfilePage";
+
+//관리자 레이아웃
+import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
+import AdminStatsDashboard from "./pages/admin/AdminStatsDashboard";
 
 createRoot(document.getElementById("root")).render(
     <StrictMode>
@@ -50,6 +54,9 @@ createRoot(document.getElementById("root")).render(
                             path="/payments/*"
                             element={<Navigate to="/pages/payment/pricing" replace />}
                         />
+
+                        {/* 비밀번호 재설정 페이지 */}
+                        <Route path="reset-password" element={<ResetPasswordPage />} />
 
                         {/* 기본 레이아웃 */}
                         <Route path="/" element={<Layout />}>
@@ -67,9 +74,16 @@ createRoot(document.getElementById("root")).render(
                                 <Route path="profile" element={<ProfilePage />} />
                             </Route>
 
+                            <Route path="admin" element={<AdminPageLayout />}>
+                                <Route index element={<Navigate to="stats" replace />} />
+                                <Route path="stats" element={<AdminStatsDashboard />} />
+                            </Route>
+
                             {/* 자유게시판 */}
+
                             <Route path="freeboard/list" element={<FreeboardList />} />
                             <Route path="freeboard/write" element={<FreeboardWrite />} />
+                            <Route path="freeboard/edit/:id" element={<FreeboardEdit />} />
                             <Route path="freeboard/:id" element={<FreeboardDetail />} />
 
                             {/* 결제 */}
