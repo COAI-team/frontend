@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getProblems, DIFFICULTY_OPTIONS, SOURCE_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/algorithmApi';
-import ProblemCard from '../../components/algorithm/problem/ProblemCard'; 
+import DifficultyBadge from '../../components/algorithm/problem/DifficultyBadge';
+import ProblemCard from '../../components/algorithm/problem/ProblemCard';
+
 
 const ProblemList = () => {
   // ===== 상태 관리 =====
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // 필터 및 페이징 상태
   const [filters, setFilters] = useState({
     difficulty: '',
@@ -17,7 +19,7 @@ const ProblemList = () => {
     page: 1,
     size: 10
   });
-  
+
   // 페이지네이션 정보
   const [pagination, setPagination] = useState({
     totalCount: 0,
@@ -43,14 +45,14 @@ const ProblemList = () => {
       }
 
       // 백엔드 응답 구조에 맞춰 데이터 설정
-      if (result.Data) {
-        setProblems(result.Data.problems || []);
+      if (result.data) {
+        setProblems(result.data.problems || []);
         setPagination({
-          totalCount: result.Data.totalCount || 0,
-          totalPages: result.Data.totalPages || 0,
-          currentPage: result.Data.currentPage || 1,
-          hasNext: result.Data.hasNext || false,
-          hasPrevious: result.Data.hasPrevious || false
+          totalCount: result.data.totalCount || 0,
+          totalPages: result.data.totalPages || 0,
+          currentPage: result.data.currentPage || 1,
+          hasNext: result.data.hasNext || false,
+          hasPrevious: result.data.hasPrevious || false
         });
       }
     } catch (err) {
@@ -252,18 +254,17 @@ const ProblemList = () => {
                       pagination.totalPages - 4,
                       Math.max(1, pagination.currentPage - 2)
                     )) + i;
-                    
+
                     if (pageNum > pagination.totalPages) return null;
-                    
+
                     return (
                       <button
                         key={pageNum}
                         onClick={() => handlePageChange(pageNum)}
-                        className={`px-3 py-2 rounded-md border ${
-                          pageNum === pagination.currentPage
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'hover:bg-gray-50'
-                        }`}
+                        className={`px-3 py-2 rounded-md border ${pageNum === pagination.currentPage
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'hover:bg-gray-50'
+                          }`}
                       >
                         {pageNum}
                       </button>

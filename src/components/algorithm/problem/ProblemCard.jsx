@@ -22,7 +22,7 @@ const ProblemCard = ({ problem, onClick }) => {
   const getSourceLabel = (source) => {
     return SOURCE_OPTIONS.find(opt => opt.value === source)?.label || source;
   };
-  
+
   const handleClick = () => {
     console.log('🔍 클릭된 문제 ID:', problem.algoProblemId);
     onClick(problem.algoProblemId);
@@ -30,7 +30,7 @@ const ProblemCard = ({ problem, onClick }) => {
 
   return (
     <div
-      onClick={() => onClick(handleClick)}
+      onClick={handleClick}
       className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer p-6"
     >
       <div className="flex items-center justify-between">
@@ -44,23 +44,23 @@ const ProblemCard = ({ problem, onClick }) => {
               {problem.algoProblemTitle}
             </h3>
           </div>
-          
+
           {/* 문제 메타 정보 */}
           <div className="flex items-center gap-4 text-sm text-gray-600">
             {/* 난이도 뱃지 */}
             <DifficultyBadge difficulty={problem.algoProblemDifficulty} />
-            
+
             {/* 출처 */}
             <span className="flex items-center gap-1">
               {getSourceIcon(problem.algoProblemSource)}
               {getSourceLabel(problem.algoProblemSource)}
             </span>
-            
+
             {/* 시간 제한 */}
             <span className="flex items-center gap-1">
               ⏱️ {problem.timelimit}ms
             </span>
-            
+
             {/* 메모리 제한 */}
             <span className="flex items-center gap-1">
               💾 {problem.memorylimit}MB
@@ -84,15 +84,15 @@ const ProblemCard = ({ problem, onClick }) => {
 
         {/* 화살표 아이콘 */}
         <div className="flex items-center text-gray-400 ml-4">
-          <svg 
-            className="w-5 h-5" 
-            fill="currentColor" 
+          <svg
+            className="w-5 h-5"
+            fill="currentColor"
             viewBox="0 0 20 20"
           >
-            <path 
-              fillRule="evenodd" 
-              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" 
-              clipRule="evenodd" 
+            <path
+              fillRule="evenodd"
+              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+              clipRule="evenodd"
             />
           </svg>
         </div>
