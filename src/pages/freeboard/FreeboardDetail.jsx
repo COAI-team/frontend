@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import hljs from 'highlight.js';
 import "../../styles/FreeboardDetail.css";
+import CommentSection from '../../components/comment/CommentSection';
 
 const FreeboardDetail = () => {
   const { id } = useParams();
@@ -10,6 +11,9 @@ const FreeboardDetail = () => {
   const [board, setBoard] = useState(null);
   const [isDark, setIsDark] = useState(false);
   const contentRef = useRef(null);
+
+  // 임시로 댓글작성 userId 1로 설정 (나중에 실제 로그인 유저로 변경)
+  const currentUserId = 1;
 
   // 다크모드 감지 및 highlight.js 테마 동적 로드
   useEffect(() => {
@@ -296,6 +300,13 @@ const FreeboardDetail = () => {
           ))}
         </div>
       )}
+
+      {/* 댓글 섹션 */}
+      <CommentSection
+        boardId={Number(id)}
+        boardType="FREEBOARD"
+        currentUserId={currentUserId}
+      />
 
       <div className={`mt-10 pt-6 border-t flex gap-3 ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
         <button
