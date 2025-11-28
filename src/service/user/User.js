@@ -17,12 +17,15 @@ export const login = async (payload) => {
 // 회원가입
 export const signup = async (payload) => {
     try {
-        const res = await axiosInstance.post("/users/register", payload);
+        const res = await axiosInstance.post("/users/register", payload, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
         return res.data;
     } catch (err) {
         console.error("❌ [signup] axios error:", err);
 
-        // 🔥 백엔드에서 내려준 코드/메시지 있는 경우 그대로 반환
         if (err.response && err.response.data) {
             return {
                 error: true,
@@ -30,23 +33,22 @@ export const signup = async (payload) => {
                 message: err.response.data.message
             };
         }
-
-        return {error: true, message: "Unknown error"};
+        return { error: true, message: "Unknown error" };
     }
 };
 
 // 유저 정보 가져오기
-export const getUserInfo = async () => {
+export const getUserInfo = async (accessToken) => {
     try {
-        console.log("📨 [getUserInfo] 요청 시작");
-
-        const res = await axiosInstance.get("/user/me");
-
-        console.log("✅ [getUserInfo] 응답 성공:", res.data);
+        const res = await axiosInstance.get("/users/me", {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
         return res.data;
     } catch (err) {
-        console.error("❌ [getUserInfo] 요청 실패:", err);
-        return {error: err};
+        console.error("❌ getUserInfo 오류:", err);
+        return { error: err };
     }
 };
 
@@ -96,42 +98,6 @@ export const requestPasswordReset = async (email) => {
     }
 };
 
-export const updatePassword = async (payload, accessToken) => {
-    try {
-        console.log("📨 [updatePassword] 요청 시작:", payload);
-
-        const res = await axiosInstance.put(
-            "/users/password/update",
-            payload,
-            {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`, // ⭐ 토큰 직접 추가
-                },
-            }
-        );
-
-        console.log("✅ [updatePassword] 응답 성공:", res.data);
-        return res.data;
-    } catch (err) {
-        console.error("❌ [updatePassword] 요청 실패:", err);
-
-// 1) 서버가 응답을 준 경우(err.response가 존재)
-        if (err.response && err.response.data) {
-            return {
-                error: true,
-                message: err.response.data.message,  // 백엔드에서 내려준 메시지
-                code: err.response.data.code,        // 백엔드의 에러 코드
-            };
-        }
-
-// 2) 서버 응답조차 없거나 알 수 없는 오류
-        return {
-            error: true,
-            message: "Unknown error"
-        };
-    }
-};
-
 export const validateResetToken = async (token) => {
     try {
         const res = await axiosInstance.get(`/users/password/reset/validate?token=${token}`);
@@ -150,5 +116,45 @@ export const confirmPasswordReset = async (token, newPassword) => {
         return res.data;
     } catch (err) {
         return {error: err};
+    }
+};
+
+// 회원 정보 수정 (이름 / 닉네임 / 프로필 이미지)
+export const updateMyInfo = async (accessToken, payload) => {
+    try {
+        const formData = new FormData();
+
+        // DTO 필드들 추가
+        if (payload.name) formData.append("name", payload.name);
+        if (payload.nickname) formData.append("nickname", payload.nickname);
+
+        // 이미지 파일(optional)
+        if (payload.image) formData.append("image", payload.image);
+
+        const res = await axiosInstance.put("/users/me", formData, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        return res.data;
+    } catch (err) {
+        console.error("❌ [updateMyInfo] 오류:", err);
+        return { error: true, detail: err.response?.data };
+    }
+};
+
+// 이메일 변경
+export const updateEmail = async (newEmail) => {
+    try {
+        const res = await axiosInstance.put("/users/me/email", {
+            newEmail: newEmail
+        });
+
+        return res.data;
+    } catch (err) {
+        console.error("❌ [updateEmail] 오류:", err.response?.data);
+        return { error: true, detail: err.response?.data };
     }
 };

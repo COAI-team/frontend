@@ -1,5 +1,3 @@
-// src/pages/payment/PaymentPage.jsx
-
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { loadTossPayments } from "@tosspayments/tosspayments-sdk";

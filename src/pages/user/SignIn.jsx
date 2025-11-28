@@ -5,7 +5,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { login as apiLogin } from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
 import ResetPasswordModal from "../../components/modal/ResetPasswordModal";
-import { LoginContext } from "../../context/LoginContext";
+import { LoginContext } from "../../context/LoginContext.js";
+import LoadingButton from "../../components/button/LoadingButton";
 import { useTheme } from "next-themes";
 
 export default function SignIn() {
@@ -20,8 +21,7 @@ export default function SignIn() {
         title: "",
         message: "",
     });
-
-    // ⭐ 추가: 비밀번호 보이기/숨기기 state
+    const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const loginBtnColor = theme === "light" ? "bg-[#2DD4BF] hover:bg-[#24b3a6]" : "bg-[#FFFA99] hover:bg-[#e2e07c]";
@@ -29,10 +29,13 @@ export default function SignIn() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
+
         const email = e.target.email.value;
         const password = e.target.password.value;
 
         if (!email || !password) {
+            setIsLoading(false);
             setAlertModal({
                 open: true,
                 type: "warning",
@@ -44,12 +47,14 @@ export default function SignIn() {
 
         const result = await apiLogin({ email, password });
 
+        setIsLoading(false);
+
         if (result.error) {
             setAlertModal({
                 open: true,
                 type: "error",
                 title: "로그인 실패",
-                message: result.error.response?.data?.message || "로그인 중 오류가 발생했습니다.",
+                message: result.error.response?.data?.message || "로그인 오류",
             });
             return;
         }
@@ -148,12 +153,11 @@ export default function SignIn() {
                             </div>
 
                             {/* LOGIN BUTTON */}
-                            <button
-                                type="submit"
-                                className={`flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-black ${loginBtnColor}`}
-                            >
-                                로그인
-                            </button>
+                            <LoadingButton
+                                text="로그인"
+                                isLoading={isLoading}
+                                className={`${loginBtnColor}`}  // 기존 버튼 색상 그대로 사용
+                            />
                         </form>
 
                         {/* 소셜 로그인 */}

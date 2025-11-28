@@ -5,6 +5,7 @@ import { signup, sendEmailCode, verifyEmailCode } from "../../service/user/User"
 import AlertModal from "../../components/modal/AlertModal";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
+import LoadingButton from "../../components/button/LoadingButton";
 
 import {
     ProfileUploadPropTypes,
@@ -83,6 +84,11 @@ export default function SignUp() {
     const [isVerified, setIsVerified] = useState(false);
     const [code, setCode] = useState("");
 
+    /** 🔥 로딩 상태 추가 */
+    const [loadingSendEmail, setLoadingSendEmail] = useState(false);
+    const [loadingVerifyEmail, setLoadingVerifyEmail] = useState(false);
+    const [loadingSignup, setLoadingSignup] = useState(false);
+
     const uploadBtn = theme === "light" ? "bg-[#04BDF2]" : "bg-[#CC67FA]";
     const sendEmailBtn = "bg-[#2DD4BF]";
     const verifyBtn = theme === "light" ? "bg-[#CC67FA]" : "bg-[#FFFA99]";
@@ -101,28 +107,47 @@ export default function SignUp() {
         });
     };
 
+    /** --------------------------
+     *   이메일 인증번호 발송
+     * -------------------------- */
     const handleSendEmail = async () => {
         const email = getEmailInput();
         if (!email) return showAlert("warning", "입력 필요", "이메일을 입력해주세요!");
+
+        setLoadingSendEmail(true);
         await processEmailCodeSend(email);
+        setLoadingSendEmail(false);
     };
 
+    /** --------------------------
+     *   인증번호 확인
+     * -------------------------- */
     const handleVerifyCode = async () => {
         const email = getEmailInput();
         if (!email || !code) {
             return showAlert("warning", "입력 필요", "이메일과 인증번호를 입력해주세요.");
         }
+
+        setLoadingVerifyEmail(true);
         await processEmailVerify(email, code);
+        setLoadingVerifyEmail(false);
     };
 
+    /** --------------------------
+     *   회원가입
+     * -------------------------- */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         const validationError = validateBeforeSubmit(isVerified, passwordMessage, isPasswordMatch);
         if (validationError) return showAlert("error", validationError.title, validationError.message);
 
+        setLoadingSignup(true);
+
         const formData = createFormData(e.target, password, profileFile);
         const res = await signup(formData);
+
+        setLoadingSignup(false);
 
         if (res.error) {
             return showAlert("error", "회원가입 실패", res.message);
@@ -147,7 +172,10 @@ export default function SignUp() {
     async function processEmailVerify(email, code) {
         const result = await verifyEmailCode(email, code);
 
-        if (result === "인증 성공") {
+        console.log("🔍 verifyEmailCode result:", result);
+
+        /** ✔ 이메일 인증 성공 조건 정확히 처리 */
+        if (result?.success === true) {
             setIsVerified(true);
             return showAlert("success", "이메일 인증 완료", "이메일 인증이 완료되었습니다!");
         }
@@ -219,6 +247,9 @@ export default function SignUp() {
                         verifyBtn={verifyBtn}
                         sendEmailBtn={sendEmailBtn}
                         signupBtn={signupBtn}
+                        loadingSendEmail={loadingSendEmail}
+                        loadingVerifyEmail={loadingVerifyEmail}
+                        loadingSignup={loadingSignup}
                     />
                 </div>
             </div>
@@ -291,17 +322,16 @@ function SignUpForm(props) {
 
             <PasswordSection {...props} />
 
-            <button
-                type="submit"
+            <LoadingButton
+                text="회원가입"
+                isLoading={props.loadingSignup}
                 disabled={!props.isVerified}
-                className={`mt-4 flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold ${
+                className={
                     props.isVerified
                         ? `${props.signupBtn} text-white hover:opacity-80`
                         : "bg-gray-400 cursor-not-allowed"
-                }`}
-            >
-                회원가입
-            </button>
+                }
+            />
         </form>
     );
 }
@@ -332,7 +362,9 @@ function EmailSection({
                           verifyBtn,
                           code,
                           setCode,
-                          isVerified
+                          isVerified,
+                          loadingSendEmail,
+                          loadingVerifyEmail
                       }) {
     return (
         <div>
@@ -347,18 +379,19 @@ function EmailSection({
                     type="email"
                     required
                     placeholder="이메일 입력"
-                    className="flex-1 rounded-md bg-white px-3 py-2 text-gray-900
-                               outline outline-gray-300 focus:outline-indigo-600
-                               dark:bg-white/5 dark:text-white"
+                    className="flex-[3] rounded-md bg-white px-3 py-2 text-gray-900
+                   outline outline-gray-300 focus:outline-indigo-600
+                   dark:bg-white/5 dark:text-white"
                 />
 
-                <button
-                    type="button"
-                    onClick={handleSendEmail}
-                    className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-semibold text-black hover:opacity-80 ${sendEmailBtn}`}
-                >
-                    인증번호 발송
-                </button>
+                <div className="flex-[1]">
+                    <LoadingButton
+                        text="인증번호 발송"
+                        isLoading={loadingSendEmail}
+                        onClick={handleSendEmail}
+                        className={`${sendEmailBtn} text-black w-full`}
+                    />
+                </div>
             </div>
 
             {remainingTime && <p className="mt-1 text-sm text-red-500">남은 시간: {remainingTime}</p>}
@@ -369,18 +402,19 @@ function EmailSection({
                     placeholder="인증번호 입력"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
-                    className="flex-1 rounded-md bg-white px-3 py-2 text-gray-900
-                               outline outline-gray-300 focus:outline-indigo-600
-                               dark:bg-white/5 dark:text-white"
+                    className="flex-[3] rounded-md bg-white px-3 py-2 text-gray-900
+                   outline outline-gray-300 focus:outline-indigo-600
+                   dark:bg-white/5 dark:text-white"
                 />
 
-                <button
-                    type="button"
-                    onClick={handleVerifyCode}
-                    className={`rounded-md px-3 py-2 text-sm font-semibold text-black hover:opacity-80 ${verifyBtn}`}
-                >
-                    인증 확인
-                </button>
+                <div className="flex-[1]">
+                    <LoadingButton
+                        text="인증 확인"
+                        isLoading={loadingVerifyEmail}
+                        onClick={handleVerifyCode}
+                        className={`${verifyBtn} text-black w-full`}
+                    />
+                </div>
             </div>
 
             {isVerified && <p className="mt-1 text-sm text-green-400">✔ 이메일 인증 성공!</p>}

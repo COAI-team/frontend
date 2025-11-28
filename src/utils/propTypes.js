@@ -142,3 +142,90 @@ export const PasswordInputPropTypes = {
     error: PropTypes.string,
     placeholder: PropTypes.string,
 };
+
+/* ----------------------------------------
+ * LoadingButton PropTypes
+ * ---------------------------------------- */
+export const LoadingButtonPropTypes = {
+    text: PropTypes.string,
+    isLoading: PropTypes.bool.isRequired,
+    onClick: PropTypes.func,
+    disabled: PropTypes.bool,
+    className: PropTypes.string,
+};
+
+/* ----------------------------------------
+ * ViewModeCard PropTypes
+ * ---------------------------------------- */
+export const ViewModeCardPropTypes = {
+    profile: PropTypes.shape({
+        name: PropTypes.string,
+        nickname: PropTypes.string,
+        email: PropTypes.string,
+        preview: PropTypes.string,
+        image: PropTypes.string,
+    }).isRequired,
+    maskEmail: PropTypes.func.isRequired,
+    onEdit: PropTypes.func.isRequired,
+};
+
+/* ----------------------------------------
+ * EditModeCard PropTypes
+ * ---------------------------------------- */
+export const EditModeCardPropTypes = {
+    profile: PropTypes.shape({
+        name: PropTypes.string,
+        nickname: PropTypes.string,
+        email: PropTypes.string,
+        preview: PropTypes.string,
+        image: PropTypes.string,
+    }).isRequired,
+    setProfile: PropTypes.func.isRequired,
+    handleImageChange: PropTypes.func.isRequired,
+    onCancel: PropTypes.func.isRequired,
+    onSave: PropTypes.func.isRequired,
+};
+
+/* ----------------------------------------
+ * MobileMenuButton PropTypes
+ * ---------------------------------------- */
+export const MobileMenuButtonPropTypes = {
+    theme: PropTypes.oneOf(["light", "dark"]).isRequired,
+};
+
+/* ----------------------------------------
+ * Logo PropTypes
+ * ---------------------------------------- */
+export const LogoPropTypes = {
+    theme: PropTypes.oneOf(["light", "dark"]).isRequired,
+};
+
+/* ----------------------------------------
+ * MobileNav PropTypes
+ * ---------------------------------------- */
+export const MobileNavPropTypes = {
+    navigation: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string.isRequired,
+            href: PropTypes.string.isRequired,
+            current: PropTypes.bool,
+        })
+    ).isRequired,
+    onLinkClick: PropTypes.func.isRequired,
+};
+
+/* ----------------------------------------
+ * RightActions PropTypes
+ * ---------------------------------------- */
+export const RightActionsPropTypes = {
+    theme: PropTypes.oneOf(["light", "dark"]).isRequired,
+    setTheme: PropTypes.func.isRequired,
+    user: PropTypes.shape({
+        nickname: PropTypes.string,
+        image: PropTypes.string,
+        role: PropTypes.string,
+    }),
+    logout: PropTypes.func.isRequired,
+    navigate: PropTypes.func.isRequired,
+    BASE_URL: PropTypes.string.isRequired,
+};

@@ -9,8 +9,9 @@ import {
 } from "../../service/user/User";
 
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
+import LoadingButton from "../../components/button/LoadingButton";
 
-/* ---- 비밀번호 규칙 검사 함수 (회원가입 페이지와 동일) ---- */
+/* ---- 비밀번호 규칙 검사 함수 ---- */
 function getPasswordError(pw) {
     if (!pw) return "";
 
@@ -51,6 +52,9 @@ export default function ResetPasswordPage() {
         message: "",
         onConfirm: null,
     });
+
+    // ⭐ 추가: 로딩 상태
+    const [loadingSubmit, setLoadingSubmit] = useState(false);
 
     useEffect(() => {
         if (!token) {
@@ -96,7 +100,11 @@ export default function ResetPasswordPage() {
         }
 
         try {
+            setLoadingSubmit(true); // ⭐ 로딩 시작
+
             await confirmPasswordReset(token, newPassword);
+
+            setLoadingSubmit(false); // ⭐ 로딩 끝
 
             setAlert({
                 open: true,
@@ -106,6 +114,7 @@ export default function ResetPasswordPage() {
                 onConfirm: () => navigate("/signin"),
             });
         } catch (err) {
+            setLoadingSubmit(false);
             setAlert({
                 open: true,
                 type: "error",
@@ -240,13 +249,16 @@ export default function ResetPasswordPage() {
                     )}
                 </div>
 
-                {/* 제출 버튼 */}
-                <button
+                {/* 🔥 로딩 버튼 적용됨 */}
+                <LoadingButton
+                    text="비밀번호 변경하기"
+                    isLoading={loadingSubmit}
                     onClick={handleSubmit}
-                    className="mt-6 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold"
-                >
-                    비밀번호 변경하기
-                </button>
+                    className="mt-6 w-full px-4 py-2 rounded-md font-semibold text-white"
+                    style={{ backgroundColor: "#2563eb" }}          // blue-600
+                    onMouseEnter={(e) => (e.target.style.backgroundColor = "#1d4ed8")} // blue-700
+                    onMouseLeave={(e) => (e.target.style.backgroundColor = "#2563eb")}
+                />
             </div>
 
             <AlertModal

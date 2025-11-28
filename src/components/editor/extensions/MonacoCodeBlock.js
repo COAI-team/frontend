@@ -1,6 +1,6 @@
 import { Node } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import MonacoCodeBlockView from "../nodeviews/MonacoCodeBlockView.jsx";
+import MonacoCodeBlockView from "../nodeviews/MonacoCodeBlockView";
 
 const MonacoCodeBlock = Node.create({
   name: "monacoCodeBlock",
