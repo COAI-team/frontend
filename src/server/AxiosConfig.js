@@ -5,6 +5,9 @@ export const axiosInstance = axios.create({
     timeout: 10000,
 });
 
+// 강제로 baseURL 설정 (로그에서 /로 나오는 문제 방지) .. 안돌아간다면 아래 주석하고 해보세요.. 
+axiosInstance.defaults.baseURL = "https://localhost:9443";
+
 // =====================================================
 // 1) 요청 시 AccessToken 자동 주입
 // =====================================================
@@ -27,7 +30,8 @@ axiosInstance.interceptors.request.use(
                 sessionStorage.removeItem("auth");
             }
         }
-        console.log("[AxiosConfig] baseURL =", axiosInstance.defaults.baseURL);
+        // 디버깅 로그 강화
+        console.log(`[AxiosConfig] Request to: ${config.baseURL}${config.url}`);
 
         return config;
     },
@@ -75,7 +79,8 @@ function saveAuth(data) {
 // refresh 토큰으로 AccessToken 재발급
 async function requestNewAccessToken(refreshToken) {
     const res = await axios.post(
-        "https://114.204.9.108:10443/users/refresh",
+        // "https://114.204.9.108:10443/users/refresh",
+        "https://localhost:9443/users/refresh", // ✅ localhost로 변경
         {},
         {
             headers: {
