@@ -1,103 +1,120 @@
-import { useState } from 'react';
-import { useTheme } from 'next-themes';
-import CodeAnalysisModal from '../../components/codenose/CodeAnalysisModal';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { getAnalysisHistory } from '../../service/codeAnalysis/analysisApi';
 
 const CodeAnalysisMain = () => {
-    const { theme } = useTheme();
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const loadHistory = async () => {
+            try {
+                setLoading(true);
+                // TODO: 실제 사용자 ID 사용 (현재 하드코딩 1)
+                const result = await getAnalysisHistory(1);
+                
+                if (result.data && Array.isArray(result.data)) {
+                    setHistory(result.data);
+                } else {
+                    setHistory([]);
+                }
+            } catch (err) {
+                console.error('Failed to load history:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadHistory();
+    }, []);
+
+    const handleCardClick = (analysisId) => {
+        navigate(`/codeAnalysis/${analysisId}`);
+    };
 
     return (
-        <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-900'}`}>
-            <div className="container mx-auto px-4 py-12">
-                {/* Hero Section */}
-                <div className="text-center mb-12">
-                    <h1 className={`text-5xl font-bold mb-4 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-                        AI 코드 분석
-                    </h1>
-                    <p className={`text-xl ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                        GitHub 레포지토리의 코드를 AI가 분석하여 개선점을 제안합니다
-                    </p>
-                </div>
-
-                {/* Action Button */}
-                <div className="flex justify-center mb-16">
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="px-8 py-4 bg-indigo-600 text-white text-lg font-semibold rounded-lg hover:bg-indigo-700 transition-all transform hover:scale-105 shadow-lg"
+        <div className="min-h-screen py-8">
+            <div className="max-w-6xl mx-auto px-4">
+                {/* 헤더 섹션 */}
+                <div className="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2">코드 분석 이력</h1>
+                        <p>AI가 분석한 코드 리포트를 확인하세요</p>
+                    </div>
+                    <Link
+                        to="/codeAnalysis/new"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2"
                     >
-                        새 분석 시작하기
-                    </button>
+                        ✨ 새 분석 시작하기
+                    </Link>
                 </div>
 
-                {/* Features Grid */}
-                <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                    <div className={`p-6 rounded-lg ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} shadow-lg`}>
-                        <div className="text-3xl mb-4">🔍</div>
-                        <h3 className={`text-xl font-semibold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-                            코드 스멜 감지
-                        </h3>
-                        <p className={theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>
-                            잠재적인 문제와 개선이 필요한 패턴을 자동으로 찾아냅니다.
-                        </p>
+                {/* 리스트 섹션 */}
+                {loading ? (
+                    <div className="text-center py-12">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        <p className="mt-2">분석 이력을 불러오는 중...</p>
                     </div>
-
-                    <div className={`p-6 rounded-lg ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} shadow-lg`}>
-                        <div className="text-3xl mb-4">⚡</div>
-                        <h3 className={`text-xl font-semibold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-                            성능 최적화
-                        </h3>
-                        <p className={theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>
-                            성능을 향상시킬 수 있는 구체적인 방법을 제시합니다.
-                        </p>
-                    </div>
-
-                    <div className={`p-6 rounded-lg ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} shadow-lg`}>
-                        <div className="text-3xl mb-4">🎯</div>
-                        <h3 className={`text-xl font-semibold mb-2 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-                            맞춤 분석
-                        </h3>
-                        <p className={theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>
-                            분석 강도와 집중 영역을 자유롭게 선택할 수 있습니다.
-                        </p>
-                    </div>
-                </div>
-
-                {/* How It Works */}
-                <div className="mt-20 max-w-4xl mx-auto">
-                    <h2 className={`text-3xl font-bold text-center mb-12 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-                        분석 진행 과정
-                    </h2>
-                    <div className="space-y-6">
-                        {[
-                            { step: 1, title: 'GitHub ID 입력', desc: 'GitHub 사용자명을 입력하여 레포지토리 목록을 조회합니다.' },
-                            { step: 2, title: 'Repository 선택', desc: '분석하고 싶은 레포지토리를 선택합니다.' },
-                            { step: 3, title: '파일 선택', desc: '폴더 구조를 탐색하여 분석할 파일을 선택합니다.' },
-                            { step: 4, title: '분석 옵션 설정', desc: '분석 강도, 집중 영역, 추가 요구사항을 설정합니다.' },
-                            { step: 5, title: '결과 확인', desc: 'AI가 생성한 상세한 분석 결과와 개선 제안을 확인합니다.' }
-                        ].map((item) => (
-                            <div
-                                key={item.step}
-                                className={`flex items-start gap-4 p-4 rounded-lg ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} shadow`}
-                            >
-                                <div className="flex-shrink-0 w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
-                                    {item.step}
-                                </div>
-                                <div>
-                                    <h4 className={`text-lg font-semibold mb-1 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-                                        {item.title}
-                                    </h4>
-                                    <p className={theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>
-                                        {item.desc}
-                                    </p>
-                                </div>
+                ) : (
+                    <div className="space-y-4">
+                        {history.length === 0 ? (
+                            <div className="text-center py-20 rounded-lg border border-dashed border-gray-300">
+                                <p className="text-lg mb-4">아직 분석된 코드가 없습니다.</p>
+                                <Link
+                                    to="/codeAnalysis/new"
+                                    className="text-indigo-600 hover:text-indigo-800 font-medium"
+                                >
+                                    첫 번째 분석을 시작해보세요! →
+                                </Link>
                             </div>
-                        ))}
+                        ) : (
+                            history.map((item) => (
+                                <div
+                                    key={item.analysisId}
+                                    onClick={() => handleCardClick(item.analysisId)}
+                                    className="rounded-lg shadow-sm border hover:shadow-md transition-all cursor-pointer p-6 group"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                                    item.aiScore >= 90 ? 'bg-green-100 text-green-700' :
+                                                    item.aiScore >= 70 ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-orange-100 text-orange-700'
+                                                }`}>
+                                                    {item.aiScore}점
+                                                </span>
+                                                <h3 className="text-lg font-semibold group-hover:text-indigo-600 transition-colors">
+                                                    {item.filePath.split('/').pop()}
+                                                </h3>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-4 text-sm">
+                                                <span className="flex items-center gap-1">
+                                                    📂 {item.filePath}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    📅 {new Date(item.createdAt).toLocaleDateString()}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    🎭 톤 레벨: {item.toneLevel}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="group-hover:text-indigo-600 transition-colors">
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
-                </div>
+                )}
             </div>
-
-            {/* Modal */}
-            <CodeAnalysisModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
         </div>
     );
 };

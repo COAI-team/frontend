@@ -34,6 +34,10 @@ import ProblemSolve from "./pages/algorithm/ProblemSolve";
 import SubmissionResult from "./pages/algorithm/SubmissionResult";
 import MySubmissions from "./pages/algorithm/MySubmissions";
 
+// 코드 분석 도메인
+import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
+import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
+
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
 import ProfilePage from "./pages/mypage/ProfilePage";
@@ -100,6 +104,11 @@ createRoot(document.getElementById("root")).render(
                             <Route path="algorithm/problems/:problemId/solve" element={<ProblemSolve />} />
                             <Route path="algorithm/submissions/:submissionId" element={<SubmissionResult />} />
                             <Route path="algorithm/my-submissions" element={<MySubmissions />} />
+
+                            {/* 코드 분석 (CodeNose) */}
+                            <Route path="codeAnalysis" element={<CodeAnalysisMain/>}/>
+                            <Route path="codeAnalysis/new" element={<AnalysisPage/>}/>
+                            <Route path="codeAnalysis/:analysisId" element={<AnalysisPage/>}/>
 
                         </Route>
 
