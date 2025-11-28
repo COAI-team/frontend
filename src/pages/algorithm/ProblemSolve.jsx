@@ -4,6 +4,7 @@ import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
 import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
+import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
@@ -13,6 +14,7 @@ const ProblemSolve = () => {
   const { problemId } = useParams();
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const eyeTrackerRef = useRef(null); // 시선 추적 ref
 
   // 문제 데이터 상태
   const [problem, setProblem] = useState(null);
@@ -33,6 +35,10 @@ const ProblemSolve = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [runProgress, setRunProgress] = useState(0);
+
+  // 시선 추적 상태
+  const [eyeTrackingEnabled, setEyeTrackingEnabled] = useState(false);
+  const [eyeTrackingReady, setEyeTrackingReady] = useState(false);
 
   // ✅ 수평 리사이저 (문제설명 | 에디터)
   const {
@@ -63,6 +69,12 @@ const ProblemSolve = () => {
       return;
     }
 
+    // 시선 추적 세션 종료
+    if (eyeTrackingEnabled && eyeTrackerRef.current) {
+      await eyeTrackerRef.current.stopTracking();
+      setEyeTrackingEnabled(false);
+    }
+
     setIsSubmitting(true);
     setIsTimerRunning(false);
 
@@ -86,7 +98,7 @@ const ProblemSolve = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [code, problemId, selectedLanguage, navigate, getElapsedTime]);
+  }, [code, problemId, selectedLanguage, navigate, getElapsedTime, eyeTrackingEnabled]);
 
   // 문제 데이터 로드
   useEffect(() => {
@@ -278,11 +290,20 @@ const ProblemSolve = () => {
             </div>
 
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                <span className="text-sm">Eye Tracking</span>
-                <span className="font-mono">{formatTime(getElapsedTime())}</span>
-              </div>
+              {/* 시선 추적 토글 */}
+              <button
+                onClick={() => setEyeTrackingEnabled(!eyeTrackingEnabled)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${eyeTrackingEnabled
+                  ? 'bg-purple-600 hover:bg-purple-700'
+                  : 'bg-zinc-700 hover:bg-zinc-600'
+                  }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${eyeTrackingReady ? 'bg-green-400 animate-pulse' : 'bg-red-500'
+                  }`}></span>
+                <span className="text-sm font-semibold">
+                  {eyeTrackingEnabled ? '👁️ 추적 중' : '시선 추적'}
+                </span>
+              </button>
 
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
@@ -512,6 +533,20 @@ const ProblemSolve = () => {
           </div>
         </div>
       </div>
+
+      {/* 시선 추적 컴포넌트 */}
+      {eyeTrackingEnabled && (
+        <EyeTracker
+          ref={eyeTrackerRef}
+          problemId={Number(problemId)}
+          isEnabled={eyeTrackingEnabled}
+          onReady={() => setEyeTrackingReady(true)}
+          onSessionEnd={(sessionId) => {
+            console.log('Eye tracking session ended:', sessionId);
+            setEyeTrackingReady(false);
+          }}
+        />
+      )}
     </div>
   );
 };

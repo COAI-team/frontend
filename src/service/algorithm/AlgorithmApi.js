@@ -177,6 +177,50 @@ export const healthCheck = async () => {
     }
 };
 
+// ============== 집중 추적 API ==============
+
+/**
+ * 집중 세션 시작
+ */
+export const startFocusSession = async (problemId) => {
+    try {
+        const res = await axiosInstance.post('/algo/focus/start', { problemId });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [startFocusSession] 요청 실패:', err);
+        return { error: true, message: err.response?.data?.message || '세션 시작 실패' };
+    }
+};
+
+/**
+ * 집중 이벤트 전송
+ */
+export const sendFocusEvent = async (sessionId, eventData) => {
+    try {
+        const res = await axiosInstance.post('/algo/focus/events', {
+            sessionId,
+            ...eventData
+        });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [sendFocusEvent] 요청 실패:', err);
+        return { error: true, message: err.response?.data?.message || '이벤트 전송 실패' };
+    }
+};
+
+/**
+ * 집중 세션 종료
+ */
+export const endFocusSession = async (sessionId) => {
+    try {
+        const res = await axiosInstance.post('/algo/focus/end', { sessionId });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [endFocusSession] 요청 실패:', err);
+        return { error: true, message: err.response?.data?.message || '세션 종료 실패' };
+    }
+};
+
 // ============== 상수 정의 ==============
 
 export const DIFFICULTY_OPTIONS = [
