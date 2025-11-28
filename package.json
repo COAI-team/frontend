@@ -30,6 +30,7 @@
     "@tosspayments/tosspayments-sdk": "^2.4.1",
     "axios": "^1.13.2",
     "browser-image-compression": "^2.0.2",
+    "date-fns": "^4.1.0",
     "highlight.js": "^11.11.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.555.0",
