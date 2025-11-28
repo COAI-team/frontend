@@ -9,13 +9,13 @@ export const getProblems = async (params = {}) => {
     try {
         const queryParams = new URLSearchParams();
         const { page = 1, size = 10, difficulty, source, keyword } = params;
-        
+
         queryParams.append('page', page);
         queryParams.append('size', size);
         if (difficulty) queryParams.append('difficulty', difficulty);
         if (source) queryParams.append('source', source);
         if (keyword) queryParams.append('keyword', keyword);
-        
+
         const res = await axiosInstance.get(`/algo/problems?${queryParams}`);
         return res.data;
     } catch (err) {
@@ -95,6 +95,28 @@ export const getSubmissionResult = async (submissionId) => {
             return { error: true, code: err.response.data.code, message: err.response.data.message };
         }
         return { error: true, message: "제출 결과를 가져올 수 없습니다." };
+    }
+};
+
+/**
+ * 내 제출 이력 조회 (ALG-11)
+ */
+export const getMySubmissions = async (params = {}) => {
+    try {
+        const queryParams = new URLSearchParams();
+        const { page = 0, size = 20 } = params;
+
+        queryParams.append('page', page);
+        queryParams.append('size', size);
+
+        const res = await axiosInstance.get(`/algo/submissions/my?${queryParams}`);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getMySubmissions] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "제출 이력을 가져올 수 없습니다." };
     }
 };
 

@@ -30,6 +30,7 @@ import ProblemDetail from "./pages/algorithm/ProblemDetail";
 import ProblemGenerator from "./pages/algorithm/ProblemGenerator";
 import ProblemSolve from "./pages/algorithm/ProblemSolve";
 import SubmissionResult from "./pages/algorithm/SubmissionResult";
+import MySubmissions from "./pages/algorithm/MySubmissions";
 
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
@@ -84,6 +85,7 @@ createRoot(document.getElementById("root")).render(
                             <Route path="algorithm/problems/generate" element={<ProblemGenerator />} />
                             <Route path="algorithm/problems/:problemId/solve" element={<ProblemSolve />} />
                             <Route path="algorithm/submissions/:submissionId" element={<SubmissionResult />} />
+                            <Route path="algorithm/my-submissions" element={<MySubmissions />} />
 
                         </Route>
 

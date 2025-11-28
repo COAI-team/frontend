@@ -269,8 +269,86 @@ const SubmissionResult = () => {
                   </div>
                 </div>
 
-                {/* 테스트케이스 상세 (데이터가 있다면) */}
-                {/* 현재 API 응답 구조에 따라 다를 수 있음. 일단 생략하거나 추후 추가 */}
+                {/* 테스트케이스 상세 결과 */}
+                {submission.testCaseResults && submission.testCaseResults.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">📋 테스트케이스 결과</h4>
+                    <div className="space-y-3">
+                      {submission.testCaseResults.map((tc, idx) => (
+                        <div key={idx} className="border rounded-lg p-3 bg-gray-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700">
+                              Test Case #{tc.testCaseNumber || idx + 1}
+                            </span>
+                            {tc.result === 'PASS' && (
+                              <span className="text-green-600 text-sm flex items-center gap-1">
+                                <span>✅</span>
+                                <span>통과</span>
+                              </span>
+                            )}
+                            {tc.result === 'FAIL' && (
+                              <span className="text-red-600 text-sm flex items-center gap-1">
+                                <span>❌</span>
+                                <span>실패</span>
+                              </span>
+                            )}
+                            {tc.result === 'ERROR' && (
+                              <span className="text-orange-600 text-sm flex items-center gap-1">
+                                <span>⚠️</span>
+                                <span>에러</span>
+                              </span>
+                            )}
+                            {!tc.result && (
+                              <span className="text-gray-500 text-sm flex items-center gap-1">
+                                <span className="animate-spin">⏳</span>
+                                <span>채점 중...</span>
+                              </span>
+                            )}
+                          </div>
+                          {/* Progress bar */}
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full transition-all duration-300 ${tc.result === 'PASS'
+                                ? 'bg-green-500'
+                                : tc.result === 'FAIL'
+                                  ? 'bg-red-500'
+                                  : tc.result === 'ERROR'
+                                    ? 'bg-orange-500'
+                                    : 'bg-blue-500 animate-pulse'
+                                }`}
+                              style={{ width: tc.result ? '100%' : '60%' }}
+                            ></div>
+                          </div>
+                          {tc.executionTime && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              실행시간: {tc.executionTime}ms
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 채점 진행 중일 때 전체 프로그레스 바 */}
+                {submission.judgeStatus === 'JUDGING' && (
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">전체 채점 진행률</span>
+                      <span className="text-sm text-gray-600">
+                        {submission.passedTestCount || 0}/{submission.totalTestCount || 0}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-500 animate-pulse"
+                        style={{
+                          width: `${submission.totalTestCount ? ((submission.passedTestCount || 0) / submission.totalTestCount) * 100 : 0}%`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
