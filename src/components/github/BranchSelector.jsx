@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../../server/AxiosConfig';
 
 const BranchSelector = ({ repository, onSelect }) => {
     const [branches, setBranches] = useState([]);
@@ -15,7 +15,7 @@ const BranchSelector = ({ repository, onSelect }) => {
         const fetchBranches = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(`/api/github/repos/${repository.owner}/${repository.name}/branches`);
+                const response = await axiosInstance.get(`/api/github/repos/${repository.owner}/${repository.name}/branches`);
                 setBranches(response.data);
                 setError(null);
             } catch (err) {
@@ -36,11 +36,11 @@ const BranchSelector = ({ repository, onSelect }) => {
 
     return (
         <div className="mt-4">
-            <h2 className="text-xl font-semibold mb-2">2. Select Branch</h2>
+            <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">2. Select Branch</h2>
             <select
                 disabled={!repository || loading}
                 onChange={handleSelect}
-                className="w-full p-2 border rounded bg-gray-700 text-white disabled:opacity-50"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 defaultValue=""
             >
                 <option value="" disabled>
@@ -52,8 +52,8 @@ const BranchSelector = ({ repository, onSelect }) => {
                     </option>
                 ))}
             </select>
-            {loading && <p>Loading branches...</p>}
-            {error && <p className="text-red-500">{error}</p>}
+            {loading && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Loading branches...</p>}
+            {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
         </div>
     );
 };
