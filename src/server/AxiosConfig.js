@@ -1,12 +1,13 @@
 import axios, { AxiosError } from "axios";
 
 export const axiosInstance = axios.create({
-    baseURL: "/api",
+    // baseURL: "/api",
+    baseURL: "http://localhost:8090",
     timeout: 10000,
 });
 
 // 강제로 baseURL 설정 (로그에서 /로 나오는 문제 방지) .. 안돌아간다면 아래 주석하고 해보세요.. 
-axiosInstance.defaults.baseURL = "https://localhost:9443";
+// axiosInstance.defaults.baseURL = "https://localhost:9443";
 
 // =====================================================
 // 1) 요청 시 AccessToken 자동 주입

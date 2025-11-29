@@ -12,20 +12,33 @@ export const getProblems = async (params = {}) => {
 
         queryParams.append('page', page);
         queryParams.append('size', size);
-        if (difficulty) queryParams.append('difficulty', difficulty);
-        if (source) queryParams.append('source', source);
-        if (keyword) queryParams.append('keyword', keyword);
 
-        const res = await axiosInstance.get(`/algo/problems?${queryParams}`);
+        if (difficulty && difficulty !== '') {
+            queryParams.append('difficulty', difficulty);
+        }
+        if (source && source !== '') {
+            queryParams.append('source', source);
+        }
+        if (keyword && keyword.trim() !== '') {
+            queryParams.append('keyword', keyword.trim());
+        }
 
-        // 🔍 디버깅: 응답 전체 구조 확인
+        const res = await axiosInstance.get(`/algo/problems?${queryParams.toString()}`);
+
         console.log('✅ [getProblems] 전체 응답:', res);
         console.log('✅ [getProblems] res.data:', res.data);
+
+        // ApiResponse 구조에서 실제 데이터 추출
+        // res.data = { code: '0000', message: 'success', data: { problems, totalCount, ... } }
+        if (res.data && res.data.data) {
+            return { data: res.data.data };
+        }
 
         return res.data;
     } catch (err) {
         console.error("❌ [getProblems] 요청 실패:", err);
         console.error("❌ [getProblems] 에러 상세:", err.response);
+        
         if (err.response?.data) {
             return { error: true, code: err.response.data.code, message: err.response.data.message };
         }
@@ -154,7 +167,7 @@ export const generateProblem = async (data) => {
     try {
         const res = await axiosInstance.post('/algo/problems/generate', {
             difficulty: data.difficulty,
-            topic: data.topic,
+            topic: data.topic,  
             language: data.language || 'ALL',
             additionalRequirements: data.additionalRequirements || null,
         });
@@ -235,6 +248,7 @@ export const SOURCE_OPTIONS = [
     { value: '', label: '전체', icon: '🔍' },
     { value: 'AI_GENERATED', label: 'AI 생성', icon: '🤖' },
     { value: 'BOJ', label: '백준', icon: '🏛️' },
+    { value: 'PROGRAMMERS', label: '프로그래머스', icon: '💻' },
     { value: 'CUSTOM', label: '커스텀', icon: '✏️' },
 ];
 
@@ -247,15 +261,21 @@ export const LANGUAGE_OPTIONS = [
 ];
 
 export const TOPIC_OPTIONS = [
-    { value: '수학', label: '수학' },
-    { value: 'DP', label: '다이나믹 프로그래밍' },
-    { value: '그래프', label: '그래프' },
-    { value: '구현', label: '구현' },
-    { value: '그리디', label: '그리디' },
-    { value: 'BFS', label: '너비우선탐색' },
-    { value: 'DFS', label: '깊이우선탐색' },
-    { value: '이분탐색', label: '이분탐색' },
-    { value: '문자열', label: '문자열' },
+  { value: '배열', label: '배열' },
+  { value: '다이나믹 프로그래밍', label: '다이나믹 프로그래밍' },
+  { value: '그리디', label: '그리디' },
+  { value: '그래프', label: '그래프' },
+  { value: '구현', label: '구현' },
+  { value: '수학', label: '수학' },
+  { value: '문자열', label: '문자열' },
+  { value: '정렬', label: '정렬' },
+  { value: '탐색', label: '탐색' },
+  { value: '시뮬레이션', label: '시뮬레이션' },
+  { value: '재귀', label: '재귀' },
+  { value: '백트래킹', label: '백트래킹' },
+  { value: '너비우선탐색', label: '너비우선탐색 (BFS)' },
+  { value: '깊이우선탐색', label: '깊이우선탐색 (DFS)' },
+  { value: '이분탐색', label: '이분탐색' },
 ];
 
 // Judge0 언어 ID 매핑
