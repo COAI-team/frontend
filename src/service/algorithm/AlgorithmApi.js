@@ -8,7 +8,7 @@ import axiosInstance from "../../server/AxiosConfig";
 export const getProblems = async (params = {}) => {
     try {
         const queryParams = new URLSearchParams();
-        const { page = 1, size = 10, difficulty, source, keyword } = params;
+        const { page = 1, size = 10, difficulty, source, keyword, topic } = params;
 
         queryParams.append('page', page);
         queryParams.append('size', size);
@@ -22,22 +22,22 @@ export const getProblems = async (params = {}) => {
         if (keyword && keyword.trim() !== '') {
             queryParams.append('keyword', keyword.trim());
         }
+        // topic 파라미터 추가
+        if (topic && topic !== '') {
+            queryParams.append('topic', topic);
+        }
 
-        const res = await axiosInstance.get(`/algo/problems?${queryParams.toString()}`);
-
-        console.log('✅ [getProblems] 전체 응답:', res);
-        console.log('✅ [getProblems] res.data:', res.data);
+        const url = `/algo/problems?${queryParams.toString()}`;
+        const res = await axiosInstance.get(url);
 
         // ApiResponse 구조에서 실제 데이터 추출
-        // res.data = { code: '0000', message: 'success', data: { problems, totalCount, ... } }
         if (res.data && res.data.data) {
             return { data: res.data.data };
         }
 
         return res.data;
     } catch (err) {
-        console.error("❌ [getProblems] 요청 실패:", err);
-        console.error("❌ [getProblems] 에러 상세:", err.response);
+        console.error("문제 목록 조회 실패:", err);
         
         if (err.response?.data) {
             return { error: true, code: err.response.data.code, message: err.response.data.message };
