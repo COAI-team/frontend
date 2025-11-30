@@ -16,13 +16,12 @@ axiosInstance.defaults.baseURL = API_URL;
 // =====================================================
 axiosInstance.interceptors.request.use(
     (config) => {
-        const auth = getAuth();  // utils에서 가져옴
+        const auth = getAuth();
 
         if (auth?.accessToken) {
             config.headers.Authorization = `Bearer ${auth.accessToken}`;
         }
 
-        console.log(`[Axios] Request: ${config.baseURL}${config.url}`);
         return config;
     },
     (error) => Promise.reject(error)

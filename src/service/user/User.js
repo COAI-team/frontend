@@ -156,10 +156,10 @@ export const restoreUser = async () => {
     }
 };
 
-// GitHub OAuth 로그인
+// GitHub OAuth 로그인 (🔥 GET + /auth/github/callback 로 수정)
 export const loginWithGithub = async (code) => {
     try {
-        const res = await axiosInstance.post(`/auth/github?code=${code}`);
+        const res = await axiosInstance.get(`/auth/github/callback?code=${code}`);
         return res.data;
     } catch (err) {
         console.error("❌ [GitHub Login] 오류:", err);
