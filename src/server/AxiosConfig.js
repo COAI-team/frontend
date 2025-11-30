@@ -87,7 +87,7 @@ axiosInstance.interceptors.response.use(
 
             if (!refreshToken) {
                 removeAuth();
-                window.location.replace("/signin");
+                globalThis.location.replace("/signin");
                 return;
             }
 
@@ -107,7 +107,7 @@ axiosInstance.interceptors.response.use(
                     console.error("❌ Refresh 실패:", refreshError);
 
                     removeAuth();
-                    window.location.replace("/signin");
+                    globalThis.location.replace("/signin");
                     throw refreshError;
                 }
             }
