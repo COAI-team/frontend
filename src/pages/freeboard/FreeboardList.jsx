@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Eye } from "lucide-react";
+import { Heart, MessageCircle, Eye, PencilLine } from "lucide-react";
 
 const FreeboardList = () => {
   const [boards, setBoards] = useState([]);
@@ -167,8 +167,17 @@ const FreeboardList = () => {
 
       <button
         onClick={() => navigate("/freeboard/write")}
-        className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+        className={`
+          fixed bottom-30 right-80
+          px-6 py-3 rounded-full font-medium shadow-md transition-all duration-200 border flex items-center gap-2
+          ${
+            isDark
+              ? "bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700"
+              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+          }
+        `}
       >
+        <PencilLine size={18} />
         글쓰기
       </button>
     </div>
