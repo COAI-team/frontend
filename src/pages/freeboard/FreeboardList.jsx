@@ -113,6 +113,25 @@ const FreeboardList = () => {
                   {extractTextFromHTML(b.freeboardContent)}
                 </div>
 
+                {/* 태그 */}
+                {b.tags && b.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {b.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className={`
+                          px-2 py-1 rounded-full text-xs font-medium
+                          ${isDark
+                            ? "bg-gray-800 text-blue-300 border border-gray-700"
+                            : "bg-blue-100 text-blue-800"}
+                        `}
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 <div className={`flex items-center gap-6 mt-4 text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
                   <span className="flex items-center gap-1">
                     <Eye size={16} />
