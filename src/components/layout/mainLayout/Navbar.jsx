@@ -75,7 +75,7 @@ export default function Navbar() {
 
                     <RightActions
                         theme={theme}
-                        setTheme={setTheme}   // ← 꼭 필요!!!
+                        setTheme={setTheme}
                         user={user}
                         logout={logout}
                         navigate={navigate}

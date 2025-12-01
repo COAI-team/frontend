@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AiFillGithub } from "react-icons/ai";
-import { getUserInfo, updateMyInfo, updateEmail, restoreUser, deactivateUser } from "../../service/user/User";
+import { getUserInfo, updateMyInfo, restoreUser, deactivateUser } from "../../service/user/User";
 import { useLogin } from "../../context/useLogin";
 import { useNavigate } from "react-router-dom";
 import AlertModal from "../../components/modal/AlertModal";
@@ -24,7 +24,6 @@ export default function ProfilePage() {
         image: null,
     });
 
-    const [originalEmail, setOriginalEmail] = useState("");
     const [githubConnected, setGithubConnected] = useState(false);
 
     const openModal = (msg) => {
@@ -51,7 +50,6 @@ export default function ProfilePage() {
                 image: null,
             });
 
-            setOriginalEmail(res.email);
             setGithubConnected(res.githubConnected || false);
             setIsDeleted(res.isDeleted || false);
         };
@@ -65,29 +63,19 @@ export default function ProfilePage() {
 
         setProfile((prev) => ({
             ...prev,
-            image: file,
-            preview: URL.createObjectURL(file),
+            image: file,                        // File 객체 저장
+            preview: URL.createObjectURL(file), // 미리보기
         }));
     };
 
     const handleSave = async () => {
         console.log("📌 [프로필 저장 요청]:", profile);
 
-        // 🔥 이메일 변경
-        if (profile.email !== originalEmail) {
-            const emailResult = await updateEmail(profile.email);
-            if (!emailResult || emailResult.error) {
-                openModal("❌ 이메일 변경 중 오류 발생");
-                return;
-            }
-            setOriginalEmail(profile.email);
-        }
-
-        // 🔥 프로필 업데이트
-        const result = await updateMyInfo(accessToken, {
+        // 🔥 updateMyInfo 호출 방식 수정됨 (accessToken 제거)
+        const result = await updateMyInfo({
             name: profile.name,
             nickname: profile.nickname,
-            image: profile.image,
+            image: profile.image,  // File 객체
         });
 
         if (!result || result.error) {
@@ -97,7 +85,7 @@ export default function ProfilePage() {
 
         openModal("✅ 프로필 저장 성공!");
 
-        // Navbar 반영
+        // Navbar 상태 업데이트
         setUser({
             name: result.user.name,
             nickname: result.user.nickname,
@@ -106,18 +94,16 @@ export default function ProfilePage() {
 
         setProfile((prev) => ({
             ...prev,
-            preview: result.user.image,
+            preview: result.user.image, // 새 프로필 이미지 반영
         }));
 
         setEditMode(false);
     };
 
-    // 🔥 탈퇴 버튼 클릭 → 확인 모달 열림
     const handleDeactivate = () => {
         setDeleteModalOpen(true);
     };
 
-    // 🔥 탈퇴 실제 처리
     const confirmDeactivate = async () => {
         const res = await deactivateUser(accessToken);
         if (res.error) {
@@ -127,8 +113,7 @@ export default function ProfilePage() {
 
         openModal("😢 탈퇴가 완료되었습니다. 90일 동안 복구하실 수 있습니다.");
         setIsDeleted(true);
-
-        setUser(null)
+        setUser(null);
     };
 
     const handleRestore = async () => {
@@ -211,7 +196,7 @@ export default function ProfilePage() {
                 </div>
             </div>
 
-            {/* 🔥 탈퇴 확인 모달 */}
+            {/* 탈퇴 확인 모달 */}
             <AlertModal
                 open={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
@@ -222,7 +207,7 @@ export default function ProfilePage() {
                 confirmText="탈퇴하기"
             />
 
-            {/* 🔥 일반 알림 모달 */}
+            {/* 일반 알림 모달 */}
             <AlertModal
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}

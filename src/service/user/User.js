@@ -107,29 +107,29 @@ export const confirmPasswordReset = async (token, newPassword) => {
 // 회원 정보 수정 (🔥 accessToken 제거)
 export const updateMyInfo = async (payload) => {
     try {
+        // FormData 객체 생성
         const formData = new FormData();
-        if (payload.name) formData.append("name", payload.name);
-        if (payload.nickname) formData.append("nickname", payload.nickname);
-        if (payload.image) formData.append("image", payload.image);
+        formData.append("name", payload.name ?? "");
+        formData.append("nickname", payload.nickname ?? "");
 
+        // 파일이 존재할 경우에만 추가
+        if (payload.image instanceof File) {
+            formData.append("image", payload.image);  // File 객체
+        }
+
+        // PUT 요청 (Content-Type은 지정하지 말 것)
         const res = await axiosInstance.put("/users/me", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                // ❌ Content-Type: multipart/form-data 넣지 말기!!
+                // axios가 boundary 포함해서 자동으로 생성함
+            },
         });
 
         return res.data;
-    } catch (err) {
-        return { error: true, detail: err.response?.data };
-    }
-};
 
-// 이메일 변경
-export const updateEmail = async (newEmail) => {
-    try {
-        const res = await axiosInstance.put("/users/me/email", {
-            newEmail,
-        });
-        return res.data;
     } catch (err) {
+        console.error("❌ updateMyInfo error:", err.response?.data);
         return { error: true, detail: err.response?.data };
     }
 };
