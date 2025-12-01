@@ -120,7 +120,7 @@ const FreeboardList = () => {
                       <span
                         key={tag}
                         className={`
-                          px-2 py-1 rounded-full text-xs font-medium
+                          px-2 py-1 rounded-md text-xs font-medium
                           ${isDark
                             ? "bg-gray-800 text-blue-300 border border-gray-700"
                             : "bg-blue-100 text-blue-800"}
