@@ -1,6 +1,6 @@
 import CommentItem from './CommentItem';
 
-export default function CommentList({ comments, currentUserId, onCommentUpdated }) {
+export default function CommentList({ comments, currentUserId, onCommentUpdated, isDark }) {
   if (comments.length === 0) {
     return (
       <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
@@ -17,6 +17,7 @@ export default function CommentList({ comments, currentUserId, onCommentUpdated 
           comment={comment}
           currentUserId={currentUserId}
           onCommentUpdated={onCommentUpdated}
+          isDark={isDark}
         />
       ))}
     </div>
