@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+
 import RepositorySelector from '../../components/github/RepositorySelector';
 import BranchSelector from '../../components/github/BranchSelector';
 import FileTree from '../../components/github/FileTree';
@@ -71,7 +71,7 @@ const AnalysisPage = () => {
         const fetchContent = async () => {
             try {
                 // TODO: GithubService API 사용
-                const response = await axios.get(`/api/github/repos/${selectedRepo.owner}/${selectedRepo.name}/content`, {
+                const response = await axiosInstance.get(`/api/github/repos/${selectedRepo.owner}/${selectedRepo.name}/content`, {
                     params: { path: selectedFile.path }
                 });
                 setFileContent(response.data.content);
