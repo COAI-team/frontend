@@ -306,6 +306,7 @@ const FreeboardDetail = () => {
         boardId={Number(id)}
         boardType="FREEBOARD"
         currentUserId={currentUserId}
+        isDark={isDark}
       />
 
       <div className={`mt-10 pt-6 border-t flex gap-3 ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
