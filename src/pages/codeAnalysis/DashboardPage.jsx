@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../../server/AxiosConfig';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const DashboardPage = () => {
@@ -13,8 +13,8 @@ const DashboardPage = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const patternsResponse = await axios.get(`/api/insights/patterns/${userId}`);
-                const historyResponse = await axios.get(`/api/insights/history/${userId}`);
+                const patternsResponse = await axiosInstance.get(`/api/insights/patterns/${userId}`);
+                const historyResponse = await axiosInstance.get(`/api/insights/history/${userId}`);
                 setPatterns(patternsResponse.data);
                 setHistory(historyResponse.data);
                 setError(null);
