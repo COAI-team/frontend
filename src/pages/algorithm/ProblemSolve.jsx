@@ -1,473 +1,551 @@
-import React, { useState, useEffect } from 'react';
-import NavBar from '../../components/layout/NavBar';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import CodeEditor from '../../components/algorithm/editor/CodeEditor';
+import { codeTemplates } from '../../components/algorithm/editor/editorUtils';
+import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
+import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
+import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 
+/**
+ * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
+ * ✅ 수평(좌우) + 수직(상하) 리사이저 지원
+ */
 const ProblemSolve = () => {
-  const [code, setCode] = useState('// Type some code ->');
-  const [language, setLanguage] = useState('javascript');
-  const [timeLeft, setTimeLeft] = useState(30 * 60); // 30분
+  const { problemId } = useParams();
+  const navigate = useNavigate();
+  const editorRef = useRef(null);
+  const eyeTrackerRef = useRef(null); // 시선 추적 ref
+
+  // 문제 데이터 상태
+  const [problem, setProblem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // 에디터 상태
+  const [selectedLanguage, setSelectedLanguage] = useState('python');
+  const [code, setCode] = useState('');
+
+  // 타이머 상태 (풀이 시간 - 기본 30분)
+  const [timeLeft, setTimeLeft] = useState(30 * 60);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [startTime, setStartTime] = useState(null);
+
+  // 실행 결과 상태
+  const [testResult, setTestResult] = useState(null);
+  const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isTracking, setIsTracking] = useState(true);
+  const [runProgress, setRunProgress] = useState(0);
 
-  const problemData = {
-    number: "#1234",
-    title: "문제",
-    description: `Company | Product Designer
-Aug 2022 - Present
-collaborated with cross-functional teams including product managers and developers to create user-friendly interfaces for web applications, and developers to create user-friendly interfaces for web applications.
+  // 시선 추적 상태
+  const [eyeTrackingEnabled, setEyeTrackingEnabled] = useState(false);
+  const [eyeTrackingReady, setEyeTrackingReady] = useState(false);
 
-Company | Product Designer
-Month 2021 - Present
-collaborated with cross-functional teams including product managers and developers to create user-friendly interfaces for web applications, and developers to create user-friendly interfaces for web applications.
+  // ✅ 수평 리사이저 (문제설명 | 에디터)
+  const {
+    leftPanelWidth,
+    isResizing: isHorizontalResizing,
+    handleResizeStart: handleHorizontalResizeStart,
+    containerRef
+  } = useResizableLayout(35, 20, 60);
 
-Company | Product Designer
-Month 2020 - Present
-collaborated with cross-functional teams including product managers and developers to create user-friendly interfaces for web applications, and developers to create user-friendly interfaces for web applications.
+  // ✅ 수직 리사이저 (에디터 | 실행결과)
+  const {
+    topPanelHeight: editorHeight,
+    isResizing: isVerticalResizing,
+    handleResizeStart: handleVerticalResizeStart,
+    containerRef: editorContainerRef
+  } = useVerticalResizable(70, 30, 85);
 
-Company | Product Designer
-Month 2022 - Present
-collaborated with cross-functional teams including product managers and developers to create user-friendly interfaces for web applications, and developers to create user-friendly interfaces for web applications.`
-  };
+  // 경과 시간 계산
+  const getElapsedTime = useCallback(() => {
+    if (!startTime) return 0;
+    return Math.floor((new Date() - startTime) / 1000);
+  }, [startTime]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          handleAutoSubmit();
-          return 0;
-        }
-        return prev - 1;
+  // 코드 제출
+  const handleSubmit = useCallback(async () => {
+    if (!code.trim()) {
+      alert('코드를 작성해주세요!');
+      return;
+    }
+
+    // 시선 추적 세션 종료
+    if (eyeTrackingEnabled && eyeTrackerRef.current) {
+      await eyeTrackerRef.current.stopTracking();
+      setEyeTrackingEnabled(false);
+    }
+
+    setIsSubmitting(true);
+    setIsTimerRunning(false);
+
+    try {
+      const res = await submitCode({
+        problemId: Number(problemId),
+        language: selectedLanguage.toUpperCase(),
+        sourceCode: code,
+        elapsedTime: getElapsedTime()
       });
-    }, 1000);
 
-    return () => clearInterval(timer);
-  }, []);
+      if (res.error) {
+        alert(`제출 실패: ${res.message}`);
+      } else {
+        const responseData = res.Data || res.data || res;
+        const submissionId = responseData?.algosubmissionId || responseData?.submissionId;
+        navigate(`/algorithm/submissions/${submissionId}`);
+      }
+    } catch {
+      alert('코드 제출 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [code, problemId, selectedLanguage, navigate, getElapsedTime, eyeTrackingEnabled]);
 
+  // 문제 데이터 로드
+  useEffect(() => {
+    const fetchProblem = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await startProblemSolve(problemId);
+        console.log('📥 API 응답:', res);
+
+        if (res.error) {
+          setError(res.message);
+          return;
+        }
+
+        const problemData = res.Data || res.data || res;
+        console.log('📋 문제 데이터:', problemData);
+        setProblem(problemData);
+        setTimeLeft(30 * 60);
+        setStartTime(new Date());
+
+      } catch (err) {
+        console.error('❌ 문제 로드 실패:', err);
+        setError('문제를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (problemId) {
+      fetchProblem();
+    }
+  }, [problemId]);
+
+  // 타이머 효과
+  useEffect(() => {
+    let interval = null;
+    if (isTimerRunning && timeLeft > 0) {
+      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    } else if (timeLeft === 0 && isTimerRunning) {
+      handleSubmit();
+      setIsTimerRunning(false);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timeLeft, handleSubmit]);
+
+  // 초기 코드 설정
+  useEffect(() => {
+    setCode(codeTemplates[selectedLanguage] || '');
+  }, [selectedLanguage]);
+
+  // 시간 포맷팅
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleAutoSubmit = async () => {
-    if (!isSubmitting) {
-      await handleSubmit(true);
+  // 언어 변경
+  const handleLanguageChange = (lang) => {
+    if (window.confirm(`언어를 ${lang.toUpperCase()}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`)) {
+      setSelectedLanguage(lang);
+      setCode(codeTemplates[lang] || '');
     }
   };
 
-  const handleSubmit = async (isAutoSubmit = false) => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      alert('결과 페이지로 이동합니다.');
-    }, 2000);
+  // 코드 테스트 실행
+  const handleTestRun = async () => {
+    if (!code.trim()) {
+      alert('코드를 작성해주세요!');
+      return;
+    }
+
+    setIsRunning(true);
+    setTestResult(null);
+    setRunProgress(0);
+
+    const progressInterval = setInterval(() => {
+      setRunProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + Math.random() * 15;
+      });
+    }, 300);
+
+    try {
+      const res = await runTestCode({
+        problemId: Number(problemId),
+        language: selectedLanguage.toUpperCase(),
+        sourceCode: code
+      });
+
+      console.log('🧪 테스트 결과:', res);
+      clearInterval(progressInterval);
+      setRunProgress(100);
+
+      if (res.error || (res.code && res.code !== '0000')) {
+        setTestResult({ error: true, message: res.message || '테스트 실행 실패' });
+      } else {
+        setTestResult(res.Data || res.data || res);
+      }
+    } catch (err) {
+      clearInterval(progressInterval);
+      setRunProgress(0);
+      console.error('테스트 실행 오류:', err);
+      setTestResult({ error: true, message: '테스트 실행 중 오류가 발생했습니다.' });
+    } finally {
+      setTimeout(() => {
+        setIsRunning(false);
+        setRunProgress(0);
+      }, 500);
+    }
   };
 
-  // 인라인 스타일 정의
-  const containerStyle = {
-    minHeight: '100vh',
-    backgroundColor: '#161513',
-    fontFamily: "'Inter', sans-serif"
+  // 에디터 마운트
+  const handleEditorMount = (editor, monaco) => {
+    editorRef.current = { editor, monaco };
   };
 
-  const mainContainerStyle = {
-    width: '1314px',
-    height: '904px',
-    background: 'rgba(24, 24, 27, 0.2)',
-    border: '1px solid #27272A',
-    borderRadius: '8px'
+  // 코드 초기화
+  const handleResetCode = () => {
+    if (window.confirm('코드를 초기화하시겠습니까?')) {
+      setCode(codeTemplates[selectedLanguage] || '');
+    }
   };
 
-  const headerStyle = {
-    padding: '20px 20px 40px',
-    gap: '10px',
-    height: '107px',
-    borderBottom: '1px solid #27272A'
+  // 난이도 색상
+  const getDifficultyColor = (diff) => {
+    const colors = {
+      'BRONZE': 'text-orange-400',
+      'SILVER': 'text-gray-400',
+      'GOLD': 'text-yellow-400',
+      'PLATINUM': 'text-cyan-400'
+    };
+    return colors[diff] || 'text-gray-400';
   };
 
-  const titleStyle = {
-    fontFamily: "'Inter', sans-serif",
-    fontWeight: 600,
-    fontSize: '18px',
-    lineHeight: '22px',
-    color: '#FAFAFA'
+  // 난이도 배지 스타일
+  const getDifficultyBadge = (diff) => {
+    const styles = {
+      'BRONZE': 'bg-orange-900/50 text-orange-400 border-orange-700',
+      'SILVER': 'bg-gray-700/50 text-gray-300 border-gray-600',
+      'GOLD': 'bg-yellow-900/50 text-yellow-400 border-yellow-700',
+      'PLATINUM': 'bg-cyan-900/50 text-cyan-400 border-cyan-700'
+    };
+    return styles[diff] || 'bg-gray-700/50 text-gray-400 border-gray-600';
   };
 
-  const statusIndicatorStyle = {
-    fontFamily: "'Inter', sans-serif",
-    fontWeight: 500,
-    fontSize: '12px',
-    lineHeight: '15px',
-    color: '#BFBFBF'
-  };
+  // 로딩 상태
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-400">문제를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const eyeTrackingDotStyle = {
-    width: '16px',
-    height: '16px',
-    background: '#FFFFFF',
-    border: '5px solid #FF0000',
-    borderRadius: '50%'
-  };
-
-  const timeLimitDotStyle = {
-    width: '16px',
-    height: '16px',
-    background: '#FFFFFF',
-    border: '5px solid #E8BC06',
-    borderRadius: '50%'
-  };
-
-  const tagStyle = {
-    fontFamily: "'Inter', sans-serif",
-    fontSize: '12px',
-    fontWeight: 400,
-    lineHeight: '15px',
-    color: '#71717A'
-  };
-
-  const problemSectionStyle = {
-    fontSize: '16.343px',
-    fontWeight: 500,
-    lineHeight: '20px',
-    letterSpacing: '-0.02em',
-    color: '#FFFFFF'
-  };
-
-  const companyHeaderStyle = {
-    fontSize: '12.7112px',
-    fontWeight: 500,
-    lineHeight: '142.02%',
-    letterSpacing: '-0.02em',
-    textTransform: 'capitalize',
-    color: '#FFFFFF'
-  };
-
-  const companyDateStyle = {
-    fontSize: '10.8953px',
-    fontWeight: 400,
-    lineHeight: '13px',
-    textTransform: 'capitalize',
-    color: '#AEAEAE'
-  };
-
-  const companyDescStyle = {
-    fontSize: '9.98738px',
-    fontWeight: 400,
-    lineHeight: '142.02%',
-    letterSpacing: '-0.02em',
-    textTransform: 'lowercase',
-    color: '#AEAEAE'
-  };
-
-  const codeEditorStyle = {
-    background: '#1C1C1C',
-    backdropFilter: 'blur(20px)',
-    fontFamily: "'Source Code Pro', 'Courier New', monospace",
-    fontSize: '14px',
-    lineHeight: '20px',
-    fontFeatureSettings: "'ss01' on, 'cv01' on, 'cv11' on"
-  };
-
-  const buttonGradientStyle = {
-    background: 'linear-gradient(99.15deg, #FFF1B7 0.37%, #FF92CC 61.12%, #CE69F7 99.24%)',
-    color: '#042F2E',
-    fontFamily: "'Inter', sans-serif",
-    fontSize: '12px',
-    fontWeight: 500
-  };
+  // 에러 상태
+  if (error) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 text-xl mb-4">⚠️ {error}</p>
+          <button onClick={() => navigate('/algorithm')} className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+            문제 목록으로
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={containerStyle}>
-      <NavBar />
-
-      <div className="flex justify-center pt-4">
-        <div style={mainContainerStyle}>
-          {/* Header */}
-          <div style={headerStyle}>
-            <div className="flex items-center justify-between">
-              <h1 style={titleStyle}>
-                {problemData.number} {problemData.title}
-              </h1>
-
-              <div className="flex items-center gap-8">
-                {/* Eye Tracking 상태 */}
-                <div className="flex items-center gap-2">
-                  <div style={eyeTrackingDotStyle}></div>
-                  <span style={statusIndicatorStyle}>
-                    Eye Tracking {formatTime(timeLeft)}
-                  </span>
-                </div>
-
-                {/* 제한시간 */}
-                <div className="flex items-center gap-2">
-                  <div style={timeLimitDotStyle}></div>
-                  <span style={statusIndicatorStyle}>
-                    제한시간 00:32:09
-                  </span>
-                </div>
-              </div>
+    <div className="min-h-screen bg-zinc-900 text-gray-100">
+      {/* 헤더 */}
+      <div className="bg-zinc-800 border-b border-zinc-700">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
+              <p className="text-sm text-gray-400 mt-1">
+                맞힌사람 {problem?.solvedCount || 0} • 제출한 사람 {problem?.submitCount || 0}
+              </p>
             </div>
 
-            <div className="flex items-center gap-2 mt-2">
-              <div style={{
-                width: '16px',
-                height: '16px',
-                border: '1.6px solid #FF90CD'
-              }}></div>
-              <span style={tagStyle}>
-                난이도 / 언어 / 유형 / 제한시간
-              </span>
+            <div className="flex items-center gap-6">
+              {/* 시선 추적 토글 */}
+              <button
+                onClick={() => setEyeTrackingEnabled(!eyeTrackingEnabled)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${eyeTrackingEnabled
+                  ? 'bg-purple-600 hover:bg-purple-700'
+                  : 'bg-zinc-700 hover:bg-zinc-600'
+                  }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${eyeTrackingReady ? 'bg-green-400 animate-pulse' : 'bg-red-500'
+                  }`}></span>
+                <span className="text-sm font-semibold">
+                  {eyeTrackingEnabled ? '👁️ 추적 중' : '시선 추적'}
+                </span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                <span className="text-sm">풀이 시간</span>
+                <span className={`font-mono ${timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400'}`}>
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
+
+              <button onClick={() => setIsTimerRunning(!isTimerRunning)}
+                className={`px-3 py-1 rounded text-sm ${isTimerRunning ? 'bg-red-600' : 'bg-green-600'}`}>
+                {isTimerRunning ? '일시정지' : '시작'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 문제 메타 정보 바 */}
+      <div className="bg-purple-900/30 border-b border-purple-800/50">
+        <div className="container mx-auto px-6 py-3">
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-purple-400">&lt;&gt;</span>
+            <span className={getDifficultyColor(problem?.difficulty)}>
+              {problem?.difficulty || 'N/A'}
+            </span>
+            <span className="text-gray-500">/</span>
+            <span>{selectedLanguage.toUpperCase()}</span>
+            <span className="text-gray-500">/</span>
+            <span>AI_GENERATED</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 메인 컨텐츠 */}
+      <div className="container mx-auto px-6 py-6" ref={containerRef}>
+        <div className="flex h-[calc(100vh-220px)] gap-1">
+
+          {/* 왼쪽: 문제 설명 */}
+          <div className="bg-zinc-800 rounded-lg overflow-auto" style={{ width: `${leftPanelWidth}%` }}>
+            <div className="p-6">
+              <h2 className="text-lg font-bold mb-4">문제 설명</h2>
+
+              {/* 제한 정보 표시 */}
+              <div className="flex flex-wrap gap-3 mb-6">
+                <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
+                  {problem?.difficulty || 'N/A'}
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs bg-blue-900/50 text-blue-400 border border-blue-700">
+                  ⏱ 시간제한: {problem?.timeLimit || 1000}ms
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs bg-green-900/50 text-green-400 border border-green-700">
+                  💾 메모리제한: {problem?.memoryLimit || 256}MB
+                </span>
+              </div>
+
+              <div className="prose prose-invert prose-sm max-w-none space-y-4">
+                <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                  {problem?.description || '문제 설명이 없습니다.'}
+                </p>
+
+                {problem?.sampleTestCases?.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-3 text-white">예제</h3>
+                    {problem.sampleTestCases.map((tc, idx) => (
+                      <div key={idx} className="bg-zinc-900 rounded p-4 mb-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">입력</p>
+                            <pre className="text-sm bg-zinc-950 p-2 rounded font-mono">{tc.input}</pre>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">출력</p>
+                            <pre className="text-sm bg-zinc-950 p-2 rounded font-mono">{tc.expectedOutput}</pre>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* 메인 콘텐츠 영역 */}
-          <div className="flex flex-1">
-            {/* 문제 설명 패널 */}
-            <div className="w-1/2 flex flex-col" style={{ borderRight: '1px solid #27272A' }}>
-              <div className="px-6 py-3" style={{ borderBottom: '1px solid #27272A' }}>
-                <h3 style={problemSectionStyle}>문제 설명</h3>
-              </div>
+          {/* ✅ 수평 리사이저 (좌우) */}
+          <div
+            className={`w-1 bg-zinc-700 hover:bg-purple-500 cursor-col-resize transition-colors ${isHorizontalResizing ? 'bg-purple-500' : ''}`}
+            onMouseDown={handleHorizontalResizeStart}
+          />
 
-              <div className="flex-1 p-6 overflow-y-auto">
-                <div className="space-y-6">
-                  {/* Company sections */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span style={companyHeaderStyle}>Company</span>
-                      <div style={{
-                        width: '0px',
-                        height: '15.44px',
-                        border: '0.907943px solid #E8E8E8'
-                      }}></div>
-                      <span style={companyHeaderStyle}>Product Designer</span>
-                    </div>
-                    <div style={companyDateStyle}>Aug 2022 - Present</div>
-                    <div style={companyDescStyle} className="mt-2">
-                      collaborated with cross-functional teams including product managers and developers to create user-friendly interfaces for web applications, and developers to create user-friendly interfaces for web applications.
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span style={companyHeaderStyle}>Company</span>
-                      <div style={{
-                        width: '0px',
-                        height: '15.44px',
-                        border: '0.907943px solid #E8E8E8'
-                      }}></div>
-                      <span style={companyHeaderStyle}>Product Designer</span>
-                    </div>
-                    <div style={companyDateStyle}>month 2021 - Present</div>
-                    <div style={companyDescStyle} className="mt-2">
-                      collaborated with cross-functional teams including product managers and developers to create user-friendly interfaces for web applications, and developers to create user-friendly interfaces for web applications.
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span style={companyHeaderStyle}>Company</span>
-                      <div style={{
-                        width: '0px',
-                        height: '15.44px',
-                        border: '0.907943px solid #E8E8E8'
-                      }}></div>
-                      <span style={companyHeaderStyle}>Product Designer</span>
-                    </div>
-                    <div style={companyDateStyle}>Month 2020 - Present</div>
-                    <div style={companyDescStyle} className="mt-2">
-                      collaborated with cross-functional teams including product managers and developers to create user-friendly interfaces for web applications, and developers to create user-friendly interfaces for web applications.
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span style={companyHeaderStyle}>Company</span>
-                      <div style={{
-                        width: '0px',
-                        height: '15.44px',
-                        border: '0.907943px solid #E8E8E8'
-                      }}></div>
-                      <span style={companyHeaderStyle}>Product Designer</span>
-                    </div>
-                    <div style={companyDateStyle}>Month 2022 - Present</div>
-                    <div style={companyDescStyle} className="mt-2">
-                      collaborated with cross-functional teams including product managers and developers to create user-friendly interfaces for web applications, and developers to create user-friendly interfaces for web applications.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 코드 에디터 패널 */}
-            <div className="w-1/2 flex flex-col">
-              {/* 언어 선택 및 도구바 */}
-              <div className="px-6 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #27272A' }}>
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-sm focus:outline-none focus:border-blue-500 text-white"
-                >
-                  <option value="javascript">JavaScript</option>
+          {/* 오른쪽: 에디터 + 실행결과 */}
+          <div
+            className="bg-zinc-800 rounded-lg flex flex-col overflow-hidden"
+            style={{ width: `${100 - leftPanelWidth}%` }}
+            ref={editorContainerRef}
+          >
+            {/* 에디터 헤더 */}
+            <div className="flex items-center justify-between p-3 border-b border-zinc-700 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <select value={selectedLanguage} onChange={(e) => handleLanguageChange(e.target.value)}
+                  className="bg-zinc-700 border-none rounded px-3 py-1 text-sm">
                   <option value="python">Python</option>
+                  <option value="javascript">JavaScript</option>
                   <option value="java">Java</option>
                   <option value="cpp">C++</option>
                 </select>
-
-                <div className="flex items-center gap-2">
-                  <button className="p-2 hover:bg-gray-700 rounded transition-colors text-white">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2"/>
-                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeWidth="2"/>
-                    </svg>
-                  </button>
-                  <button className="p-2 hover:bg-gray-700 rounded transition-colors text-white">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4a1 1 0 011-1h4m0 0l-3 3m3-3v4m6-4h4a1 1 0 011 1v4m0 0l-3-3m3 3h-4m-6 4v4a1 1 0 01-1 1H4m0 0l3-3m-3 3h4m6 0a1 1 0 001-1v-4m0 0l3 3m-3-3h4"/>
-                    </svg>
-                  </button>
-                </div>
               </div>
+              <div className="flex items-center gap-2">
+                <button className="p-2 hover:bg-zinc-700 rounded" title="복사">📋</button>
+                <button className="p-2 hover:bg-zinc-700 rounded" title="전체화면">⛶</button>
+              </div>
+            </div>
 
-              {/* 코드 에디터 */}
-              <div className="flex-1 relative">
-                <div className="absolute inset-0 p-4" style={codeEditorStyle}>
-                  <div className="flex h-full">
-                    {/* 라인 넘버 */}
-                    <div className="pr-4 select-none" style={{ color: 'rgba(255, 255, 255, 0.2)' }}>
-                      {Array.from({ length: 25 }, (_, i) => (
-                        <div
-                          key={i + 1}
-                          style={{
-                            fontFamily: "'Source Code Pro', monospace",
-                            fontSize: '14px',
-                            lineHeight: '20px',
-                            fontFeatureSettings: "'ss01' on, 'cv01' on, 'cv11' on"
-                          }}
-                        >
-                          {i + 1}
-                        </div>
-                      ))}
+            {/* ✅ 에디터 영역 (수직 리사이저블) */}
+            <div style={{ height: `${editorHeight}%` }} className="min-h-0">
+              <CodeEditor
+                language={selectedLanguage}
+                value={code}
+                onChange={setCode}
+                onMount={handleEditorMount}
+                height="100%"
+                theme="vs-dark"
+              />
+            </div>
+
+            {/* ✅ 수직 리사이저 (상하) */}
+            <div
+              className={`h-1 bg-zinc-700 hover:bg-purple-500 cursor-row-resize transition-colors flex-shrink-0 ${isVerticalResizing ? 'bg-purple-500' : ''}`}
+              onMouseDown={handleVerticalResizeStart}
+            >
+              {/* 리사이저 핸들 표시 */}
+              <div className="flex justify-center items-center h-full">
+                <div className="w-8 h-0.5 bg-zinc-500 rounded-full"></div>
+              </div>
+            </div>
+
+            {/* ✅ 실행결과 영역 (수직 리사이저블) */}
+            <div style={{ height: `${100 - editorHeight}%` }} className="flex flex-col min-h-0">
+              <div className="p-3 bg-zinc-850 flex-1 overflow-auto">
+                <p className="text-sm text-gray-400 mb-2">실행결과</p>
+
+                {/* 프로그레스 바 */}
+                {isRunning && (
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                      <span>⏳ 코드 실행 중...</span>
+                      <span>{Math.round(runProgress)}%</span>
                     </div>
-
-                    {/* 코드 입력 영역 */}
-                    <textarea
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      className="flex-1 bg-transparent border-none outline-none resize-none"
-                      style={{
-                        fontFamily: "'Source Code Pro', monospace",
-                        fontSize: '14px',
-                        lineHeight: '20px',
-                        color: 'rgba(255, 255, 255, 0.4)',
-                        fontFeatureSettings: "'ss01' on, 'cv01' on, 'cv11' on"
-                      }}
-                      placeholder="여기에 코드를 작성하세요..."
-                    />
+                    <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                        style={{ width: `${runProgress}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* 코드 복사 및 전체화면 버튼 */}
-                <div className="absolute top-3 right-3 flex gap-2">
-                  <button className="p-1 bg-gray-800 rounded hover:bg-gray-700 transition-colors">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2"/>
-                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeWidth="2"/>
-                    </svg>
-                  </button>
-                  <button className="p-1 bg-gray-800 rounded hover:bg-gray-700 transition-colors">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4a1 1 0 011-1h4m0 0l-3 3m3-3v4"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              {/* 실행 결과 */}
-              <div className="border-t p-4" style={{
-                height: '80px',
-                background: '#09090B',
-                borderTop: '1px solid #27272A'
-              }}>
-                <h4 style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: '12px',
-                  fontWeight: 400,
-                  lineHeight: '15px',
-                  color: '#71717A'
-                }} className="mb-2">
-                  실행결과
-                </h4>
-                <div style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: '12px',
-                  fontWeight: 400,
-                  lineHeight: '15px',
-                  color: '#71717A'
-                }}>
-                  실행결과가 여기에 표시됩니다요.
-                </div>
-              </div>
-
-              {/* 제출 버튼 */}
-              <div className="border-t p-4" style={{
-                background: '#09090B',
-                borderTop: '1px solid #27272A'
-              }}>
-                <div className="flex justify-between items-center">
-                  <button
-                    onClick={() => setCode('// 코드를 작성하세요')}
-                    className="px-6 py-2 border border-gray-600 rounded hover:bg-gray-700 transition-colors"
-                    style={{
-                      fontFamily: "'Inter', sans-serif",
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      color: '#71717A'
-                    }}
-                  >
-                    초기화
-                  </button>
-
-                  <button
-                    className="px-6 py-2 border border-gray-600 rounded hover:bg-gray-700 transition-colors"
-                    style={{
-                      fontFamily: "'Inter', sans-serif",
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      color: '#71717A'
-                    }}
-                  >
-                    코드 실행
-                  </button>
-
-                  <button
-                    onClick={() => handleSubmit(false)}
-                    disabled={isSubmitting || timeLeft === 0}
-                    className="px-8 py-2 rounded font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={buttonGradientStyle}
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                        제출중
-                      </div>
+                <div className="bg-zinc-900 rounded p-3 h-full overflow-auto text-sm">
+                  {isRunning ? (
+                    <div className="flex items-center gap-2 text-yellow-400">
+                      <span className="animate-spin">⚙️</span>
+                      <span>Judge0 서버에서 코드를 실행하고 있습니다...</span>
+                    </div>
+                  ) : testResult ? (
+                    testResult.error ? (
+                      <span className="text-red-400">❌ {testResult.message}</span>
                     ) : (
-                      '✓ 제출 후 채점하기'
-                    )}
-                  </button>
+                      <div>
+                        <div className={`font-bold mb-2 ${testResult.overallResult === 'AC' ? 'text-green-400' : 'text-red-400'}`}>
+                          {testResult.overallResult === 'AC' ? '✅ 정답!' : `❌ ${testResult.overallResult}`}
+                          <span className="ml-2 text-gray-400 font-normal">
+                            ({testResult.passedCount}/{testResult.totalCount} 통과)
+                          </span>
+                          {testResult.maxExecutionTime && (
+                            <span className="ml-2 text-gray-500 font-normal text-xs">
+                              실행시간: {testResult.maxExecutionTime}ms
+                            </span>
+                          )}
+                        </div>
+                        {testResult.testCaseResults?.map((tc, idx) => (
+                          <div key={idx} className="text-xs mt-1">
+                            <span className={tc.result === 'AC' ? 'text-green-400' : 'text-red-400'}>
+                              TC{tc.testCaseNumber}: {tc.result}
+                            </span>
+                            {tc.result !== 'AC' && tc.actualOutput && (
+                              <span className="text-gray-500 ml-2">
+                                출력: "{tc.actualOutput?.trim()}"
+                              </span>
+                            )}
+                            {tc.errorMessage && (
+                              <pre className="text-red-300 mt-1 text-xs whitespace-pre-wrap bg-red-900/20 p-2 rounded">
+                                {tc.errorMessage}
+                              </pre>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  ) : (
+                    <span className="text-gray-500">💡 코드를 작성하고 "코드 실행" 버튼을 클릭하세요.</span>
+                  )}
                 </div>
+              </div>
+
+              {/* 하단 버튼 */}
+              <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
+                <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white">
+                  초기화
+                </button>
+                <button onClick={handleTestRun} disabled={isRunning}
+                  className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2">
+                  {isRunning ? (
+                    <>
+                      <span className="animate-spin">⚙️</span>
+                      실행 중...
+                    </>
+                  ) : (
+                    '코드 실행'
+                  )}
+                </button>
+                <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
+                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2">
+                  {isSubmitting ? '제출 중...' : '✓ 제출 후 채점하기'}
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 부정행위 경고 (임시) */}
-      {Math.random() > 0.7 && (
-        <div className="fixed bottom-4 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg animate-pulse">
-          <div className="font-semibold">⚠️ 부정행위 감지</div>
-          <div className="text-sm">
-            시선 이탈이 감지되었습니다.
-          </div>
-        </div>
+      {/* 시선 추적 컴포넌트 */}
+      {eyeTrackingEnabled && (
+        <EyeTracker
+          ref={eyeTrackerRef}
+          problemId={Number(problemId)}
+          isEnabled={eyeTrackingEnabled}
+          onReady={() => setEyeTrackingReady(true)}
+          onSessionEnd={(sessionId) => {
+            console.log('Eye tracking session ended:', sessionId);
+            setEyeTrackingReady(false);
+          }}
+        />
       )}
     </div>
   );

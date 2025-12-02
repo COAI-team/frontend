@@ -1,0 +1,156 @@
+// 스티커 데이터 + URL 헬퍼 (GitHub CDN 사용)
+const OPENMOJI_BASE = "https://cdn.jsdelivr.net/gh/hfg-gmuend/openmoji/color/svg";
+
+export const openmojiUrl = (hex) => {
+  if (!hex) return "";
+  return `${OPENMOJI_BASE}/${hex.toUpperCase()}.svg`;
+};
+
+// 스티커 그룹 정의
+export const STICKER_GROUPS = [
+  {
+    id: "popular",
+    label: "자주 쓰는",
+    items: [
+      { id: "thumbs-up", label: "좋아요", emoji: "👍", hex: "1F44D" },
+      { id: "thumbs-down", label: "별로", emoji: "👎", hex: "1F44E" },
+      { id: "clap", label: "박수", emoji: "👏", hex: "1F44F" },
+      { id: "ok-hand", label: "오케이", emoji: "👌", hex: "1F44C" },
+      { id: "fire", label: "불타는", emoji: "🔥", hex: "1F525" },
+      { id: "hundred", label: "백점", emoji: "💯", hex: "1F4AF" },
+      { id: "party", label: "파티", emoji: "🎉", hex: "1F389" },
+      { id: "rocket", label: "로켓", emoji: "🚀", hex: "1F680" },
+      { id: "sparkles", label: "반짝", emoji: "✨", hex: "2728" },
+      { id: "check", label: "체크", emoji: "✅", hex: "2705" },
+      { id: "info", label: "정보", emoji: "ℹ️", hex: "2139" },
+      { id: "cross", label: "엑스", emoji: "❌", hex: "274C" },
+      { id: "warning", label: "경고", emoji: "⚠️", hex: "26A0" },
+      { id: "heart", label: "하트", emoji: "❤️", hex: "2764" },
+      { id: "star", label: "별", emoji: "⭐", hex: "2B50" },
+      { id: "trophy", label: "트로피", emoji: "🏆", hex: "1F3C6" },
+      { id: "medal", label: "메달", emoji: "🏅", hex: "1F3C5" },
+      { id: "gift", label: "선물", emoji: "🎁", hex: "1F381" },
+      { id: "tada", label: "축하", emoji: "🎊", hex: "1F38A" },
+      { id: "zap", label: "번개", emoji: "⚡", hex: "26A1" },
+      { id: "boom", label: "폭발", emoji: "💥", hex: "1F4A5" },
+      { id: "muscle", label: "힘", emoji: "💪", hex: "1F4AA" },
+      { id: "eyes", label: "눈", emoji: "👀", hex: "1F440" },
+      { id: "pray", label: "기도", emoji: "🙏", hex: "1F64F" },
+    ],
+  },
+  {
+    id: "dev",
+    label: "개발",
+    items: [
+      { id: "computer", label: "컴퓨터", emoji: "💻", hex: "1F4BB" },
+      { id: "laptop", label: "노트북", emoji: "💾", hex: "1F4BE" },
+      { id: "keyboard", label: "키보드", emoji: "⌨️", hex: "2328" },
+      { id: "mouse", label: "마우스", emoji: "🖱️", hex: "1F5B1" },
+      { id: "printer", label: "프린터", emoji: "🖨️", hex: "1F5A8" },
+      { id: "bug", label: "버그", emoji: "🐛", hex: "1F41B" },
+      { id: "gear", label: "설정", emoji: "⚙️", hex: "2699" },
+      { id: "wrench", label: "도구", emoji: "🔧", hex: "1F527" },
+      { id: "hammer", label: "망치", emoji: "🔨", hex: "1F528" },
+      { id: "hammer-wrench", label: "도구함", emoji: "🛠️", hex: "1F6E0" },
+      { id: "lock", label: "잠금", emoji: "🔒", hex: "1F512" },
+      { id: "key", label: "키", emoji: "🔑", hex: "1F511" },
+      { id: "shield", label: "보안", emoji: "🛡️", hex: "1F6E1" },
+      { id: "battery", label: "배터리", emoji: "🔋", hex: "1F50B" },
+      { id: "electric-plug", label: "플러그", emoji: "🔌", hex: "1F50C" },
+      { id: "bulb", label: "아이디어", emoji: "💡", hex: "1F4A1" },
+      { id: "package", label: "패키지", emoji: "📦", hex: "1F4E6" },
+      { id: "inbox", label: "인박스", emoji: "📥", hex: "1F4E5" },
+      { id: "outbox", label: "아웃박스", emoji: "📤", hex: "1F4E4" },
+      { id: "mailbox", label: "메일함", emoji: "📫", hex: "1F4EB" },
+      { id: "file-folder", label: "폴더", emoji: "📁", hex: "1F4C1" },
+      { id: "open-file-folder", label: "열린폴더", emoji: "📂", hex: "1F4C2" },
+      { id: "card-index", label: "카드색인", emoji: "📇", hex: "1F4C7" },
+      { id: "bar-chart", label: "막대그래프", emoji: "📊", hex: "1F4CA" },
+      { id: "clipboard", label: "클립보드", emoji: "📋", hex: "1F4CB" },
+      { id: "pushpin", label: "핀", emoji: "📌", hex: "1F4CC" },
+      { id: "paperclip", label: "클립", emoji: "📎", hex: "1F4CE" },
+    ],
+  },
+  {
+    id: "brands",
+    label: "브랜드",
+    items: [
+      { id: "twitter", label: "Twitter", emoji: "", hex: "E040" },
+      { id: "pinterest", label: "Pinterest", emoji: "", hex: "E041" },
+      { id: "facebook", label: "Facebook", emoji: "", hex: "E042" },
+      { id: "instagram", label: "Instagram", emoji: "", hex: "E043" },
+      { id: "youtube", label: "YouTube", emoji: "", hex: "E044" },
+      { id: "github", label: "GitHub", emoji: "", hex: "E045" },
+      { id: "linkedin", label: "LinkedIn", emoji: "", hex: "E046" },
+      { id: "android", label: "Android", emoji: "", hex: "E047" },
+      { id: "musicbrainz", label: "MusicBrainz", emoji: "", hex: "E048" },
+      { id: "openfoodfacts", label: "OpenFoodFacts", emoji: "", hex: "E049" },
+      { id: "openstreetmap", label: "OpenStreetMap", emoji: "", hex: "E04A" },
+      { id: "wikidata", label: "Wikidata", emoji: "", hex: "E04B" },
+      { id: "dotnet", label: ".NET", emoji: "", hex: "E04C" },
+      { id: "golang", label: "Go", emoji: "", hex: "E04D" },
+      { id: "kotlin", label: "Kotlin", emoji: "", hex: "E04E" },
+      { id: "ruby", label: "Ruby", emoji: "", hex: "E04F" },
+      { id: "firefox", label: "Firefox", emoji: "", hex: "E050" },
+      { id: "safari", label: "Safari", emoji: "", hex: "E051" },
+      { id: "opera", label: "Opera", emoji: "", hex: "E052" },
+      { id: "chromium", label: "Chromium", emoji: "", hex: "E053" },
+      { id: "chrome", label: "Chrome", emoji: "", hex: "E054" },
+      { id: "netscape", label: "Netscape", emoji: "", hex: "E055" },
+      { id: "ie", label: "IE", emoji: "", hex: "E056" },
+      { id: "edge", label: "Edge", emoji: "", hex: "E057" },
+    ],
+  },
+  {
+    id: "symbols",
+    label: "기호",
+    items: [
+      { id: "question", label: "물음표", emoji: "❓", hex: "2753" },
+      { id: "exclamation", label: "느낌표", emoji: "❗", hex: "2757" },
+      { id: "star", label: "별", emoji: "⭐", hex: "2B50" },
+      { id: "glowing-star", label: "반짝별", emoji: "🌟", hex: "1F31F" },
+      { id: "dizzy", label: "현기증", emoji: "💫", hex: "1F4AB" },
+      { id: "collision", label: "충돌", emoji: "💥", hex: "1F4A5" },
+      { id: "heart", label: "하트", emoji: "❤️", hex: "2764" },
+      { id: "orange-heart", label: "주황하트", emoji: "🧡", hex: "1F9E1" },
+      { id: "yellow-heart", label: "노랑하트", emoji: "💛", hex: "1F49B" },
+      { id: "green-heart", label: "초록하트", emoji: "💚", hex: "1F49A" },
+      { id: "blue-heart", label: "파랑하트", emoji: "💙", hex: "1F499" },
+      { id: "purple-heart", label: "보라하트", emoji: "💜", hex: "1F49C" },
+      { id: "broken-heart", label: "실연", emoji: "💔", hex: "1F494" },
+      { id: "heart-exclamation", label: "하트느낌표", emoji: "❣️", hex: "2763" },
+      { id: "two-hearts", label: "두하트", emoji: "💕", hex: "1F495" },
+      { id: "sparkling-heart", label: "반짝하트", emoji: "💖", hex: "1F496" },
+      { id: "growing-heart", label: "커지는하트", emoji: "💗", hex: "1F497" },
+      { id: "beating-heart", label: "뛰는하트", emoji: "💓", hex: "1F493" },
+      { id: "revolving-hearts", label: "도는하트", emoji: "💞", hex: "1F49E" },
+      { id: "heart-arrow", label: "화살하트", emoji: "💘", hex: "1F498" },
+      { id: "thought", label: "생각풍선", emoji: "💭", hex: "1F4AD" },
+      { id: "zzz", label: "졸음", emoji: "💤", hex: "1F4A4" },
+      { id: "dash", label: "대시", emoji: "💨", hex: "1F4A8" },
+      { id: "boom", label: "충돌", emoji: "💥", hex: "1F4A5" },
+      { id: "sweat-drops", label: "땀", emoji: "💦", hex: "1F4A6" },
+      { id: "droplet", label: "물방울", emoji: "💧", hex: "1F4A7" },
+    ],
+  },
+];
+
+// BlockImage 노드로 변환 (대표 이미지 기능 없는 스티커)
+export const stickerToImageNode = (sticker) => ({
+  type: "blockImage",
+  attrs: {
+    src: openmojiUrl(sticker.hex),
+    alt: sticker.label,
+    isRepresentative: false,
+    isSticker: true, // 스티커임을 명시
+  },
+});
+
+// 인라인 스티커 노드로 변환 (텍스트와 같은 줄에 표시)
+export const stickerToInlineNode = (sticker) => ({
+  type: "inlineSticker",
+  attrs: {
+    src: openmojiUrl(sticker.hex),
+    alt: sticker.label,
+  },
+});

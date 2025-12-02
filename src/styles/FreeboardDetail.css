@@ -1,0 +1,374 @@
+/* src/styles/FreeboardDetail.css */
+
+.freeboard-content {
+  line-height: 1.8;
+  font-size: 1rem;
+}
+
+/* 다크모드 기본 색상 */
+html.dark .freeboard-content {
+  color: #e5e7eb;
+}
+
+/* 라이트모드 기본 색상 */
+html:not(.dark) .freeboard-content {
+  color: #111827;
+}
+
+/* ========== 제목 스타일 ========== */
+html.dark .freeboard-content h1 {
+  color: #f9fafb;
+}
+
+html:not(.dark) .freeboard-content h1 {
+  color: #111827;
+}
+
+.freeboard-content h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.025em;
+}
+
+html.dark .freeboard-content h2 {
+  color: #f9fafb;
+}
+
+html:not(.dark) .freeboard-content h2 {
+  color: #1f2937;
+}
+
+.freeboard-content h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  letter-spacing: -0.025em;
+}
+
+html.dark .freeboard-content h3 {
+  color: #f3f4f6;
+}
+
+html:not(.dark) .freeboard-content h3 {
+  color: #374151;
+}
+
+.freeboard-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* ========== 문단 ========== */
+html.dark .freeboard-content p {
+  color: #d1d5db;
+}
+
+html:not(.dark) .freeboard-content p {
+  color: #374151;
+}
+
+.freeboard-content p {
+  margin-bottom: 1.25rem;
+  line-height: 1.8;
+}
+
+/* ========== 이미지 ========== */
+.freeboard-content img {
+  border-radius: 0.75rem;
+  margin: 2rem 0;
+  max-width: 100%;
+  height: auto;
+}
+
+html.dark .freeboard-content img {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+html:not(.dark) .freeboard-content img {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* ========== Monaco 코드 블록 ========== */
+.freeboard-content pre[data-type="monaco-code-block"] {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin: 2rem 0;
+}
+
+html.dark .freeboard-content pre[data-type="monaco-code-block"] {
+  background-color: #1e1e1e;
+  border: 1px solid #2d2d2d;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+html:not(.dark) .freeboard-content pre[data-type="monaco-code-block"] {
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+html.dark .freeboard-content .monaco-code-header {
+  background: linear-gradient(to bottom, #2d2d2d, #252526);
+  border-bottom: 1px solid #1e1e1e;
+}
+
+html:not(.dark) .freeboard-content .monaco-code-header {
+  background: linear-gradient(to bottom, #f6f8fa, #eaeef2);
+  border-bottom: 1px solid #d0d7de;
+}
+
+.freeboard-content .monaco-code-header {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+}
+
+html.dark .freeboard-content .monaco-language {
+  color: #858585;
+}
+
+html:not(.dark) .freeboard-content .monaco-language {
+  color: #57606a;
+}
+
+.freeboard-content .monaco-language {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.freeboard-content pre[data-type="monaco-code-block"] code {
+  display: block;
+  padding: 1.25rem !important;
+  background: transparent !important;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+.freeboard-content pre[data-type="monaco-code-block"] code::-webkit-scrollbar {
+  height: 8px;
+}
+
+html.dark .freeboard-content pre[data-type="monaco-code-block"] code::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+html:not(.dark) .freeboard-content pre[data-type="monaco-code-block"] code::-webkit-scrollbar-track {
+  background: #f6f8fa;
+}
+
+html.dark .freeboard-content pre[data-type="monaco-code-block"] code::-webkit-scrollbar-thumb {
+  background: #424242;
+}
+
+html:not(.dark) .freeboard-content pre[data-type="monaco-code-block"] code::-webkit-scrollbar-thumb {
+  background: #959da5;
+}
+
+.freeboard-content pre[data-type="monaco-code-block"] code::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+}
+
+/* ========== 일반 코드 블록 ========== */
+.freeboard-content pre:not([data-type="monaco-code-block"]) {
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+html.dark .freeboard-content pre:not([data-type="monaco-code-block"]) {
+  background-color: #1f2937;
+}
+
+html:not(.dark) .freeboard-content pre:not([data-type="monaco-code-block"]) {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+html.dark .freeboard-content code:not(pre code) {
+  background-color: #374151;
+  color: #f472b6;
+}
+
+html:not(.dark) .freeboard-content code:not(pre code) {
+  background-color: #e5e7eb;
+  color: #db2777;
+}
+
+.freeboard-content code:not(pre code) {
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* ========== 링크 ========== */
+.freeboard-content a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+
+html.dark .freeboard-content a {
+  color: #60a5fa;
+}
+
+html:not(.dark) .freeboard-content a {
+  color: #2563eb;
+}
+
+html.dark .freeboard-content a:hover {
+  color: #93c5fd;
+}
+
+html:not(.dark) .freeboard-content a:hover {
+  color: #1d4ed8;
+}
+
+/* ========== 리스트 ========== */
+.freeboard-content ul,
+.freeboard-content ol {
+  margin-left: 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.freeboard-content ul {
+  list-style-type: disc;
+}
+
+.freeboard-content ol {
+  list-style-type: decimal;
+}
+
+.freeboard-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+}
+
+html.dark .freeboard-content li {
+  color: #d1d5db;
+}
+
+html:not(.dark) .freeboard-content li {
+  color: #374151;
+}
+
+/* ========== 텍스트 강조 ========== */
+html.dark .freeboard-content strong {
+  color: #f9fafb;
+}
+
+html:not(.dark) .freeboard-content strong {
+  color: #111827;
+}
+
+.freeboard-content strong {
+  font-weight: 700;
+}
+
+html.dark .freeboard-content em {
+  color: #e5e7eb;
+}
+
+html:not(.dark) .freeboard-content em {
+  color: #374151;
+}
+
+.freeboard-content em {
+  font-style: italic;
+}
+
+/* ========== 인용구 ========== */
+.freeboard-content blockquote {
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-style: italic;
+}
+
+html.dark .freeboard-content blockquote {
+  border-left: 4px solid #60a5fa;
+  background-color: #1f2937;
+  color: #d1d5db;
+}
+
+html:not(.dark) .freeboard-content blockquote {
+  border-left: 4px solid #2563eb;
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* ========== 표 ========== */
+.freeboard-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.freeboard-content th,
+.freeboard-content td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+html.dark .freeboard-content th,
+html.dark .freeboard-content td {
+  border: 1px solid #374151;
+}
+
+html:not(.dark) .freeboard-content th,
+html:not(.dark) .freeboard-content td {
+  border: 1px solid #d1d5db;
+}
+
+html.dark .freeboard-content th {
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
+html:not(.dark) .freeboard-content th {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.freeboard-content th {
+  font-weight: 600;
+}
+
+html.dark .freeboard-content td {
+  background-color: #111827;
+  color: #d1d5db;
+}
+
+html:not(.dark) .freeboard-content td {
+  background-color: #ffffff;
+  color: #374151;
+}
+
+/* ========== 수평선 ========== */
+.freeboard-content hr {
+  border: none;
+  height: 1px;
+  margin: 2.5rem 0;
+}
+
+html.dark .freeboard-content hr {
+  background: linear-gradient(to right, transparent, #4b5563, transparent);
+}
+
+html:not(.dark) .freeboard-content hr {
+  background: linear-gradient(to right, transparent, #d1d5db, transparent);
+}
