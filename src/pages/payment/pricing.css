@@ -1,0 +1,213 @@
+/* Layout */
+.pricing-page {
+  min-height: calc(100vh - 60px);
+  background-color: #f5f5f7;
+  padding: 40px 24px 80px;
+}
+
+.pricing-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+/* Status banner */
+.status-banner {
+  max-width: 720px;
+  margin: 0 auto 32px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background-color: #eef2ff;
+  border: 1px solid #c7d2fe;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background-color: #4f46e5;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4f46e5;
+}
+
+.status-text {
+  font-size: 14px;
+  color: #111827;
+}
+
+/* Cards */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.card {
+  border-radius: 18px;
+  padding: 24px 24px 28px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  transition: all .22s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-purple {
+  background-color: #4f46e5;
+  color: #f9fafb;
+}
+
+.card-white {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+.card-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.card-dimmed {
+  opacity: 0.7;
+}
+
+.card-selected {
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 2px #4f46e5, 0 14px 32px rgba(15,23,42,0.22);
+}
+
+.price-text {
+  font-size: 30px;
+  font-weight: 800;
+  margin: 12px 0 16px;
+}
+
+.feature-list {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.feature-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 6px 0;
+  color: inherit;
+}
+
+.card-white .feature-line {
+  color: #4b5563; /* 좀 더 진한 회색 */
+}
+
+.card-purple .feature-line {
+  color: #e5e7eb; /* 밝은 회색(흰색 계열) */
+}
+
+.feature-icon {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.feature-icon.ok {
+  color: #16a34a !important;
+  background: transparent !important;
+}
+
+.feature-icon.no {
+  color: #ef4444 !important;
+  background: transparent !important;
+}
+
+.feature-text {
+  color: inherit;
+}
+
+/* 강한 우선순위로 아이콘 색을 고정 */
+.cards-grid .feature-line .feature-icon.ok {
+  color: #16a34a !important;
+  background: transparent !important;
+}
+.cards-grid .feature-line .feature-icon.no {
+  color: #ef4444 !important;
+  background: transparent !important;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Buttons */
+.card-button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.card-button.primary {
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+.card-button.secondary {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+.card-button.disabled {
+  background-color: #9ca3af;
+  color: #f9fafb;
+  cursor: not-allowed;
+}
+
+.proceed-wrapper {
+  margin-top: 28px;
+  display: flex;
+  justify-content: center;
+}
+
+.proceed-button {
+  min-width: 220px;
+  padding: 10px 24px;
+  border-radius: 999px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
+  background-color: #111827;
+  color: #ffffff;
+}
+
+.proceed-button.disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+  box-shadow: none;
+}
