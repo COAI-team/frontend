@@ -20,6 +20,9 @@ import SignUp from "./pages/user/SignUp";
 import LoginProvider from "./context/LoginProvider";
 import ResetPasswordPage from "./pages/user/ResetPasswordPage";
 
+// GitHub OAuth Callback
+import GitHubCallback from "./pages/social/GitHubCallback";
+
 // 자유게시판
 import FreeboardList from "./pages/freeboard/FreeboardList";
 import FreeboardDetail from "./pages/freeboard/FreeboardDetail";
@@ -52,6 +55,9 @@ createRoot(document.getElementById("root")).render(
             <BrowserRouter>
                 <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
                     <Routes>
+
+                        {/* GitHub OAuth Callback Route (최상단에 추가됨) */}
+                        <Route path="/auth/github/callback" element={<GitHubCallback />} />
 
                         {/* 옛날 payments 경로 대응 */}
                         <Route

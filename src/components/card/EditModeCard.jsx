@@ -15,7 +15,6 @@ export default function EditModeCard({
             {/* 프로필 이미지 */}
             <div className="flex justify-center mb-6">
                 <div className="relative w-32 h-32">
-
                     <div className="w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
                         {profile.preview ? (
                             <img src={profile.preview} className="w-full h-full object-cover" alt="profile" />
@@ -27,14 +26,7 @@ export default function EditModeCard({
                     {/* 카메라 버튼 */}
                     <label
                         htmlFor="profile-upload"
-                        className="
-                            absolute bottom-0 right-0
-                            w-10 h-10
-                            bg-white dark:bg-gray-800
-                            rounded-full shadow
-                            flex items-center justify-center
-                            cursor-pointer
-                        "
+                        className="absolute bottom-0 right-0 w-10 h-10 bg-white dark:bg-gray-800 rounded-full shadow flex items-center justify-center cursor-pointer"
                     >
                         <HiOutlineCamera className="w-6 h-6 text-gray-700" />
                         <input
@@ -53,34 +45,38 @@ export default function EditModeCard({
 
                 <div>
                     <label
-                        htmlFor="name"
+                        htmlFor="profile-upload"
                         className="text-sm font-medium text-gray-700">이름</label>
                     <input
                         className="mt-1 w-full border rounded-md px-4 py-2"
                         value={profile.name}
-                        onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                        onChange={(e) =>
+                            setProfile((prev) => ({ ...prev, name: e.target.value }))
+                        }
                     />
                 </div>
 
                 <div>
                     <label
-                        htmlFor="nickname"
+                        htmlFor="profile-upload"
                         className="text-sm font-medium text-gray-700">닉네임</label>
                     <input
                         className="mt-1 w-full border rounded-md px-4 py-2"
                         value={profile.nickname}
-                        onChange={(e) => setProfile({ ...profile, nickname: e.target.value })}
+                        onChange={(e) =>
+                            setProfile((prev) => ({ ...prev, nickname: e.target.value }))
+                        }
                     />
                 </div>
 
                 <div>
                     <label
-                        htmlFor="email"
+                        htmlFor="profile-upload"
                         className="text-sm font-medium text-gray-700">이메일</label>
                     <input
-                        className="mt-1 w-full border rounded-md px-4 py-2"
+                        className="mt-1 w-full border rounded-md px-4 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
                         value={profile.email}
-                        onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                        readOnly
                     />
                 </div>
 
