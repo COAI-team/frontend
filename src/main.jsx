@@ -12,10 +12,17 @@ import PaymentPage from "./pages/payment/PaymentPage.jsx";
 import PaymentSuccess from "./pages/payment/PaymentSuccess.jsx";
 import PaymentFail from "./pages/payment/PaymentFail.jsx";
 
-// 자유게시판
+
+// 사용자 관련 컴포넌트
+import SignIn from "./pages/user/SignIn";
+import SignUp from "./pages/user/SignUp";
+
+// 자유게시판 관련 컴포넌트
 import FreeboardList from "./pages/freeboard/FreeboardList";
 import FreeboardDetail from "./pages/freeboard/FreeboardDetail";
 import FreeboardWrite from "./pages/freeboard/FreeboardWrite";
+
+import { LoginProvider } from "./context/LoginContext.js";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
