@@ -16,6 +16,7 @@ export default function ProfilePage() {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMsg, setModalMsg] = useState("");
+
     const [profile, setProfile] = useState({
         name: "",
         nickname: "",
@@ -32,21 +33,22 @@ export default function ProfilePage() {
     };
 
     const maskEmail = (email) => {
-        if (!email.includes("@")) return email;
+        if (!email?.includes("@")) return email;
         const [id, domain] = email.split("@");
         return `${id.slice(0, 2)}****@${domain}`;
     };
 
+    /** 🔥 사용자 기본 정보 불러오기 */
     useEffect(() => {
         const loadUserInfo = async () => {
             const res = await getUserInfo(accessToken);
             if (!res || res.error) return;
 
             setProfile({
-                name: res.name,
-                nickname: res.nickname || "",
-                email: res.email,
-                preview: res.profileImageUrl || res.image || null,
+                name: res.userName,
+                nickname: res.userNickname || "",
+                email: res.userEmail,
+                preview: res.userImage || null,  // 🔥 정리됨!
                 image: null,
             });
 
@@ -57,25 +59,26 @@ export default function ProfilePage() {
         loadUserInfo();
     }, [accessToken, navigate]);
 
+    /** 🔥 프로필 이미지 변경 */
     const handleImageChange = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setProfile((prev) => ({
             ...prev,
-            image: file,                        // File 객체 저장
-            preview: URL.createObjectURL(file), // 미리보기
+            image: file,
+            preview: URL.createObjectURL(file),
         }));
     };
 
+    /** 🔥 정보 저장 */
     const handleSave = async () => {
         console.log("📌 [프로필 저장 요청]:", profile);
 
-        // 🔥 updateMyInfo 호출 방식 수정됨 (accessToken 제거)
         const result = await updateMyInfo({
             name: profile.name,
             nickname: profile.nickname,
-            image: profile.image,  // File 객체
+            image: profile.image,
         });
 
         if (!result || result.error) {
@@ -85,21 +88,24 @@ export default function ProfilePage() {
 
         openModal("✅ 프로필 저장 성공!");
 
-        // Navbar 상태 업데이트
+        /** 🔥 Navbar 업데이트 — 백엔드 응답 필드 기준 */
         setUser({
-            name: result.user.name,
-            nickname: result.user.nickname,
-            image: result.user.image,
+            userName: result.user.userName,
+            userNickname: result.user.userNickname,
+            userImage: result.user.userImage,
         });
 
+        /** 🔥 로컬에서도 즉시 적용 */
         setProfile((prev) => ({
             ...prev,
-            preview: result.user.image, // 새 프로필 이미지 반영
+            preview: result.user.userImage,
+            image: null,
         }));
 
         setEditMode(false);
     };
 
+    /** 🔥 탈퇴 처리 */
     const handleDeactivate = () => {
         setDeleteModalOpen(true);
     };
@@ -116,6 +122,7 @@ export default function ProfilePage() {
         setUser(null);
     };
 
+    /** 🔥 계정 복구 */
     const handleRestore = async () => {
         const res = await restoreUser(accessToken);
         if (res.error) {

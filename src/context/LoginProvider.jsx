@@ -16,7 +16,6 @@ export default function LoginProvider({ children }) {
         try {
             const parsed = JSON.parse(saved);
 
-            // 토큰이 없으면 인증 정보 삭제
             if (!parsed.accessToken || !parsed.user) {
                 localStorage.removeItem("auth");
                 sessionStorage.removeItem("auth");
@@ -26,9 +25,18 @@ export default function LoginProvider({ children }) {
             parsed.user = {
                 ...parsed.user,
                 image:
+                    parsed.user.userImage ??
                     parsed.user.image ??
-                    parsed.user.avatar_url ??   // GitHub avatar
+                    parsed.user.avatar_url ??
                     parsed.user.profileImageUrl ??
+                    null,
+                nickname:
+                    parsed.user.userNickname ??
+                    parsed.user.nickname ??
+                    null,
+                role:
+                    parsed.user.userRole ??
+                    parsed.user.role ??
                     null,
             };
 
@@ -42,7 +50,6 @@ export default function LoginProvider({ children }) {
 
     /**
      * 🔥 로그인 저장 함수
-     * loginResponse = { accessToken, refreshToken, user }
      */
     const login = (loginResponse, remember = false) => {
         if (
@@ -60,9 +67,18 @@ export default function LoginProvider({ children }) {
             user: {
                 ...loginResponse.user,
                 image:
+                    loginResponse.user.userImage ??
                     loginResponse.user.image ??
                     loginResponse.user.avatar_url ??
                     loginResponse.user.profileImageUrl ??
+                    null,
+                nickname:
+                    loginResponse.user.userNickname ??
+                    loginResponse.user.nickname ??
+                    null,
+                role:
+                    loginResponse.user.userRole ??
+                    loginResponse.user.role ??
                     null,
             },
         };
@@ -96,14 +112,24 @@ export default function LoginProvider({ children }) {
                     ...prev.user,
                     ...updatedUser,
                     image:
+                        updatedUser.userImage ??
                         updatedUser.image ??
                         updatedUser.avatar_url ??
                         prev.user.image ??
                         null,
+                    nickname:
+                        updatedUser.userNickname ??
+                        updatedUser.nickname ??
+                        prev.user.nickname ??
+                        null,
+                    role:
+                        updatedUser.userRole ??
+                        updatedUser.role ??
+                        prev.user.role ??
+                        null,
                 },
             };
 
-            // 저장된 auth 동기화
             const saved =
                 localStorage.getItem("auth") ||
                 sessionStorage.getItem("auth");
@@ -123,9 +149,6 @@ export default function LoginProvider({ children }) {
         });
     };
 
-    /**
-     * 🔥 Context value 최적화
-     */
     const value = useMemo(
         () => ({
             auth,

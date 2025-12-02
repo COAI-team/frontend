@@ -107,22 +107,20 @@ export const confirmPasswordReset = async (token, newPassword) => {
 // 회원 정보 수정 (🔥 accessToken 제거)
 export const updateMyInfo = async (payload) => {
     try {
-        // FormData 객체 생성
         const formData = new FormData();
-        formData.append("name", payload.name ?? "");
-        formData.append("nickname", payload.nickname ?? "");
 
-        // 파일이 존재할 경우에만 추가
+        // 🔥 백엔드 DTO 필드명에 맞추기
+        formData.append("userName", payload.name ?? "");
+        formData.append("userNickname", payload.nickname ?? "");
+
+        // 파일이 있을 때만 추가
         if (payload.image instanceof File) {
-            formData.append("image", payload.image);  // File 객체
+            formData.append("image", payload.image);
         }
 
-        // PUT 요청 (Content-Type은 지정하지 말 것)
         const res = await axiosInstance.put("/users/me", formData, {
             headers: {
                 Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                // ❌ Content-Type: multipart/form-data 넣지 말기!!
-                // axios가 boundary 포함해서 자동으로 생성함
             },
         });
 

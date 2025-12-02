@@ -63,7 +63,10 @@ export default function SignIn() {
             return;
         }
 
-        const result = await apiLogin({ email, password });
+        const result = await apiLogin({
+            userEmail: email,
+            userPw: password
+        });
 
         setIsLoading(false);
 
