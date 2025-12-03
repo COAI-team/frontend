@@ -1,16 +1,13 @@
 // src/pages/payment/PricingPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../../server/AxiosConfig";
 import "./pricing.css";
 
-const API_BASE_URL = "https://localhost:9443/payments";
 
-const MOCK_USER_ID = "TEST_USER_001";
-const MOCK_USER_NAME = "테스트 사용자";
 
 const PLANS = {
-  free: { code: "FREE", name: "Free", price: 0, description: "결제 없이 바로 사용 가능합니다." },
+  free: { code: "FREE", name: "Free", price: 0 },
   basic: { code: "BASIC", name: "Basic", price: 39800 },
   pro: { code: "PRO", name: "Pro", price: 42900 },
 };
@@ -38,15 +35,47 @@ const proFeatures = [
   { ok: true, text: "언제든지 해지 가능 (해지 시 다음 달부터 결제 중단)" },
 ];
 
+const IconCheck = ({ color = "#16a34a" }) => (
+  <svg
+    aria-hidden="true"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ display: "block" }}
+  >
+    <polyline
+      points="5 12.5 10 17.5 19 7"
+      stroke={color}
+      strokeWidth="2.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconX = ({ color = "#ef4444" }) => (
+  <svg
+    aria-hidden="true"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ display: "block" }}
+  >
+    <line x1="6" y1="6" x2="18" y2="18" stroke={color} strokeWidth="2.6" strokeLinecap="round" />
+    <line x1="18" y1="6" x2="6" y2="18" stroke={color} strokeWidth="2.6" strokeLinecap="round" />
+  </svg>
+);
+
 const renderFeatures = (items) => (
   <div className="feature-list">
     {items.map((item, idx) => (
       <p key={idx} className="feature-line">
-        <span
-          className={`feature-icon ${item.ok ? "ok" : "no"}`}
-          style={{ color: item.ok ? "#16a34a" : "#ef4444" }}
-        >
-          {item.ok ? "✔" : "✖"}
+        <span className={`feature-icon ${item.ok ? "ok" : "no"}`}>
+          {item.ok ? <IconCheck /> : <IconX />}
         </span>
         <span className="feature-text">{item.text}</span>
       </p>
@@ -61,12 +90,13 @@ function PricingPage() {
   const [currentPlan, setCurrentPlan] = useState("FREE");
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${API_BASE_URL}/subscriptions/${MOCK_USER_ID}`);
+        const res = await axiosInstance.get("/payments/subscriptions/me");
         const list = Array.isArray(res.data) ? res.data : [];
 
         if (list.length === 0) {
@@ -88,6 +118,19 @@ function PricingPage() {
     fetchSubscriptions();
   }, []);
 
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await axiosInstance.get("/users/me");
+        const data = res.data || {};
+        setUserName(data.userNickname || data.userName || "");
+      } catch (e) {
+        console.warn("내 정보 조회 실패(이름 표시 생략):", e);
+      }
+    };
+    fetchMe();
+  }, []);
+
   const currentPlanLabel =
     currentPlan === "BASIC" ? "Basic" : currentPlan === "PRO" ? "Pro" : "Free";
 
@@ -95,8 +138,8 @@ function PricingPage() {
   const isProCurrent = currentPlan === "PRO";
 
   const handleSelectPlan = (planKey) => {
-    if (isProCurrent) return; // 프로 구독자는 선택 불가
-    if (isBasicCurrent && planKey === "basic") return; // 베이직 사용 중이면 베이직 선택 불가
+    if (isProCurrent) return; // Pro 구독자는 선택 불가
+    if (isBasicCurrent && planKey === "basic") return; // Basic 사용 중이면 Basic 선택 불가
     setSelectedPlan((prev) => (prev === planKey ? null : planKey));
   };
 
@@ -122,7 +165,9 @@ function PricingPage() {
           <div className="status-banner">
             <div className="status-icon">i</div>
             <div>
-              <div className="status-title">{MOCK_USER_ID}의 구독 상태</div>
+              <div className="status-title">
+                {(userName || "사용자")}님의 구독 상태
+              </div>
               <div className="status-text">
                 {currentPlan === "FREE"
                   ? "현재 무료 구독입니다. Free 플랜을 이용 중입니다."

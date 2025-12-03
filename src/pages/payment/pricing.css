@@ -1,4 +1,4 @@
-/* Layout */
+﻿/* Layout */
 .pricing-page {
   min-height: calc(100vh - 60px);
   background-color: #f5f5f7;
@@ -110,43 +110,35 @@
 }
 
 .card-white .feature-line {
-  color: #4b5563; /* 좀 더 진한 회색 */
+  color: #4b5563;
 }
 
 .card-purple .feature-line {
-  color: #e5e7eb; /* 밝은 회색(흰색 계열) */
+  color: #e5e7eb;
 }
 
 .feature-icon {
-  display: inline-block;
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1.2;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
-.feature-icon.ok {
-  color: #16a34a !important;
-  background: transparent !important;
+.feature-icon.ok svg {
+  stroke: #16a34a !important;
+  fill: none;
 }
 
-.feature-icon.no {
-  color: #ef4444 !important;
-  background: transparent !important;
+.feature-icon.no svg {
+  stroke: #ef4444 !important;
+  fill: none;
 }
 
 .feature-text {
   color: inherit;
-}
-
-/* 강한 우선순위로 아이콘 색을 고정 */
-.cards-grid .feature-line .feature-icon.ok {
-  color: #16a34a !important;
-  background: transparent !important;
-}
-.cards-grid .feature-line .feature-icon.no {
-  color: #ef4444 !important;
-  background: transparent !important;
 }
 
 .badge {
