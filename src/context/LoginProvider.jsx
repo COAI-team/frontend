@@ -1,10 +1,22 @@
 import { useState, useMemo, useEffect } from "react";
 import { LoginContext } from "./LoginContext";
 import { LoginProviderPropTypes } from "../utils/propTypes";
+import { getUserInfo } from "../service/user/User.js";
+import axios from "axios";
 
 export default function LoginProvider({ children }) {
     const [auth, setAuth] = useState(null);
     const [loginResult, setLoginResult] = useState(null);
+
+    // 🔥 auth가 변경될 때 axios Authorization 자동 설정
+    useEffect(() => {
+        if (auth?.accessToken) {
+            axios.defaults.headers.common["Authorization"] =
+                `Bearer ${auth.accessToken}`;
+        } else {
+            delete axios.defaults.headers.common["Authorization"];
+        }
+    }, [auth]);
 
     // 🔥 저장된 로그인 정보 복원 + 서버에서 유저 정보 검증
     useEffect(() => {
@@ -22,44 +34,63 @@ export default function LoginProvider({ children }) {
                 return;
             }
 
-            // 🔥 여기서 accessToken 설정
+            // 우선 auth 설정 → axios 헤더 적용
             setAuth(parsed);
 
-            // 🔥 서버에 실제로 accessToken이 유효한지 확인 (중요!)
             getUserInfo()
                 .then((res) => {
-                    if (res?.error) {
-                        // 토큰 만료 → 로그인 복구 실패
+                    // 백엔드는 error 필드 안 보냄 → 그냥 res 제대로 왔는지 판단
+                    if (!res || res?.error) {
                         localStorage.removeItem("auth");
                         sessionStorage.removeItem("auth");
                         setAuth(null);
                         return;
                     }
 
-                    // 🔥 서버에서 받은 최신 유저 정보로 갱신
-                    setAuth((prev) => ({
-                        ...prev,
-                        user: res,
-                    }));
+                    // 🔥 normalize 처리
+                    setAuth((prev) => {
+                        if (!prev) return prev;
 
-                    // 저장소에도 다시 저장
-                    const storage = localStorage.getItem("auth")
-                        ? localStorage
-                        : sessionStorage;
-                    storage.setItem(
-                        "auth",
-                        JSON.stringify({
-                            ...parsed,
-                            user: res,
-                        })
-                    );
+                        const normalizedUser = {
+                            ...prev.user,
+                            ...res,
+                            image:
+                                res.userImage ??
+                                res.image ??
+                                res.avatar_url ??
+                                prev.user?.image ??
+                                null,
+                            nickname:
+                                res.userNickname ??
+                                res.nickname ??
+                                prev.user?.nickname ??
+                                null,
+                            role:
+                                res.userRole ??
+                                res.role ??
+                                prev.user?.role ??
+                                null,
+                        };
+
+                        const newAuth = {
+                            ...prev,
+                            user: normalizedUser,
+                        };
+
+                        const storage = localStorage.getItem("auth")
+                            ? localStorage
+                            : sessionStorage;
+
+                        storage.setItem("auth", JSON.stringify(newAuth));
+
+                        return newAuth;
+                    });
                 })
                 .catch(() => {
                     localStorage.removeItem("auth");
                     sessionStorage.removeItem("auth");
                     setAuth(null);
                 });
-
         } catch (err) {
             console.error("Failed to parse saved auth:", err);
             localStorage.removeItem("auth");
@@ -67,9 +98,7 @@ export default function LoginProvider({ children }) {
         }
     }, []);
 
-    /**
-     * 🔥 로그인 저장 함수
-     */
+    // 🔥 로그인 저장 함수
     const login = (loginResponse, remember = false) => {
         if (
             !loginResponse ||
@@ -104,23 +133,25 @@ export default function LoginProvider({ children }) {
 
         setAuth(updated);
 
+        // 🔥 로그인 직후에도 axios Authorization 자동 적용
+        axios.defaults.headers.common["Authorization"] =
+            `Bearer ${loginResponse.accessToken}`;
+
         const storage = remember ? localStorage : sessionStorage;
         storage.setItem("auth", JSON.stringify(updated));
     };
 
-    /**
-     * 🔥 로그아웃
-     */
     const logout = () => {
         setAuth(null);
         setLoginResult(null);
         localStorage.removeItem("auth");
         sessionStorage.removeItem("auth");
+
+        // 🔥 Authorization 헤더 제거
+        delete axios.defaults.headers.common["Authorization"];
     };
 
-    /**
-     * 🔥 프로필 정보만 부분 수정 (토큰은 유지)
-     */
+    // 🔥 프로필 정보만 부분 수정
     const setUser = (updatedUser) => {
         setAuth((prev) => {
             if (!prev) return prev;
@@ -134,17 +165,17 @@ export default function LoginProvider({ children }) {
                         updatedUser.userImage ??
                         updatedUser.image ??
                         updatedUser.avatar_url ??
-                        prev.user.image ??
+                        prev.user?.image ??
                         null,
                     nickname:
                         updatedUser.userNickname ??
                         updatedUser.nickname ??
-                        prev.user.nickname ??
+                        prev.user?.nickname ??
                         null,
                     role:
                         updatedUser.userRole ??
                         updatedUser.role ??
-                        prev.user.role ??
+                        prev.user?.role ??
                         null,
                 },
             };
