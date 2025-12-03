@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { loadTossPayments } from "@tosspayments/tosspayments-sdk";
-import axios from "axios";
+import axiosInstance from "../../server/AxiosConfig";
 import "./payment.css";
 
-const clientKey = import.meta.env.VITE_TOSS_PAYMENTS_CLIENT_KEY; // ???? ?
-const customerKey = "HQ3xYXZZG-PocUEuPo4Ih"; // ???? ?? ?? ?
-const API_BASE_URL = "https://localhost:9443/payments";
+const clientKey = import.meta.env.VITE_TOSS_PAYMENTS_CLIENT_KEY; // Toss ??? ?
 const SUCCESS_URL = `${window.location.origin}/pages/payment/PaymentSuccess`;
 const FAIL_URL = `${window.location.origin}/pages/payment/PaymentFail`;
 
@@ -37,6 +35,7 @@ function PaymentPage() {
   const [orderId] = useState(
     () => `sub_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
   );
+  const customerKey = useMemo(() => `USER_${orderId}`, [orderId]);
 
   // ★ 실제 로그인 유저 정보가 생기면 여기로 교체하면 됨
   const MOCK_USER_ID = "TEST_USER_001";
@@ -70,7 +69,7 @@ function PaymentPage() {
     async function fetchUserPoints() {
       try {
         // 실제 서비스에서는 인증된 유저 기준으로 처리
-        const res = await axios.get("https://localhost:9443/users/me/points");
+        const res = await axiosInstance.get("/users/me/points");
         const raw = res.data?.points ?? 0;
         const numericPoints = typeof raw === "number" ? raw : Number(raw) || 0;
         setUserPoints(numericPoints);
@@ -97,9 +96,8 @@ function PaymentPage() {
           return;
         }
 
-        const res = await axios.get(`${API_BASE_URL}/upgrade-quote`, {
+        const res = await axiosInstance.get("/payments/upgrade-quote", {
           params: {
-            userId: MOCK_USER_ID,
             planCode: plan.code,
           },
         });
@@ -273,11 +271,10 @@ function PaymentPage() {
   const buildReadyPayload = (overrideAmount) => ({
     orderId: orderId,
     orderName: plan.name,
-    customerName: MOCK_USER_NAME, // TODO: 실제 로그인 유저 이름으로 교체
-    userId: MOCK_USER_ID, // TODO: 실제 회원 PK
+    customerName: "??", // ?? ??? ??
     planCode: plan.code,
-    originalAmount: baseAmount, // 일반: 플랜 원가 / 업그레이드: 추가 결제 금액
-    usedPoint: pointsToUse, // 사용한 포인트
+    originalAmount: baseAmount, // ?? ??(????? ? ?? ??)
+    usedPoint: pointsToUse, // ?? ???
     amount: overrideAmount,
   });
 
@@ -302,10 +299,7 @@ function PaymentPage() {
     try {
       const readyPayload = buildReadyPayload(0);
 
-      const readyResponse = await axios.post(
-        `${API_BASE_URL}/ready`,
-        readyPayload
-      );
+      const readyResponse = await axiosInstance.post("/payments/ready", readyPayload);
 
       if (!(readyResponse.status === 201 || readyResponse.status === 200)) {
         throw new Error("결제 준비(READY) 단계에서 비정상 응답");
@@ -354,10 +348,7 @@ function PaymentPage() {
       // (1) 결제 준비 정보 DB 저장
       const readyPayload = buildReadyPayload(amountValue);
 
-      const readyResponse = await axios.post(
-        `${API_BASE_URL}/ready`,
-        readyPayload
-      );
+      const readyResponse = await axiosInstance.post("/payments/ready", readyPayload);
 
       if (!(readyResponse.status === 201 || readyResponse.status === 200)) {
         throw new Error("결제 준비(READY) 단계에서 비정상 응답");

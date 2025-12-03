@@ -1,10 +1,9 @@
 // src/pages/payment/PaymentSuccess.jsx
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../../server/AxiosConfig";
 import "./payment-screens.css";
 
-const API_BASE_URL = "https://localhost:9443/payments";
 
 function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -18,6 +17,7 @@ function PaymentSuccess() {
   const [statusMessage, setStatusMessage] = useState(
     "결제 확인 처리 중입니다..."
   );
+  const [orderLine, setOrderLine] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
@@ -29,9 +29,8 @@ function PaymentSuccess() {
         return;
       }
 
-      setStatusMessage(
-        `포인트 전액 사용으로 구독이 활성화되었습니다. (주문 ID: ${orderId})`
-      );
+      setStatusMessage("포인트 전액 사용으로 구독이 활성화되었습니다.");
+      setOrderLine(`주문 ID: ${orderId}`);
       setIsSuccess(true);
       return;
     }
@@ -47,16 +46,15 @@ function PaymentSuccess() {
 
     const confirmPayment = async () => {
       try {
-        const response = await axios.post(`${API_BASE_URL}/confirm`, {
+        const response = await axiosInstance.post("/payments/confirm", {
           paymentKey,
           orderId,
           amount,
         });
 
         if (response.status === 200 && response.data?.status === "DONE") {
-          setStatusMessage(
-            `결제가 성공적으로 완료되었습니다. (주문 ID: ${response.data.orderId})`
-          );
+          setStatusMessage("결제가 성공적으로 완료되었습니다.");
+          setOrderLine(`주문 ID: ${response.data.orderId}`);
           setIsSuccess(true);
         } else {
           setStatusMessage(
@@ -95,6 +93,7 @@ function PaymentSuccess() {
         </h1>
 
         <p className="payment-status">{statusMessage}</p>
+        {orderLine && <p className="payment-status">{orderLine}</p>}
 
         {isSuccess && (
           <p className="payment-subtext">
