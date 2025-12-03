@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
-import { codeTemplates } from '../../components/algorithm/editor/editorUtils';
+import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY, ALLOWED_LANGUAGES } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
 import { startProblemSolve, submitCode, runTestCode, LANGUAGE_OPTIONS } from '../../service/algorithm/algorithmApi';
 import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
@@ -81,7 +81,7 @@ const ProblemSolve = () => {
     try {
       const res = await submitCode({
         problemId: Number(problemId),
-        language: selectedLanguage.toUpperCase(),
+        language: selectedLanguage, // DB expects exact language name (e.g., "Python 3", "Java 17")
         sourceCode: code,
         elapsedTime: getElapsedTime()
       });
@@ -117,6 +117,8 @@ const ProblemSolve = () => {
 
         const problemData = res.Data || res.data || res;
         console.log('📋 문제 데이터:', problemData);
+        console.log('🔤 Available Languages:', problemData.availableLanguages);
+
         setProblem(problemData);
 
         // SQL 문제인 경우 기본 언어를 SQL로 설정
@@ -157,8 +159,15 @@ const ProblemSolve = () => {
 
   // 초기 코드 설정
   useEffect(() => {
-    // 언어에 맞는 템플릿이 없으면 기본 템플릿 사용
-    setCode(codeTemplates[selectedLanguage] || codeTemplates['default'] || '// 코드를 작성하세요');
+    // 백엔드 languageName을 template key로 변환
+    const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || selectedLanguage;
+    const template = codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요';
+    console.log(`[ProblemSolve] Loading template for language: ${selectedLanguage}`, {
+      templateKey,
+      hasTemplate: !!codeTemplates[templateKey],
+      templateLength: template.length
+    });
+    setCode(template);
   }, [selectedLanguage]);
 
   // 시간 포맷팅
@@ -172,7 +181,8 @@ const ProblemSolve = () => {
   const handleLanguageChange = (lang) => {
     if (window.confirm(`언어를 ${lang}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`)) {
       setSelectedLanguage(lang);
-      setCode(codeTemplates[lang] || codeTemplates['default'] || '// 코드를 작성하세요');
+      const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[lang] || lang;
+      setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
     }
   };
 
@@ -200,7 +210,7 @@ const ProblemSolve = () => {
     try {
       const res = await runTestCode({
         problemId: Number(problemId),
-        language: selectedLanguage.toUpperCase(),
+        language: selectedLanguage, // DB expects exact language name (e.g., "Python 3", "Java 17")
         sourceCode: code
       });
 
@@ -418,35 +428,44 @@ const ProblemSolve = () => {
                   onChange={(e) => handleLanguageChange(e.target.value)}
                   className="bg-zinc-700 border-none rounded px-3 py-1 text-sm"
                 >
-                  {problem?.availableLanguages?.map((lang) => (
-                    <option key={lang.value} value={lang.value}>
-                      {lang.languageName}
-                    </option>
-                  )) || (
-                      <>
-                        {problem?.problemType === 'SQL' ? (
-                          <option value="SQL">SQL (SQLite)</option>
-                        ) : (
-                          <>
-                            {LANGUAGE_OPTIONS
-                              .filter(opt => opt.value !== 'ALL' && opt.value !== 'SQL')
-                              .map(opt => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))
-                            }
-                          </>
-                        )}
-                      </>
-                    )}
+                  {problem?.problemType === 'SQL' ? (
+                    <option value="SQL">SQL (SQLite)</option>
+                  ) : (
+                    (() => {
+                      if (!problem?.availableLanguages) return null;
+
+                      // 중복 제거 및 필터링
+                      const seen = new Set();
+                      const filtered = problem.availableLanguages
+                        .filter(lang => {
+                          // 중복 제거 (languageName 기준)
+                          if (seen.has(lang.languageName)) return false;
+                          seen.add(lang.languageName);
+
+                          // 허용된 언어 목록에 있는지 확인
+                          if (!ALLOWED_LANGUAGES.has(lang.languageName)) return false;
+
+                          // Monaco Editor 지원 여부 확인 (plaintext 제외)
+                          const monacoLang = LANGUAGE_MAP[lang.languageName];
+                          return monacoLang && monacoLang !== 'plaintext';
+                        });
+
+                      console.log(`[ProblemSolve] 언어 필터링 완료: ${filtered.length}개 표시 (전체 ${problem.availableLanguages.length}개 중)`);
+
+                      return filtered.map(lang => (
+                        <option key={lang.languageName} value={lang.languageName}>
+                          {lang.languageName}
+                        </option>
+                      ));
+                    })()
+                  )}
                 </select>
 
                 {/* 선택된 언어의 제한 정보 표시 (작게) */}
                 {problem?.availableLanguages && (
                   <span className="text-xs text-gray-500 ml-2">
-                    (⏱ {problem.availableLanguages.find(l => l.value === selectedLanguage)?.timeLimit}ms /
-                    💾 {problem.availableLanguages.find(l => l.value === selectedLanguage)?.memoryLimit}MB)
+                    (⏱ {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.timeLimit}ms /
+                    💾 {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.memoryLimit}MB)
                   </span>
                 )}
               </div>

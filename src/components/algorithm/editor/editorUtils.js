@@ -8,39 +8,171 @@ export const LANGUAGE_MAP = {
   // C/C++
   'C (Clang)': 'c',
   'C11': 'c',
+  'C17': 'c',
+  'C23': 'c',
+  'C90': 'c',
+  'C99': 'c',
   'C++17': 'cpp',
   'C++20': 'cpp',
+  'C++ (Clang)': 'cpp',
+  'C++11': 'cpp',
+  'C++14': 'cpp',
+  'C++23': 'cpp',
+  'C++26': 'cpp',
+  'C++98': 'cpp',
   // Java
   'Java 17': 'java',
   'Java 11': 'java',
+  'Java (JDK 17)': 'java',
+  'Java (JDK 21)': 'java',
+  'Java 15': 'java',
+  'Java 19': 'java',
+  'Java 21': 'java',
+  'Java 8': 'java',
+  'Java 8 (OpenJDK)': 'java',
   // Python
   'Python 3': 'python',
+  'Python 2': 'python',
   'PyPy3': 'python',
+  'PyPy2': 'python',
   // JS/TS
   'node.js': 'javascript',
   'TypeScript': 'typescript',
   // Others
   'Go': 'go',
   'Rust': 'rust',
+  'Rust 2018': 'rust',
+  'Rust 2021': 'rust',
   'Kotlin (JVM)': 'kotlin',
+  'Kotlin (Native)': 'kotlin',
   'Swift': 'swift',
+  'Swift (Apple)': 'swift',
   'C#': 'csharp',
+  'MonoDevelop C#': 'csharp',
   'PHP': 'php',
   'Ruby': 'ruby',
   'SQL': 'sql',
   'Bash': 'shell',
-  'Assembly (64bit)': 'plaintext', // Monaco might not support assembly out of box
-  'D': 'plaintext',
-  'Fortran': 'plaintext',
-  'Haskell': 'haskell', // Monaco supports haskell?
+  'Haskell': 'haskell',
   'Lua': 'lua',
   'Objective-C': 'objective-c',
-  'OCaml': 'ocaml', // Monaco supports ocaml?
+  'Objective-C++': 'objective-c',
+  'OCaml': 'ocaml',
   'Pascal': 'pascal',
+  'Pascal (FPC)': 'pascal',
   'Perl': 'perl',
+  'Perl 6': 'perl',
   'R': 'r',
-  'Scala': 'scala' // Monaco supports scala?
+  'Scala': 'scala',
+  // Unsupported (plaintext)
+  'Assembly (64bit)': 'plaintext',
+  'Assembly (32bit)': 'plaintext',
+  'D': 'plaintext',
+  'D (LDC)': 'plaintext',
+  'Fortran': 'plaintext',
+  'Ada': 'plaintext',
+  'Algol 68': 'plaintext',
+  'AWK': 'plaintext',
+  'Befunge': 'plaintext',
+  'Brainf**k': 'plaintext',
+  'Ceylon': 'plaintext',
+  'Clojure': 'plaintext',
+  'Cobol': 'plaintext',
+  'Cobra': 'plaintext',
 };
+
+// 백엔드 languageName을 codeTemplates 키로 매핑
+export const LANGUAGE_NAME_TO_TEMPLATE_KEY = {
+  // C variants -> use 'C (Clang)' template
+  'C (Clang)': 'C (Clang)',
+  'C11': 'C11',
+  'C17': 'C (Clang)',
+  'C23': 'C (Clang)',
+  'C90': 'C (Clang)',
+  'C99': 'C (Clang)',
+  'C#': 'C (Clang)', // C# uses C template as fallback
+  // C++ variants -> use specific templates
+  'C++ (Clang)': 'C++17',
+  'C++11': 'C++17',
+  'C++14': 'C++17',
+  'C++17': 'C++17',
+  'C++20': 'C++20',
+  'C++23': 'C++20',
+  'C++26': 'C++20',
+  'C++98': 'C++17',
+  // Java variants -> use 'Java 17' template
+  'Java (JDK 17)': 'Java 17',
+  'Java (JDK 21)': 'Java 17',
+  'Java 11': 'Java 11',
+  'Java 15': 'Java 17',
+  'Java 17': 'Java 17',
+  'Java 19': 'Java 17',
+  'Java 21': 'Java 17',
+  'Java 8': 'Java 17',
+  'Java 8 (OpenJDK)': 'Java 17',
+  // Python variants
+  'Python 2': 'Python 3',
+  'Python 3': 'Python 3',
+  'PyPy2': 'PyPy3',
+  'PyPy3': 'PyPy3',
+  // JavaScript/TypeScript
+  'node.js': 'node.js',
+  'TypeScript': 'TypeScript',
+  'MonoDevelop C#': 'node.js', // Fallback
+  // Others
+  'Go': 'Go',
+  'Rust': 'Rust',
+  'Rust 2018': 'Rust',
+  'Rust 2021': 'Rust',
+  'Kotlin (JVM)': 'Kotlin (JVM)',
+  'Kotlin (Native)': 'Kotlin (JVM)',
+  'Swift': 'C++17', // Fallback to C++ template
+  'Swift (Apple)': 'C++17',
+  'PHP': 'Python 3', // Fallback
+  'Ruby': 'Python 3', // Fallback
+  'Bash': 'Python 3', // Fallback
+  'Haskell': 'Python 3', // Fallback
+  'Lua': 'Python 3', // Fallback
+  'Objective-C': 'C (Clang)',
+  'Objective-C++': 'C++17',
+  'OCaml': 'Python 3', // Fallback
+  'Pascal': 'C (Clang)', // Fallback
+  'Pascal (FPC)': 'C (Clang)',
+  'Perl': 'Python 3', // Fallback
+  'Perl 6': 'Python 3',
+  'SQL': 'SQL',
+};
+
+// 알고리즘 문제에서 허용되는 언어 목록 (화이트리스트)
+export const ALLOWED_LANGUAGES = new Set([
+  'C++17',
+  'C++20',
+  'C++ (Clang)',
+  'C++11',
+  'C++14',
+  'Java 17',
+  'Java 11',
+  'Java (JDK 17)',
+  'Java (JDK 21)',
+  'Python 3',
+  'Python 2',
+  'node.js',
+  'TypeScript',
+  'C#',
+  'MonoDevelop C#',
+  'C (Clang)',
+  'C11',
+  'Go',
+  'Kotlin (JVM)',
+  'Swift',
+  'Swift (Apple)',
+  'Rust',
+  'Rust 2018',
+  'Rust 2021',
+  'Ruby',
+  'PHP',
+  // Note: Dart, Scala, Elixir, Erlang, Racket이 백엔드 데이터에 없음
+]);
 
 // 에디터 유틸리티 함수들
 export const editorUtils = {
