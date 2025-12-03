@@ -6,7 +6,7 @@ export default function LoginProvider({ children }) {
     const [auth, setAuth] = useState(null);
     const [loginResult, setLoginResult] = useState(null);
 
-    // 🔥 저장된 로그인 정보 복원
+    // 🔥 저장된 로그인 정보 복원 + 서버에서 유저 정보 검증
     useEffect(() => {
         const saved =
             localStorage.getItem("auth") || sessionStorage.getItem("auth");
@@ -16,31 +16,50 @@ export default function LoginProvider({ children }) {
         try {
             const parsed = JSON.parse(saved);
 
-            if (!parsed.accessToken || !parsed.user) {
+            if (!parsed.accessToken) {
                 localStorage.removeItem("auth");
                 sessionStorage.removeItem("auth");
                 return;
             }
 
-            parsed.user = {
-                ...parsed.user,
-                image:
-                    parsed.user.userImage ??
-                    parsed.user.image ??
-                    parsed.user.avatar_url ??
-                    parsed.user.profileImageUrl ??
-                    null,
-                nickname:
-                    parsed.user.userNickname ??
-                    parsed.user.nickname ??
-                    null,
-                role:
-                    parsed.user.userRole ??
-                    parsed.user.role ??
-                    null,
-            };
-
+            // 🔥 여기서 accessToken 설정
             setAuth(parsed);
+
+            // 🔥 서버에 실제로 accessToken이 유효한지 확인 (중요!)
+            getUserInfo()
+                .then((res) => {
+                    if (res?.error) {
+                        // 토큰 만료 → 로그인 복구 실패
+                        localStorage.removeItem("auth");
+                        sessionStorage.removeItem("auth");
+                        setAuth(null);
+                        return;
+                    }
+
+                    // 🔥 서버에서 받은 최신 유저 정보로 갱신
+                    setAuth((prev) => ({
+                        ...prev,
+                        user: res,
+                    }));
+
+                    // 저장소에도 다시 저장
+                    const storage = localStorage.getItem("auth")
+                        ? localStorage
+                        : sessionStorage;
+                    storage.setItem(
+                        "auth",
+                        JSON.stringify({
+                            ...parsed,
+                            user: res,
+                        })
+                    );
+                })
+                .catch(() => {
+                    localStorage.removeItem("auth");
+                    sessionStorage.removeItem("auth");
+                    setAuth(null);
+                });
+
         } catch (err) {
             console.error("Failed to parse saved auth:", err);
             localStorage.removeItem("auth");
