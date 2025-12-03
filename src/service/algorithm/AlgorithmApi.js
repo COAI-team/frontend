@@ -8,37 +8,25 @@ import axiosInstance from "../../server/AxiosConfig";
 export const getProblems = async (params = {}) => {
     try {
         const queryParams = new URLSearchParams();
-        const { page = 1, size = 10, difficulty, source, keyword, topic } = params;
+        const { page = 1, size = 10, difficulty, source, keyword } = params;
 
         queryParams.append('page', page);
         queryParams.append('size', size);
+        if (difficulty) queryParams.append('difficulty', difficulty);
+        if (source) queryParams.append('source', source);
+        if (keyword) queryParams.append('keyword', keyword);
+        if (params.problemType) queryParams.append('problemType', params.problemType);
 
-        if (difficulty && difficulty !== '') {
-            queryParams.append('difficulty', difficulty);
-        }
-        if (source && source !== '') {
-            queryParams.append('source', source);
-        }
-        if (keyword && keyword.trim() !== '') {
-            queryParams.append('keyword', keyword.trim());
-        }
-        // topic 파라미터 추가
-        if (topic && topic !== '') {
-            queryParams.append('topic', topic);
-        }
+        const res = await axiosInstance.get(`/algo/problems?${queryParams}`);
 
-        const url = `/algo/problems?${queryParams.toString()}`;
-        const res = await axiosInstance.get(url);
-
-        // ApiResponse 구조에서 실제 데이터 추출
-        if (res.data && res.data.data) {
-            return { data: res.data.data };
-        }
+        // 🔍 디버깅: 응답 전체 구조 확인
+        console.log('✅ [getProblems] 전체 응답:', res);
+        console.log('✅ [getProblems] res.data:', res.data);
 
         return res.data;
     } catch (err) {
-        console.error("문제 목록 조회 실패:", err);
-        
+        console.error("❌ [getProblems] 요청 실패:", err);
+        console.error("❌ [getProblems] 에러 상세:", err.response);
         if (err.response?.data) {
             return { error: true, code: err.response.data.code, message: err.response.data.message };
         }
@@ -167,8 +155,8 @@ export const generateProblem = async (data) => {
     try {
         const res = await axiosInstance.post('/algo/problems/generate', {
             difficulty: data.difficulty,
-            topic: data.topic,  
-            language: data.language || 'ALL',
+            problemType: data.problemType || 'ALGORITHM',
+            topic: data.topic,
             additionalRequirements: data.additionalRequirements || null,
         });
         return res.data;
@@ -248,43 +236,93 @@ export const SOURCE_OPTIONS = [
     { value: '', label: '전체', icon: '🔍' },
     { value: 'AI_GENERATED', label: 'AI 생성', icon: '🤖' },
     { value: 'BOJ', label: '백준', icon: '🏛️' },
-    { value: 'PROGRAMMERS', label: '프로그래머스', icon: '💻' },
     { value: 'CUSTOM', label: '커스텀', icon: '✏️' },
 ];
 
 export const LANGUAGE_OPTIONS = [
     { value: 'ALL', label: '모든 언어' },
-    { value: 'JAVA', label: 'Java' },
-    { value: 'PYTHON', label: 'Python' },
-    { value: 'CPP', label: 'C++' },
-    { value: 'JAVASCRIPT', label: 'JavaScript' },
+    // C/C++
+    { value: 'C (Clang)', label: 'C (Clang)' },
+    { value: 'C11', label: 'C11 (GCC)' },
+    { value: 'C++17', label: 'C++17 (GCC)' },
+    { value: 'C++20', label: 'C++20 (GCC)' },
+    // Java
+    { value: 'Java 17', label: 'Java 17' },
+    { value: 'Java 11', label: 'Java 11' },
+    // Python
+    { value: 'Python 3', label: 'Python 3' },
+    { value: 'PyPy3', label: 'PyPy3' },
+    // JS/TS
+    { value: 'node.js', label: 'Node.js' },
+    { value: 'TypeScript', label: 'TypeScript' },
+    // Others
+    { value: 'Go', label: 'Go' },
+    { value: 'Rust', label: 'Rust' },
+    { value: 'Kotlin (JVM)', label: 'Kotlin' },
+    { value: 'Swift', label: 'Swift' },
+    { value: 'C#', label: 'C# (Mono)' },
+    { value: 'PHP', label: 'PHP' },
+    { value: 'Ruby', label: 'Ruby' },
+    { value: 'SQL', label: 'SQL (SQLite)' },
+    // Additional
+    { value: 'Bash', label: 'Bash' },
+    { value: 'Assembly (64bit)', label: 'Assembly' },
+    { value: 'D', label: 'D' },
+    { value: 'Fortran', label: 'Fortran' },
+    { value: 'Haskell', label: 'Haskell' },
+    { value: 'Lua', label: 'Lua' },
+    { value: 'Objective-C', label: 'Objective-C' },
+    { value: 'OCaml', label: 'OCaml' },
+    { value: 'Pascal', label: 'Pascal' },
+    { value: 'Perl', label: 'Perl' },
+    { value: 'R', label: 'R' },
+    { value: 'Scala', label: 'Scala' },
 ];
 
 export const TOPIC_OPTIONS = [
-  { value: '배열', label: '배열' },
-  { value: '다이나믹 프로그래밍', label: '다이나믹 프로그래밍' },
-  { value: '그리디', label: '그리디' },
-  { value: '그래프', label: '그래프' },
-  { value: '구현', label: '구현' },
-  { value: '수학', label: '수학' },
-  { value: '문자열', label: '문자열' },
-  { value: '정렬', label: '정렬' },
-  { value: '탐색', label: '탐색' },
-  { value: '시뮬레이션', label: '시뮬레이션' },
-  { value: '재귀', label: '재귀' },
-  { value: '백트래킹', label: '백트래킹' },
-  { value: '너비우선탐색', label: '너비우선탐색 (BFS)' },
-  { value: '깊이우선탐색', label: '깊이우선탐색 (DFS)' },
-  { value: '이분탐색', label: '이분탐색' },
+    { value: '수학', label: '수학' },
+    { value: 'DP', label: '다이나믹 프로그래밍' },
+    { value: '그래프', label: '그래프' },
+    { value: '구현', label: '구현' },
+    { value: '그리디', label: '그리디' },
+    { value: 'BFS', label: '너비우선탐색' },
+    { value: 'DFS', label: '깊이우선탐색' },
+    { value: '이분탐색', label: '이분탐색' },
+    { value: '문자열', label: '문자열' },
 ];
 
-// Judge0 언어 ID 매핑
+// Judge0 언어 ID 매핑 (참고용, 실제 매핑은 백엔드 Judge0Service에서 처리)
 export const LANGUAGE_ID_MAP = {
-    'javascript': 63,
-    'python': 71,
-    'java': 62,
-    'cpp': 54,
-    'c': 50
+    'C (Clang)': 104,
+    'C11': 50,
+    'C++17': 54,
+    'C++20': 54,
+    'Java 17': 91,
+    'Java 11': 62,
+    'Python 3': 113,
+    'PyPy3': 113,
+    'node.js': 102,
+    'TypeScript': 101,
+    'Go': 107,
+    'Rust': 108,
+    'Kotlin (JVM)': 111,
+    'Swift': 83,
+    'C#': 51,
+    'PHP': 98,
+    'Ruby': 72,
+    'SQL': 82,
+    'Bash': 46,
+    'Assembly (64bit)': 45,
+    'D': 56,
+    'Fortran': 59,
+    'Haskell': 61,
+    'Lua': 64,
+    'Objective-C': 79,
+    'OCaml': 65,
+    'Pascal': 67,
+    'Perl': 85,
+    'R': 99,
+    'Scala': 112
 };
 
 // 페이지 크기 옵션 (ProblemList.jsx에서 사용)

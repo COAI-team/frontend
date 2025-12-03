@@ -90,6 +90,12 @@ const ProblemDetail = () => {
                                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getDifficultyBadge(problem.algoProblemDifficulty)}`}>
                                     {problem.algoProblemDifficulty}
                                 </span>
+                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${problem.problemType === 'SQL'
+                                    ? 'bg-purple-100 text-purple-800 border-purple-200'
+                                    : 'bg-blue-100 text-blue-800 border-blue-200'
+                                    }`}>
+                                    {problem.problemType === 'SQL' ? 'DATABASE' : 'ALGORITHM'}
+                                </span>
                                 <span className="text-gray-500 text-sm">#{problem.algoProblemId}</span>
                             </div>
                             <h1 className="text-3xl font-bold text-gray-900">{problem.algoProblemTitle}</h1>
