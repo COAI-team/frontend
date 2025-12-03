@@ -15,6 +15,7 @@ const ProblemList = () => {
   const [filters, setFilters] = useState({
     difficulty: '',
     source: '',
+    problemType: '', // ALGORITHM, SQL
     keyword: '',
     page: 1,
     size: 10
@@ -105,7 +106,23 @@ const ProblemList = () => {
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
           <form onSubmit={handleSearch} className="space-y-4">
             {/* 첫 번째 줄: 필터들 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {/* 문제 유형 필터 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  유형
+                </label>
+                <select
+                  value={filters.problemType}
+                  onChange={(e) => handleFilterChange('problemType', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">전체</option>
+                  <option value="ALGORITHM">알고리즘</option>
+                  <option value="SQL">DATABASE</option>
+                </select>
+              </div>
+
               {/* 난이도 필터 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

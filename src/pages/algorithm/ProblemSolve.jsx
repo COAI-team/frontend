@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
-import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
+import { startProblemSolve, submitCode, runTestCode, LANGUAGE_OPTIONS } from '../../service/algorithm/algorithmApi';
 import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 
 /**
@@ -22,7 +22,7 @@ const ProblemSolve = () => {
   const [error, setError] = useState(null);
 
   // 에디터 상태
-  const [selectedLanguage, setSelectedLanguage] = useState('python');
+  const [selectedLanguage, setSelectedLanguage] = useState('Python 3');
   const [code, setCode] = useState('');
 
   // 타이머 상태 (풀이 시간 - 기본 30분)
@@ -118,6 +118,15 @@ const ProblemSolve = () => {
         const problemData = res.Data || res.data || res;
         console.log('📋 문제 데이터:', problemData);
         setProblem(problemData);
+
+        // SQL 문제인 경우 기본 언어를 SQL로 설정
+        if (problemData.problemType === 'SQL') {
+          setSelectedLanguage('SQL');
+        } else {
+          // 기본 언어 설정 (Python 3)
+          setSelectedLanguage('Python 3');
+        }
+
         setTimeLeft(30 * 60);
         setStartTime(new Date());
 
@@ -148,7 +157,8 @@ const ProblemSolve = () => {
 
   // 초기 코드 설정
   useEffect(() => {
-    setCode(codeTemplates[selectedLanguage] || '');
+    // 언어에 맞는 템플릿이 없으면 기본 템플릿 사용
+    setCode(codeTemplates[selectedLanguage] || codeTemplates['default'] || '// 코드를 작성하세요');
   }, [selectedLanguage]);
 
   // 시간 포맷팅
@@ -160,9 +170,9 @@ const ProblemSolve = () => {
 
   // 언어 변경
   const handleLanguageChange = (lang) => {
-    if (window.confirm(`언어를 ${lang.toUpperCase()}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`)) {
+    if (window.confirm(`언어를 ${lang}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`)) {
       setSelectedLanguage(lang);
-      setCode(codeTemplates[lang] || '');
+      setCode(codeTemplates[lang] || codeTemplates['default'] || '// 코드를 작성하세요');
     }
   };
 
@@ -224,7 +234,7 @@ const ProblemSolve = () => {
   // 코드 초기화
   const handleResetCode = () => {
     if (window.confirm('코드를 초기화하시겠습니까?')) {
-      setCode(codeTemplates[selectedLanguage] || '');
+      setCode(codeTemplates[selectedLanguage] || codeTemplates['default'] || '// 코드를 작성하세요');
     }
   };
 
@@ -331,9 +341,9 @@ const ProblemSolve = () => {
               {problem?.difficulty || 'N/A'}
             </span>
             <span className="text-gray-500">/</span>
-            <span>{selectedLanguage.toUpperCase()}</span>
+            <span>{selectedLanguage}</span>
             <span className="text-gray-500">/</span>
-            <span>AI_GENERATED</span>
+            <span>{problem?.problemType === 'SQL' ? 'DATABASE' : 'ALGORITHM'}</span>
           </div>
         </div>
       </div>
@@ -403,13 +413,42 @@ const ProblemSolve = () => {
             {/* 에디터 헤더 */}
             <div className="flex items-center justify-between p-3 border-b border-zinc-700 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <select value={selectedLanguage} onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="bg-zinc-700 border-none rounded px-3 py-1 text-sm">
-                  <option value="python">Python</option>
-                  <option value="javascript">JavaScript</option>
-                  <option value="java">Java</option>
-                  <option value="cpp">C++</option>
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  className="bg-zinc-700 border-none rounded px-3 py-1 text-sm"
+                >
+                  {problem?.availableLanguages?.map((lang) => (
+                    <option key={lang.value} value={lang.value}>
+                      {lang.languageName}
+                    </option>
+                  )) || (
+                      <>
+                        {problem?.problemType === 'SQL' ? (
+                          <option value="SQL">SQL (SQLite)</option>
+                        ) : (
+                          <>
+                            {LANGUAGE_OPTIONS
+                              .filter(opt => opt.value !== 'ALL' && opt.value !== 'SQL')
+                              .map(opt => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))
+                            }
+                          </>
+                        )}
+                      </>
+                    )}
                 </select>
+
+                {/* 선택된 언어의 제한 정보 표시 (작게) */}
+                {problem?.availableLanguages && (
+                  <span className="text-xs text-gray-500 ml-2">
+                    (⏱ {problem.availableLanguages.find(l => l.value === selectedLanguage)?.timeLimit}ms /
+                    💾 {problem.availableLanguages.find(l => l.value === selectedLanguage)?.memoryLimit}MB)
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button className="p-2 hover:bg-zinc-700 rounded" title="복사">📋</button>

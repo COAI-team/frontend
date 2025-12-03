@@ -15,6 +15,7 @@ export const getProblems = async (params = {}) => {
         if (difficulty) queryParams.append('difficulty', difficulty);
         if (source) queryParams.append('source', source);
         if (keyword) queryParams.append('keyword', keyword);
+        if (params.problemType) queryParams.append('problemType', params.problemType);
 
         const res = await axiosInstance.get(`/algo/problems?${queryParams}`);
 
@@ -154,8 +155,8 @@ export const generateProblem = async (data) => {
     try {
         const res = await axiosInstance.post('/algo/problems/generate', {
             difficulty: data.difficulty,
+            problemType: data.problemType || 'ALGORITHM',
             topic: data.topic,
-            language: data.language || 'ALL',
             additionalRequirements: data.additionalRequirements || null,
         });
         return res.data;
@@ -240,10 +241,42 @@ export const SOURCE_OPTIONS = [
 
 export const LANGUAGE_OPTIONS = [
     { value: 'ALL', label: '모든 언어' },
-    { value: 'JAVA', label: 'Java' },
-    { value: 'PYTHON', label: 'Python' },
-    { value: 'CPP', label: 'C++' },
-    { value: 'JAVASCRIPT', label: 'JavaScript' },
+    // C/C++
+    { value: 'C (Clang)', label: 'C (Clang)' },
+    { value: 'C11', label: 'C11 (GCC)' },
+    { value: 'C++17', label: 'C++17 (GCC)' },
+    { value: 'C++20', label: 'C++20 (GCC)' },
+    // Java
+    { value: 'Java 17', label: 'Java 17' },
+    { value: 'Java 11', label: 'Java 11' },
+    // Python
+    { value: 'Python 3', label: 'Python 3' },
+    { value: 'PyPy3', label: 'PyPy3' },
+    // JS/TS
+    { value: 'node.js', label: 'Node.js' },
+    { value: 'TypeScript', label: 'TypeScript' },
+    // Others
+    { value: 'Go', label: 'Go' },
+    { value: 'Rust', label: 'Rust' },
+    { value: 'Kotlin (JVM)', label: 'Kotlin' },
+    { value: 'Swift', label: 'Swift' },
+    { value: 'C#', label: 'C# (Mono)' },
+    { value: 'PHP', label: 'PHP' },
+    { value: 'Ruby', label: 'Ruby' },
+    { value: 'SQL', label: 'SQL (SQLite)' },
+    // Additional
+    { value: 'Bash', label: 'Bash' },
+    { value: 'Assembly (64bit)', label: 'Assembly' },
+    { value: 'D', label: 'D' },
+    { value: 'Fortran', label: 'Fortran' },
+    { value: 'Haskell', label: 'Haskell' },
+    { value: 'Lua', label: 'Lua' },
+    { value: 'Objective-C', label: 'Objective-C' },
+    { value: 'OCaml', label: 'OCaml' },
+    { value: 'Pascal', label: 'Pascal' },
+    { value: 'Perl', label: 'Perl' },
+    { value: 'R', label: 'R' },
+    { value: 'Scala', label: 'Scala' },
 ];
 
 export const TOPIC_OPTIONS = [
@@ -258,13 +291,38 @@ export const TOPIC_OPTIONS = [
     { value: '문자열', label: '문자열' },
 ];
 
-// Judge0 언어 ID 매핑
+// Judge0 언어 ID 매핑 (참고용, 실제 매핑은 백엔드 Judge0Service에서 처리)
 export const LANGUAGE_ID_MAP = {
-    'javascript': 63,
-    'python': 71,
-    'java': 62,
-    'cpp': 54,
-    'c': 50
+    'C (Clang)': 104,
+    'C11': 50,
+    'C++17': 54,
+    'C++20': 54,
+    'Java 17': 91,
+    'Java 11': 62,
+    'Python 3': 113,
+    'PyPy3': 113,
+    'node.js': 102,
+    'TypeScript': 101,
+    'Go': 107,
+    'Rust': 108,
+    'Kotlin (JVM)': 111,
+    'Swift': 83,
+    'C#': 51,
+    'PHP': 98,
+    'Ruby': 72,
+    'SQL': 82,
+    'Bash': 46,
+    'Assembly (64bit)': 45,
+    'D': 56,
+    'Fortran': 59,
+    'Haskell': 61,
+    'Lua': 64,
+    'Objective-C': 79,
+    'OCaml': 65,
+    'Pascal': 67,
+    'Perl': 85,
+    'R': 99,
+    'Scala': 112
 };
 
 // 페이지 크기 옵션 (ProblemList.jsx에서 사용)

@@ -12,8 +12,8 @@ const ProblemGenerator = () => {
   const [formData, setFormData] = useState({
     difficulty: 'BRONZE',
     topic: '',
-    language: 'JAVA',
     additionalRequirements: '',
+    problemType: 'ALGORITHM', // ALGORITHM, SQL
   });
 
   const [loading, setLoading] = useState(false);
@@ -28,17 +28,15 @@ const ProblemGenerator = () => {
     { value: 'PLATINUM', label: '플래티넘 (고급)', color: 'blue', description: '복잡한 알고리즘, 수학적 사고' },
   ];
 
-  const LANGUAGE_OPTIONS = [
-    { value: 'JAVA', label: 'Java' },
-    { value: 'PYTHON', label: 'Python' },
-    { value: 'CPP', label: 'C++' },
-    { value: 'JAVASCRIPT', label: 'JavaScript' },
-    { value: 'ALL', label: '모든 언어' },
-  ];
 
-  const TOPIC_SUGGESTIONS = [
+
+  const TOPIC_SUGGESTIONS_ALGO = [
     '배열', 'DP', '그리디', '그래프', '구현', '수학',
     '문자열', '정렬', '탐색', '시뮬레이션', '재귀', '백트래킹'
+  ];
+
+  const TOPIC_SUGGESTIONS_SQL = [
+    'SELECT', 'GROUP BY', 'String, Date', 'JOIN', 'SUM, MAX, MIN', 'IS NULL'
   ];
 
   // ===== 이벤트 핸들러 =====
@@ -94,8 +92,8 @@ const ProblemGenerator = () => {
     setFormData({
       difficulty: 'BRONZE',
       topic: '',
-      language: 'JAVA',
       additionalRequirements: '',
+      problemType: 'ALGORITHM',
     });
     setGeneratedProblem(null);
     setError(null);
@@ -186,7 +184,7 @@ const ProblemGenerator = () => {
                 <div className="mt-3">
                   <div className="text-xs text-gray-500 mb-2">추천 주제:</div>
                   <div className="flex flex-wrap gap-2">
-                    {TOPIC_SUGGESTIONS.map((topic) => (
+                    {(formData.problemType === 'SQL' ? TOPIC_SUGGESTIONS_SQL : TOPIC_SUGGESTIONS_ALGO).map((topic) => (
                       <button
                         key={topic}
                         type="button"
@@ -198,24 +196,6 @@ const ProblemGenerator = () => {
                     ))}
                   </div>
                 </div>
-              </div>
-
-              {/* 언어 선택 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  프로그래밍 언어
-                </label>
-                <select
-                  value={formData.language}
-                  onChange={(e) => handleInputChange('language', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {LANGUAGE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {/* 추가 요구사항 */}
@@ -364,9 +344,9 @@ const ProblemGenerator = () => {
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+        </div >
+      </div >
+    </div >
   );
 };
 
