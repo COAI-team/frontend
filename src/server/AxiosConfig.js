@@ -1,37 +1,26 @@
 import axios, { AxiosError } from "axios";
+import { getAuth, saveAuth, removeAuth } from "../utils/auth/token";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const axiosInstance = axios.create({
-    baseURL: "/api",
+    baseURL: API_URL,
     timeout: 10000,
 });
 
-// 강제로 baseURL 설정 (로그에서 /로 나오는 문제 방지) .. 안돌아간다면 아래 주석하고 해보세요.. 
-axiosInstance.defaults.baseURL = "https://localhost:9443";
+// 강제로 baseURL 적용
+axiosInstance.defaults.baseURL = API_URL;
 
 // =====================================================
-// 1) 요청 시 AccessToken 자동 주입
+// 1) 요청 인터셉터 — AccessToken 자동 주입
 // =====================================================
 axiosInstance.interceptors.request.use(
     (config) => {
-        const saved = localStorage.getItem("auth") || sessionStorage.getItem("auth");
+        const auth = getAuth();
 
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                const token = parsed?.accessToken;
-
-                if (token) {
-                    config.headers.Authorization = `Bearer ${token}`;
-                }
-            } catch (err) {
-                console.error("⚠ auth 파싱 실패 → 초기화", err);
-
-                localStorage.removeItem("auth");
-                sessionStorage.removeItem("auth");
-            }
+        if (auth?.accessToken) {
+            config.headers.Authorization = `Bearer ${auth.accessToken}`;
         }
-        // 디버깅 로그 강화
-        console.log(`[AxiosConfig] Request to: ${config.baseURL}${config.url}`);
 
         return config;
     },
@@ -39,48 +28,29 @@ axiosInstance.interceptors.request.use(
 );
 
 // =====================================================
-// 2) 응답 인터셉터 — AccessToken 만료 처리
+// 2) 응답 인터셉터 — Token 만료 처리
 // =====================================================
 
 let isRefreshing = false;
-let refreshSubscribers = [];
+let refreshCallbacks = [];
 
-// 모든 구독자에게 새 토큰 적용
 function onTokenRefreshed(newToken) {
-    for (const cb of refreshSubscribers) {
-        cb(newToken);
-    }
-    refreshSubscribers = [];
+    refreshCallbacks.forEach((cb) => cb(newToken));
+    refreshCallbacks = [];
 }
 
-// 에러가 AccessToken 만료인지 판별
-function isTokenExpiredError(error) {
+function isExpired(error) {
     return (
         error?.response?.status === 401 &&
         error?.response?.data?.code === "TOKEN_EXPIRED"
     );
 }
 
-// 저장된 auth 가져오기
-function loadAuth() {
-    const raw = localStorage.getItem("auth") || sessionStorage.getItem("auth");
-    return raw ? JSON.parse(raw) : null;
-}
+async function refreshAccessToken(refreshToken) {
+    const refreshUrl = `${API_URL}/users/refresh`;
 
-// auth 저장
-function saveAuth(data) {
-    if (localStorage.getItem("auth")) {
-        localStorage.setItem("auth", JSON.stringify(data));
-    } else {
-        sessionStorage.setItem("auth", JSON.stringify(data));
-    }
-}
-
-// refresh 토큰으로 AccessToken 재발급
-async function requestNewAccessToken(refreshToken) {
     const res = await axios.post(
-        // "https://114.204.9.108:10443/users/refresh",
-        "https://localhost:9443/users/refresh", // ✅ localhost로 변경
+        refreshUrl,
         {},
         {
             headers: {
@@ -92,85 +62,65 @@ async function requestNewAccessToken(refreshToken) {
     return res.data.accessToken;
 }
 
-// =====================================================
-// 응답 인터셉터 본문
-// =====================================================
 axiosInstance.interceptors.response.use(
-    (response) => response,
+    (res) => res,
 
     async (error) => {
-        // 서버 응답 자체 없음
         if (!error.response) {
-            console.error("❌ No server response:", error);
-
             throw new AxiosError(
-                "서버에 연결할 수 없습니다.",
+                "서버와 연결되지 않았습니다.",
                 "NO_RESPONSE",
                 error.config,
                 error.request,
-                {
-                    status: 0,
-                    data: { message: "서버에 연결할 수 없습니다." },
-                }
+                { status: 0 }
             );
         }
 
         const originalRequest = error.config;
 
-        // --------------------------------------------------
-        // 🔥 AccessToken 만료 케이스
-        // --------------------------------------------------
-        if (isTokenExpiredError(error)) {
-            console.warn("⛔ AccessToken expired → Refreshing...");
+        // 🔥 AccessToken 만료 처리
+        if (isExpired(error)) {
+            console.warn("⚠ AccessToken expired → Refreshing...");
 
-            const parsed = loadAuth();
-            const refreshToken = parsed?.refreshToken;
+            const auth = getAuth();
+            const refreshToken = auth?.refreshToken;
 
             if (!refreshToken) {
-                console.error("❌ RefreshToken 없음 → 로그아웃");
-                localStorage.removeItem("auth");
-                sessionStorage.removeItem("auth");
+                removeAuth();
                 globalThis.location.replace("/signin");
                 return;
             }
 
-            // 🔹 최초 요청만 refresh 실행
+            // Refresh 로직 단독 실행
             if (!isRefreshing) {
                 isRefreshing = true;
 
                 try {
-                    const newAccessToken = await requestNewAccessToken(refreshToken);
+                    const newAccessToken = await refreshAccessToken(refreshToken);
 
-                    // auth 업데이트
-                    const updatedAuth = { ...parsed, accessToken: newAccessToken };
-                    saveAuth(updatedAuth);
+                    const updated = { ...auth, accessToken: newAccessToken };
+                    saveAuth(updated);
 
                     isRefreshing = false;
                     onTokenRefreshed(newAccessToken);
-                } catch (error_) {
-                    console.error("❌ RefreshToken invalid:", error_);
+                } catch (refreshError) {
+                    console.error("❌ Refresh 실패:", refreshError);
 
-                    isRefreshing = false;
-                    localStorage.removeItem("auth");
-                    sessionStorage.removeItem("auth");
-
+                    removeAuth();
                     globalThis.location.replace("/signin");
-                    throw error_;
+                    throw refreshError;
                 }
             }
 
-            // 🔹 refresh 진행 중 → 새 토큰 적용 후 retry
+            // Refresh 완료될 때까지 대기 후 재요청
             return new Promise((resolve) => {
-                refreshSubscribers.push((token) => {
+                refreshCallbacks.push((token) => {
                     originalRequest.headers.Authorization = `Bearer ${token}`;
                     resolve(axiosInstance(originalRequest));
                 });
             });
         }
 
-        // --------------------------------------------------
-        // 다른 에러는 그대로 throw
-        // --------------------------------------------------
         throw error;
     }
 );

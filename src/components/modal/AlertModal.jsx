@@ -15,8 +15,8 @@ import { useTheme } from "next-themes";
 import { useEffect } from "react";
 
 export default function AlertModal({
-                                       open,
-                                       onClose,
+                                       open = false,
+                                       onClose = () => {},
                                        onConfirm,
                                        type = "success",
                                        title,

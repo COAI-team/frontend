@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../../server/AxiosConfig';
 import Editor from '@monaco-editor/react';
 
 const FileContentDisplay = ({ repository, file }) => {
@@ -16,7 +16,7 @@ const FileContentDisplay = ({ repository, file }) => {
         const fetchContent = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(`/api/github/repos/${repository.owner}/${repository.name}/content`, {
+                const response = await axiosInstance.get(`/api/github/repos/${repository.owner}/${repository.name}/content`, {
                     params: { path: file.path }
                 });
                 setContent(response.data.content);

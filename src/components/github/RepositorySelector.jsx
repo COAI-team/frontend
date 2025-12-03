@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosInstance from '../../server/AxiosConfig';
 import { useLogin } from '../../context/useLogin';
 
 const RepositorySelector = ({ onSelect }) => {
@@ -16,7 +16,7 @@ const RepositorySelector = ({ onSelect }) => {
                 // 현재는 테스트를 위해 하드코딩된 값 또는 user의 속성 사용
                 const owner = user?.githubUsername || 'SungilBang12'; 
                 
-                const response = await axios.get(`/api/github/repos?owner=${owner}`);
+                const response = await axiosInstance.get(`/api/github/repos?owner=${owner}`);
                 
                 if (Array.isArray(response.data)) {
                     setRepositories(response.data);

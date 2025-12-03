@@ -6,7 +6,8 @@ export default function CommentForm({
   parentCommentId = null,  // null이면 댓글, 있으면 대댓글
   currentUserId, 
   onSuccess,
-  onCancel  // 대댓글일 때만 사용
+  onCancel,                // 대댓글일 때만 사용
+  isDark,
 }) {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -54,28 +55,46 @@ export default function CommentForm({
   // 대댓글 스타일
   if (isReply) {
     return (
-      <form onSubmit={handleSubmit} className="space-y-3 bg-white p-4 rounded-lg border border-gray-200">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="답글을 입력하세요"
-          rows={2}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+          rows={3}
+          className={`
+            w-full px-4 py-3 rounded-lg resize-none transition-all border
+            ${isDark 
+              ? "bg-gray-800 text-gray-100 border-gray-600 focus:ring-indigo-400" 
+              : "bg-white text-gray-900 border-gray-300 focus:ring-indigo-500"
+            }
+          `}
           disabled={submitting}
         />
+
         <div className="flex justify-end space-x-2">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className={`
+              px-4 py-1.5 text-sm rounded-lg transition-colors
+              ${isDark 
+                ? "text-gray-300 hover:bg-gray-700" 
+                : "text-gray-700 hover:bg-gray-100"}
+            `}
             disabled={submitting}
           >
             취소
           </button>
+
           <button
             type="submit"
             disabled={submitting || !content.trim()}
-            className="px-4 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className={`
+              px-4 py-1.5 text-sm rounded-lg transition-colors
+              ${isDark 
+                ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700" 
+                : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"}
+            `}
           >
             {submitting ? '등록 중...' : '답글 등록'}
           </button>
@@ -92,14 +111,27 @@ export default function CommentForm({
         onChange={(e) => setContent(e.target.value)}
         placeholder="댓글을 입력하세요"
         rows={3}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none transition-all"
+        className={`
+          w-full px-4 py-3 rounded-lg resize-none transition-all border
+          ${isDark 
+            ? "bg-gray-800 text-gray-100 border-gray-600 focus:ring-indigo-400" 
+            : "bg-white text-gray-900 border-gray-300 focus:ring-indigo-500"
+          }
+        `}
         disabled={submitting}
       />
+
       <div className="flex justify-end">
         <button
           type="submit"
           disabled={submitting || !content.trim()}
-          className="px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          className={`
+            px-6 py-2 rounded-lg font-medium transition-colors
+            ${isDark
+              ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700"
+              : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"
+            }
+          `}
         >
           {submitting ? '등록 중...' : '댓글 등록'}
         </button>

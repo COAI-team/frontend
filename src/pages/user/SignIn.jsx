@@ -1,13 +1,13 @@
-import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
-import { FaGithub } from "react-icons/fa";
-import { useState, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { login as apiLogin } from "../../service/user/User";
+import {AiFillEye, AiFillEyeInvisible} from "react-icons/ai";
+import {FaGithub} from "react-icons/fa";
+import {useContext, useState} from "react";
+import {Link, useNavigate} from "react-router-dom";
+import {login as apiLogin} from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
 import ResetPasswordModal from "../../components/modal/ResetPasswordModal";
-import { LoginContext } from "../../context/LoginContext.js";
+import {LoginContext} from "../../context/LoginContext.js";
 import LoadingButton from "../../components/button/LoadingButton";
-import { useTheme } from "next-themes";
+import {useTheme} from "next-themes";
 
 export default function SignIn() {
     const navigate = useNavigate();
@@ -24,8 +24,26 @@ export default function SignIn() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    const loginBtnColor = theme === "light" ? "bg-[#2DD4BF] hover:bg-[#24b3a6]" : "bg-[#FFFA99] hover:bg-[#e2e07c]";
-    const resetBtnColor = theme === "light" ? "text-[#04BDF2] hover:text-[#0398c2]" : "text-[#CC67FA] hover:text-[#a647d4]";
+    const loginBtnColor =
+        theme === "light"
+            ? "bg-[#2DD4BF] hover:bg-[#24b3a6]"
+            : "bg-[#FFFA99] hover:bg-[#e2e07c]";
+
+    const resetBtnColor =
+        theme === "light"
+            ? "text-[#04BDF2] hover:text-[#0398c2]"
+            : "text-[#CC67FA] hover:text-[#a647d4]";
+
+    // ✅ GitHub OAuth 로그인 함수 추가됨
+    const handleGitHubLogin = () => {
+        const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+        const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
+
+        globalThis.location.href = `https://github.com/login/oauth/authorize` +
+            `?client_id=${clientId}` +
+            `&redirect_uri=${redirectUri}` +
+            `&scope=read:user user:email`;
+    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -45,7 +63,10 @@ export default function SignIn() {
             return;
         }
 
-        const result = await apiLogin({ email, password });
+        const result = await apiLogin({
+            userEmail: email,
+            userPw: password
+        });
 
         setIsLoading(false);
 
@@ -54,7 +75,8 @@ export default function SignIn() {
                 open: true,
                 type: "error",
                 title: "로그인 실패",
-                message: result.error.response?.data?.message || "로그인 오류",
+                message:
+                    result.error.response?.data?.message || "로그인 오류",
             });
             return;
         }
@@ -76,7 +98,6 @@ export default function SignIn() {
 
     return (
         <div className="flex h-full overflow-hidden">
-
             {/* 왼쪽 레이아웃 */}
             <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-16">
                 <div className="mx-auto w-full max-w-sm border dark:border-gray-700 rounded-xl shadow-lg p-8 dark:bg-gray-900">
@@ -96,7 +117,6 @@ export default function SignIn() {
                     {/* FORM */}
                     <div className="mt-6">
                         <form onSubmit={handleLogin} className="space-y-6">
-
                             {/* EMAIL */}
                             <div>
                                 <label htmlFor="email" className="block text-sm font-medium dark:text-gray-100">
@@ -113,7 +133,7 @@ export default function SignIn() {
                                 />
                             </div>
 
-                            {/* PASSWORD (수정됨!) */}
+                            {/* PASSWORD */}
                             <div>
                                 <label htmlFor="password" className="block text-sm font-medium dark:text-gray-100">
                                     비밀번호
@@ -130,7 +150,7 @@ export default function SignIn() {
                                         placeholder="비밀번호를 입력하세요"
                                     />
 
-                                    {/* 👁 눈 아이콘 토글 */}
+                                    {/* 👁 눈 아이콘 */}
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword((prev) => !prev)}
@@ -156,11 +176,11 @@ export default function SignIn() {
                             <LoadingButton
                                 text="로그인"
                                 isLoading={isLoading}
-                                className={`${loginBtnColor}`}  // 기존 버튼 색상 그대로 사용
+                                className={`${loginBtnColor}`}
                             />
                         </form>
 
-                        {/* 소셜 로그인 */}
+                        {/* 소셜 로그인 Divider */}
                         <div className="mt-8">
                             <div className="relative w-full flex items-center justify-center">
                                 <div className="flex-grow border-t dark:border-gray-700"></div>
@@ -171,10 +191,11 @@ export default function SignIn() {
                             </div>
                         </div>
 
-                        {/* GitHub 로그인 버튼 */}
+                        {/* ⭐ GitHub OAuth 로그인 버튼 */}
                         <div className="mt-4 flex justify-center">
                             <button
                                 type="button"
+                                onClick={handleGitHubLogin}
                                 className="flex items-center justify-center gap-2 w-full rounded-md border dark:border-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white"
                             >
                                 <FaGithub className="text-xl" />

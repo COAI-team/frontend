@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Eye } from "lucide-react";
+import { Heart, MessageCircle, Eye, PencilLine } from "lucide-react";
 
 const FreeboardList = () => {
   const [boards, setBoards] = useState([]);
@@ -70,7 +70,7 @@ const FreeboardList = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6">
       <div className="mb-8">
         <h1 className={`text-3xl font-bold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
           자유게시판
@@ -112,6 +112,25 @@ const FreeboardList = () => {
                 <div className="text-gray-500 line-clamp-2">
                   {extractTextFromHTML(b.freeboardContent)}
                 </div>
+
+                {/* 태그 */}
+                {b.tags && b.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {b.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className={`
+                          px-2 py-1 rounded-md text-xs font-medium
+                          ${isDark
+                            ? "bg-gray-800 text-blue-300 border border-gray-700"
+                            : "bg-blue-100 text-blue-800"}
+                        `}
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <div className={`flex items-center gap-6 mt-4 text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
                   <span className="flex items-center gap-1">
@@ -167,8 +186,17 @@ const FreeboardList = () => {
 
       <button
         onClick={() => navigate("/freeboard/write")}
-        className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+        className={`
+          fixed bottom-30 right-80
+          px-6 py-3 rounded-full font-medium shadow-md transition-all duration-200 border flex items-center gap-2
+          ${
+            isDark
+              ? "bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700"
+              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+          }
+        `}
       >
+        <PencilLine size={18} />
         글쓰기
       </button>
     </div>
