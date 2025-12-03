@@ -2,12 +2,12 @@ import { Outlet } from "react-router-dom";
 import AdminPageSideBar from "./AdminPageSideBar";
 
 export default function AdminPageLayout() {
-    return (
-        <div className="flex">
-            <AdminPageSideBar />
-            <main className="flex-1 p-8">
-                <Outlet />
-            </main>
-        </div>
-    );
+  return (
+    <div className="flex">
+      <AdminPageSideBar />
+      <main className="flex-1 p-8">
+        <Outlet />
+      </main>
+    </div>
+  );
 }
