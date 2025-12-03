@@ -1,34 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { LoginContext } from "./LoginContext";
 import { LoginProviderPropTypes } from "../utils/propTypes";
-import { getUserInfo } from "../service/user/User.js"; // axiosInstance 사용
+import { getUserInfo } from "../service/user/User";
 import { getAuth, saveAuth, removeAuth } from "../utils/auth/token";
-
-// 🔥 공통 User Normalization 함수 (중복 코드 제거)
-const normalizeUser = (rawUser = {}, prevUser = {}) => {
-    const u = typeof rawUser === "object" && rawUser !== null ? rawUser : {};
-
-    return {
-        ...prevUser,
-        ...u,
-        image:
-            u.userImage ??
-            u.image ??
-            u.avatar_url ??
-            prevUser.image ??
-            null,
-        nickname:
-            u.userNickname ??
-            u.nickname ??
-            prevUser.nickname ??
-            null,
-        role:
-            u.userRole ??
-            u.role ??
-            prevUser.role ??
-            null,
-    };
-};
+import { normalizeUser } from "../utils/normalizeUser";
 
 export default function LoginProvider({ children }) {
     const [auth, setAuth] = useState(null);
