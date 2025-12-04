@@ -5,13 +5,17 @@ import { LoginProviderPropTypes } from "../utils/propTypes";
 export default function LoginProvider({ children }) {
     const [auth, setAuth] = useState(null);
     const [loginResult, setLoginResult] = useState(null);
+    const [hydrated, setHydrated] = useState(false);
 
     // 🔥 저장된 로그인 정보 복원
     useEffect(() => {
         const saved =
             localStorage.getItem("auth") || sessionStorage.getItem("auth");
 
-        if (!saved) return;
+        if (!saved) {
+            setHydrated(true);
+            return;
+        }
 
         try {
             const parsed = JSON.parse(saved);
@@ -46,6 +50,8 @@ export default function LoginProvider({ children }) {
             localStorage.removeItem("auth");
             sessionStorage.removeItem("auth");
         }
+
+        setHydrated(true);
     }, []);
 
     /**
@@ -160,8 +166,9 @@ export default function LoginProvider({ children }) {
             loginResult,
             setLoginResult,
             setUser,
+            hydrated,
         }),
-        [auth, loginResult]
+        [auth, loginResult, hydrated]
     );
 
     return (

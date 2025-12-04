@@ -1,7 +1,7 @@
 import {AiFillEye, AiFillEyeInvisible} from "react-icons/ai";
 import {FaGithub} from "react-icons/fa";
 import {useContext, useState} from "react";
-import {Link, useNavigate} from "react-router-dom";
+import {Link, useLocation, useNavigate} from "react-router-dom";
 import {login as apiLogin} from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
 import ResetPasswordModal from "../../components/modal/ResetPasswordModal";
@@ -11,6 +11,7 @@ import {useTheme} from "next-themes";
 
 export default function SignIn() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login: loginContextLogin, setLoginResult } = useContext(LoginContext);
     const { theme } = useTheme();
     const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -33,6 +34,9 @@ export default function SignIn() {
         theme === "light"
             ? "text-[#04BDF2] hover:text-[#0398c2]"
             : "text-[#CC67FA] hover:text-[#a647d4]";
+
+    const redirect =
+        new URLSearchParams(location.search).get("redirect") || "/";
 
     // ✅ GitHub OAuth 로그인 함수 추가됨
     const handleGitHubLogin = () => {
@@ -81,18 +85,16 @@ export default function SignIn() {
             return;
         }
 
+        // auth 객체로 저장(세션 스토리지 기본)
         setLoginResult(result);
-        loginContextLogin(result);
-
-        sessionStorage.setItem("accessToken", result.accessToken);
-        sessionStorage.setItem("refreshToken", result.refreshToken);
+        loginContextLogin(result, false);
 
         setAlertModal({
             open: true,
             type: "success",
             title: "로그인 성공",
             message: "환영합니다!",
-            onConfirm: () => navigate("/"),
+            onConfirm: () => navigate(redirect),
         });
     };
 

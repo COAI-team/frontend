@@ -4,6 +4,7 @@ import {
     UserIcon,
     UserCircleIcon,
     Cog6ToothIcon,
+    CreditCardIcon,
 } from "@heroicons/react/24/outline";
 
 const myMenu = [
@@ -12,6 +13,13 @@ const myMenu = [
         icon: UserIcon,
         children: [
             { name: "프로필 설정", href: "/mypage/profile", icon: UserCircleIcon },
+        ],
+    },
+    {
+        name: "결제/구독",
+        icon: CreditCardIcon,
+        children: [
+            { name: "결제·구독 관리", href: "/mypage/billing", icon: Cog6ToothIcon },
         ],
     },
 ];
@@ -47,14 +55,11 @@ export default function MyPageSidebar() {
 
                     return (
                         <div key={section.name} className="flex flex-col gap-2">
-
-                            {/* 부모 메뉴 */}
                             <div className="flex items-center gap-3 px-2 py-1 text-lg font-bold">
                                 <ParentIcon className="w-6 h-6" />
                                 {section.name}
                             </div>
 
-                            {/* 자식 메뉴 */}
                             <div className="flex flex-col space-y-1 ml-2">
                                 {section.children.map((child) => {
                                     const ChildIcon = child.icon;
@@ -73,7 +78,6 @@ export default function MyPageSidebar() {
                                     );
                                 })}
                             </div>
-
                         </div>
                     );
                 })}
