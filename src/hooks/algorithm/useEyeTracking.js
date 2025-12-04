@@ -1,14 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { startFocusSession, sendFocusEvent, endFocusSession } from '../../service/algorithm/algorithmApi';
+import {
+    startMonitoringSession,
+    sendMonitoringViolation,
+    endMonitoringSession,
+    recordMonitoringWarning
+} from '../../service/algorithm/algorithmApi';
 
 /**
- * WebGazer 기반 시선 추적 커스텀 훅
- * 
+ * WebGazer 기반 시선 추적 커스텀 훅 (모니터링 시스템 연동)
+ *
+ * 변경사항:
+ * - startFocusSession → startMonitoringSession
+ * - sendFocusEvent → sendMonitoringViolation
+ * - endFocusSession → endMonitoringSession
+ * - 모니터링은 점수에 미반영 (정보 제공 및 경고 목적)
+ *
  * @param {number} problemId - 현재 문제 ID
  * @param {boolean} isActive - 추적 활성화 여부
- * @returns {object} - { isCalibrated, startCalibration, sessionId, isTracking }
+ * @param {number} timeLimitMinutes - 제한 시간 (분, 기본 30분)
+ * @returns {object} - { isCalibrated, startCalibration, sessionId, isTracking, monitoringSessionId }
  */
-export const useEyeTracking = (problemId, isActive = false) => {
+export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 30) => {
     const [isCalibrated, setIsCalibrated] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
     const [sessionId, setSessionId] = useState(null);
@@ -61,9 +73,9 @@ export const useEyeTracking = (problemId, isActive = false) => {
         if (!isCalibrated || !problemId) return;
 
         try {
-            // 백엔드에 세션 시작 요청
-            const response = await startFocusSession(problemId);
-            const newSessionId = response.data.sessionId; // 객체에서 sessionId 필드만 추출
+            // 백엔드에 모니터링 세션 시작 요청
+            const response = await startMonitoringSession(problemId, timeLimitMinutes);
+            const newSessionId = response.data?.sessionId || response.sessionId;
             setSessionId(newSessionId);
             setIsTracking(true);
 
@@ -79,17 +91,16 @@ export const useEyeTracking = (problemId, isActive = false) => {
                                 y < 0 || y > window.innerHeight;
 
                             if (isOutOfBounds) {
-                                sendFocusEvent(newSessionId, {
-                                    type: 'GAZE_AWAY',
-                                    details: `Gaze out of bounds: (${x.toFixed(0)}, ${y.toFixed(0)})`,
+                                // 시선 이탈 위반 전송
+                                sendMonitoringViolation(newSessionId, 'GAZE_AWAY', {
+                                    description: `Gaze out of bounds: (${x.toFixed(0)}, ${y.toFixed(0)})`,
                                     duration: 5
                                 });
                             }
                         } else {
-                            // 얼굴 미검출
-                            sendFocusEvent(newSessionId, {
-                                type: 'NO_FACE',
-                                details: 'Face not detected',
+                            // 얼굴 미검출 위반 전송
+                            sendMonitoringViolation(newSessionId, 'NO_FACE', {
+                                description: 'Face not detected',
                                 duration: 5
                             });
                         }
@@ -97,14 +108,14 @@ export const useEyeTracking = (problemId, isActive = false) => {
                 }
             }, 5000); // 5초마다 체크
 
-            console.log('Eye tracking started, sessionId:', newSessionId);
+            console.log('🎯 Monitoring session started, sessionId:', newSessionId);
         } catch (error) {
-            console.error('Failed to start tracking:', error);
+            console.error('Failed to start monitoring session:', error);
         }
-    }, [isCalibrated, problemId]);
+    }, [isCalibrated, problemId, timeLimitMinutes]);
 
     // 추적 종료
-    const stopTracking = useCallback(async () => {
+    const stopTracking = useCallback(async (remainingSeconds = null) => {
         if (!sessionId) return;
 
         // 인터벌 정리
@@ -114,11 +125,11 @@ export const useEyeTracking = (problemId, isActive = false) => {
         }
 
         try {
-            // 백엔드에 세션 종료 요청
-            await endFocusSession(sessionId);
-            console.log('Eye tracking stopped, sessionId:', sessionId);
+            // 백엔드에 모니터링 세션 종료 요청
+            await endMonitoringSession(sessionId, remainingSeconds);
+            console.log('✅ Monitoring session ended, sessionId:', sessionId);
         } catch (error) {
-            console.error('Failed to end session:', error);
+            console.error('Failed to end monitoring session:', error);
         } finally {
             // 에러가 나더라도 반드시 WebGazer 종료
             if (window.webgazer) {
@@ -169,7 +180,8 @@ export const useEyeTracking = (problemId, isActive = false) => {
     return {
         isCalibrated,
         isTracking,
-        sessionId,
+        sessionId,                          // 현재 세션 ID
+        monitoringSessionId: sessionId,     // 모니터링 세션 ID (별칭)
         startCalibration,
         completeCalibration,
         stopTracking

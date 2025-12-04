@@ -9,6 +9,15 @@ import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
  * ✅ 수평(좌우) + 수직(상하) 리사이저 지원
+ *
+ * 변경사항:
+ * - solveMode 추가 (BASIC/FOCUS)
+ * - monitoringSessionId 지원 (FOCUS 모드에서 시선 추적 시 사용)
+ * - 모니터링은 점수에 미반영 (정보 제공 및 경고 목적)
+ * - 모드 선택 화면 추가 (기본 모드 / 집중 모드)
+ * - 시간 설정 기능 추가
+ * - 집중 모드: 자동 시선 추적 + 타이머 시작
+ * - 기본 모드: 수동 타이머 시작
  */
 const ProblemSolve = () => {
   const { problemId } = useParams();
@@ -20,6 +29,12 @@ const ProblemSolve = () => {
   const [problem, setProblem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // ========== 모드 선택 관련 상태 ==========
+  const [showModeSelection, setShowModeSelection] = useState(true); // 모드 선택 화면 표시 여부
+  const [selectedMode, setSelectedMode] = useState(null); // 'BASIC' | 'FOCUS'
+  const [customTimeMinutes, setCustomTimeMinutes] = useState(30); // 사용자 지정 시간 (분)
+  const [solvingStarted, setSolvingStarted] = useState(false); // 풀이 시작 여부
 
   // 에디터 상태
   const [selectedLanguage, setSelectedLanguage] = useState('Python 3');
@@ -36,9 +51,13 @@ const ProblemSolve = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [runProgress, setRunProgress] = useState(0);
 
-  // 시선 추적 상태
+  // 시선 추적/모니터링 상태
   const [eyeTrackingEnabled, setEyeTrackingEnabled] = useState(false);
   const [eyeTrackingReady, setEyeTrackingReady] = useState(false);
+  const [monitoringSessionId, setMonitoringSessionId] = useState(null);
+
+  // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
+  const solveMode = selectedMode || 'BASIC';
 
   // ✅ 수평 리사이저 (문제설명 | 에디터)
   const {
@@ -62,17 +81,62 @@ const ProblemSolve = () => {
     return Math.floor((new Date() - startTime) / 1000);
   }, [startTime]);
 
+  // ========== 모드 선택 및 시작 핸들러 ==========
+
+  // 모드 선택 완료 및 풀이 시작
+  const handleStartSolving = useCallback((mode) => {
+    setSelectedMode(mode);
+    setShowModeSelection(false);
+    setSolvingStarted(true);
+
+    // 사용자 지정 시간으로 타이머 설정
+    const timeInSeconds = customTimeMinutes * 60;
+    setTimeLeft(timeInSeconds);
+    setStartTime(new Date());
+
+    if (mode === 'FOCUS') {
+      // 집중 모드: 시선 추적 자동 활성화 (캘리브레이션 완료 후 타이머 자동 시작)
+      setEyeTrackingEnabled(true);
+    }
+    // 기본 모드는 사용자가 수동으로 타이머 시작
+  }, [customTimeMinutes]);
+
+  // 집중 모드에서 시선 추적 준비 완료 시 타이머 자동 시작
+  useEffect(() => {
+    if (selectedMode === 'FOCUS' && eyeTrackingReady && solvingStarted && !isTimerRunning) {
+      setIsTimerRunning(true);
+      console.log('🎯 집중 모드: 시선 추적 준비 완료, 타이머 자동 시작');
+    }
+  }, [selectedMode, eyeTrackingReady, solvingStarted, isTimerRunning]);
+
+  // 기본 모드 타이머 시작
+  const handleStartTimer = useCallback(() => {
+    if (selectedMode === 'BASIC') {
+      // 기본 모드에서 시작 버튼 클릭 시
+      const timeInSeconds = customTimeMinutes * 60;
+      setTimeLeft(timeInSeconds);
+      setStartTime(new Date());
+      setIsTimerRunning(true);
+    }
+  }, [selectedMode, customTimeMinutes]);
+
   // 코드 제출
+  // 변경: solveMode, monitoringSessionId 추가
   const handleSubmit = useCallback(async () => {
     if (!code.trim()) {
       alert('코드를 작성해주세요!');
       return;
     }
 
-    // 시선 추적 세션 종료
+    // 현재 모니터링 세션 ID 저장 (제출 전에 종료되므로)
+    const currentMonitoringSessionId = monitoringSessionId;
+    const currentSolveMode = solveMode;
+
+    // 시선 추적 세션 종료 (남은 시간 전달)
     if (eyeTrackingEnabled && eyeTrackerRef.current) {
-      await eyeTrackerRef.current.stopTracking();
+      await eyeTrackerRef.current.stopTracking(timeLeft);
       setEyeTrackingEnabled(false);
+      setMonitoringSessionId(null);
     }
 
     setIsSubmitting(true);
@@ -83,7 +147,9 @@ const ProblemSolve = () => {
         problemId: Number(problemId),
         language: selectedLanguage, // DB expects exact language name (e.g., "Python 3", "Java 17")
         sourceCode: code,
-        elapsedTime: getElapsedTime()
+        elapsedTime: getElapsedTime(),
+        solveMode: currentSolveMode,
+        monitoringSessionId: currentSolveMode === 'FOCUS' ? currentMonitoringSessionId : null
       });
 
       if (res.error) {
@@ -98,7 +164,7 @@ const ProblemSolve = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [code, problemId, selectedLanguage, navigate, getElapsedTime, eyeTrackingEnabled]);
+  }, [code, problemId, selectedLanguage, navigate, getElapsedTime, eyeTrackingEnabled, solveMode, monitoringSessionId, timeLeft]);
 
   // 문제 데이터 로드
   useEffect(() => {
@@ -296,6 +362,160 @@ const ProblemSolve = () => {
     );
   }
 
+  // ========== 모드 선택 화면 ==========
+  if (showModeSelection) {
+    return (
+      <div className="min-h-screen bg-zinc-900 text-gray-100">
+        {/* 헤더 */}
+        <div className="bg-zinc-800 border-b border-zinc-700">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
+                <p className="text-sm text-gray-400 mt-1">풀이 모드를 선택해주세요</p>
+              </div>
+              <button
+                onClick={() => navigate('/algorithm')}
+                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"
+              >
+                목록으로
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 모드 선택 컨테이너 */}
+        <div className="container mx-auto px-6 py-12">
+          <div className="max-w-4xl mx-auto">
+            {/* 시간 설정 */}
+            <div className="mb-8 text-center">
+              <h2 className="text-lg font-semibold mb-4">풀이 시간 설정</h2>
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={() => setCustomTimeMinutes(15)}
+                  className={`px-4 py-2 rounded-lg transition-all ${customTimeMinutes === 15 ? 'bg-purple-600' : 'bg-zinc-700 hover:bg-zinc-600'}`}
+                >
+                  15분
+                </button>
+                <button
+                  onClick={() => setCustomTimeMinutes(30)}
+                  className={`px-4 py-2 rounded-lg transition-all ${customTimeMinutes === 30 ? 'bg-purple-600' : 'bg-zinc-700 hover:bg-zinc-600'}`}
+                >
+                  30분
+                </button>
+                <button
+                  onClick={() => setCustomTimeMinutes(45)}
+                  className={`px-4 py-2 rounded-lg transition-all ${customTimeMinutes === 45 ? 'bg-purple-600' : 'bg-zinc-700 hover:bg-zinc-600'}`}
+                >
+                  45분
+                </button>
+                <button
+                  onClick={() => setCustomTimeMinutes(60)}
+                  className={`px-4 py-2 rounded-lg transition-all ${customTimeMinutes === 60 ? 'bg-purple-600' : 'bg-zinc-700 hover:bg-zinc-600'}`}
+                >
+                  60분
+                </button>
+                <div className="flex items-center gap-2 ml-4">
+                  <input
+                    type="number"
+                    min="1"
+                    max="180"
+                    value={customTimeMinutes}
+                    onChange={(e) => setCustomTimeMinutes(Math.max(1, Math.min(180, parseInt(e.target.value) || 30)))}
+                    className="w-20 px-3 py-2 bg-zinc-700 rounded-lg text-center"
+                  />
+                  <span className="text-gray-400">분</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 모드 선택 카드 */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* 기본 모드 */}
+              <div
+                onClick={() => setSelectedMode('BASIC')}
+                className={`p-6 rounded-xl cursor-pointer transition-all border-2 ${
+                  selectedMode === 'BASIC'
+                    ? 'border-blue-500 bg-blue-900/20'
+                    : 'border-zinc-700 bg-zinc-800 hover:border-zinc-500'
+                }`}
+              >
+                <div className="text-center mb-4">
+                  <span className="text-4xl">📝</span>
+                </div>
+                <h3 className="text-xl font-bold text-center mb-2">기본 모드</h3>
+                <p className="text-gray-400 text-sm text-center mb-4">
+                  자유롭게 문제를 풀어보세요
+                </p>
+                <ul className="text-sm space-y-2 text-gray-300">
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-400">✓</span> 타이머 기능 (수동 시작)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-400">✓</span> 자유로운 풀이 환경
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-gray-500">✗</span> 시선 추적 없음
+                  </li>
+                </ul>
+              </div>
+
+              {/* 집중 모드 */}
+              <div
+                onClick={() => setSelectedMode('FOCUS')}
+                className={`p-6 rounded-xl cursor-pointer transition-all border-2 ${
+                  selectedMode === 'FOCUS'
+                    ? 'border-purple-500 bg-purple-900/20'
+                    : 'border-zinc-700 bg-zinc-800 hover:border-zinc-500'
+                }`}
+              >
+                <div className="text-center mb-4">
+                  <span className="text-4xl">👁️</span>
+                </div>
+                <h3 className="text-xl font-bold text-center mb-2">집중 모드</h3>
+                <p className="text-gray-400 text-sm text-center mb-4">
+                  시선 추적으로 집중력을 관리하세요
+                </p>
+                <ul className="text-sm space-y-2 text-gray-300">
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-400">✓</span> 타이머 자동 시작
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-400">✓</span> 시선 추적 (웹캠 필요)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-400">✓</span> 집중도 모니터링
+                  </li>
+                </ul>
+                <p className="text-xs text-purple-400 mt-3 text-center">
+                  * 점수에는 영향 없음 (정보 제공 목적)
+                </p>
+              </div>
+            </div>
+
+            {/* 시작 버튼 */}
+            <div className="mt-8 text-center">
+              <button
+                onClick={() => handleStartSolving(selectedMode)}
+                disabled={!selectedMode}
+                className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
+                  selectedMode
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
+                    : 'bg-zinc-700 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {selectedMode === 'FOCUS' ? '집중 모드로 시작' : selectedMode === 'BASIC' ? '기본 모드로 시작' : '모드를 선택해주세요'}
+              </button>
+              <p className="text-gray-500 text-sm mt-3">
+                {customTimeMinutes}분 동안 문제를 풀게 됩니다
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-100">
       {/* 헤더 */}
@@ -310,33 +530,70 @@ const ProblemSolve = () => {
             </div>
 
             <div className="flex items-center gap-6">
-              {/* 시선 추적 토글 */}
-              <button
-                onClick={() => setEyeTrackingEnabled(!eyeTrackingEnabled)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${eyeTrackingEnabled
-                  ? 'bg-purple-600 hover:bg-purple-700'
-                  : 'bg-zinc-700 hover:bg-zinc-600'
-                  }`}
-              >
-                <span className={`w-2 h-2 rounded-full ${eyeTrackingReady ? 'bg-green-400 animate-pulse' : 'bg-red-500'
-                  }`}></span>
+              {/* 현재 모드 표시 */}
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                selectedMode === 'FOCUS' ? 'bg-purple-600' : 'bg-blue-600'
+              }`}>
+                <span>{selectedMode === 'FOCUS' ? '👁️' : '📝'}</span>
                 <span className="text-sm font-semibold">
-                  {eyeTrackingEnabled ? '👁️ 추적 중' : '시선 추적'}
+                  {selectedMode === 'FOCUS' ? '집중 모드' : '기본 모드'}
                 </span>
-              </button>
+                {selectedMode === 'FOCUS' && (
+                  <span className={`w-2 h-2 rounded-full ml-1 ${
+                    eyeTrackingReady ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'
+                  }`}></span>
+                )}
+              </div>
 
+              {/* 타이머 */}
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                <span className={`w-2 h-2 rounded-full ${isTimerRunning ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>
                 <span className="text-sm">풀이 시간</span>
-                <span className={`font-mono ${timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400'}`}>
+                <span className={`font-mono text-lg ${timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400'}`}>
                   {formatTime(timeLeft)}
                 </span>
               </div>
 
-              <button onClick={() => setIsTimerRunning(!isTimerRunning)}
-                className={`px-3 py-1 rounded text-sm ${isTimerRunning ? 'bg-red-600' : 'bg-green-600'}`}>
-                {isTimerRunning ? '일시정지' : '시작'}
-              </button>
+              {/* 타이머 컨트롤 - 기본 모드에서만 수동 제어 가능 */}
+              {selectedMode === 'BASIC' && (
+                <>
+                  {!isTimerRunning && !startTime ? (
+                    // 아직 시작 안 함 - 시간 설정 가능
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        max="180"
+                        value={customTimeMinutes}
+                        onChange={(e) => setCustomTimeMinutes(Math.max(1, Math.min(180, parseInt(e.target.value) || 30)))}
+                        className="w-16 px-2 py-1 bg-zinc-700 rounded text-center text-sm"
+                      />
+                      <span className="text-gray-400 text-sm">분</span>
+                      <button
+                        onClick={handleStartTimer}
+                        className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700"
+                      >
+                        시작
+                      </button>
+                    </div>
+                  ) : (
+                    // 이미 시작됨 - 일시정지/재개
+                    <button
+                      onClick={() => setIsTimerRunning(!isTimerRunning)}
+                      className={`px-3 py-1 rounded text-sm ${isTimerRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                    >
+                      {isTimerRunning ? '일시정지' : '재개'}
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* 집중 모드 상태 표시 */}
+              {selectedMode === 'FOCUS' && (
+                <span className={`text-sm ${eyeTrackingReady ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {eyeTrackingReady ? '추적 중' : '캘리브레이션 중...'}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -592,16 +849,22 @@ const ProblemSolve = () => {
         </div>
       </div>
 
-      {/* 시선 추적 컴포넌트 */}
-      {eyeTrackingEnabled && (
+      {/* 시선 추적 컴포넌트 - 집중 모드에서만 활성화 */}
+      {eyeTrackingEnabled && selectedMode === 'FOCUS' && (
         <EyeTracker
           ref={eyeTrackerRef}
           problemId={Number(problemId)}
           isEnabled={eyeTrackingEnabled}
+          timeLimitMinutes={customTimeMinutes}
           onReady={() => setEyeTrackingReady(true)}
+          onSessionStart={(sessionId) => {
+            console.log('Eye tracking session started:', sessionId);
+            setMonitoringSessionId(sessionId);
+          }}
           onSessionEnd={(sessionId) => {
             console.log('Eye tracking session ended:', sessionId);
             setEyeTrackingReady(false);
+            setMonitoringSessionId(null);
           }}
         />
       )}

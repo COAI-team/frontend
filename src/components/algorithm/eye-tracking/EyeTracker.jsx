@@ -5,8 +5,13 @@ import CalibrationScreen from './CalibrationScreen';
 /**
  * 시선 추적 래퍼 컴포넌트
  * 웹캠 권한, 캘리브레이션, 추적 활성화를 통합 관리
+ *
+ * 변경사항:
+ * - onSessionStart 콜백 추가 (monitoringSessionId 전달)
+ * - monitoringSessionId를 부모 컴포넌트에서 사용할 수 있도록 노출
+ * - timeLimitMinutes prop 추가 (사용자 지정 시간)
  */
-const EyeTracker = forwardRef(({ problemId, isEnabled, onReady, onSessionEnd }, ref) => {
+const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, onReady, onSessionStart, onSessionEnd }, ref) => {
     const [showCalibration, setShowCalibration] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(false);
     const [error, setError] = useState(null);
@@ -18,7 +23,7 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, onReady, onSessionEnd }, 
         startCalibration,
         completeCalibration,
         stopTracking
-    } = useEyeTracking(problemId, isEnabled && permissionGranted);
+    } = useEyeTracking(problemId, isEnabled && permissionGranted, timeLimitMinutes);
 
     // 웹캠 권한 요청
     useEffect(() => {
@@ -44,6 +49,14 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, onReady, onSessionEnd }, 
         requestPermission();
     }, [isEnabled]);
 
+    // 세션 시작 시 onSessionStart 콜백 호출
+    useEffect(() => {
+        if (isTracking && sessionId && onSessionStart) {
+            console.log('🎯 Monitoring session started, notifying parent:', sessionId);
+            onSessionStart(sessionId);
+        }
+    }, [isTracking, sessionId, onSessionStart]);
+
     // 캘리브레이션 완료 처리
     const handleCalibrationComplete = () => {
         setShowCalibration(false);
@@ -55,10 +68,11 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, onReady, onSessionEnd }, 
     };
 
     // 부모 컴포넌트에서 stopTracking 호출 가능하도록 노출
+    // 변경: remainingSeconds 파라미터 추가 (제출 시 남은 시간 전달)
     useImperativeHandle(ref, () => ({
-        stopTracking: async () => {
+        stopTracking: async (remainingSeconds = null) => {
             if (isTracking) {
-                await stopTracking();
+                await stopTracking(remainingSeconds);
                 if (onSessionEnd) {
                     onSessionEnd(sessionId);
                 }
