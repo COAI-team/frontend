@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { AiFillGithub } from "react-icons/ai";
-import { getUserInfo, updateMyInfo, restoreUser, deactivateUser } from "../../service/user/User";
+import {
+    getUserInfo,
+    updateMyInfo,
+    restoreUser,
+    deactivateUser,
+    getGithubUserInfo,
+    disconnectGithub
+} from "../../service/user/User";
 import { useLogin } from "../../context/useLogin";
 import { useNavigate } from "react-router-dom";
 import AlertModal from "../../components/modal/AlertModal";
@@ -48,16 +55,45 @@ export default function ProfilePage() {
                 name: res.userName,
                 nickname: res.userNickname || "",
                 email: res.userEmail,
-                preview: res.userImage || null,  // 🔥 정리됨!
+                preview: res.userImage || null,
                 image: null,
             });
 
-            setGithubConnected(res.githubConnected || false);
             setIsDeleted(res.isDeleted || false);
+
+            /** 🔥 GitHub 연동 상태 가져오기 */
+            const github = await getGithubUserInfo();
+            if (!github.error) {
+                setGithubConnected(github.linked); // ✔ linked 사용
+            }
         };
 
         loadUserInfo();
     }, [accessToken, navigate]);
+
+    /** 🔥 GitHub OAuth 연결 */
+    const handleGithubConnect = () => {
+        const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+        const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
+
+        const url =
+            `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}`;
+
+        window.location.href = url;
+    };
+
+    /** 🔥 GitHub 연결 해제 */
+    const handleGithubDisconnect = async () => {
+        const res = await disconnectGithub();
+
+        if (res.error) {
+            openModal("❌ GitHub 연결 해제 실패");
+            return;
+        }
+
+        openModal("🔌 GitHub 연결이 해제되었습니다.");
+        setGithubConnected(false);
+    };
 
     /** 🔥 프로필 이미지 변경 */
     const handleImageChange = (e) => {
@@ -73,8 +109,6 @@ export default function ProfilePage() {
 
     /** 🔥 정보 저장 */
     const handleSave = async () => {
-        console.log("📌 [프로필 저장 요청]:", profile);
-
         const result = await updateMyInfo({
             name: profile.name,
             nickname: profile.nickname,
@@ -88,14 +122,12 @@ export default function ProfilePage() {
 
         openModal("✅ 프로필 저장 성공!");
 
-        /** 🔥 Navbar 업데이트 — 백엔드 응답 필드 기준 */
         setUser({
             userName: result.user.userName,
             userNickname: result.user.userNickname,
             userImage: result.user.userImage,
         });
 
-        /** 🔥 로컬에서도 즉시 적용 */
         setProfile((prev) => ({
             ...prev,
             preview: result.user.userImage,
@@ -113,11 +145,11 @@ export default function ProfilePage() {
     const confirmDeactivate = async () => {
         const res = await deactivateUser(accessToken);
         if (res.error) {
-            openModal("❌ 탈퇴 처리 중 오류 발생");
+            openModal("❌ 탈퇴 처리 중 오류");
             return;
         }
 
-        openModal("😢 탈퇴가 완료되었습니다. 90일 동안 복구하실 수 있습니다.");
+        openModal("😢 탈퇴가 완료되었습니다. 90일 동안 복구 가능합니다.");
         setIsDeleted(true);
         setUser(null);
     };
@@ -126,7 +158,7 @@ export default function ProfilePage() {
     const handleRestore = async () => {
         const res = await restoreUser(accessToken);
         if (res.error) {
-            openModal("❌ 복구 처리 중 오류 발생");
+            openModal("❌ 계정 복구 실패");
             return;
         }
 
@@ -147,7 +179,11 @@ export default function ProfilePage() {
                     onSave={handleSave}
                 />
             ) : (
-                <ViewModeCard profile={profile} maskEmail={maskEmail} onEdit={() => setEditMode(true)} />
+                <ViewModeCard
+                    profile={profile}
+                    maskEmail={maskEmail}
+                    onEdit={() => setEditMode(true)}
+                />
             )}
 
             {/* 계정 연동 */}
@@ -165,11 +201,17 @@ export default function ProfilePage() {
 
                         <div>
                             {githubConnected ? (
-                                <button className="px-4 py-1 border rounded-md hover:bg-gray-100">
+                                <button
+                                    onClick={handleGithubDisconnect} // ✔ 연결 해제
+                                    className="px-4 py-1 border rounded-md hover:bg-gray-100"
+                                >
                                     연결 해제
                                 </button>
                             ) : (
-                                <button className="px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200">
+                                <button
+                                    onClick={handleGithubConnect} // ✔ 연결하기
+                                    className="px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
+                                >
                                     연결하기
                                 </button>
                             )}
