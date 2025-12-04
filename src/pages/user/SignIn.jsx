@@ -87,7 +87,7 @@ export default function SignIn() {
 
         // auth 객체로 저장(세션 스토리지 기본)
         setLoginResult(result);
-        loginContextLogin(result, false);
+        loginContextLogin(result, true);
 
         setAlertModal({
             open: true,

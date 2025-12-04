@@ -1,62 +1,54 @@
 import { useState, useMemo, useEffect } from "react";
 import { LoginContext } from "./LoginContext";
 import { LoginProviderPropTypes } from "../utils/propTypes";
+import { getUserInfo } from "../service/user/User";
+import { getAuth, saveAuth, removeAuth } from "../utils/auth/token";
+import { normalizeUser } from "../utils/normalizeUser";
 
 export default function LoginProvider({ children }) {
     const [auth, setAuth] = useState(null);
     const [loginResult, setLoginResult] = useState(null);
-    const [hydrated, setHydrated] = useState(false);
 
-    // 🔥 저장된 로그인 정보 복원
+    // ===============================================================
+    // 저장된 로그인 정보 복원 + 서버에서 AccessToken 검증
+    // ===============================================================
     useEffect(() => {
-        const saved =
-            localStorage.getItem("auth") || sessionStorage.getItem("auth");
+        const saved = getAuth();
+        if (!saved?.accessToken) return;
 
-        if (!saved) {
-            setHydrated(true);
-            return;
-        }
+        setAuth(saved);
 
-        try {
-            const parsed = JSON.parse(saved);
+        // AccessToken으로 유저 정보 확인
+        getUserInfo()
+            .then((res) => {
+                if (!res) {
+                    removeAuth();
+                    setAuth(null);
+                    return;
+                }
 
-            if (!parsed.accessToken || !parsed.user) {
-                localStorage.removeItem("auth");
-                sessionStorage.removeItem("auth");
-                return;
-            }
+                setAuth((prev) => {
+                    if (!prev) return prev;
 
-            parsed.user = {
-                ...parsed.user,
-                image:
-                    parsed.user.userImage ??
-                    parsed.user.image ??
-                    parsed.user.avatar_url ??
-                    parsed.user.profileImageUrl ??
-                    null,
-                nickname:
-                    parsed.user.userNickname ??
-                    parsed.user.nickname ??
-                    null,
-                role:
-                    parsed.user.userRole ??
-                    parsed.user.role ??
-                    null,
-            };
+                    const newAuth = {
+                        ...prev,
+                        user: normalizeUser(res, prev.user),
+                    };
 
-            setAuth(parsed);
-        } catch (err) {
-            console.error("Failed to parse saved auth:", err);
-            localStorage.removeItem("auth");
-            sessionStorage.removeItem("auth");
-        }
+                    saveAuth(newAuth);
 
-        setHydrated(true);
+                    return newAuth;
+                });
+            })
+            .catch(() => {
+                removeAuth();
+                setAuth(null);
+            });
     }, []);
 
-    /**
-     * 🔥 로그인 저장 함수
-     */
+    // ===============================================================
+    // 로그인 처리
+    // ===============================================================
     const login = (loginResponse, remember = false) => {
         if (
             !loginResponse ||
@@ -68,93 +60,47 @@ export default function LoginProvider({ children }) {
             return;
         }
 
-        const updated = {
+        const newAuth = {
             ...loginResponse,
-            user: {
-                ...loginResponse.user,
-                image:
-                    loginResponse.user.userImage ??
-                    loginResponse.user.image ??
-                    loginResponse.user.avatar_url ??
-                    loginResponse.user.profileImageUrl ??
-                    null,
-                nickname:
-                    loginResponse.user.userNickname ??
-                    loginResponse.user.nickname ??
-                    null,
-                role:
-                    loginResponse.user.userRole ??
-                    loginResponse.user.role ??
-                    null,
-            },
+            user: normalizeUser(loginResponse.user),
         };
 
-        setAuth(updated);
+        setAuth(newAuth);
 
-        const storage = remember ? localStorage : sessionStorage;
-        storage.setItem("auth", JSON.stringify(updated));
+        // 저장 (remember = localStorage / 아니면 sessionStorage)
+        saveAuth(newAuth, remember);
     };
 
-    /**
-     * 🔥 로그아웃
-     */
+    // ===============================================================
+    // 로그아웃 처리
+    // ===============================================================
     const logout = () => {
         setAuth(null);
         setLoginResult(null);
-        localStorage.removeItem("auth");
-        sessionStorage.removeItem("auth");
+        removeAuth();
     };
 
-    /**
-     * 🔥 프로필 정보만 부분 수정 (토큰은 유지)
-     */
+    // ===============================================================
+    // 프로필 정보 부분 업데이트
+    // ===============================================================
     const setUser = (updatedUser) => {
         setAuth((prev) => {
             if (!prev) return prev;
 
             const newAuth = {
                 ...prev,
-                user: {
-                    ...prev.user,
-                    ...updatedUser,
-                    image:
-                        updatedUser.userImage ??
-                        updatedUser.image ??
-                        updatedUser.avatar_url ??
-                        prev.user.image ??
-                        null,
-                    nickname:
-                        updatedUser.userNickname ??
-                        updatedUser.nickname ??
-                        prev.user.nickname ??
-                        null,
-                    role:
-                        updatedUser.userRole ??
-                        updatedUser.role ??
-                        prev.user.role ??
-                        null,
-                },
+                user: normalizeUser(updatedUser, prev.user),
             };
 
-            const saved =
-                localStorage.getItem("auth") ||
-                sessionStorage.getItem("auth");
-
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                parsed.user = newAuth.user;
-
-                if (localStorage.getItem("auth")) {
-                    localStorage.setItem("auth", JSON.stringify(parsed));
-                } else {
-                    sessionStorage.setItem("auth", JSON.stringify(parsed));
-                }
-            }
+            saveAuth(newAuth);
 
             return newAuth;
         });
     };
 
+    // ===============================================================
+    // Context Memo
+    // ===============================================================
     const value = useMemo(
         () => ({
             auth,
@@ -166,9 +112,8 @@ export default function LoginProvider({ children }) {
             loginResult,
             setLoginResult,
             setUser,
-            hydrated,
         }),
-        [auth, loginResult, hydrated]
+        [auth, loginResult]
     );
 
     return (
