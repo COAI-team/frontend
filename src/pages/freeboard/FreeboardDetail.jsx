@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import hljs from 'highlight.js';
+import { Heart, MessageCircle, Share2, AlertCircle } from "lucide-react";
 import "../../styles/FreeboardDetail.css";
 import CommentSection from '../../components/comment/CommentSection';
 
@@ -11,6 +12,11 @@ const FreeboardDetail = () => {
   const [board, setBoard] = useState(null);
   const [isDark, setIsDark] = useState(false);
   const contentRef = useRef(null);
+  
+  // 좋아요 상태 관리
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [commentCount, setCommentCount] = useState(0);
 
   // 임시로 댓글작성 userId 1로 설정 (나중에 실제 로그인 유저로 변경)
   const currentUserId = 1;
@@ -61,9 +67,30 @@ const FreeboardDetail = () => {
         console.log("API 응답:", res.data);
         console.log("tags:", res.data.tags);
         setBoard(res.data);
+        setLikeCount(res.data.likeCount || 0);
+        setCommentCount(res.data.commentCount || 0);
       })
       .catch((err) => console.error("게시글 불러오기 실패:", err));
   }, [id]);
+
+  // 좋아요 핸들러
+  const handleLike = () => {
+    // TODO: API 연동
+    setIsLiked(!isLiked);
+    setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+  };
+
+  // 공유 핸들러
+  const handleShare = () => {
+    // TODO: 공유 기능 구현
+    console.log("공유 클릭");
+  };
+
+  // 신고 핸들러
+  const handleReport = () => {
+    // TODO: 신고 기능 구현
+    console.log("신고 클릭");
+  };
 
   // Monaco 코드 블록 및 링크 프리뷰 렌더링 처리
   useEffect(() => {
@@ -260,9 +287,48 @@ const FreeboardDetail = () => {
         ← 목록으로
       </button>
 
-      <h1 className={`text-4xl font-bold mb-3 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-        {board.freeboardTitle || "제목 없음"}
-      </h1>
+      {/* 제목과 수정/삭제 버튼 */}
+      <div className="flex items-start justify-between mb-3">
+        <h1 className={`text-4xl font-bold flex-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+          {board.freeboardTitle || "제목 없음"}
+        </h1>
+        
+        <div className="flex gap-3 ml-4">
+          <button
+            onClick={() => navigate(`/freeboard/edit/${id}`)}
+            className={`px-5 py-2.5 rounded text-base font-medium transition-colors ${
+              isDark 
+                ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            수정
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm("정말 삭제하시겠습니까?")) {
+                axios
+                  .delete(`http://localhost:8090/freeboard/${id}`)
+                  .then(() => {
+                    alert("삭제되었습니다.");
+                    navigate("/freeboard/list");
+                  })
+                  .catch((err) => {
+                    console.error("삭제 실패:", err);
+                    alert("삭제에 실패했습니다.");
+                  });
+              }
+            }}
+            className={`px-5 py-2.5 rounded text-base font-medium transition-colors ${
+              isDark
+                ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50'
+                : 'bg-red-100 text-red-600 hover:bg-red-200'
+            }`}
+          >
+            삭제
+          </button>
+        </div>
+      </div>
 
       <div className={`flex items-center gap-4 mb-6 pb-6 border-b ${isDark ? 'text-gray-400 border-gray-700' : 'text-gray-600 border-gray-300'}`}>
         <div className="flex items-center gap-2">
@@ -279,12 +345,12 @@ const FreeboardDetail = () => {
 
       <div
         ref={contentRef}
-        className="freeboard-content"
+        className="freeboard-content mb-8"
         dangerouslySetInnerHTML={{ __html: getRenderedContent(board.freeboardContent) }}
       ></div>
 
       {board.tags && board.tags.length > 0 && (
-        <div className={`mt-6 flex flex-wrap gap-2`}>
+        <div className={`mt-8 pb-8 flex flex-wrap gap-2`}>
           {board.tags.map((tag, index) => (
             <span
               key={index}
@@ -300,42 +366,62 @@ const FreeboardDetail = () => {
         </div>
       )}
 
-      <div className="mt-16 pt-8 border-t border-gray-700">
-        <CommentSection
-          boardId={Number(id)}
-          boardType="FREEBOARD"
-          currentUserId={currentUserId}
-          isDark={isDark}
-        />
+      {/* 좋아요/공유/신고 바 */}
+      <div className={`flex items-center justify-between py-4 mt-32 pt-8 border-t ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
+        <div className="flex items-center gap-6">
+          {/* 좋아요 */}
+          <button
+            onClick={handleLike}
+            className={`flex items-center gap-2 transition-colors ${
+              isLiked
+                ? 'text-red-500'
+                : isDark ? 'text-gray-400 hover:text-red-400' : 'text-gray-600 hover:text-red-500'
+            }`}
+          >
+            <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
+            <span className="text-sm">좋아요</span>
+            <span className="font-medium">{likeCount}</span>
+          </button>
+
+          {/* 댓글 */}
+          <div className={`flex items-center gap-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            <MessageCircle size={20} />
+            <span className="text-sm">댓글</span>
+            <span className="font-medium">{commentCount}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6">
+          {/* 공유 */}
+          <button 
+            onClick={handleShare}
+            className={`flex items-center gap-2 text-sm transition-colors ${
+              isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Share2 size={18} />
+            <span>공유</span>
+          </button>
+
+          {/* 신고 */}
+          <button 
+            onClick={handleReport}
+            className={`flex items-center gap-2 text-sm transition-colors ${
+              isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <AlertCircle size={18} />
+            <span>신고</span>
+          </button>
+        </div>
       </div>
 
-      <div className={`mt-10 pt-6 border-t flex gap-3 ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
-        <button
-          onClick={() => navigate(`/freeboard/edit/${id}`)}
-          className={`px-4 py-2 rounded ${isDark ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'}`}
-        >
-          수정
-        </button>
-        <button
-          onClick={() => {
-            if (window.confirm("정말 삭제하시겠습니까?")) {
-              axios
-                .delete(`http://localhost:8090/freeboard/${id}`)
-                .then(() => {
-                  alert("삭제되었습니다.");
-                  navigate("/freeboard/list");
-                })
-                .catch((err) => {
-                  console.error("삭제 실패:", err);
-                  alert("삭제에 실패했습니다.");
-                });
-            }
-          }}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
-        >
-          삭제
-        </button>
-      </div>
+      <CommentSection
+        boardId={Number(id)}
+        boardType="FREEBOARD"
+        currentUserId={currentUserId}
+        isDark={isDark}
+      />
     </div>
   );
 };
