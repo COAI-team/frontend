@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useState, useEffect } from "react";
+import AdminUserDetailModal from "./AdminUserDetailModal";
 
 export default function AdminUsers() {
   const API_BASE_URL = "http://localhost:9443/admin";
@@ -12,14 +13,30 @@ export default function AdminUsers() {
     hasPrevious: false,
   });
   const [loading, setLoading] = useState(false);
-  const [searchEmail, setSearchEmail] = useState(""); // ✅ 검색 상태 추가
+  const [searchEmail, setSearchEmail] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
 
-  const findUser = async (page = 1, email = "") => {
+  // ✅ 정렬 + 필터 상태
+  const [sortField, setSortField] = useState("USER_ID");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [filter, setFilter] = useState("all"); // 전체, admin, user, active, deleted
+
+  // ✅ 유저 조회
+  const findUser = async (
+    page = 1,
+    email = "",
+    sortField = "USER_ID",
+    sortOrder = "desc",
+    filter = "all"
+  ) => {
     try {
       setLoading(true);
-      const query = email ? `&userEmail=${encodeURIComponent(email)}` : "";
+      const queryEmail = email ? `&userEmail=${encodeURIComponent(email)}` : "";
+      const querySort = `&sortField=${sortField}&sortOrder=${sortOrder}`;
+      const queryStatus =
+        filter !== "all" ? `&filter=${filter}` : "&filter=all";
       const res = await axios.get(
-        `${API_BASE_URL}/users?page=${page}&size=10${query}`
+        `${API_BASE_URL}/users?page=${page}&size=10${queryEmail}${querySort}${queryStatus}`
       );
 
       if (res.data.message === "success") {
@@ -40,49 +57,106 @@ export default function AdminUsers() {
     }
   };
 
+  // ✅ 필터/정렬 변경 시 자동 재조회
   useEffect(() => {
-    findUser();
-  }, []);
+    findUser(1, searchEmail, sortField, sortOrder, filter);
+  }, [sortField, sortOrder, filter]);
+
+  const handleUserClick = (userId) => setSelectedUser(userId);
+  const closeModal = () => setSelectedUser(null);
 
   const handlePrev = () => {
-    if (pageInfo.hasPrevious) findUser(pageInfo.page - 1, searchEmail);
+    if (pageInfo.hasPrevious)
+      findUser(pageInfo.page - 1, searchEmail, sortField, sortOrder, filter);
   };
 
   const handleNext = () => {
-    if (pageInfo.hasNext) findUser(pageInfo.page + 1, searchEmail);
+    if (pageInfo.hasNext)
+      findUser(pageInfo.page + 1, searchEmail, sortField, sortOrder, filter);
   };
 
   const handleSearch = () => {
-    findUser(1, searchEmail.trim());
+    findUser(1, searchEmail.trim(), sortField, sortOrder, filter);
   };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") handleSearch();
   };
 
+  // ✅ 정렬 변경
+  const handleSortChange = (e) => {
+    const [field, order] = e.target.value.split(",");
+    setSortField(field);
+    setSortOrder(order);
+  };
+
+  // ✅ 상태 필터 버튼 클릭
+  const handleStatusChange = (status) => {
+    setFilter(status);
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>👥 관리자 유저 목록</h2>
 
-      {/* ✅ 검색창 */}
-      <div style={styles.searchBox}>
-        <input
-          type="text"
-          placeholder="이메일을 입력하세요"
-          value={searchEmail}
-          onChange={(e) => setSearchEmail(e.target.value)}
-          onKeyPress={handleKeyPress}
-          style={styles.searchInput}
-        />
-        <button onClick={handleSearch} style={styles.searchButton}>
-          🔍 검색
-        </button>
+      {/* ✅ 필터 버튼들 */}
+      <div style={styles.filterButtons}>
+        {[
+          { label: "전체보기", value: "all" },
+          { label: "관리자", value: "admin" },
+          { label: "유저", value: "user" },
+          { label: "가입 중", value: "active" },
+          { label: "탈퇴", value: "deleted" },
+        ].map((btn) => (
+          <button
+            key={btn.value}
+            onClick={() => handleStatusChange(btn.value)}
+            style={{
+              ...styles.filterButton,
+              ...(filter === btn.value ? styles.activeFilter : {}),
+            }}
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ✅ 검색 + 정렬 */}
+      <div style={{ ...styles.searchBox, justifyContent: "space-between" }}>
+        <div>
+          <input
+            type="text"
+            placeholder="이메일을 입력하세요"
+            value={searchEmail}
+            onChange={(e) => setSearchEmail(e.target.value)}
+            onKeyPress={handleKeyPress}
+            style={styles.searchInput}
+          />
+          <button onClick={handleSearch} style={styles.searchButton}>
+            🔍 검색
+          </button>
+        </div>
+
+        {/* ✅ 정렬 드롭다운 */}
+        <select
+          value={`${sortField},${sortOrder}`}
+          onChange={handleSortChange}
+          style={styles.sortSelect}
+        >
+          <option value="USER_ID,desc">ID 내림차순</option>
+          <option value="USER_ID,asc">ID 오름차순</option>
+          <option value="USER_GRADE,desc">등급 높은 순</option>
+          <option value="USER_GRADE,asc">등급 낮은 순</option>
+          <option value="USER_ROLE,asc">권한 오름차순</option>
+          <option value="USER_ROLE,desc">권한 내림차순</option>
+        </select>
       </div>
 
       {loading ? (
         <p>⏳ 로딩 중...</p>
       ) : (
         <>
+          {/* ✅ 유저 테이블 */}
           <table style={styles.table}>
             <thead style={styles.thead}>
               <tr>
@@ -99,6 +173,7 @@ export default function AdminUsers() {
                   <tr
                     key={user.userId}
                     style={styles.trHover}
+                    onClick={() => handleUserClick(user.userId)}
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.backgroundColor =
                         "rgba(25, 118, 210, 0.25)")
@@ -156,7 +231,9 @@ export default function AdminUsers() {
               (num) => (
                 <button
                   key={num}
-                  onClick={() => findUser(num, searchEmail)}
+                  onClick={() =>
+                    findUser(num, searchEmail, sortField, sortOrder, filter)
+                  }
                   style={{
                     ...styles.pageNumber,
                     ...(num === pageInfo.page ? styles.activePage : {}),
@@ -180,6 +257,11 @@ export default function AdminUsers() {
           </div>
         </>
       )}
+
+      {/* ✅ 유저 상세 모달 */}
+      {selectedUser && (
+        <AdminUserDetailModal userId={selectedUser} onClose={closeModal} />
+      )}
     </div>
   );
 }
@@ -197,11 +279,31 @@ const styles = {
     marginBottom: "20px",
     fontWeight: "700",
     textAlign: "center",
+  },
+  filterButtons: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "10px",
+    marginBottom: "15px",
+  },
+  filterButton: {
+    padding: "6px 12px",
+    borderRadius: "6px",
+    border: "1px solid #444",
+    backgroundColor: "#111",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: "600",
+    transition: "all 0.2s ease",
+  },
+  activeFilter: {
+    backgroundColor: "#1976d2",
+    borderColor: "#1976d2",
     color: "#fff",
   },
   searchBox: {
     display: "flex",
-    justifyContent: "center",
     alignItems: "center",
     marginBottom: "20px",
     gap: "8px",
@@ -224,6 +326,14 @@ const styles = {
     cursor: "pointer",
     fontWeight: "600",
   },
+  sortSelect: {
+    backgroundColor: "#111",
+    color: "#fff",
+    border: "1px solid #444",
+    borderRadius: "6px",
+    padding: "6px 10px",
+    cursor: "pointer",
+  },
   table: {
     width: "100%",
     borderCollapse: "collapse",
@@ -235,18 +345,6 @@ const styles = {
   },
   thead: {
     backgroundColor: "#1c1f26",
-  },
-  th: {
-    borderBottom: "2px solid #2b2f3a",
-    padding: "12px 10px",
-    fontWeight: "600",
-    color: "#ddd",
-  },
-  td: {
-    borderBottom: "1px solid #2b2f3a",
-    padding: "10px",
-    color: "#eee",
-    transition: "background-color 0.2s ease",
   },
   trHover: {
     transition: "background-color 0.25s ease",
@@ -265,7 +363,6 @@ const styles = {
     border: "none",
     borderRadius: "4px",
     cursor: "pointer",
-    transition: "background 0.2s ease",
   },
   pageButtonDisabled: {
     backgroundColor: "#444",
@@ -277,10 +374,8 @@ const styles = {
     backgroundColor: "#111",
     color: "#fff",
     padding: "6px 10px",
-    margin: "0 2px",
     borderRadius: "4px",
     cursor: "pointer",
-    transition: "all 0.2s ease",
   },
   activePage: {
     backgroundColor: "#1976d2",
