@@ -82,10 +82,7 @@ export default function SignIn() {
         }
 
         setLoginResult(result);
-        loginContextLogin(result);
-
-        sessionStorage.setItem("accessToken", result.accessToken);
-        sessionStorage.setItem("refreshToken", result.refreshToken);
+        loginContextLogin(result, true);
 
         setAlertModal({
             open: true,
