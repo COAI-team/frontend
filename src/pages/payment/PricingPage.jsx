@@ -2,9 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../server/AxiosConfig";
+import { getAuth, removeAuth } from "../../utils/auth/token";
 import "./pricing.css";
-
-
 
 const PLANS = {
   free: { code: "FREE", name: "Free", price: 0 },
@@ -91,10 +90,18 @@ function PricingPage() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [userName, setUserName] = useState("");
+  const [isAuthed, setIsAuthed] = useState(!!getAuth()?.accessToken);
 
+  // 구독 상태 조회
   useEffect(() => {
     const fetchSubscriptions = async () => {
       try {
+        if (!isAuthed) {
+          setErrorMsg("로그인이 필요합니다.");
+          setLoading(false);
+          setCurrentPlan("FREE");
+          return;
+        }
         setLoading(true);
         const res = await axiosInstance.get("/payments/subscriptions/me");
         const list = Array.isArray(res.data) ? res.data : [];
@@ -108,28 +115,43 @@ function PricingPage() {
         }
       } catch (e) {
         console.error("구독 상태 조회 실패:", e);
-        setCurrentPlan("FREE");
-        setErrorMsg("구독 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        if (e.response?.status === 401) {
+          // 토큰 만료/없음으로 간주하고 로그인으로 유도
+          removeAuth();
+          setIsAuthed(false);
+          setErrorMsg("세션이 만료되었습니다. 다시 로그인해 주세요.");
+        } else {
+          setCurrentPlan("FREE");
+          setErrorMsg("구독 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchSubscriptions();
-  }, []);
+  }, [isAuthed]);
 
+  // 사용자 이름/닉네임 조회
   useEffect(() => {
     const fetchMe = async () => {
       try {
+        if (!isAuthed) return;
         const res = await axiosInstance.get("/users/me");
         const data = res.data || {};
         setUserName(data.userNickname || data.userName || "");
       } catch (e) {
-        console.warn("내 정보 조회 실패(이름 표시 생략):", e);
+        if (e.response?.status === 401) {
+          removeAuth();
+          setIsAuthed(false);
+          setErrorMsg("세션이 만료되었습니다. 다시 로그인해 주세요.");
+        } else {
+          console.warn("내 정보 조회 실패(이름 표시 생략):", e);
+        }
       }
     };
     fetchMe();
-  }, []);
+  }, [isAuthed]);
 
   const currentPlanLabel =
     currentPlan === "BASIC" ? "Basic" : currentPlan === "PRO" ? "Pro" : "Free";
@@ -138,12 +160,16 @@ function PricingPage() {
   const isProCurrent = currentPlan === "PRO";
 
   const handleSelectPlan = (planKey) => {
-    if (isProCurrent) return; // Pro 구독자는 선택 불가
-    if (isBasicCurrent && planKey === "basic") return; // Basic 사용 중이면 Basic 선택 불가
+    if (isProCurrent) return;
+    if (isBasicCurrent && planKey === "basic") return;
     setSelectedPlan((prev) => (prev === planKey ? null : planKey));
   };
 
   const handleProceed = () => {
+    if (!isAuthed) {
+      navigate("/signin");
+      return;
+    }
     if (!selectedPlan) return;
     navigate(`/pages/payment/buy?plan=${selectedPlan}`);
   };
@@ -169,8 +195,10 @@ function PricingPage() {
                 {(userName || "사용자")}님의 구독 상태
               </div>
               <div className="status-text">
-                {currentPlan === "FREE"
-                  ? "현재 무료 구독입니다. Free 플랜을 이용 중입니다."
+                {!isAuthed
+                  ? "로그인이 필요합니다."
+                  : currentPlan === "FREE"
+                  ? "현재 무료 구독입니다. Free 요금제를 이용 중입니다."
                   : `${currentPlanLabel} 구독 중입니다.`}
               </div>
             </div>
@@ -182,8 +210,8 @@ function PricingPage() {
 
         {/* 요금제 카드 */}
         <div className="cards-grid">
-          {/* Free 카드 */}
-          <div className={cardClass("free", { variant: "white", disabled: true })}>
+        {/* Free 카드 */}
+        <div className={cardClass("free", { variant: "white" })}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3 style={{ fontSize: 20, fontWeight: 700 }}>Free</h3>

@@ -8,11 +8,11 @@ export const axiosInstance = axios.create({
     timeout: 10000,
 });
 
-// 강제로 baseURL 적용
+// baseURL 한 번 더 강제
 axiosInstance.defaults.baseURL = API_URL;
 
 // =====================================================
-// 1) 요청 인터셉터 — AccessToken 자동 주입
+// 1) 요청 인터셉터: AccessToken 자동 주입
 // =====================================================
 axiosInstance.interceptors.request.use(
     (config) => {
@@ -28,23 +28,20 @@ axiosInstance.interceptors.request.use(
 );
 
 // =====================================================
-// 2) 응답 인터셉터 — Token 만료 처리
+// 2) 응답 인터셉터: Token 만료 처리 + 공통 401/403 핸들링
 // =====================================================
 
 let isRefreshing = false;
 let refreshCallbacks = [];
 
-function onTokenRefreshed(newToken) {
+const onTokenRefreshed = (newToken) => {
     refreshCallbacks.forEach((cb) => cb(newToken));
     refreshCallbacks = [];
-}
+};
 
-function isExpired(error) {
-    return (
-        error?.response?.status === 401 &&
-        error?.response?.data?.code === "TOKEN_EXPIRED"
-    );
-}
+const isExpired = (error) =>
+    error?.response?.status === 401 &&
+    error?.response?.data?.code === "TOKEN_EXPIRED";
 
 async function refreshAccessToken(refreshToken) {
     const refreshUrl = `${API_URL}/users/refresh`;
@@ -68,7 +65,7 @@ axiosInstance.interceptors.response.use(
     async (error) => {
         if (!error.response) {
             throw new AxiosError(
-                "서버와 연결되지 않았습니다.",
+                "서버로부터 응답을 받지 못했습니다.",
                 "NO_RESPONSE",
                 error.config,
                 error.request,
@@ -78,10 +75,8 @@ axiosInstance.interceptors.response.use(
 
         const originalRequest = error.config;
 
-        // 🔥 AccessToken 만료 처리
+        // 2-1) AccessToken 만료 → refresh 후 재시도
         if (isExpired(error)) {
-            console.warn("⚠ AccessToken expired → Refreshing...");
-
             const auth = getAuth();
             const refreshToken = auth?.refreshToken;
 
@@ -91,7 +86,6 @@ axiosInstance.interceptors.response.use(
                 return;
             }
 
-            // Refresh 로직 단독 실행
             if (!isRefreshing) {
                 isRefreshing = true;
 
@@ -104,7 +98,7 @@ axiosInstance.interceptors.response.use(
                     isRefreshing = false;
                     onTokenRefreshed(newAccessToken);
                 } catch (refreshError) {
-                    console.error("❌ Refresh 실패:", refreshError);
+                    console.error("Refresh 실패:", refreshError);
 
                     removeAuth();
                     globalThis.location.replace("/signin");
@@ -112,13 +106,32 @@ axiosInstance.interceptors.response.use(
                 }
             }
 
-            // Refresh 완료될 때까지 대기 후 재요청
             return new Promise((resolve) => {
                 refreshCallbacks.push((token) => {
                     originalRequest.headers.Authorization = `Bearer ${token}`;
                     resolve(axiosInstance(originalRequest));
                 });
             });
+        }
+
+        // 2-2) 만료가 아닌 401/403 → 로그인 만료 처리
+        const status = error?.response?.status;
+        const skipAuthRedirect =
+            originalRequest?.headers?.["X-Skip-Auth-Redirect"] === "true" ||
+            originalRequest?._skipAuthRedirect;
+
+        if (!skipAuthRedirect && (status === 401 || status === 403)) {
+            removeAuth();
+
+            const currentPath =
+                (globalThis.location?.pathname || "/") +
+                (globalThis.location?.search || "");
+
+            if (!originalRequest?._redirectedForAuth) {
+                originalRequest._redirectedForAuth = true;
+                const redirectParam = encodeURIComponent(currentPath);
+                globalThis.location.replace(`/signin?redirect=${redirectParam}`);
+            }
         }
 
         throw error;
