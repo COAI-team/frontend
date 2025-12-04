@@ -92,6 +92,15 @@ export default function SignUp() {
 
         if (result?.success) {
             setIsVerified(true);
+
+            // 타이머 정지
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+
+            setRemainingTime(null);
+
             return showAlert("success", "인증 완료", "이메일 인증 성공!");
         }
 
