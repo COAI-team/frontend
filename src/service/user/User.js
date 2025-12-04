@@ -164,3 +164,43 @@ export const loginWithGithub = async (code) => {
         return { error: err };
     }
 };
+
+// GitHub 연동 정보 조회
+export const getGithubUserInfo = async () => {
+    try {
+        console.log("📨 [getGithubUserInfo] 요청 시작");
+
+        const res = await axiosInstance.get("/auth/github/user", {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            },
+        });
+
+        console.log("✅ [getGithubUserInfo] 성공:", res.data);
+
+        return res.data;
+
+    } catch (err) {
+        console.error("❌ [getGithubUserInfo] 요청 실패:", err);
+        return { error: err };
+    }
+};
+
+// 🔥 GitHub 계정 연동 해제
+export const disconnectGithub = async () => {
+    try {
+        const res = await axiosInstance.post(
+            "/auth/github/disconnect",
+            {},
+            {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            }
+        );
+        return res.data;
+    } catch (err) {
+        console.error("❌ [GitHub Disconnect] 오류:", err);
+        return { error: err };
+    }
+};
