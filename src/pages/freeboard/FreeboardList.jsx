@@ -138,11 +138,11 @@ const FreeboardList = () => {
                   </span>
                   <span className="flex items-center gap-1">
                     <Heart size={16} />
-                    0
+                    {b.likeCount || 0}
                   </span>
                   <span className="flex items-center gap-1">
                     <MessageCircle size={16} />
-                    0
+                    {b.commentCount || 0}
                   </span>
                 </div>
               </div>
