@@ -95,10 +95,10 @@ const FreeboardList = () => {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-9 h-9 rounded-full ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-300 text-gray-700'} flex items-center justify-center text-sm`}>
-                    {String(b.userId).slice(0, 1)}
+                    {b.userNickname ? String(b.userNickname).charAt(0).toUpperCase() : 'U'}
                   </div>
                   <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>
-                    사용자 {b.userId}
+                    {b.userNickname || '익명'}
                     <span className={`ml-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
                       · {new Date(b.freeboardCreatedAt).toLocaleDateString()}
                     </span>
@@ -113,7 +113,6 @@ const FreeboardList = () => {
                   {extractTextFromHTML(b.freeboardContent)}
                 </div>
 
-                {/* 태그 */}
                 {b.tags && b.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {b.tags.map((tag) => (

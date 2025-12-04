@@ -267,9 +267,9 @@ const FreeboardDetail = () => {
       <div className={`flex items-center gap-4 mb-6 pb-6 border-b ${isDark ? 'text-gray-400 border-gray-700' : 'text-gray-600 border-gray-300'}`}>
         <div className="flex items-center gap-2">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${isDark ? 'bg-gray-600 text-gray-200' : 'bg-gray-300 text-gray-700'}`}>
-            {String(board.userId).slice(0, 1)}
+            {board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'}
           </div>
-          <span>사용자 {board.userId}</span>
+          <span>{board.userNickname || '익명'}</span>
         </div>
         <span>·</span>
         <span>{new Date(board.freeboardCreatedAt).toLocaleString()}</span>
@@ -283,7 +283,6 @@ const FreeboardDetail = () => {
         dangerouslySetInnerHTML={{ __html: getRenderedContent(board.freeboardContent) }}
       ></div>
 
-      {/* 태그 표시 */}
       {board.tags && board.tags.length > 0 && (
         <div className={`mt-6 flex flex-wrap gap-2`}>
           {board.tags.map((tag, index) => (
@@ -301,7 +300,6 @@ const FreeboardDetail = () => {
         </div>
       )}
 
-      {/* 댓글 섹션 */}
       <div className="mt-16 pt-8 border-t border-gray-700">
         <CommentSection
           boardId={Number(id)}

@@ -50,6 +50,14 @@ const ProblemCard = ({ problem, onClick }) => {
             {/* 난이도 뱃지 */}
             <DifficultyBadge difficulty={problem.algoProblemDifficulty} />
 
+            {/* 문제 유형 배지 */}
+            <span className={`px-2 py-0.5 text-xs font-medium rounded border ${problem.problemType === 'SQL'
+              ? 'bg-purple-100 text-purple-700 border-purple-200'
+              : 'bg-blue-100 text-blue-700 border-blue-200'
+              }`}>
+              {problem.problemType === 'SQL' ? 'DATABASE' : 'ALGO'}
+            </span>
+
             {/* 출처 */}
             <span className="flex items-center gap-1">
               {getSourceIcon(problem.algoProblemSource)}
