@@ -3,16 +3,17 @@ import { useState } from 'react';
 export default function CommentForm({ 
   boardId, 
   boardType, 
-  parentCommentId = null,  // null이면 댓글, 있으면 대댓글
+  parentCommentId = null,
   currentUserId, 
   onSuccess,
-  onCancel,                // 대댓글일 때만 사용
+  onCancel,
   isDark,
+  formId,
 }) {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const isReply = parentCommentId !== null;  // 대댓글인지 확인
+  const isReply = parentCommentId !== null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,34 +104,48 @@ export default function CommentForm({
     );
   }
 
-  // 일반 댓글 스타일
+  // 일반 댓글 스타일 - 새 디자인
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form id={formId} onSubmit={handleSubmit} className={`border rounded-lg p-4 ${isDark ? "border-gray-700" : "border-gray-300"}`}>
+      {/* 작성자 표시 - 실제 사용자 정보로 변경 필요 */}
+      <div className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+        사용자 {currentUserId}
+      </div>
+
+      {/* 텍스트 영역 */}
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="댓글을 입력하세요"
-        rows={3}
+        placeholder="댓글을 남겨보세요"
+        rows={1}
         className={`
-          w-full px-4 py-3 rounded-lg resize-none transition-all border
+          w-full px-0 py-1 resize-none transition-all border-0 focus:ring-0 text-sm
           ${isDark 
-            ? "bg-gray-800 text-gray-100 border-gray-600 focus:ring-indigo-400" 
-            : "bg-white text-gray-900 border-gray-300 focus:ring-indigo-500"
+            ? "bg-transparent text-gray-100 placeholder-gray-500" 
+            : "bg-transparent text-gray-900 placeholder-gray-400"
           }
         `}
         disabled={submitting}
+        onInput={(e) => {
+          e.target.style.height = 'auto';
+          e.target.style.height = e.target.scrollHeight + 'px';
+        }}
       />
 
-      <div className="flex justify-end">
+      {/* 하단 바 */}
+      <div className="flex items-center justify-end gap-3 mt-2">
+        <span className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+          {content.length}/3000
+        </span>
+        
         <button
           type="submit"
           disabled={submitting || !content.trim()}
           className={`
-            px-6 py-2 rounded-lg font-medium transition-colors
-            ${isDark
-              ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700"
-              : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"
-            }
+            px-4 py-1.5 text-sm rounded-lg transition-colors
+            ${isDark 
+              ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700" 
+              : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"}
           `}
         >
           {submitting ? '등록 중...' : '댓글 등록'}

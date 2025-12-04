@@ -5,14 +5,13 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
     plugins: [react(), tailwindcss()],
     server: {
-        // proxy: {
-        //     "/api": {
-        //         target: "https://localhost:9443",
-        //         changeOrigin: true,
-        //         secure: false,
-        //         rewrite: (p) => p.replace(/^\/api/, "")
-        //     }
-        // }
+        proxy: {
+            "^/(api|analysis|users)": {
+                target: "http://localhost:8090",
+                changeOrigin: true,
+                secure: false
+            }
+        },
         host: true,
         port: 5173
     }

@@ -302,12 +302,14 @@ const FreeboardDetail = () => {
       )}
 
       {/* 댓글 섹션 */}
-      <CommentSection
-        boardId={Number(id)}
-        boardType="FREEBOARD"
-        currentUserId={currentUserId}
-        isDark={isDark}
-      />
+      <div className="mt-16 pt-8 border-t border-gray-700">
+        <CommentSection
+          boardId={Number(id)}
+          boardType="FREEBOARD"
+          currentUserId={currentUserId}
+          isDark={isDark}
+        />
+      </div>
 
       <div className={`mt-10 pt-6 border-t flex gap-3 ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
         <button
