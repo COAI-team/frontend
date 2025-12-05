@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { axiosInstance } from '../../server/AxiosConfig';
 import CommentForm from './CommentForm';
 
 export default function CommentItem({ comment, currentUserId, onCommentUpdated, isReply = false, isDark }) {
@@ -16,25 +17,19 @@ export default function CommentItem({ comment, currentUserId, onCommentUpdated, 
 
     setIsUpdating(true);
     try {
-      const response = await fetch(`http://localhost:8090/comments/${comment.commentId}`, {
-        method: 'PUT',
+      await axiosInstance.put(`/comments/${comment.commentId}`, {
+        content: editContent.trim()
+      }, {
         headers: {
-          'Content-Type': 'application/json',
           'userId': currentUserId
-        },
-        body: JSON.stringify({
-          content: editContent.trim()
-        })
+        }
       });
 
-      if (response.ok) {
-        setIsEditing(false);
-        onCommentUpdated();
-      } else {
-        alert('댓글 수정에 실패했습니다.');
-      }
+      setIsEditing(false);
+      onCommentUpdated();
     } catch (error) {
       console.error('댓글 수정 실패:', error);
+      alert('댓글 수정에 실패했습니다.');
     } finally {
       setIsUpdating(false);
     }
@@ -45,20 +40,16 @@ export default function CommentItem({ comment, currentUserId, onCommentUpdated, 
     if (!confirm(`${isReply ? '답글을' : '댓글을'} 삭제하시겠습니까?`)) return;
 
     try {
-      const response = await fetch(`http://localhost:8090/comments/${comment.commentId}`, {
-        method: 'DELETE',
+      await axiosInstance.delete(`/comments/${comment.commentId}`, {
         headers: {
           'userId': currentUserId
         }
       });
 
-      if (response.ok) {
-        onCommentUpdated();
-      } else {
-        alert(`${isReply ? '답글' : '댓글'} 삭제에 실패했습니다.`);
-      }
+      onCommentUpdated();
     } catch (error) {
       console.error('삭제 실패:', error);
+      alert(`${isReply ? '답글' : '댓글'} 삭제에 실패했습니다.`);
     }
   };
 
@@ -83,127 +74,127 @@ export default function CommentItem({ comment, currentUserId, onCommentUpdated, 
   const isMyComment = comment.userId === currentUserId;
 
   // 대댓글 스타일
-if (isReply) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-3">
-          <div
-            className={`
-              w-8 h-8 rounded-full flex items-center justify-center
-              ${isDark ? "bg-gray-600 text-gray-200" : "bg-gray-200 text-gray-600"}
-            `}
-          >
-            <span className="font-semibold text-xs">
-              {comment.userNickname?.charAt(0) || "?"}
-            </span>
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className={`font-medium text-sm ${isDark ? "text-gray-100" : "text-gray-900"}`}>
-                {comment.userNickname}
+  if (isReply) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            <div
+              className={`
+                w-8 h-8 rounded-full flex items-center justify-center
+                ${isDark ? "bg-gray-600 text-gray-200" : "bg-gray-200 text-gray-600"}
+              `}
+            >
+              <span className="font-semibold text-xs">
+                {comment.userNickname?.charAt(0) || "?"}
               </span>
-              {comment.isAuthor && (
-                <span
-                  className={`
-                    px-2 py-0.5 text-xs font-medium rounded
-                    ${isDark ? "bg-indigo-900 text-indigo-200" : "bg-indigo-100 text-indigo-700"}
-                  `}
-                >
-                  작성자
-                </span>
-              )}
             </div>
-            <span className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-              {formatDate(comment.createdAt)}
-            </span>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className={`font-medium text-sm ${isDark ? "text-gray-100" : "text-gray-900"}`}>
+                  {comment.userNickname}
+                </span>
+                {comment.isAuthor && (
+                  <span
+                    className={`
+                      px-2 py-0.5 text-xs font-medium rounded
+                      ${isDark ? "bg-indigo-900 text-indigo-200" : "bg-indigo-100 text-indigo-700"}
+                    `}
+                  >
+                    작성자
+                  </span>
+                )}
+              </div>
+              <span className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                {formatDate(comment.createdAt)}
+              </span>
+            </div>
           </div>
+
+          {isMyComment && !isEditing && (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setIsEditing(true)}
+                className={`
+                  text-xs transition-colors
+                  ${isDark ? "text-gray-300 hover:text-indigo-300" : "text-gray-600 hover:text-indigo-600"}
+                `}
+              >
+                수정
+              </button>
+              <span className={isDark ? "text-gray-600" : "text-gray-300"}>|</span>
+              <button
+                onClick={handleDelete}
+                className={`
+                  text-xs transition-colors
+                  ${isDark ? "text-gray-300 hover:text-red-400" : "text-gray-600 hover:text-red-600"}
+                `}
+              >
+                삭제
+              </button>
+            </div>
+          )}
         </div>
 
-        {isMyComment && !isEditing && (
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsEditing(true)}
+        {isEditing ? (
+          <div className="space-y-2">
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              rows={2}
               className={`
-                text-xs transition-colors
-                ${isDark ? "text-gray-300 hover:text-indigo-300" : "text-gray-600 hover:text-indigo-600"}
-              `}
-            >
-              수정
-            </button>
-            <span className={isDark ? "text-gray-600" : "text-gray-300"}>|</span>
-            <button
-              onClick={handleDelete}
-              className={`
-                text-xs transition-colors
-                ${isDark ? "text-gray-300 hover:text-red-400" : "text-gray-600 hover:text-red-600"}
-              `}
-            >
-              삭제
-            </button>
-          </div>
-        )}
-      </div>
-
-      {isEditing ? (
-        <div className="space-y-2">
-          <textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            rows={2}
-            className={`
-              w-full px-3 py-2 text-sm rounded-lg resize-none border focus:ring-2 transition-all
-              ${isDark
-                ? "bg-gray-800 text-gray-100 border-gray-600 focus:ring-indigo-400"
-                : "bg-white text-gray-900 border-gray-300 focus:ring-indigo-500"
-              }
-            `}
-            disabled={isUpdating}
-          />
-          <div className="flex justify-end space-x-2">
-            <button
-              onClick={() => {
-                setIsEditing(false);
-                setEditContent(comment.content);
-              }}
-              className={`
-                px-3 py-1.5 text-sm rounded-lg transition-colors
-                ${isDark ? "text-gray-300 hover:bg-gray-700" : "text-gray-700 hover:bg-gray-100"}
-              `}
-              disabled={isUpdating}
-            >
-              취소
-            </button>
-            <button
-              onClick={handleUpdate}
-              disabled={isUpdating || !editContent.trim()}
-              className={`
-                px-3 py-1.5 text-sm rounded-lg transition-colors
+                w-full px-3 py-2 text-sm rounded-lg resize-none border focus:ring-2 transition-all
                 ${isDark
-                  ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700"
-                  : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"
+                  ? "bg-gray-800 text-gray-100 border-gray-600 focus:ring-indigo-400"
+                  : "bg-white text-gray-900 border-gray-300 focus:ring-indigo-500"
                 }
               `}
-            >
-              {isUpdating ? "수정 중..." : "수정"}
-            </button>
+              disabled={isUpdating}
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditContent(comment.content);
+                }}
+                className={`
+                  px-3 py-1.5 text-sm rounded-lg transition-colors
+                  ${isDark ? "text-gray-300 hover:bg-gray-700" : "text-gray-700 hover:bg-gray-100"}
+                `}
+                disabled={isUpdating}
+              >
+                취소
+              </button>
+              <button
+                onClick={handleUpdate}
+                disabled={isUpdating || !editContent.trim()}
+                className={`
+                  px-3 py-1.5 text-sm rounded-lg transition-colors
+                  ${isDark
+                    ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"
+                  }
+                `}
+              >
+                {isUpdating ? "수정 중..." : "수정"}
+              </button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <p
-          className={`
-            text-sm whitespace-pre-wrap leading-relaxed pl-11
-            ${isDark ? "text-gray-200" : "text-gray-800"}
-          `}
-        >
-          {comment.content}
-        </p>
-      )}
-    </div>
-  );
-}
+        ) : (
+          <p
+            className={`
+              text-sm whitespace-pre-wrap leading-relaxed pl-11
+              ${isDark ? "text-gray-200" : "text-gray-800"}
+            `}
+          >
+            {comment.content}
+          </p>
+        )}
+      </div>
+    );
+  }
 
-// 일반 댓글 스타일
+  // 일반 댓글 스타일
   return (
     <div
       className={`
@@ -211,9 +202,7 @@ if (isReply) {
         ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}
       `}
     >
-      {/* 댓글 본문 */}
       <div className="p-6">
-        {/* 작성자 정보 */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-3">
             <div
@@ -251,7 +240,6 @@ if (isReply) {
             </div>
           </div>
 
-          {/* 수정/삭제 버튼 */}
           {isMyComment && !isEditing && (
             <div className="flex items-center space-x-2">
               <button
@@ -279,7 +267,6 @@ if (isReply) {
           )}
         </div>
 
-        {/* 댓글 내용 */}
         {isEditing ? (
           <div className="space-y-3">
             <textarea
@@ -337,7 +324,6 @@ if (isReply) {
               {comment.content}
             </p>
 
-            {/* 답글 버튼 */}
             <div className="mt-4">
               <button
                 onClick={() => setShowReplyForm(!showReplyForm)}
@@ -367,7 +353,6 @@ if (isReply) {
         )}
       </div>
 
-      {/* 답글 작성 폼 */}
       {showReplyForm && (
         <div className="px-6 pb-4">
           <CommentForm
@@ -385,7 +370,6 @@ if (isReply) {
         </div>
       )}
 
-      {/* 대댓글 목록 */}
       {comment.replies && comment.replies.length > 0 && (
         <div
           className={`
