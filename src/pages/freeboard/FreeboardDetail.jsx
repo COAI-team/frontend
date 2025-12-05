@@ -64,16 +64,25 @@ const FreeboardDetail = () => {
         console.log("API 응답:", res.data);
         console.log("tags:", res.data.tags);
         setBoard(res.data);
+        setIsLiked(res.data.isLiked || false); 
         setLikeCount(res.data.likeCount || 0);
         setCommentCount(res.data.commentCount || 0);
       })
       .catch((err) => console.error("게시글 불러오기 실패:", err));
   }, [id]);
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
-  };
+  const handleLike = async () => {
+  try {
+    const response = await axiosInstance.post(`/like/freeboard/${id}`);
+    const { isLiked } = response.data;
+    
+    setIsLiked(isLiked);
+    setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+  } catch (error) {
+    console.error('좋아요 처리 실패:', error);
+    alert('좋아요 처리에 실패했습니다.');
+  }
+};
 
   const handleShare = () => {
     console.log("공유 클릭");
