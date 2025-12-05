@@ -629,22 +629,6 @@ const ProblemSolve = () => {
         </div>
       </div>
 
-      {/* 문제 메타 정보 바 */}
-      <div className="bg-purple-900/30 border-b border-purple-800/50">
-        <div className="container mx-auto px-6 py-3">
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-purple-400">&lt;&gt;</span>
-            <span className={getDifficultyColor(problem?.difficulty)}>
-              {problem?.difficulty || 'N/A'}
-            </span>
-            <span className="text-gray-500">/</span>
-            <span>{selectedLanguage}</span>
-            <span className="text-gray-500">/</span>
-            <span>{problem?.problemType === 'SQL' ? 'DATABASE' : 'ALGORITHM'}</span>
-          </div>
-        </div>
-      </div>
-
       {/* 메인 컨텐츠 */}
       <div className="container mx-auto px-6 py-6" ref={containerRef}>
         <div className="flex h-[calc(100vh-220px)] gap-1">
