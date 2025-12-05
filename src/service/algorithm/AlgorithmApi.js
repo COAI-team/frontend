@@ -158,7 +158,7 @@ export const runTestCode = async (data) => {
  */
 export const generateProblem = async (data) => {
     try {
-        const res = await axiosInstance.post('/algo/problems/generate', {
+        const res = await axiosInstance.post('/algo/problems/generate', {  // /algorithm -> /algo 로 변경
             difficulty: data.difficulty,
             problemType: data.problemType || 'ALGORITHM',
             topic: data.topic,

@@ -43,7 +43,8 @@ import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
 
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
-import ProfilePage from "./pages/mypage/ProfilePage";
+import ProfilePage from "./pages/myPage/ProfilePage";
+import BillingPage from "./pages/myPage/BillingPage";
 
 //관리자 레이아웃
 import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
@@ -87,6 +88,7 @@ createRoot(document.getElementById("root")).render(
               <Route path="mypage" element={<MyPageLayout />}>
                 <Route index element={<Navigate to="profile" replace />} />
                 <Route path="profile" element={<ProfilePage />} />
+                <Route path="billing" element={<BillingPage />} />
               </Route>
 
               <Route path="admin" element={<AdminPageLayout />}>

@@ -1,5 +1,5 @@
 import React from "react";
-import { axiosInstance } from "../../server/axiosConfig";
+import { axiosInstance } from "../../server/AxiosConfig";
 import { useNavigate } from "react-router-dom";
 import WriteEditor from "../../components/editor/WriteEditor";
 
@@ -22,7 +22,7 @@ const FreeboardWrite = () => {
     });
 
     axiosInstance
-      .post("http://localhost:8090/freeboard", {
+      .post("/freeboard", {  // 상대 경로만 사용
         freeboardTitle: title,
         blocks: blocks,
         freeboardRepresentImage: representImage || null,

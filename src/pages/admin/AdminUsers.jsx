@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import AdminUserDetailModal from "./AdminUserDetailModal";
 
 export default function AdminUsers() {
-  const API_BASE_URL = "http://localhost:9443/admin";
+  const API_BASE_URL = "https://localhost:9443/admin";
   const [users, setUsers] = useState([]);
   const [pageInfo, setPageInfo] = useState({
     page: 1,
@@ -16,12 +16,12 @@ export default function AdminUsers() {
   const [searchEmail, setSearchEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
 
-  // ✅ 정렬 + 필터 상태
   const [sortField, setSortField] = useState("USER_ID");
   const [sortOrder, setSortOrder] = useState("desc");
-  const [filter, setFilter] = useState("all"); // 전체, admin, user, active, deleted
+  const [filter, setFilter] = useState("all");
 
-  // ✅ 유저 조회
+  const [pageGroup, setPageGroup] = useState(1); // ✅ 현재 페이지 그룹 (1~5 / 6~10 등)
+
   const findUser = async (
     page = 1,
     email = "",
@@ -49,6 +49,9 @@ export default function AdminUsers() {
           hasNext: data.hasNext,
           hasPrevious: data.hasPrevious,
         });
+
+        // ✅ 현재 페이지가 속한 그룹 계산
+        setPageGroup(Math.ceil(page / 5));
       }
     } catch (error) {
       console.error("❌ Error fetching users:", error);
@@ -57,7 +60,6 @@ export default function AdminUsers() {
     }
   };
 
-  // ✅ 필터/정렬 변경 시 자동 재조회
   useEffect(() => {
     findUser(1, searchEmail, sortField, sortOrder, filter);
   }, [sortField, sortOrder, filter]);
@@ -83,23 +85,46 @@ export default function AdminUsers() {
     if (e.key === "Enter") handleSearch();
   };
 
-  // ✅ 정렬 변경
   const handleSortChange = (e) => {
     const [field, order] = e.target.value.split(",");
     setSortField(field);
     setSortOrder(order);
   };
 
-  // ✅ 상태 필터 버튼 클릭
   const handleStatusChange = (status) => {
     setFilter(status);
+  };
+
+  // ✅ 페이지 그룹 계산 (5단위)
+  const pagesPerGroup = 5;
+  const startPage = (pageGroup - 1) * pagesPerGroup + 1;
+  const endPage = Math.min(startPage + pagesPerGroup - 1, pageInfo.totalPages);
+  const pageNumbers = Array.from(
+    { length: endPage - startPage + 1 },
+    (_, i) => startPage + i
+  );
+
+  const handlePrevGroup = () => {
+    if (pageGroup > 1) {
+      const newStartPage = (pageGroup - 2) * pagesPerGroup + 1;
+      setPageGroup(pageGroup - 1);
+      findUser(newStartPage, searchEmail, sortField, sortOrder, filter);
+    }
+  };
+
+  const handleNextGroup = () => {
+    if (endPage < pageInfo.totalPages) {
+      const newStartPage = pageGroup * pagesPerGroup + 1;
+      setPageGroup(pageGroup + 1);
+      findUser(newStartPage, searchEmail, sortField, sortOrder, filter);
+    }
   };
 
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>👥 관리자 유저 목록</h2>
 
-      {/* ✅ 필터 버튼들 */}
+      {/* ✅ 필터 버튼 */}
       <div style={styles.filterButtons}>
         {[
           { label: "전체보기", value: "all" },
@@ -137,7 +162,6 @@ export default function AdminUsers() {
           </button>
         </div>
 
-        {/* ✅ 정렬 드롭다운 */}
         <select
           value={`${sortField},${sortOrder}`}
           onChange={handleSortChange}
@@ -156,7 +180,6 @@ export default function AdminUsers() {
         <p>⏳ 로딩 중...</p>
       ) : (
         <>
-          {/* ✅ 유저 테이블 */}
           <table style={styles.table}>
             <thead style={styles.thead}>
               <tr>
@@ -214,51 +237,50 @@ export default function AdminUsers() {
             </tbody>
           </table>
 
-          {/* ✅ 페이지네이션 */}
+          {/* ✅ 페이지네이션 (5단위) */}
           <div style={styles.pagination}>
             <button
-              onClick={handlePrev}
-              disabled={!pageInfo.hasPrevious}
+              onClick={handlePrevGroup}
+              disabled={pageGroup === 1}
               style={{
                 ...styles.pageButton,
-                ...(pageInfo.hasPrevious ? {} : styles.pageButtonDisabled),
+                ...(pageGroup === 1 ? styles.pageButtonDisabled : {}),
               }}
             >
-              ◀ 이전
+              ◀
             </button>
 
-            {Array.from({ length: pageInfo.totalPages }, (_, i) => i + 1).map(
-              (num) => (
-                <button
-                  key={num}
-                  onClick={() =>
-                    findUser(num, searchEmail, sortField, sortOrder, filter)
-                  }
-                  style={{
-                    ...styles.pageNumber,
-                    ...(num === pageInfo.page ? styles.activePage : {}),
-                  }}
-                >
-                  {num}
-                </button>
-              )
-            )}
+            {pageNumbers.map((num) => (
+              <button
+                key={num}
+                onClick={() =>
+                  findUser(num, searchEmail, sortField, sortOrder, filter)
+                }
+                style={{
+                  ...styles.pageNumber,
+                  ...(num === pageInfo.page ? styles.activePage : {}),
+                }}
+              >
+                {num}
+              </button>
+            ))}
 
             <button
-              onClick={handleNext}
-              disabled={!pageInfo.hasNext}
+              onClick={handleNextGroup}
+              disabled={endPage >= pageInfo.totalPages}
               style={{
                 ...styles.pageButton,
-                ...(pageInfo.hasNext ? {} : styles.pageButtonDisabled),
+                ...(endPage >= pageInfo.totalPages
+                  ? styles.pageButtonDisabled
+                  : {}),
               }}
             >
-              다음 ▶
+              ▶
             </button>
           </div>
         </>
       )}
 
-      {/* ✅ 유저 상세 모달 */}
       {selectedUser && (
         <AdminUserDetailModal userId={selectedUser} onClose={closeModal} />
       )}
@@ -283,7 +305,6 @@ const styles = {
   filterButtons: {
     display: "flex",
     justifyContent: "center",
-    alignItems: "center",
     gap: "10px",
     marginBottom: "15px",
   },
@@ -295,18 +316,15 @@ const styles = {
     color: "#fff",
     cursor: "pointer",
     fontWeight: "600",
-    transition: "all 0.2s ease",
   },
   activeFilter: {
     backgroundColor: "#1976d2",
     borderColor: "#1976d2",
-    color: "#fff",
   },
   searchBox: {
     display: "flex",
     alignItems: "center",
     marginBottom: "20px",
-    gap: "8px",
   },
   searchInput: {
     width: "300px",
@@ -315,7 +333,6 @@ const styles = {
     border: "1px solid #444",
     backgroundColor: "#111",
     color: "#fff",
-    outline: "none",
   },
   searchButton: {
     backgroundColor: "#1976d2",
@@ -324,7 +341,7 @@ const styles = {
     padding: "8px 14px",
     borderRadius: "6px",
     cursor: "pointer",
-    fontWeight: "600",
+    marginLeft: "8px",
   },
   sortSelect: {
     backgroundColor: "#111",
@@ -337,7 +354,6 @@ const styles = {
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    marginBottom: "20px",
     backgroundColor: "#0d1117",
     boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
     borderRadius: "10px",
@@ -367,7 +383,6 @@ const styles = {
   pageButtonDisabled: {
     backgroundColor: "#444",
     cursor: "not-allowed",
-    color: "#aaa",
   },
   pageNumber: {
     border: "1px solid #444",
@@ -379,7 +394,6 @@ const styles = {
   },
   activePage: {
     backgroundColor: "#1976d2",
-    color: "#fff",
     borderColor: "#1976d2",
     fontWeight: "bold",
   },
@@ -389,6 +403,5 @@ const styles = {
     borderRadius: "12px",
     fontSize: "12px",
     fontWeight: "bold",
-    textTransform: "capitalize",
   },
 };

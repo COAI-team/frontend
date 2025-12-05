@@ -333,17 +333,6 @@ const ProblemSolve = () => {
     }
   };
 
-  // 난이도 색상
-  const getDifficultyColor = (diff) => {
-    const colors = {
-      'BRONZE': 'text-orange-400',
-      'SILVER': 'text-gray-400',
-      'GOLD': 'text-yellow-400',
-      'PLATINUM': 'text-cyan-400'
-    };
-    return colors[diff] || 'text-gray-400';
-  };
-
   // 난이도 배지 스타일
   const getDifficultyBadge = (diff) => {
     const styles = {
