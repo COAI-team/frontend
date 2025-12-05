@@ -53,7 +53,15 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
         // Cleanup
         return () => {
             if (window.webgazer) {
-                window.webgazer.end();
+                try {
+                    // WebGazer가 초기화되었는지 확인 후 종료
+                    if (typeof window.webgazer.end === 'function') {
+                        window.webgazer.end();
+                    }
+                } catch (e) {
+                    // WebGazer 내부 요소가 이미 제거된 경우 무시
+                    console.warn('WebGazer cleanup warning:', e.message);
+                }
             }
         };
     }, [isActive]);
@@ -145,48 +153,57 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
             }
 
             // WebGazer 및 웹캠 정리 (항상 실행)
-            if (window.webgazer) {
-                try {
-                    // 1. 비디오 엘리먼트 참조 미리 확보
-                    const videoElement = document.getElementById('webgazerVideoFeed');
-                    const stream = videoElement ? videoElement.srcObject : null;
+            // 1. 먼저 비디오 스트림 정리 (WebGazer.end() 에러 방지)
+            try {
+                const videoElement = document.getElementById('webgazerVideoFeed');
+                if (videoElement?.srcObject) {
+                    const tracks = videoElement.srcObject.getTracks();
+                    tracks.forEach(track => {
+                        track.stop();
+                        console.log('Forced track stop:', track.label);
+                    });
+                    videoElement.srcObject = null;
+                }
 
-                    // 2. WebGazer 종료
-                    window.webgazer.end();
-
-                    // 3. 강제로 비디오 스트림 정지 (WebGazer가 놓친 경우 대비)
-                    if (stream) {
-                        const tracks = stream.getTracks();
+                // 모든 video 요소의 스트림 정리
+                const allVideos = document.querySelectorAll('video');
+                allVideos.forEach(video => {
+                    if (video.srcObject) {
+                        const tracks = video.srcObject.getTracks();
                         tracks.forEach(track => {
                             track.stop();
-                            console.log('Forced track stop:', track.label);
+                            console.log('Additional track stopped:', track.label);
                         });
+                        video.srcObject = null;
                     }
+                });
+            } catch (e) {
+                console.warn('Error cleaning up video streams:', e.message);
+            }
 
-                    // 4. 비디오 컨테이너 제거
-                    const videoContainer = document.getElementById('webgazerVideoContainer');
-                    if (videoContainer) {
-                        videoContainer.remove();
+            // 2. WebGazer 종료 (내부 요소가 없어도 안전하게 처리)
+            if (window.webgazer) {
+                try {
+                    if (typeof window.webgazer.end === 'function') {
+                        window.webgazer.end();
                     }
-
-                    // 5. 추가: 모든 video 요소의 스트림 정리
-                    const allVideos = document.querySelectorAll('video');
-                    allVideos.forEach(video => {
-                        if (video.srcObject) {
-                            const tracks = video.srcObject.getTracks();
-                            tracks.forEach(track => {
-                                track.stop();
-                                console.log('Additional track stopped:', track.label);
-                            });
-                            video.srcObject = null;
-                        }
-                    });
-
-                    console.log('✅ WebGazer and webcam stopped');
                 } catch (e) {
-                    console.error('Error stopping WebGazer:', e);
+                    // WebGazer 내부 요소가 이미 제거된 경우 무시
+                    console.warn('WebGazer.end() warning (safe to ignore):', e.message);
                 }
             }
+
+            // 3. 비디오 컨테이너 DOM 제거
+            try {
+                const videoContainer = document.getElementById('webgazerVideoContainer');
+                if (videoContainer) {
+                    videoContainer.remove();
+                }
+            } catch (e) {
+                console.warn('Error removing video container:', e.message);
+            }
+
+            console.log('✅ WebGazer and webcam stopped');
 
             setIsTracking(false);
             setSessionId(null);

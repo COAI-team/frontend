@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY, ALLOWED_LANGUAGES } from '../../components/algorithm/editor/editorUtils';
@@ -7,6 +7,7 @@ import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolat
 import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
 import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
+import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
 
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
@@ -354,6 +355,43 @@ const ProblemSolve = () => {
     return styles[diff] || 'bg-gray-700/50 text-gray-400 border-gray-600';
   };
 
+  // 필터링된 언어 목록 (useMemo로 캐싱 - 렌더링 중 반복 계산 방지)
+  const filteredLanguages = useMemo(() => {
+    if (!problem?.availableLanguages) return [];
+
+    const seen = new Set();
+    const filtered = problem.availableLanguages.filter(lang => {
+      if (seen.has(lang.languageName)) return false;
+      seen.add(lang.languageName);
+      if (!ALLOWED_LANGUAGES.has(lang.languageName)) return false;
+      const monacoLang = LANGUAGE_MAP[lang.languageName];
+      return monacoLang && monacoLang !== 'plaintext';
+    });
+
+    // 개발 환경에서만 로그 출력 (Vite 환경변수 사용)
+    if (import.meta.env.DEV && filtered.length > 0) {
+      console.log(`[ProblemSolve] 언어 필터링 완료: ${filtered.length}개 표시 (전체 ${problem.availableLanguages.length}개 중)`);
+    }
+
+    return filtered;
+  }, [problem?.availableLanguages]);
+
+  // EyeTracker 콜백 메모이제이션 (무한 렌더링 방지)
+  const handleEyeTrackerReady = useCallback(() => {
+    setEyeTrackingReady(true);
+  }, []);
+
+  const handleSessionStart = useCallback((sessionId) => {
+    console.log('Eye tracking session started:', sessionId);
+    setMonitoringSessionId(sessionId);
+  }, []);
+
+  const handleSessionEnd = useCallback((sessionId) => {
+    console.log('Eye tracking session ended:', sessionId);
+    setEyeTrackingReady(false);
+    setMonitoringSessionId(null);
+  }, []);
+
   // 로딩 상태
   if (loading) {
     return (
@@ -568,33 +606,11 @@ const ProblemSolve = () => {
                   {problem?.problemType === 'SQL' ? (
                     <option value="SQL">SQL (SQLite)</option>
                   ) : (
-                    (() => {
-                      if (!problem?.availableLanguages) return null;
-
-                      // 중복 제거 및 필터링
-                      const seen = new Set();
-                      const filtered = problem.availableLanguages
-                        .filter(lang => {
-                          // 중복 제거 (languageName 기준)
-                          if (seen.has(lang.languageName)) return false;
-                          seen.add(lang.languageName);
-
-                          // 허용된 언어 목록에 있는지 확인
-                          if (!ALLOWED_LANGUAGES.has(lang.languageName)) return false;
-
-                          // Monaco Editor 지원 여부 확인 (plaintext 제외)
-                          const monacoLang = LANGUAGE_MAP[lang.languageName];
-                          return monacoLang && monacoLang !== 'plaintext';
-                        });
-
-                      console.log(`[ProblemSolve] 언어 필터링 완료: ${filtered.length}개 표시 (전체 ${problem.availableLanguages.length}개 중)`);
-
-                      return filtered.map(lang => (
-                        <option key={lang.languageName} value={lang.languageName}>
-                          {lang.languageName}
-                        </option>
-                      ));
-                    })()
+                    filteredLanguages.map(lang => (
+                      <option key={lang.languageName} value={lang.languageName}>
+                        {lang.languageName}
+                      </option>
+                    ))
                   )}
                 </select>
 
@@ -736,69 +752,22 @@ const ProblemSolve = () => {
           problemId={Number(problemId)}
           isEnabled={eyeTrackingEnabled}
           timeLimitMinutes={customTimeMinutes}
-          onReady={() => setEyeTrackingReady(true)}
-          onSessionStart={(sessionId) => {
-            console.log('Eye tracking session started:', sessionId);
-            setMonitoringSessionId(sessionId);
-          }}
-          onSessionEnd={(sessionId) => {
-            console.log('Eye tracking session ended:', sessionId);
-            setEyeTrackingReady(false);
-            setMonitoringSessionId(null);
-          }}
+          onReady={handleEyeTrackerReady}
+          onSessionStart={handleSessionStart}
+          onSessionEnd={handleSessionEnd}
         />
       )}
 
-      {/* ========== 집중 모드 경고 팝업 ========== */}
-
-      {/* 전체화면 이탈 경고 */}
-      {showFullscreenWarning && (
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center">
-          <div className="bg-red-900 p-8 rounded-xl text-center max-w-md shadow-2xl">
-            <span className="text-6xl">⚠️</span>
-            <h2 className="text-2xl font-bold mt-4 text-white">전체화면을 유지해주세요!</h2>
-            <p className="text-gray-300 mt-2">집중 모드에서는 전체화면을 유지해야 합니다.</p>
-            <p className="text-yellow-400 mt-2 text-sm">경고 횟수: {violationCount}회</p>
-            <button
-              onClick={dismissFullscreenWarning}
-              className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition-colors"
-            >
-              전체화면으로 돌아가기
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 탭 전환 경고 */}
-      {showTabSwitchWarning && (
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center">
-          <div className="bg-orange-900 p-8 rounded-xl text-center max-w-md shadow-2xl">
-            <span className="text-6xl">🚫</span>
-            <h2 className="text-2xl font-bold mt-4 text-white">다른 창으로 이동하지 마세요!</h2>
-            <p className="text-gray-300 mt-2">집중 모드에서는 다른 탭/창으로 이동이 제한됩니다.</p>
-            <p className="text-yellow-400 mt-2">경고 횟수: {violationCount}회</p>
-            <button
-              onClick={dismissTabSwitchWarning}
-              className="mt-6 px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold text-white transition-colors"
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 마우스 이탈 경고 (토스트) */}
-      {showMouseLeaveWarning && (
-        <div className="fixed top-4 right-4 bg-yellow-900/95 p-4 rounded-lg z-[9999] animate-pulse shadow-lg border border-yellow-700">
-          <p className="text-yellow-200 font-medium">⚠️ 마우스가 화면 밖으로 나갔습니다!</p>
-          <button
-            onClick={dismissMouseLeaveWarning}
-            className="mt-2 text-sm text-yellow-400 hover:text-yellow-300 underline"
-          >
-            닫기
-          </button>
-        </div>
-      )}
+      {/* 집중 모드 경고 팝업 */}
+      <ViolationWarnings
+        showFullscreenWarning={showFullscreenWarning}
+        showTabSwitchWarning={showTabSwitchWarning}
+        showMouseLeaveWarning={showMouseLeaveWarning}
+        violationCount={violationCount}
+        onDismissFullscreen={dismissFullscreenWarning}
+        onDismissTabSwitch={dismissTabSwitchWarning}
+        onDismissMouseLeave={dismissMouseLeaveWarning}
+      />
     </div>
   );
 };
