@@ -1,27 +1,29 @@
 .freeboard-list-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
   min-height: 100vh;
+  background-color: var(--bg-primary);
+  padding: 2rem 1rem;
 }
 
-/* 헤더 */
+.freeboard-list-container > * {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
 .freeboard-header {
-  margin-bottom: 40px;
-  text-align: center;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
 }
 
 .freeboard-title {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
-  color: var(--text-primary, #ffffff);
-  margin-bottom: 12px;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
 }
 
 .freeboard-subtitle {
   font-size: 1rem;
-  color: var(--text-secondary, #9ca3af);
-  margin: 0;
+  color: var(--text-secondary);
 }
 
 /* 검색 및 필터 컨트롤 */

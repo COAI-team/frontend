@@ -4,6 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { Table } from "@tiptap/extension-table";
+import { axiosInstance } from "../../server/AxiosConfig";
 import { TableRow } from "@tiptap/extension-table-row";
 import imageCompression from "browser-image-compression";
 
@@ -156,8 +157,8 @@ const WriteEditor = ({
 
       formData.append("file", fileToUpload);
 
-      const res = await axios.post(
-        "http://localhost:8090/upload/image",
+      const res = await axiosInstance.post(
+        "/upload/image",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
