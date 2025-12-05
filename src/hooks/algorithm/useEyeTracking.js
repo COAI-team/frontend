@@ -25,6 +25,7 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
     const [isTracking, setIsTracking] = useState(false);
     const [sessionId, setSessionId] = useState(null);
     const gazeIntervalRef = useRef(null);
+    const isCleaningUpRef = useRef(false); // 중복 정리 방지 플래그
 
     // WebGazer 초기화
     useEffect(() => {
@@ -72,6 +73,9 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
     const startTracking = useCallback(async () => {
         if (!isCalibrated || !problemId) return;
 
+        // 새 세션 시작 시 정리 플래그 리셋
+        isCleaningUpRef.current = false;
+
         try {
             // 백엔드에 모니터링 세션 시작 요청
             const response = await startMonitoringSession(problemId, timeLimitMinutes);
@@ -114,24 +118,33 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
         }
     }, [isCalibrated, problemId, timeLimitMinutes]);
 
-    // 추적 종료
+    // 추적 종료 (WebGazer 정리는 sessionId와 관계없이 항상 실행)
     const stopTracking = useCallback(async (remainingSeconds = null) => {
-        if (!sessionId) return;
-
-        // 인터벌 정리
-        if (gazeIntervalRef.current) {
-            clearInterval(gazeIntervalRef.current);
-            gazeIntervalRef.current = null;
+        // 중복 호출 방지
+        if (isCleaningUpRef.current) {
+            console.log('⚠️ stopTracking already in progress, skipping...');
+            return;
         }
+        isCleaningUpRef.current = true;
 
         try {
-            // 백엔드에 모니터링 세션 종료 요청
-            await endMonitoringSession(sessionId, remainingSeconds);
-            console.log('✅ Monitoring session ended, sessionId:', sessionId);
-        } catch (error) {
-            console.error('Failed to end monitoring session:', error);
-        } finally {
-            // 에러가 나더라도 반드시 WebGazer 종료
+            // 인터벌 정리 (항상 실행)
+            if (gazeIntervalRef.current) {
+                clearInterval(gazeIntervalRef.current);
+                gazeIntervalRef.current = null;
+            }
+
+            // 세션 종료 요청 (sessionId가 있을 때만)
+            if (sessionId) {
+                try {
+                    await endMonitoringSession(sessionId, remainingSeconds);
+                    console.log('✅ Monitoring session ended, sessionId:', sessionId);
+                } catch (error) {
+                    console.error('Failed to end monitoring session:', error);
+                }
+            }
+
+            // WebGazer 및 웹캠 정리 (항상 실행)
             if (window.webgazer) {
                 try {
                     // 1. 비디오 엘리먼트 참조 미리 확보
@@ -155,13 +168,31 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
                     if (videoContainer) {
                         videoContainer.remove();
                     }
+
+                    // 5. 추가: 모든 video 요소의 스트림 정리
+                    const allVideos = document.querySelectorAll('video');
+                    allVideos.forEach(video => {
+                        if (video.srcObject) {
+                            const tracks = video.srcObject.getTracks();
+                            tracks.forEach(track => {
+                                track.stop();
+                                console.log('Additional track stopped:', track.label);
+                            });
+                            video.srcObject = null;
+                        }
+                    });
+
+                    console.log('✅ WebGazer and webcam stopped');
                 } catch (e) {
                     console.error('Error stopping WebGazer:', e);
                 }
-                console.log('WebGazer stopped');
             }
+
             setIsTracking(false);
             setSessionId(null);
+        } finally {
+            // 정리 완료 후 플래그는 리셋하지 않음 (한 번만 호출되도록)
+            // 새로운 세션 시작 시 startTracking에서 리셋
         }
     }, [sessionId]);
 
