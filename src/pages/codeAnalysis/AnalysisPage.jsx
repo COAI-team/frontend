@@ -7,6 +7,7 @@ import FileTree from '../../components/github/FileTree';
 import AnalysisForm from '../../components/github/AnalysisForm';
 import { saveFile, analyzeStoredFile, getAnalysisResult, analyzeStoredFileStream } from '../../service/codeAnalysis/analysisApi';
 import axiosInstance from '../../server/AxiosConfig';
+import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
 
 const AnalysisPage = () => {
     const { analysisId } = useParams();
@@ -239,9 +240,11 @@ const AnalysisPage = () => {
                                         {isLoading ? '분석 중...' : '분석 결과'}
                                     </h2>
                                     {analysisResult && (
-                                        <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full font-bold">
-                                            AI Score: {analysisResult.aiScore || 'N/A'}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-3 py-1 rounded-full font-bold text-sm ${getScoreBadgeColor(analysisResult.aiScore)}`}>
+                                                {getSmellKeyword(analysisResult.aiScore).text}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
 
