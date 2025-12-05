@@ -232,6 +232,28 @@ const ProblemGenerator = () => {
     ? parseProblemDescription(generatedProblem?.description)
     : null;
 
+  // ===== 마크다운 텍스트 파싱 함수 =====
+  const renderFormattedText = (text) => {
+    if (!text) return null;
+
+    // **text** 패턴을 찾아서 <strong>으로 변환
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
+    return parts.map((part, index) => {
+      // **text** 패턴인 경우
+      if (part.startsWith('**') && part.endsWith('**')) {
+        const boldText = part.slice(2, -2);
+        return (
+          <strong key={index} className="font-bold text-gray-900">
+            {boldText}
+          </strong>
+        );
+      }
+      // 일반 텍스트
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   // ===== 섹션 렌더링 컴포넌트 =====
   const SectionCard = ({ title, icon, content, bgColor = 'bg-gray-50' }) => {
     if (!content) return null;
@@ -242,7 +264,7 @@ const ProblemGenerator = () => {
           <h4 className="font-semibold text-gray-800">{title}</h4>
         </div>
         <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-          {content}
+          {renderFormattedText(content)}
         </div>
       </div>
     );
@@ -577,10 +599,10 @@ const ProblemGenerator = () => {
                     </div>
                   </div>
                 ) : (
-                  /* 파싱 실패 시 원본 출력 */
+                  /* 파싱 실패 시 원본 출력 (마크다운 포맷팅 적용) */
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {generatedProblem.description}
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                      {renderFormattedText(generatedProblem.description)}
                     </div>
                   </div>
                 )}
