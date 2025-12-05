@@ -71,6 +71,8 @@ createRoot(document.getElementById("root")).render(
 
             {/* 비밀번호 재설정 페이지 */}
             <Route path="reset-password" element={<ResetPasswordPage />} />
+            {/* 알고리즘 문제풀이 페이지 */}
+            <Route path="algorithm/problems/:problemId/solve" element={<ProblemSolve />}/>
 
             {/* 기본 레이아웃 */}
             <Route path="/" element={<Layout />}>
@@ -123,10 +125,7 @@ createRoot(document.getElementById("root")).render(
                 path="algorithm/problems/generate"
                 element={<ProblemGenerator />}
               />
-              <Route
-                path="algorithm/problems/:problemId/solve"
-                element={<ProblemSolve />}
-              />
+              
               <Route
                 path="algorithm/submissions/:submissionId"
                 element={<SubmissionResult />}
