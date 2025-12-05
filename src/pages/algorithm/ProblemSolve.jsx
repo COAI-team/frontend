@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY, ALLOWED_LANGUAGES } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
-import { startProblemSolve, submitCode, runTestCode, LANGUAGE_OPTIONS } from '../../service/algorithm/algorithmApi';
+import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolationDetection';
+import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
 import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
+import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
@@ -59,6 +61,21 @@ const ProblemSolve = () => {
   // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
   const solveMode = selectedMode || 'BASIC';
 
+  // 집중 모드 위반 감지 훅
+  const {
+    showFullscreenWarning,
+    showTabSwitchWarning,
+    showMouseLeaveWarning,
+    violationCount,
+    enterFullscreen,
+    dismissFullscreenWarning,
+    dismissTabSwitchWarning,
+    dismissMouseLeaveWarning
+  } = useFocusViolationDetection({
+    isActive: selectedMode === 'FOCUS' && solvingStarted,
+    monitoringSessionId
+  });
+
   // ✅ 수평 리사이저 (문제설명 | 에디터)
   const {
     leftPanelWidth,
@@ -95,11 +112,12 @@ const ProblemSolve = () => {
     setStartTime(new Date());
 
     if (mode === 'FOCUS') {
-      // 집중 모드: 시선 추적 자동 활성화 (캘리브레이션 완료 후 타이머 자동 시작)
+      // 집중 모드: 전체화면 진입 + 시선 추적 자동 활성화
+      enterFullscreen();
       setEyeTrackingEnabled(true);
     }
     // 기본 모드는 사용자가 수동으로 타이머 시작
-  }, [customTimeMinutes]);
+  }, [customTimeMinutes, enterFullscreen]);
 
   // 집중 모드에서 시선 추적 준비 완료 시 타이머 자동 시작
   useEffect(() => {
@@ -365,154 +383,16 @@ const ProblemSolve = () => {
   // ========== 모드 선택 화면 ==========
   if (showModeSelection) {
     return (
-      <div className="min-h-screen bg-zinc-900 text-gray-100">
-        {/* 헤더 */}
-        <div className="bg-zinc-800 border-b border-zinc-700">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
-                <p className="text-sm text-gray-400 mt-1">풀이 모드를 선택해주세요</p>
-              </div>
-              <button
-                onClick={() => navigate('/algorithm')}
-                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"
-              >
-                목록으로
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* 모드 선택 컨테이너 */}
-        <div className="container mx-auto px-6 py-12">
-          <div className="max-w-4xl mx-auto">
-            {/* 시간 설정 */}
-            <div className="mb-8 text-center">
-              <h2 className="text-lg font-semibold mb-4">풀이 시간 설정</h2>
-              <div className="flex items-center justify-center gap-4">
-                <button
-                  onClick={() => setCustomTimeMinutes(15)}
-                  className={`px-4 py-2 rounded-lg transition-all ${customTimeMinutes === 15 ? 'bg-purple-600' : 'bg-zinc-700 hover:bg-zinc-600'}`}
-                >
-                  15분
-                </button>
-                <button
-                  onClick={() => setCustomTimeMinutes(30)}
-                  className={`px-4 py-2 rounded-lg transition-all ${customTimeMinutes === 30 ? 'bg-purple-600' : 'bg-zinc-700 hover:bg-zinc-600'}`}
-                >
-                  30분
-                </button>
-                <button
-                  onClick={() => setCustomTimeMinutes(45)}
-                  className={`px-4 py-2 rounded-lg transition-all ${customTimeMinutes === 45 ? 'bg-purple-600' : 'bg-zinc-700 hover:bg-zinc-600'}`}
-                >
-                  45분
-                </button>
-                <button
-                  onClick={() => setCustomTimeMinutes(60)}
-                  className={`px-4 py-2 rounded-lg transition-all ${customTimeMinutes === 60 ? 'bg-purple-600' : 'bg-zinc-700 hover:bg-zinc-600'}`}
-                >
-                  60분
-                </button>
-                <div className="flex items-center gap-2 ml-4">
-                  <input
-                    type="number"
-                    min="1"
-                    max="180"
-                    value={customTimeMinutes}
-                    onChange={(e) => setCustomTimeMinutes(Math.max(1, Math.min(180, parseInt(e.target.value) || 30)))}
-                    className="w-20 px-3 py-2 bg-zinc-700 rounded-lg text-center"
-                  />
-                  <span className="text-gray-400">분</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 모드 선택 카드 */}
-            <div className="grid grid-cols-2 gap-6">
-              {/* 기본 모드 */}
-              <div
-                onClick={() => setSelectedMode('BASIC')}
-                className={`p-6 rounded-xl cursor-pointer transition-all border-2 ${
-                  selectedMode === 'BASIC'
-                    ? 'border-blue-500 bg-blue-900/20'
-                    : 'border-zinc-700 bg-zinc-800 hover:border-zinc-500'
-                }`}
-              >
-                <div className="text-center mb-4">
-                  <span className="text-4xl">📝</span>
-                </div>
-                <h3 className="text-xl font-bold text-center mb-2">기본 모드</h3>
-                <p className="text-gray-400 text-sm text-center mb-4">
-                  자유롭게 문제를 풀어보세요
-                </p>
-                <ul className="text-sm space-y-2 text-gray-300">
-                  <li className="flex items-center gap-2">
-                    <span className="text-green-400">✓</span> 타이머 기능 (수동 시작)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-green-400">✓</span> 자유로운 풀이 환경
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-gray-500">✗</span> 시선 추적 없음
-                  </li>
-                </ul>
-              </div>
-
-              {/* 집중 모드 */}
-              <div
-                onClick={() => setSelectedMode('FOCUS')}
-                className={`p-6 rounded-xl cursor-pointer transition-all border-2 ${
-                  selectedMode === 'FOCUS'
-                    ? 'border-purple-500 bg-purple-900/20'
-                    : 'border-zinc-700 bg-zinc-800 hover:border-zinc-500'
-                }`}
-              >
-                <div className="text-center mb-4">
-                  <span className="text-4xl">👁️</span>
-                </div>
-                <h3 className="text-xl font-bold text-center mb-2">집중 모드</h3>
-                <p className="text-gray-400 text-sm text-center mb-4">
-                  시선 추적으로 집중력을 관리하세요
-                </p>
-                <ul className="text-sm space-y-2 text-gray-300">
-                  <li className="flex items-center gap-2">
-                    <span className="text-green-400">✓</span> 타이머 자동 시작
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-green-400">✓</span> 시선 추적 (웹캠 필요)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-green-400">✓</span> 집중도 모니터링
-                  </li>
-                </ul>
-                <p className="text-xs text-purple-400 mt-3 text-center">
-                  * 점수에는 영향 없음 (정보 제공 목적)
-                </p>
-              </div>
-            </div>
-
-            {/* 시작 버튼 */}
-            <div className="mt-8 text-center">
-              <button
-                onClick={() => handleStartSolving(selectedMode)}
-                disabled={!selectedMode}
-                className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
-                  selectedMode
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
-                    : 'bg-zinc-700 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {selectedMode === 'FOCUS' ? '집중 모드로 시작' : selectedMode === 'BASIC' ? '기본 모드로 시작' : '모드를 선택해주세요'}
-              </button>
-              <p className="text-gray-500 text-sm mt-3">
-                {customTimeMinutes}분 동안 문제를 풀게 됩니다
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ModeSelectionScreen
+        problem={problem}
+        problemId={problemId}
+        selectedMode={selectedMode}
+        setSelectedMode={setSelectedMode}
+        customTimeMinutes={customTimeMinutes}
+        setCustomTimeMinutes={setCustomTimeMinutes}
+        onStartSolving={handleStartSolving}
+        onNavigateBack={() => navigate('/algorithm')}
+      />
     );
   }
 
@@ -867,6 +747,57 @@ const ProblemSolve = () => {
             setMonitoringSessionId(null);
           }}
         />
+      )}
+
+      {/* ========== 집중 모드 경고 팝업 ========== */}
+
+      {/* 전체화면 이탈 경고 */}
+      {showFullscreenWarning && (
+        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center">
+          <div className="bg-red-900 p-8 rounded-xl text-center max-w-md shadow-2xl">
+            <span className="text-6xl">⚠️</span>
+            <h2 className="text-2xl font-bold mt-4 text-white">전체화면을 유지해주세요!</h2>
+            <p className="text-gray-300 mt-2">집중 모드에서는 전체화면을 유지해야 합니다.</p>
+            <p className="text-yellow-400 mt-2 text-sm">경고 횟수: {violationCount}회</p>
+            <button
+              onClick={dismissFullscreenWarning}
+              className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition-colors"
+            >
+              전체화면으로 돌아가기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 탭 전환 경고 */}
+      {showTabSwitchWarning && (
+        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center">
+          <div className="bg-orange-900 p-8 rounded-xl text-center max-w-md shadow-2xl">
+            <span className="text-6xl">🚫</span>
+            <h2 className="text-2xl font-bold mt-4 text-white">다른 창으로 이동하지 마세요!</h2>
+            <p className="text-gray-300 mt-2">집중 모드에서는 다른 탭/창으로 이동이 제한됩니다.</p>
+            <p className="text-yellow-400 mt-2">경고 횟수: {violationCount}회</p>
+            <button
+              onClick={dismissTabSwitchWarning}
+              className="mt-6 px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold text-white transition-colors"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 마우스 이탈 경고 (토스트) */}
+      {showMouseLeaveWarning && (
+        <div className="fixed top-4 right-4 bg-yellow-900/95 p-4 rounded-lg z-[9999] animate-pulse shadow-lg border border-yellow-700">
+          <p className="text-yellow-200 font-medium">⚠️ 마우스가 화면 밖으로 나갔습니다!</p>
+          <button
+            onClick={dismissMouseLeaveWarning}
+            className="mt-2 text-sm text-yellow-400 hover:text-yellow-300 underline"
+          >
+            닫기
+          </button>
+        </div>
       )}
     </div>
   );
