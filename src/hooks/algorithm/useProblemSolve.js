@@ -4,23 +4,34 @@ import { codeTemplates } from '../../components/algorithm/editor/editorUtils';
 
 /**
  * 문제 풀이 상태 관리 커스텀 훅
+ *
+ * 변경사항:
+ * - solveMode 지원 추가 (BASIC/FOCUS)
+ * - monitoringSessionId 지원 추가
+ *
+ * @param {number} problemId - 문제 ID
+ * @param {object} options - 옵션
+ * @param {string} options.solveMode - 풀이 모드 ('BASIC' | 'FOCUS')
+ * @param {string} options.monitoringSessionId - 모니터링 세션 ID (FOCUS 모드일 때)
  */
-export const useProblemSolve = (problemId) => {
+export const useProblemSolve = (problemId, options = {}) => {
+  const { solveMode = 'BASIC', monitoringSessionId = null } = options;
+
   // 문제 데이터 상태
   const [problem, setProblem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // 에디터 상태
   const [language, setLanguage] = useState('javascript');
   const [code, setCode] = useState(codeTemplates.javascript);
-  
+
   // 타이머 상태
   const [timeLimit, setTimeLimit] = useState(1800);
   const [timeLeft, setTimeLeft] = useState(1800);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const startTimeRef = useRef(null);
-  
+
   // 실행/제출 상태
   const [testResult, setTestResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -158,27 +169,34 @@ export const useProblemSolve = (problemId) => {
   }, [code, problemId, language]);
 
   // 코드 제출
-  const submit = useCallback(async () => {
+  // 변경: solveMode, monitoringSessionId 지원 추가
+  const submit = useCallback(async (submitOptions = {}) => {
     if (!code.trim()) {
       return { error: true, message: '코드를 작성해주세요!' };
     }
-    
+
     setIsSubmitting(true);
     stopTimer();
-    
+
+    // 옵션에서 전달받거나 기본값 사용
+    const finalSolveMode = submitOptions.solveMode || solveMode;
+    const finalMonitoringSessionId = submitOptions.monitoringSessionId || monitoringSessionId;
+
     try {
       const res = await submitCode({
         problemId: Number(problemId),
         language: language.toUpperCase(),
         sourceCode: code,
-        elapsedTime: getElapsedTime()
+        elapsedTime: getElapsedTime(),
+        solveMode: finalSolveMode,
+        monitoringSessionId: finalSolveMode === 'FOCUS' ? finalMonitoringSessionId : null
       });
-      
+
       if (res.error) {
         setSubmissionResult({ error: true, message: res.message });
         return res;
       }
-      
+
       const result = res.data || res;
       setSubmissionResult(result);
       return result;
@@ -189,7 +207,7 @@ export const useProblemSolve = (problemId) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [code, problemId, language, getElapsedTime, stopTimer]);
+  }, [code, problemId, language, getElapsedTime, stopTimer, solveMode, monitoringSessionId]);
 
   // 시간 포맷팅
   const formatTime = useCallback((seconds) => {
