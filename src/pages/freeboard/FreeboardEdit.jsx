@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import WriteEditor from "../../components/editor/WriteEditor";
-import axios from "axios";
+import axiosInstance from "../../server/AxiosConfig";
 
 const FreeboardEdit = () => {
   const { id } = useParams();
@@ -13,7 +13,7 @@ const FreeboardEdit = () => {
   useEffect(() => {
     const fetchFreeboard = async () => {
       try {
-        const response = await axios.get(`http://localhost:8090/freeboard/${id}`);
+        const response = await axiosInstance.get(`/freeboard/${id}`);
         const data = response.data;
         
         console.log("불러온 데이터:", data);
@@ -24,11 +24,9 @@ const FreeboardEdit = () => {
             const blocks = JSON.parse(data.freeboardContent);
             content = blocks[0]?.content || "";
             
-            // 스티커 이미지 확인
             const stickerCount = (content.match(/data-sticker/g) || []).length;
             console.log(`스티커 개수: ${stickerCount}`);
             
-            // OpenMoji CDN 이미지에 data-sticker 속성 추가 (없는 경우)
             content = content.replace(
               /<img([^>]*src="https:\/\/cdn\.jsdelivr\.net\/gh\/hfg-gmuend\/openmoji[^"]*"[^>]*)(?!.*data-sticker)([^>]*)>/g,
               '<img$1 data-sticker="true"$2>'
@@ -63,7 +61,6 @@ const FreeboardEdit = () => {
 
   const handleSubmit = async ({ title, content, representImage, tags }) => {
     try {
-      // 제출 전 스티커 확인
       const stickerCount = (content.match(/data-sticker/g) || []).length;
       console.log(`제출할 스티커 개수: ${stickerCount}`);
       
@@ -74,7 +71,7 @@ const FreeboardEdit = () => {
         order: 0
       }];
 
-      await axios.put(`http://localhost:8090/freeboard/${id}`, {
+      await axiosInstance.put(`/freeboard/${id}`, {
         freeboardTitle: title,
         blocks: blocks,
         freeboardRepresentImage: representImage || null,
