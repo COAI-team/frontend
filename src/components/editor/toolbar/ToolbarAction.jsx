@@ -1,4 +1,4 @@
-import axios from "axios";
+import { axiosInstance } from "../../../server/AxiosConfig";
 import imageCompression from "browser-image-compression";
 
 // 대표 이미지가 있는지 확인하는 헬퍼 함수
@@ -43,8 +43,8 @@ export const addImage = async (editor) => {
       const formData = new FormData();
       formData.append("file", fileToUpload);
 
-      const res = await axios.post(
-        "http://localhost:8090/upload/image",
+      const res = await axiosInstance.post(
+        "/upload/image",  
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -182,7 +182,7 @@ export const addLinkCard = async (editor) => {
   }
 
   try {
-    const res = await axios.post("http://localhost:8090/link/preview", {
+    const res = await axiosInstance.post("/link/preview", {
       url,
     });
 

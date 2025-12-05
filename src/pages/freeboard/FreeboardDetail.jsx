@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { axiosInstance } from "../../server/AxiosConfig";
 import hljs from 'highlight.js';
 import { Heart, MessageCircle, Share2, AlertCircle } from "lucide-react";
 import "../../styles/FreeboardDetail.css";
@@ -13,15 +13,12 @@ const FreeboardDetail = () => {
   const [isDark, setIsDark] = useState(false);
   const contentRef = useRef(null);
   
-  // 좋아요 상태 관리
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
 
-  // 임시로 댓글작성 userId 1로 설정 (나중에 실제 로그인 유저로 변경)
   const currentUserId = 1;
 
-  // 다크모드 감지 및 highlight.js 테마 동적 로드
   useEffect(() => {
     const checkDarkMode = () => {
       const darkMode = document.documentElement.classList.contains('dark');
@@ -61,43 +58,44 @@ const FreeboardDetail = () => {
   useEffect(() => {
     if (!id) return;
 
-    axios
-      .get(`http://localhost:8090/freeboard/${id}`)
+    axiosInstance
+      .get(`/freeboard/${id}`)
       .then((res) => {
         console.log("API 응답:", res.data);
         console.log("tags:", res.data.tags);
         setBoard(res.data);
+        setIsLiked(res.data.isLiked || false); 
         setLikeCount(res.data.likeCount || 0);
         setCommentCount(res.data.commentCount || 0);
       })
       .catch((err) => console.error("게시글 불러오기 실패:", err));
   }, [id]);
 
-  // 좋아요 핸들러
-  const handleLike = () => {
-    // TODO: API 연동
-    setIsLiked(!isLiked);
-    setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
-  };
+  const handleLike = async () => {
+  try {
+    const response = await axiosInstance.post(`/like/freeboard/${id}`);
+    const { isLiked } = response.data;
+    
+    setIsLiked(isLiked);
+    setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+  } catch (error) {
+    console.error('좋아요 처리 실패:', error);
+    alert('좋아요 처리에 실패했습니다.');
+  }
+};
 
-  // 공유 핸들러
   const handleShare = () => {
-    // TODO: 공유 기능 구현
     console.log("공유 클릭");
   };
 
-  // 신고 핸들러
   const handleReport = () => {
-    // TODO: 신고 기능 구현
     console.log("신고 클릭");
   };
 
-  // Monaco 코드 블록 및 링크 프리뷰 렌더링 처리
   useEffect(() => {
     if (!contentRef.current) return;
 
     const timer = setTimeout(() => {
-      // 스티커 이미지 스타일 적용 (가장 먼저 처리)
       const stickerImages = contentRef.current.querySelectorAll('img[data-sticker], img[src*="openmoji"]');
       stickerImages.forEach(img => {
         img.style.width = '1.5em';
@@ -107,7 +105,6 @@ const FreeboardDetail = () => {
         img.style.margin = '0 0.1em';
       });
 
-      // Monaco 코드 블록 처리
       const monacoBlocks = contentRef.current.querySelectorAll('pre[data-type="monaco-code-block"]');
       
       monacoBlocks.forEach(block => {
@@ -142,7 +139,6 @@ const FreeboardDetail = () => {
         }
       });
 
-      // 링크 프리뷰 처리
       const linkPreviews = contentRef.current.querySelectorAll('div[data-type="link-preview"]');
       
       linkPreviews.forEach(preview => {
@@ -239,7 +235,6 @@ const FreeboardDetail = () => {
         }
       });
 
-      // 일반 코드 블록 Syntax Highlighting
       const allCodeBlocks = contentRef.current.querySelectorAll('pre code:not([class*="language-"])');
       allCodeBlocks.forEach(block => {
         block.classList.remove('hljs');
@@ -287,7 +282,6 @@ const FreeboardDetail = () => {
         ← 목록으로
       </button>
 
-      {/* 제목과 수정/삭제 버튼 */}
       <div className="flex items-start justify-between mb-3">
         <h1 className={`text-4xl font-bold flex-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
           {board.freeboardTitle || "제목 없음"}
@@ -307,8 +301,8 @@ const FreeboardDetail = () => {
           <button
             onClick={() => {
               if (window.confirm("정말 삭제하시겠습니까?")) {
-                axios
-                  .delete(`http://localhost:8090/freeboard/${id}`)
+                axiosInstance
+                  .delete(`/freeboard/${id}`)
                   .then(() => {
                     alert("삭제되었습니다.");
                     navigate("/freeboard/list");
@@ -366,10 +360,8 @@ const FreeboardDetail = () => {
         </div>
       )}
 
-      {/* 좋아요/공유/신고 바 */}
       <div className={`flex items-center justify-between py-4 mt-32 pt-8 border-t ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
         <div className="flex items-center gap-6">
-          {/* 좋아요 */}
           <button
             onClick={handleLike}
             className={`flex items-center gap-2 transition-colors ${
@@ -383,7 +375,6 @@ const FreeboardDetail = () => {
             <span className="font-medium">{likeCount}</span>
           </button>
 
-          {/* 댓글 */}
           <div className={`flex items-center gap-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             <MessageCircle size={20} />
             <span className="text-sm">댓글</span>
@@ -392,7 +383,6 @@ const FreeboardDetail = () => {
         </div>
 
         <div className="flex items-center gap-6">
-          {/* 공유 */}
           <button 
             onClick={handleShare}
             className={`flex items-center gap-2 text-sm transition-colors ${
@@ -403,7 +393,6 @@ const FreeboardDetail = () => {
             <span>공유</span>
           </button>
 
-          {/* 신고 */}
           <button 
             onClick={handleReport}
             className={`flex items-center gap-2 text-sm transition-colors ${

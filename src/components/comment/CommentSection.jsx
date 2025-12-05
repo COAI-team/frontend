@@ -1,25 +1,27 @@
 import { useState, useEffect } from 'react';
 import CommentList from './CommentList';
 import CommentForm from './CommentForm';
+import { axiosInstance } from '../../server/AxiosConfig';
 
 export default function CommentSection({ boardId, boardType, currentUserId, isDark }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // 댓글 목록 조회
+  // 댓글 목록 조회 (axiosInstance 사용)
   const fetchComments = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `http://localhost:8090/comments?boardId=${boardId}&boardType=${boardType}`,
-        {
-          headers: {
-            'userId': currentUserId
-          }
+      const response = await axiosInstance.get('/comments', {
+        params: {
+          boardId,
+          boardType
+        },
+        headers: {
+          userId: currentUserId
         }
-      );
-      const data = await response.json();
-      setComments(data);
+      });
+
+      setComments(response.data);
     } catch (error) {
       console.error('댓글 조회 실패:', error);
     } finally {
@@ -31,13 +33,14 @@ export default function CommentSection({ boardId, boardType, currentUserId, isDa
     fetchComments();
   }, [boardId, boardType]);
 
-  // 댓글 작성 성공 시 새로고침
+  // 댓글 작성 성공 시 목록 다시 불러오기
   const handleCommentCreated = () => {
     fetchComments();
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto mt-4">
+
       {/* 댓글 작성 폼 */}
       <div className={`${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} rounded-lg shadow-sm p-6 mb-6`}>
         <CommentForm
