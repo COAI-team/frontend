@@ -355,6 +355,118 @@ const ProblemSolve = () => {
     return styles[diff] || 'bg-gray-700/50 text-gray-400 border-gray-600';
   };
 
+  // ===== 문제 설명 파싱 함수 =====
+  const parseProblemDescription = (description) => {
+    if (!description) return null;
+
+    const sections = {
+      description: '',
+      input: '',
+      output: '',
+      constraints: '',
+      exampleInput: '',
+      exampleOutput: '',
+    };
+
+    // 섹션 구분자 패턴
+    const patterns = {
+      input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+      output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+      constraints: /(?:^|\n)(?:\*\*)?(?:제한사항|제한 ?사항|제한|조건|Constraints?)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+      exampleInput: /(?:^|\n)(?:\*\*)?(?:예제 ?입력|입력 ?예제|예시 ?입력|Sample Input|Example Input)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
+      exampleOutput: /(?:^|\n)(?:\*\*)?(?:예제 ?출력|출력 ?예제|예시 ?출력|Sample Output|Example Output)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
+    };
+
+    let remaining = description;
+    let firstSectionStart = remaining.length;
+
+    // 각 섹션의 시작 위치 찾기
+    const sectionPositions = [];
+    for (const [key, pattern] of Object.entries(patterns)) {
+      const match = remaining.match(pattern);
+      if (match) {
+        const pos = remaining.indexOf(match[0]);
+        sectionPositions.push({ key, pos, matchLength: match[0].length });
+        if (pos < firstSectionStart) {
+          firstSectionStart = pos;
+        }
+      }
+    }
+
+    // 문제 설명 (첫 섹션 이전의 모든 텍스트)
+    sections.description = remaining.substring(0, firstSectionStart).trim();
+
+    // 위치순 정렬
+    sectionPositions.sort((a, b) => a.pos - b.pos);
+
+    // 각 섹션 내용 추출
+    for (let i = 0; i < sectionPositions.length; i++) {
+      const current = sectionPositions[i];
+      const next = sectionPositions[i + 1];
+      const startPos = current.pos + current.matchLength;
+      const endPos = next ? next.pos : remaining.length;
+      sections[current.key] = remaining.substring(startPos, endPos).trim();
+    }
+
+    return sections;
+  };
+
+  // ===== 마크다운 텍스트 파싱 함수 =====
+  const renderFormattedText = (text) => {
+    if (!text) return null;
+
+    // **text** 패턴을 찾아서 <strong>으로 변환
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        const boldText = part.slice(2, -2);
+        return (
+          <strong key={index} className="font-bold text-gray-100">
+            {boldText}
+          </strong>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
+  // ===== 섹션 렌더링 컴포넌트 (다크 테마) =====
+  const SectionCard = ({ title, icon, content, bgColor = 'bg-zinc-900/50' }) => {
+    if (!content) return null;
+    return (
+      <div className={`${bgColor} rounded-lg p-4 border border-zinc-700`}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-lg">{icon}</span>
+          <h4 className="font-semibold text-gray-200">{title}</h4>
+        </div>
+        <div className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+          {renderFormattedText(content)}
+        </div>
+      </div>
+    );
+  };
+
+  const CodeBlock = ({ title, icon, content }) => {
+    if (!content) return null;
+    return (
+      <div className="bg-zinc-950 rounded-lg overflow-hidden border border-zinc-700">
+        <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border-b border-zinc-700">
+          <span>{icon}</span>
+          <span className="text-sm font-medium text-gray-300">{title}</span>
+        </div>
+        <pre className="p-4 text-sm text-green-400 font-mono overflow-x-auto">
+          {content}
+        </pre>
+      </div>
+    );
+  };
+
+  // 파싱된 문제 섹션
+  const parsedSections = useMemo(() => {
+    return parseProblemDescription(problem?.description);
+  }, [problem?.description]);
+
   // 필터링된 언어 목록 (useMemo로 캐싱 - 렌더링 중 반복 계산 방지)
   const filteredLanguages = useMemo(() => {
     if (!problem?.availableLanguages) return [];
@@ -555,31 +667,110 @@ const ProblemSolve = () => {
                 </span>
               </div>
 
-              <div className="prose prose-invert prose-sm max-w-none space-y-4">
-                <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                  {problem?.description || '문제 설명이 없습니다.'}
-                </p>
+              {/* 구조화된 문제 내용 */}
+              {parsedSections && (parsedSections.description || parsedSections.input || parsedSections.output) ? (
+                <div className="space-y-4">
+                  {/* 문제 설명 */}
+                  <SectionCard
+                    title="문제 설명"
+                    icon="📋"
+                    content={parsedSections.description}
+                    bgColor="bg-zinc-900/30"
+                  />
 
-                {problem?.sampleTestCases?.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="font-semibold mb-3 text-white">예제</h3>
-                    {problem.sampleTestCases.map((tc, idx) => (
-                      <div key={idx} className="bg-zinc-900 rounded p-4 mb-3">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">입력</p>
-                            <pre className="text-sm bg-zinc-950 p-2 rounded font-mono">{tc.input}</pre>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">출력</p>
-                            <pre className="text-sm bg-zinc-950 p-2 rounded font-mono">{tc.expectedOutput}</pre>
+                  {/* 입력/출력 */}
+                  <div className="grid grid-cols-1 gap-4">
+                    <SectionCard
+                      title="입력"
+                      icon="📥"
+                      content={parsedSections.input}
+                      bgColor="bg-blue-900/20"
+                    />
+                    <SectionCard
+                      title="출력"
+                      icon="📤"
+                      content={parsedSections.output}
+                      bgColor="bg-green-900/20"
+                    />
+                  </div>
+
+                  {/* 제한사항 */}
+                  <SectionCard
+                    title="제한사항"
+                    icon="⚠️"
+                    content={parsedSections.constraints}
+                    bgColor="bg-yellow-900/20"
+                  />
+
+                  {/* 파싱된 예제 입출력 */}
+                  {(parsedSections.exampleInput || parsedSections.exampleOutput) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <CodeBlock
+                        title="예제 입력"
+                        icon="📝"
+                        content={parsedSections.exampleInput}
+                      />
+                      <CodeBlock
+                        title="예제 출력"
+                        icon="✅"
+                        content={parsedSections.exampleOutput}
+                      />
+                    </div>
+                  )}
+
+                  {/* DB에서 가져온 샘플 테스트케이스 (파싱된 예제가 없을 경우) */}
+                  {!parsedSections.exampleInput && !parsedSections.exampleOutput && problem?.sampleTestCases?.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold mb-3 text-white flex items-center gap-2">
+                        <span>📋</span> 예제
+                      </h3>
+                      {problem.sampleTestCases.map((tc, idx) => (
+                        <div key={idx} className="bg-zinc-900 rounded p-4 mb-3 border border-zinc-700">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">입력</p>
+                              <pre className="text-sm bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.input}</pre>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">출력</p>
+                              <pre className="text-sm bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.expectedOutput}</pre>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* 파싱 실패 시 원본 출력 (마크다운 포맷팅 적용) */
+                <div className="prose prose-invert prose-sm max-w-none space-y-4">
+                  <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                    {renderFormattedText(problem?.description) || '문제 설명이 없습니다.'}
                   </div>
-                )}
-              </div>
+
+                  {problem?.sampleTestCases?.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-semibold mb-3 text-white flex items-center gap-2">
+                        <span>📋</span> 예제
+                      </h3>
+                      {problem.sampleTestCases.map((tc, idx) => (
+                        <div key={idx} className="bg-zinc-900 rounded p-4 mb-3 border border-zinc-700">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">입력</p>
+                              <pre className="text-sm bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.input}</pre>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">출력</p>
+                              <pre className="text-sm bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.expectedOutput}</pre>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
