@@ -69,6 +69,10 @@ export const startProblemSolve = async (problemId) => {
 
 /**
  * 코드 제출 (ALG-07)
+ *
+ * 변경사항:
+ * - focusSessionId → monitoringSessionId
+ * - solveMode 추가 (BASIC/FOCUS)
  */
 export const submitCode = async (data) => {
     try {
@@ -77,7 +81,8 @@ export const submitCode = async (data) => {
             language: data.language,
             sourceCode: data.sourceCode,
             elapsedTime: data.elapsedTime,
-            focusSessionId: data.focusSessionId || null
+            solveMode: data.solveMode || 'BASIC',
+            monitoringSessionId: data.monitoringSessionId || null
         });
         return res.data;
     } catch (err) {
@@ -178,49 +183,130 @@ export const healthCheck = async () => {
     }
 };
 
-// ============== 집중 추적 API ==============
+// ============== 모니터링 API (구 집중 추적) ==============
+// 변경사항:
+// - /algo/focus/* → /algo/monitoring/*
+// - focusSession → monitoringSession
+// - 모니터링은 점수에 미반영 (정보 제공 및 경고 목적)
 
 /**
- * 집중 세션 시작
+ * 모니터링 세션 시작 (집중 모드 진입)
+ * @param {number} problemId - 문제 ID
+ * @param {number} timeLimitMinutes - 제한 시간 (분)
  */
-export const startFocusSession = async (problemId) => {
+export const startMonitoringSession = async (problemId, timeLimitMinutes = 30) => {
     try {
-        const res = await axiosInstance.post('/algo/focus/start', { problemId });
-        return res.data;
-    } catch (err) {
-        console.error('❌ [startFocusSession] 요청 실패:', err);
-        return { error: true, message: err.response?.data?.message || '세션 시작 실패' };
-    }
-};
-
-/**
- * 집중 이벤트 전송
- */
-export const sendFocusEvent = async (sessionId, eventData) => {
-    try {
-        const res = await axiosInstance.post('/algo/focus/events', {
-            sessionId,
-            ...eventData
+        const res = await axiosInstance.post('/algo/monitoring/start', {
+            problemId,
+            timeLimitMinutes
         });
         return res.data;
     } catch (err) {
-        console.error('❌ [sendFocusEvent] 요청 실패:', err);
-        return { error: true, message: err.response?.data?.message || '이벤트 전송 실패' };
+        console.error('❌ [startMonitoringSession] 요청 실패:', err);
+        return { error: true, message: err.response?.data?.message || '모니터링 세션 시작 실패' };
     }
 };
 
 /**
- * 집중 세션 종료
+ * 위반 이벤트 전송
+ * @param {string} sessionId - 세션 ID
+ * @param {string} violationType - 위반 유형 (GAZE_AWAY, SLEEPING, NO_FACE, etc.)
+ * @param {object} details - 추가 상세 정보 (선택)
  */
-export const endFocusSession = async (sessionId) => {
+export const sendMonitoringViolation = async (sessionId, violationType, details = {}) => {
     try {
-        const res = await axiosInstance.post('/algo/focus/end', { sessionId });
+        const res = await axiosInstance.post('/algo/monitoring/violation', {
+            sessionId,
+            violationType,
+            details
+        });
         return res.data;
     } catch (err) {
-        console.error('❌ [endFocusSession] 요청 실패:', err);
-        return { error: true, message: err.response?.data?.message || '세션 종료 실패' };
+        console.error('❌ [sendMonitoringViolation] 요청 실패:', err);
+        return { error: true, message: err.response?.data?.message || '위반 이벤트 전송 실패' };
     }
 };
+
+/**
+ * 경고 표시 기록
+ * @param {string} sessionId - 세션 ID
+ */
+export const recordMonitoringWarning = async (sessionId) => {
+    try {
+        const res = await axiosInstance.post('/algo/monitoring/warning', { sessionId });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [recordMonitoringWarning] 요청 실패:', err);
+        return { error: true, message: err.response?.data?.message || '경고 기록 실패' };
+    }
+};
+
+/**
+ * 모니터링 세션 종료 (정상 제출)
+ * @param {string} sessionId - 세션 ID
+ * @param {number} remainingSeconds - 남은 시간 (초)
+ */
+export const endMonitoringSession = async (sessionId, remainingSeconds = null) => {
+    try {
+        const res = await axiosInstance.post('/algo/monitoring/end', {
+            sessionId,
+            remainingSeconds
+        });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [endMonitoringSession] 요청 실패:', err);
+        return { error: true, message: err.response?.data?.message || '모니터링 세션 종료 실패' };
+    }
+};
+
+/**
+ * 시간 초과 자동 제출 처리
+ * @param {string} sessionId - 세션 ID
+ */
+export const handleMonitoringTimeout = async (sessionId) => {
+    try {
+        const res = await axiosInstance.post('/algo/monitoring/timeout', { sessionId });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [handleMonitoringTimeout] 요청 실패:', err);
+        return { error: true, message: err.response?.data?.message || '시간 초과 처리 실패' };
+    }
+};
+
+/**
+ * 모니터링 세션 정보 조회
+ * @param {string} sessionId - 세션 ID
+ */
+export const getMonitoringSession = async (sessionId) => {
+    try {
+        const res = await axiosInstance.get(`/algo/monitoring/${sessionId}`);
+        return res.data;
+    } catch (err) {
+        console.error('❌ [getMonitoringSession] 요청 실패:', err);
+        return { error: true, message: err.response?.data?.message || '세션 조회 실패' };
+    }
+};
+
+/**
+ * 사용자의 활성 모니터링 세션 조회
+ * @param {number} problemId - 문제 ID
+ */
+export const getActiveMonitoringSession = async (problemId) => {
+    try {
+        const res = await axiosInstance.get(`/algo/monitoring/active?problemId=${problemId}`);
+        return res.data;
+    } catch (err) {
+        console.error('❌ [getActiveMonitoringSession] 요청 실패:', err);
+        return { error: true, message: err.response?.data?.message || '활성 세션 조회 실패' };
+    }
+};
+
+// ============== 하위 호환성을 위한 별칭 (Deprecated) ==============
+// TODO: 이전 코드에서 사용 중인 경우 점진적으로 제거
+export const startFocusSession = startMonitoringSession;
+export const sendFocusEvent = (sessionId, eventData) =>
+    sendMonitoringViolation(sessionId, eventData.type, { details: eventData.details, duration: eventData.duration });
+export const endFocusSession = (sessionId) => endMonitoringSession(sessionId);
 
 // ============== 상수 정의 ==============
 
