@@ -89,21 +89,37 @@ const FreeboardEdit = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg text-white">로딩 중...</div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        backgroundColor: '#101828'
+      }}>
+        <div style={{ fontSize: '1.125rem', color: 'white' }}>로딩 중...</div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <WriteEditor 
-        mode="edit"
-        initialTitle={initialData?.title}
-        initialContent={initialData?.content}
-        initialTags={initialData?.tags}
-        onSubmit={handleSubmit}
-      />
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#101828',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{
+        maxWidth: '900px',
+        margin: '0 auto'
+      }}>
+        <WriteEditor 
+          mode="edit"
+          initialTitle={initialData?.title}
+          initialContent={initialData?.content}
+          initialTags={initialData?.tags}
+          onSubmit={handleSubmit}
+          toolbarType="full"
+        />
+      </div>
     </div>
   );
 };

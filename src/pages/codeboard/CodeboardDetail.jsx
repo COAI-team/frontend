@@ -2,11 +2,11 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { axiosInstance } from "../../server/AxiosConfig";
 import hljs from 'highlight.js';
-import { Heart, MessageCircle, Share2, AlertCircle } from "lucide-react";
-import "../../styles/FreeboardDetail.css";
+import { Heart, MessageCircle, Share2, AlertCircle, Code2 } from "lucide-react";
+import "../../styles/CodeboardDetail.css";
 import CommentSection from '../../components/comment/CommentSection';
 
-const FreeboardDetail = () => {
+const CodeboardDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [board, setBoard] = useState(null);
@@ -59,7 +59,7 @@ const FreeboardDetail = () => {
     if (!id) return;
 
     axiosInstance
-      .get(`/freeboard/${id}`)
+      .get(`/codeboard/${id}`)
       .then((res) => {
         console.log("API 응답:", res.data);
         console.log("tags:", res.data.tags);
@@ -73,7 +73,7 @@ const FreeboardDetail = () => {
 
   const handleLike = async () => {
     try {
-      const response = await axiosInstance.post(`/like/freeboard/${id}`);
+      const response = await axiosInstance.post(`/like/codeboard/${id}`);
       const { isLiked } = response.data;
       
       setIsLiked(isLiked);
@@ -90,6 +90,12 @@ const FreeboardDetail = () => {
 
   const handleReport = () => {
     console.log("신고 클릭");
+  };
+
+  const handleAnalysisView = () => {
+    if (board?.analysisId) {
+      navigate(`/analysis/${board.analysisId}`);
+    }
   };
 
   useEffect(() => {
@@ -292,7 +298,7 @@ const FreeboardDetail = () => {
         margin: '0 auto'
       }}>
         <button
-          onClick={() => navigate("/freeboard/list")}
+          onClick={() => navigate("/codeboard/list")}
           style={{
             marginBottom: '1rem',
             display: 'flex',
@@ -311,6 +317,38 @@ const FreeboardDetail = () => {
           ← 목록으로
         </button>
 
+        {board.analysisId && (
+          <button
+            onClick={handleAnalysisView}
+            style={{
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              color: '#60a5fa',
+              border: '1px solid rgba(59, 130, 246, 0.2)',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+              e.target.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+              e.target.style.borderColor = 'rgba(59, 130, 246, 0.2)';
+            }}
+          >
+            <Code2 size={16} />
+            <span>코드 분석 결과 보기</span>
+          </button>
+        )}
+
         <div style={{
           display: 'flex',
           alignItems: 'flex-start',
@@ -323,12 +361,12 @@ const FreeboardDetail = () => {
             flex: 1,
             color: '#e5e7eb'
           }}>
-            {board.freeboardTitle || "제목 없음"}
+            {board.codeboardTitle || "제목 없음"}
           </h1>
           
           <div style={{ display: 'flex', gap: '0.75rem', marginLeft: '1rem' }}>
             <button
-              onClick={() => navigate(`/freeboard/edit/${id}`)}
+              onClick={() => navigate(`/codeboard/edit/${id}`)}
               style={{
                 padding: '0.625rem 1.25rem',
                 borderRadius: '0.5rem',
@@ -349,10 +387,10 @@ const FreeboardDetail = () => {
               onClick={() => {
                 if (window.confirm("정말 삭제하시겠습니까?")) {
                   axiosInstance
-                    .delete(`/freeboard/${id}`)
+                    .delete(`/codeboard/${id}`)
                     .then(() => {
                       alert("삭제되었습니다.");
-                      navigate("/freeboard/list");
+                      navigate("/codeboard/list");
                     })
                     .catch((err) => {
                       console.error("삭제 실패:", err);
@@ -405,16 +443,16 @@ const FreeboardDetail = () => {
             <span>{board.userNickname || '익명'}</span>
           </div>
           <span>·</span>
-          <span>{new Date(board.freeboardCreatedAt).toLocaleString()}</span>
+          <span>{new Date(board.codeboardCreatedAt).toLocaleString()}</span>
           <span>·</span>
-          <span>조회수 {board.freeboardClick}</span>
+          <span>조회수 {board.codeboardClick}</span>
         </div>
 
         <div
           ref={contentRef}
-          className="freeboard-content"
+          className="codeboard-content"
           style={{ marginBottom: '2rem' }}
-          dangerouslySetInnerHTML={{ __html: getRenderedContent(board.freeboardContent) }}
+          dangerouslySetInnerHTML={{ __html: getRenderedContent(board.codeboardContent) }}
         ></div>
 
         {board.tags && board.tags.length > 0 && (
@@ -529,7 +567,7 @@ const FreeboardDetail = () => {
 
         <CommentSection
           boardId={Number(id)}
-          boardType="FREEBOARD"
+          boardType="CODEBOARD"
           currentUserId={currentUserId}
           isDark={isDark}
         />
@@ -538,4 +576,4 @@ const FreeboardDetail = () => {
   );
 };
 
-export default FreeboardDetail;
+export default CodeboardDetail;
