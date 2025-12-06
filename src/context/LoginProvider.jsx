@@ -14,11 +14,20 @@ export default function LoginProvider({ children }) {
     // ===============================================================
     useEffect(() => {
         const saved = getAuth();
-        if (!saved?.accessToken) return;
 
+        // 🔥 accessToken 없으면 사용자 정보 요청 금지
+        if (!saved?.accessToken) {
+            setAuth(null);
+            return;
+        }
+
+        // 🔥 저장된 auth 복원
         setAuth(saved);
 
-        // AccessToken으로 유저 정보 확인
+        // 🔥 이미 user 정보가 있으면 /users/me 호출 불필요
+        if (saved.user) return;
+
+        // 🔥 accessToken은 있지만 user 정보가 없을 때만 /users/me 요청
         getUserInfo()
             .then((res) => {
                 if (!res) {
@@ -27,18 +36,13 @@ export default function LoginProvider({ children }) {
                     return;
                 }
 
-                setAuth((prev) => {
-                    if (!prev) return prev;
+                const newAuth = {
+                    ...saved,
+                    user: normalizeUser(res),
+                };
 
-                    const newAuth = {
-                        ...prev,
-                        user: normalizeUser(res, prev.user),
-                    };
-
-                    saveAuth(newAuth);
-
-                    return newAuth;
-                });
+                saveAuth(newAuth);
+                setAuth(newAuth);
             })
             .catch(() => {
                 removeAuth();

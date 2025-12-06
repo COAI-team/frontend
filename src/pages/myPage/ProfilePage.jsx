@@ -16,14 +16,13 @@ import EditModeCard from "../../components/card/EditModeCard";
 
 export default function ProfilePage() {
     const navigate = useNavigate();
-    const { accessToken, setUser } = useLogin();
+    const { user, accessToken, setUser } = useLogin();
 
     const [editMode, setEditMode] = useState(false);
     const [isDeleted, setIsDeleted] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMsg, setModalMsg] = useState("");
-
     const [profile, setProfile] = useState({
         name: "",
         nickname: "",
@@ -31,7 +30,6 @@ export default function ProfilePage() {
         preview: null,
         image: null,
     });
-
     const [githubConnected, setGithubConnected] = useState(false);
 
     const openModal = (msg) => {
@@ -45,11 +43,55 @@ export default function ProfilePage() {
         return `${id.slice(0, 2)}****@${domain}`;
     };
 
+    /** 🔥 GitHub 연동 상태 확인 함수 — useEffect 위로 이동 */
+    const checkGithubLink = async () => {
+        const github = await getGithubUserInfo();
+        if (!github.error) {
+            setGithubConnected(github.linked);
+        }
+    };
+
     /** 🔥 사용자 기본 정보 불러오기 */
     useEffect(() => {
+        if (!accessToken) return;
+
+        // 이미 user 정보가 LoginProvider에 있는 경우
+        if (user) {
+            setProfile({
+                name: user.userName,
+                nickname: user.userNickname || "",
+                email: user.userEmail,
+                preview: user.userImage || null,
+                image: null,
+            });
+
+            setIsDeleted(user.isDeleted || false);
+
+            // 🔥 GitHub OAuth 로그인 → 자동으로 연동됨
+            if (user.oauthProvider === "GITHUB") {
+                setGithubConnected(true);
+            } else {
+                checkGithubLink(); // 🔥 문제 해결됨
+            }
+
+            return;
+        }
+
+        // user가 없고 accessToken만 있는 경우 서버 호출
         const loadUserInfo = async () => {
-            const res = await getUserInfo(accessToken);
+            const res = await getUserInfo();
             if (!res || res.error) return;
+
+            const normalizedUser = {
+                userName: res.userName,
+                userNickname: res.userNickname,
+                userEmail: res.userEmail,
+                userImage: res.userImage,
+                isDeleted: res.isDeleted,
+                oauthProvider: res.oauthProvider, // 🔥 중요
+            };
+
+            setUser(normalizedUser);
 
             setProfile({
                 name: res.userName,
@@ -61,25 +103,23 @@ export default function ProfilePage() {
 
             setIsDeleted(res.isDeleted || false);
 
-            /** 🔥 GitHub 연동 상태 가져오기 */
-            const github = await getGithubUserInfo();
-            if (!github.error) {
-                setGithubConnected(github.linked); // ✔ linked 사용
+            if (normalizedUser.oauthProvider === "GITHUB") {
+                setGithubConnected(true);
+            } else {
+                checkGithubLink(); // 🔥 정상 작동
             }
         };
 
         loadUserInfo();
-    }, [accessToken, navigate]);
+    }, [accessToken, user, navigate, setUser]);
 
     /** 🔥 GitHub OAuth 연결 */
     const handleGithubConnect = () => {
         const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
         const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
 
-        const url =
-            `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}`;
-
-        window.location.href = url;
+        globalThis.location.href =
+            `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=link`;
     };
 
     /** 🔥 GitHub 연결 해제 */
@@ -138,9 +178,7 @@ export default function ProfilePage() {
     };
 
     /** 🔥 탈퇴 처리 */
-    const handleDeactivate = () => {
-        setDeleteModalOpen(true);
-    };
+    const handleDeactivate = () => setDeleteModalOpen(true);
 
     const confirmDeactivate = async () => {
         const res = await deactivateUser(accessToken);
@@ -202,14 +240,14 @@ export default function ProfilePage() {
                         <div>
                             {githubConnected ? (
                                 <button
-                                    onClick={handleGithubDisconnect} // ✔ 연결 해제
+                                    onClick={handleGithubDisconnect}
                                     className="px-4 py-1 border rounded-md hover:bg-gray-100"
                                 >
                                     연결 해제
                                 </button>
                             ) : (
                                 <button
-                                    onClick={handleGithubConnect} // ✔ 연결하기
+                                    onClick={handleGithubConnect}
                                     className="px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
                                 >
                                     연결하기

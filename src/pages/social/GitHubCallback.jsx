@@ -1,46 +1,73 @@
-import { useEffect } from "react";
-import { loginWithGithub } from "../../service/user/User";
+import { useEffect, useRef } from "react";
+import { loginWithGithub, linkGithubAccount } from "../../service/user/User";
 import { useNavigate } from "react-router-dom";
 import { useLogin } from "../../context/useLogin";
+import { saveAuth } from "../../utils/auth/token";
 
 export default function GitHubCallback() {
     const navigate = useNavigate();
-    const { login } = useLogin();   // 🔥 추가
+    const { login } = useLogin();
+    const executedRef = useRef(false); // 🔥 중복 실행 방지
 
     useEffect(() => {
-        const processGithubLogin = async () => {
+        if (executedRef.current) return;
+        executedRef.current = true;
+
+        const processGithub = async () => {
             const url = new URL(globalThis.location.href);
             const code = url.searchParams.get("code");
+            const mode = url.searchParams.get("state");
 
             if (!code) {
-                if (!sessionStorage.getItem("githubLoginDone")) {
-                    console.warn("❌ GitHub OAuth code 없음");
-                }
+                console.error("❌ GitHub code 없음");
                 return;
             }
 
-            sessionStorage.setItem("githubLoginDone", "true");
+            console.log("📨 GitHub 요청 시작:", { code, mode });
 
-            // URL에서 code 제거
-            url.searchParams.delete("code");
-            globalThis.history.replaceState({}, "", url.toString());
+            const githubResult = await loginWithGithub(code, mode);
 
-            console.log("📨 GitHub 로그인 요청 시작:", code);
-            const result = await loginWithGithub(code);
+            if (githubResult?.error) {
+                console.error("❌ GitHub 처리 실패", githubResult.error);
+                return;
+            }
 
-            console.log("🎉 GitHub 로그인 성공:", result);
+            // 🔗 연동 모드 (state=link)
+            if (mode === "link") {
+                console.log("🔗 연동 모드 GitHubUserResponse =", githubResult);
 
-            login(result, true);
+                const linkResult = await linkGithubAccount(githubResult.gitHubUser);
+
+                if (linkResult?.error) {
+                    console.error("❌ GitHub 연동 실패", linkResult.error);
+                    return;
+                }
+
+                alert("🎉 GitHub 계정 연동 완료!");
+                navigate("/profile");
+                return;
+            }
+
+            // 🔐 로그인 모드 — loginResponse만 추출
+            const { loginResponse } = githubResult;
+
+            if (!loginResponse) {
+                console.error("❌ loginResponse 누락됨:", githubResult);
+                return;
+            }
+
+            saveAuth(loginResponse);
+            login(loginResponse, true);
 
             navigate("/");
         };
 
-        processGithubLogin();
+        processGithub();
     }, [navigate, login]);
 
     return (
         <div style={{ padding: "20px", fontSize: "18px" }}>
-            GitHub 로그인 처리 중...
+            GitHub 인증 처리 중...
         </div>
     );
 }

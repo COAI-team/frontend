@@ -120,16 +120,21 @@ axiosInstance.interceptors.response.use(
             originalRequest?.headers?.["X-Skip-Auth-Redirect"] === "true" ||
             originalRequest?._skipAuthRedirect;
 
+        const currentPath = globalThis.location?.pathname || "/";
+
+        if (currentPath.startsWith("/signin")) {
+            throw error;
+        }
+
         if (!skipAuthRedirect && (status === 401 || status === 403)) {
             removeAuth();
 
-            const currentPath =
-                (globalThis.location?.pathname || "/") +
-                (globalThis.location?.search || "");
+            const redirectParam = encodeURIComponent(
+                currentPath + (globalThis.location?.search || "")
+            );
 
             if (!originalRequest?._redirectedForAuth) {
                 originalRequest._redirectedForAuth = true;
-                const redirectParam = encodeURIComponent(currentPath);
                 globalThis.location.replace(`/signin?redirect=${redirectParam}`);
             }
         }

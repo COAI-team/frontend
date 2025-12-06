@@ -96,7 +96,7 @@ export const confirmPasswordReset = async (token, newPassword) => {
     try {
         const res = await axiosInstance.post("/users/password/reset/confirm", {
             token,
-            newPassword,
+            newUserPw: newPassword,
         });
         return res.data;
     } catch (err) {
@@ -154,10 +154,11 @@ export const restoreUser = async () => {
     }
 };
 
-// GitHub OAuth 로그인 (🔥 GET + /auth/github/callback 로 수정)
-export const loginWithGithub = async (code) => {
+// GitHub OAuth 콜백에 mode까지 전달하도록 수정
+export const loginWithGithub = async (code, mode = null) => {
     try {
-        const res = await axiosInstance.get(`/auth/github/callback?code=${code}`);
+        const query = mode ? `?code=${code}&mode=${mode}` : `?code=${code}`;
+        const res = await axiosInstance.get(`/auth/github/callback${query}`);
         return res.data;
     } catch (err) {
         console.error("❌ [GitHub Login] 오류:", err);
@@ -186,7 +187,7 @@ export const getGithubUserInfo = async () => {
     }
 };
 
-// 🔥 GitHub 계정 연동 해제
+// GitHub 계정 연동 해제
 export const disconnectGithub = async () => {
     try {
         const res = await axiosInstance.post(
@@ -201,6 +202,27 @@ export const disconnectGithub = async () => {
         return res.data;
     } catch (err) {
         console.error("❌ [GitHub Disconnect] 오류:", err);
+        return { error: err };
+    }
+};
+
+// GitHub 계정 연동
+export const linkGithubAccount = async (gitHubUser) => {
+    try {
+        const res = await axiosInstance.post(
+            "/users/github/link",
+            gitHubUser,
+            {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            }
+        );
+
+        return res.data;
+
+    } catch (err) {
+        console.error("❌ [GitHub Link] 오류:", err);
         return { error: err };
     }
 };

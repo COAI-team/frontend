@@ -1,5 +1,5 @@
 import { useState } from "react";
-import {PasswordInputPropTypes} from "../../utils/propTypes";
+import { PasswordInputPropTypes } from "../../utils/propTypes";
 import RuleItem from "./RuleItem";
 import PasswordInput from "./PasswordInput";
 
@@ -18,6 +18,22 @@ export default function PasswordSection({
                                         }) {
     const [focusPw, setFocusPw] = useState(false);
     const [focusConfirm, setFocusConfirm] = useState(false);
+
+    // 🔥 중첩 삼항 제거: 비밀번호 확인 메시지를 분리
+    let confirmMessage = null;
+
+    if (focusConfirm && password.length === 0 && passwordConfirm.length === 0) {
+        confirmMessage = (
+            <RuleItem ok={false} text="비밀번호를 먼저 입력해주세요." />
+        );
+    } else if (passwordConfirm.length > 0) {
+        confirmMessage = (
+            <RuleItem
+                ok={isPasswordMatch}
+                text={isPasswordMatch ? "비밀번호가 일치합니다." : "비밀번호가 일치해야 합니다."}
+            />
+        );
+    }
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -62,7 +78,7 @@ export default function PasswordSection({
 
                 {(focusConfirm || passwordConfirm.length > 0) && (
                     <ul className="mt-2 text-xs space-y-1">
-                        <RuleItem ok={isPasswordMatch} text="비밀번호가 일치해야 합니다." />
+                        {confirmMessage}
                     </ul>
                 )}
             </div>

@@ -1,6 +1,6 @@
 import { RightActionsPropTypes } from "../../utils/propTypes";
 import { Link } from "react-router-dom";
-import { BellIcon, MoonIcon, SunIcon } from "@heroicons/react/24/outline";
+import { MoonIcon, SunIcon } from "@heroicons/react/24/outline";
 import Dropdown from "../dropdown/Dropdown";
 
 export default function RightActions({ theme, setTheme, user, logout, navigate, BASE_URL }) {
@@ -18,15 +18,6 @@ export default function RightActions({ theme, setTheme, user, logout, navigate, 
 
     return (
         <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-2 sm:static sm:pr-0 sm:ml-6">
-            {/* 알림 버튼 */}
-            <button
-                className={`relative rounded-full p-1 
-                focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500
-                ${theme === "light" ? "text-gray-700 hover:text-black" : "text-gray-300 hover:text-white"}`}
-            >
-                <BellIcon className="size-6" />
-            </button>
-
             {/* 다크모드 토글 */}
             <button
                 onClick={() => setTheme(theme === "light" ? "dark" : "light")}

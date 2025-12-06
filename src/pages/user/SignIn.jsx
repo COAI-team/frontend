@@ -35,8 +35,11 @@ export default function SignIn() {
             ? "text-[#04BDF2] hover:text-[#0398c2]"
             : "text-[#CC67FA] hover:text-[#a647d4]";
 
-    const redirect =
-        new URLSearchParams(location.search).get("redirect") || "/";
+    let redirect = new URLSearchParams(location.search).get("redirect") || "/";
+
+    if (redirect.startsWith("/signin")) {
+        redirect = "/";
+    }
 
     // ✅ GitHub OAuth 로그인 함수 추가됨
     const handleGitHubLogin = () => {
