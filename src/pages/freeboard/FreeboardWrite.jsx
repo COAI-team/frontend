@@ -22,7 +22,7 @@ const FreeboardWrite = () => {
     });
 
     axiosInstance
-      .post("/freeboard", {  // 상대 경로만 사용
+      .post("/freeboard", {
         freeboardTitle: title,
         blocks: blocks,
         freeboardRepresentImage: representImage || null,
@@ -40,11 +40,20 @@ const FreeboardWrite = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 text-white">
-      <WriteEditor 
-        onSubmit={handleSubmit} 
-        toolbarType="full"
-      />
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#101828',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{
+        maxWidth: '900px',
+        margin: '0 auto'
+      }}>
+        <WriteEditor 
+          onSubmit={handleSubmit} 
+          toolbarType="full"
+        />
+      </div>
     </div>
   );
 };
