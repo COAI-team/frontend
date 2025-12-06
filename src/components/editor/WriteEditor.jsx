@@ -4,18 +4,16 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { Table } from "@tiptap/extension-table";
-import { axiosInstance } from "../../server/AxiosConfig";
 import { TableRow } from "@tiptap/extension-table-row";
+import { axiosInstance } from "../../server/AxiosConfig";
 import imageCompression from "browser-image-compression";
 
-// toolbar 폴더에서 import
+// toolbar
 import StickerPicker from "./toolbar/StickerPicker";
 import Toolbar from "./toolbar/Toolbar";
-import { TableButton } from "./toolbar/TableButton";
 
-// extensions 폴더에서 import
+// extensions
 import MonacoCodeBlock from "./extensions/MonacoCodeBlock";
-import { SimpleCodeBlock } from "./extensions/SimpleCodeBlock";
 import LinkPreview from "./extensions/LinkPreview";
 import { BlockImage } from "./extensions/ImageBlock.js";
 import { ImageLoading } from "./extensions/ImageLoading.js";
@@ -24,26 +22,23 @@ import CustomTableCell from "./extensions/CustomTableCell";
 import CustomTableHeader from "./extensions/CustomTableHeader";
 
 import TagInput from "../../components/tag/TagInput";
-
 import { useTheme } from "next-themes";
 import "../../styles/tiptap.css";
 
-import axios from "axios";
-
-const WriteEditor = ({ 
-  onSubmit, 
-  mode = "create", 
-  initialTitle = "", 
+const WriteEditor = ({
+  onSubmit,
+  mode = "create",
+  initialTitle = "",
   initialContent = "",
   initialTags = [],
-  toolbarType = "full" // "full" | "minimal"
 }) => {
   const [title, setTitle] = useState(initialTitle);
   const [tags, setTags] = useState(initialTags);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { theme, systemTheme } = useTheme();
-  
-  const currentTheme = theme === 'system' ? systemTheme : theme;
+
+  const currentTheme = theme === "system" ? systemTheme : theme;
+  const isDark = currentTheme === "dark";
 
   const checkIfHasRepresentative = (editor) => {
     let hasRepresentative = false;
@@ -87,7 +82,6 @@ const WriteEditor = ({
       CustomTableCell,
       CustomTableHeader,
 
-      SimpleCodeBlock,
       MonacoCodeBlock,
       LinkPreview,
     ],
@@ -95,34 +89,6 @@ const WriteEditor = ({
     content: initialContent,
 
     editorProps: {
-      handleKeyDown(view, event) {
-        if (event.key === 'Enter') {
-          const { state } = view;
-          const { selection } = state;
-          const { $from } = selection;
-
-          if ($from.parent.type.name === 'paragraph') {
-            const textBefore = $from.parent.textContent;
-            const match = textBefore.match(/^```([a-z]*)$/);
-            
-            if (match) {
-              const language = match[1] || 'plaintext';
-              
-              editor
-                .chain()
-                .deleteRange({ from: $from.start(), to: $from.end() })
-                .setCodeBlock({ language })
-                .run();
-              
-              event.preventDefault();
-              return true;
-            }
-          }
-        }
-        
-        return false;
-      },
-
       handleDrop(view, event, _slice, moved) {
         event.preventDefault();
         event.stopPropagation();
@@ -145,9 +111,7 @@ const WriteEditor = ({
   });
 
   useEffect(() => {
-    if (initialTitle) {
-      setTitle(initialTitle);
-    }
+    if (initialTitle) setTitle(initialTitle);
   }, [initialTitle]);
 
   useEffect(() => {
@@ -157,9 +121,7 @@ const WriteEditor = ({
   }, [editor, initialContent]);
 
   useEffect(() => {
-    if (initialTags && initialTags.length > 0) {
-      setTags(initialTags);
-    }
+    if (initialTags.length > 0) setTags(initialTags);
   }, [initialTags]);
 
   async function uploadImageByDrop(file) {
@@ -175,133 +137,82 @@ const WriteEditor = ({
       });
 
       const formData = new FormData();
-
-      const fileToUpload = new File([compressed], originalFileName, {
-        type: compressed.type || file.type,
-        lastModified: Date.now(),
-      });
-
-      formData.append("file", fileToUpload);
-
-      const res = await axiosInstance.post(
-        "/upload/image",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+      formData.append(
+        "file",
+        new File([compressed], originalFileName, {
+          type: compressed.type || file.type,
+          lastModified: Date.now(),
+        })
       );
 
+      const res = await axiosInstance.post("/upload/image", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       const url = res.data;
-
       let loadingPos = null;
+
       editor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "imageLoading") {
-          loadingPos = pos;
-        }
+        if (node.type.name === "imageLoading") loadingPos = pos;
       });
 
-      if (loadingPos !== null) {
-        const hasRepresentative = checkIfHasRepresentative(editor);
+      const hasRepresentative = checkIfHasRepresentative(editor);
 
-        editor
-          .chain()
-          .focus()
-          .deleteRange({ from: loadingPos, to: loadingPos + 1 })
-          .setTextSelection(loadingPos)
-          .setBlockImage({
-            src: url,
-            isRepresentative: !hasRepresentative,
-          })
-          .run();
-
-        setTimeout(() => {
-          const newPos = loadingPos + 1;
-          editor.chain().focus().setTextSelection(newPos).run();
-        }, 0);
-      } else {
-        const hasRepresentative = checkIfHasRepresentative(editor);
-        editor
-          .chain()
-          .focus()
-          .setBlockImage({
-            src: url,
-            isRepresentative: !hasRepresentative,
-          })
-          .run();
-      }
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from: loadingPos, to: loadingPos + 1 })
+        .setTextSelection(loadingPos)
+        .setBlockImage({
+          src: url,
+          isRepresentative: !hasRepresentative,
+        })
+        .run();
     } catch (error) {
-      let loadingPos = null;
-      editor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "imageLoading") {
-          loadingPos = pos;
-        }
-      });
-
-      if (loadingPos !== null) {
-        editor
-          .chain()
-          .focus()
-          .deleteRange({ from: loadingPos, to: loadingPos + 1 })
-          .run();
-      }
-
       alert(`이미지 업로드 실패: ${error.message}`);
     }
   }
 
   const insertCodeBlock = () => {
-    if (editor) {
-      editor.chain().focus().insertMonacoCodeBlock().run();
-    }
+    editor.chain().focus().insertMonacoCodeBlock().run();
   };
 
   if (!editor) return null;
 
-  const isDark = currentTheme === "dark";
-
   const getRepresentativeImage = () => {
-    let representImage = null;
-    let firstImage = null;
+    let represent = null;
+    let first = null;
 
     editor.state.doc.descendants((node) => {
       if (node.type.name === "blockImage" && !node.attrs.isSticker) {
-        if (!firstImage) firstImage = node.attrs.src;
-        if (node.attrs.isRepresentative) {
-          representImage = node.attrs.src;
-        }
+        if (!first) first = node.attrs.src;
+        if (node.attrs.isRepresentative) represent = node.attrs.src;
       }
     });
 
-    return representImage || firstImage;
+    return represent || first;
   };
 
   return (
     <div
       style={{
-        width: "100%",
         maxWidth: "900px",
         borderRadius: "1rem",
         backgroundColor: isDark ? "#101828" : "white",
-        border: `1px solid ${
-          isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
-        }`,
+        border: `1px solid ${isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"}`,
         boxShadow: isDark
-          ? "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
-          : "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-        transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s",
-        position: "relative",
+          ? "0 20px 25px -5px rgba(0,0,0,0.5)"
+          : "0 20px 25px -5px rgba(0,0,0,0.1)",
+        transition: "all 0.2s",
       }}
     >
+      {/* 제목 */}
       <div
         style={{
           padding: "2rem",
           borderBottom: `1px solid ${
-            isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
+            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
           }`,
-          backgroundColor: isDark ? "#101828" : "white",
-          borderTopLeftRadius: "1rem", 
-          borderTopRightRadius: "1rem",
-          transition: "background-color 0.2s, border-color 0.2s",
         }}
       >
         <input
@@ -312,27 +223,25 @@ const WriteEditor = ({
             width: "100%",
             fontSize: "1.875rem",
             fontWeight: "bold",
-            backgroundColor: "transparent",
-            color: isDark ? "rgb(229, 231, 235)" : "rgb(17, 24, 39)",
+            background: "transparent",
+            color: isDark ? "rgb(229,231,235)" : "rgb(17,24,39)",
             border: "none",
             outline: "none",
-            transition: "color 0.2s",
           }}
-          className="placeholder-gray-400 dark:placeholder-gray-500"
         />
       </div>
 
+      {/* 툴바 */}
       <div
         style={{
           position: "sticky",
           top: 0,
-          zIndex: 50,
+          zIndex: 10,
           padding: "1rem 1.5rem",
           backgroundColor: isDark ? "#101828" : "white",
           borderBottom: `1px solid ${
-            isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
+            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
           }`,
-          transition: "background-color 0.2s, border-color 0.2s",
         }}
       >
         <Toolbar
@@ -340,7 +249,6 @@ const WriteEditor = ({
           insertCodeBlock={insertCodeBlock}
           theme={currentTheme}
           onToggleSticker={() => setShowStickerPicker((v) => !v)}
-          type={toolbarType}
         />
 
         {showStickerPicker && (
@@ -352,38 +260,30 @@ const WriteEditor = ({
         )}
       </div>
 
+      {/* 본문 */}
       <div
         style={{
           padding: "1.5rem 2rem 3rem",
           minHeight: "500px",
-          fontSize: "1.125rem",
-          lineHeight: "1.7",
-          color: isDark ? "rgb(229, 231, 235)" : "rgb(31, 41, 55)",
-          backgroundColor: isDark ? "#101828" : "white",
-          transition: "background-color 0.2s, color 0.2s",
+          color: isDark ? "rgb(229,231,235)" : "rgb(31,41,55)",
         }}
       >
         <EditorContent editor={editor} />
       </div>
 
+      {/* 태그 */}
       <div
         style={{
           padding: "1.5rem 2rem",
           borderTop: `1px solid ${
-            isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
+            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
           }`,
-          backgroundColor: isDark ? "#101828" : "white",
-          transition: "background-color 0.2s, border-color 0.2s",
         }}
       >
-        <TagInput
-          tags={tags}
-          onChange={setTags}
-          maxTags={5}
-          isDark={isDark}
-        />
+        <TagInput tags={tags} onChange={setTags} maxTags={5} isDark={isDark} />
       </div>
 
+      {/* 하단 버튼 */}
       <div
         style={{
           padding: "1.5rem 2rem",
@@ -391,27 +291,19 @@ const WriteEditor = ({
           justifyContent: "flex-end",
           gap: "0.75rem",
           borderTop: `1px solid ${
-            isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
+            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
           }`,
-          backgroundColor: isDark ? "#101828" : "white",
-          borderBottomLeftRadius: "1rem",
-          borderBottomRightRadius: "1rem",
-          transition: "background-color 0.2s, border-color 0.2s",
         }}
       >
         <button
           onClick={() => window.history.back()}
           style={{
             padding: "0.625rem 1.5rem",
+            backgroundColor: isDark ? "rgb(31,41,55)" : "rgb(229,231,235)",
+            color: isDark ? "rgb(209,213,219)" : "rgb(55,65,81)",
             borderRadius: "0.5rem",
-            fontWeight: "500",
-            backgroundColor: isDark ? "rgb(31, 41, 55)" : "rgb(229, 231, 235)",
-            color: isDark ? "rgb(209, 213, 219)" : "rgb(55, 65, 81)",
-            border: `1px solid ${
-              isDark ? "rgb(55, 65, 81)" : "rgb(209, 213, 219)"
-            }`,
+            border: "1px solid",
             cursor: "pointer",
-            transition: "all 0.2s",
           }}
         >
           취소
@@ -419,38 +311,26 @@ const WriteEditor = ({
 
         <button
           onClick={() => {
-            if (!title.trim()) {
-              alert("제목을 입력하세요.");
-              return;
-            }
-            
+            if (!title.trim()) return alert("제목을 입력하세요.");
             const html = editor.getHTML();
-            if (!html || html === "<p></p>") {
-              alert("내용을 입력하세요.");
-              return;
-            }
+            if (!html || html === "<p></p>")
+              return alert("내용을 입력하세요.");
 
-            const representImage = getRepresentativeImage();
-            onSubmit({ title: title.trim(), content: html, representImage, tags });
+            onSubmit({
+              title: title.trim(),
+              content: html,
+              representImage: getRepresentativeImage(),
+              tags,
+            });
           }}
           style={{
             padding: "0.625rem 2rem",
-            borderRadius: "0.5rem",
-            fontWeight: "bold",
+            backgroundColor: "#ec4899",
             color: "white",
-            backgroundColor: "#ec4899", 
+            borderRadius: "0.5rem",
             border: "none",
+            fontWeight: "bold",
             cursor: "pointer",
-            boxShadow: isDark
-              ? "0 10px 15px -3px rgba(0, 0, 0, 0.4)"
-              : "0 10px 15px -3px rgba(0, 0, 0, 0.2)",
-            transition: "all 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = "#db2777";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = "#ec4899";
           }}
         >
           {mode === "edit" ? "수정하기" : "발행하기"}
