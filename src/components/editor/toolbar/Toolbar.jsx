@@ -287,6 +287,15 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker }) => {
           </ToolbarButton>
 
           <ToolbarButton
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            active={editor.isActive('codeBlock')}
+            title="코드 블록"
+            isDark={isDark}
+          >
+            {'</>'}
+          </ToolbarButton>
+
+          <ToolbarButton
             onClick={() => addLink(editor)}
             active={editor.isActive("link")}
             title="텍스트 링크"

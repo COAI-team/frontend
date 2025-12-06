@@ -15,6 +15,7 @@ import { TableButton } from "./toolbar/TableButton";
 
 // extensions 폴더에서 import
 import MonacoCodeBlock from "./extensions/MonacoCodeBlock";
+import { SimpleCodeBlock } from "./extensions/SimpleCodeBlock";
 import LinkPreview from "./extensions/LinkPreview";
 import { BlockImage } from "./extensions/ImageBlock.js";
 import { ImageLoading } from "./extensions/ImageLoading.js";
@@ -41,10 +42,8 @@ const WriteEditor = ({
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { theme, systemTheme } = useTheme();
   
-  // theme이 'system'이면 실제 시스템 테마를 사용
   const currentTheme = theme === 'system' ? systemTheme : theme;
 
-  // 대표 이미지가 있는지 확인하는 헬퍼 함수
   const checkIfHasRepresentative = (editor) => {
     let hasRepresentative = false;
     editor.state.doc.descendants((node) => {
@@ -87,6 +86,7 @@ const WriteEditor = ({
       CustomTableCell,
       CustomTableHeader,
 
+      SimpleCodeBlock,
       MonacoCodeBlock,
       LinkPreview,
     ],
@@ -94,6 +94,34 @@ const WriteEditor = ({
     content: initialContent,
 
     editorProps: {
+      handleKeyDown(view, event) {
+        if (event.key === 'Enter') {
+          const { state } = view;
+          const { selection } = state;
+          const { $from } = selection;
+
+          if ($from.parent.type.name === 'paragraph') {
+            const textBefore = $from.parent.textContent;
+            const match = textBefore.match(/^```([a-z]*)$/);
+            
+            if (match) {
+              const language = match[1] || 'plaintext';
+              
+              editor
+                .chain()
+                .deleteRange({ from: $from.start(), to: $from.end() })
+                .setCodeBlock({ language })
+                .run();
+              
+              event.preventDefault();
+              return true;
+            }
+          }
+        }
+        
+        return false;
+      },
+
       handleDrop(view, event, _slice, moved) {
         event.preventDefault();
         event.stopPropagation();
@@ -115,21 +143,18 @@ const WriteEditor = ({
     },
   });
 
-  // initialTitle이 변경될 때 title 업데이트
   useEffect(() => {
     if (initialTitle) {
       setTitle(initialTitle);
     }
   }, [initialTitle]);
 
-  // initialContent가 변경될 때 editor 내용 업데이트
   useEffect(() => {
     if (editor && initialContent) {
       editor.commands.setContent(initialContent);
     }
   }, [editor, initialContent]);
 
-  // initialTags가 변경될 때 tags 업데이트
   useEffect(() => {
     if (initialTags && initialTags.length > 0) {
       setTags(initialTags);
@@ -266,7 +291,6 @@ const WriteEditor = ({
         position: "relative",
       }}
     >
-      {/* 제목 입력 */}
       <div
         style={{
           padding: "2rem",
@@ -292,7 +316,6 @@ const WriteEditor = ({
         />
       </div>
 
-      {/* 플로팅 툴바 */}
       <div
         style={{
           position: "sticky",
@@ -321,7 +344,6 @@ const WriteEditor = ({
         )}
       </div>
 
-      {/* 에디터 본문 */}
       <div
         style={{
           padding: "1.5rem 2rem 3rem",
@@ -334,7 +356,6 @@ const WriteEditor = ({
         <EditorContent editor={editor} />
       </div>
 
-      {/* 태그 입력 */}
       <div
         style={{
           padding: "1.5rem 2rem",
@@ -351,7 +372,6 @@ const WriteEditor = ({
         />
       </div>
 
-      {/* 하단 버튼 */}
       <div
         style={{
           padding: "1.5rem 2rem",
