@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAnalysisHistory } from '../../service/codeAnalysis/analysisApi';
 import DashboardPage from './DashboardPage';
+import { getScoreBadgeColor, getSmellKeyword } from '../../utils/codeAnalysisUtils';
 
 const CodeAnalysisMain = () => {
     const [history, setHistory] = useState([]);
@@ -84,12 +85,8 @@ const CodeAnalysisMain = () => {
                                     <div className="flex items-center justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                                    item.aiScore >= 90 ? 'bg-green-100 text-green-700' :
-                                                    item.aiScore >= 70 ? 'bg-blue-100 text-blue-700' :
-                                                    'bg-orange-100 text-orange-700'
-                                                }`}>
-                                                    {item.aiScore}점
+                                                <span className={`px-2 py-1 rounded text-xs font-bold ${getScoreBadgeColor(item.aiScore)}`}>
+                                                    {getSmellKeyword(item.aiScore).text.split(' ')[1]}
                                                 </span>
                                                 <h3 className="text-lg font-semibold group-hover:text-indigo-600 transition-colors">
                                                     {item.filePath.split('/').pop()}

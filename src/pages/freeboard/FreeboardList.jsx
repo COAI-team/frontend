@@ -1,202 +1,344 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Eye, PencilLine } from "lucide-react";
+import axiosInstance from "../../server/AxiosConfig";
+import "../../styles/FreeboardList.css";
 
 const FreeboardList = () => {
-  const [boards, setBoards] = useState([]);
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [isDark, setIsDark] = useState(false);
-  const size = 5;
   const navigate = useNavigate();
-
-  // 다크모드 감지
-  useEffect(() => {
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    
-    checkDarkMode();
-    
-    // MutationObserver로 dark 클래스 변경 감지
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-    
-    return () => observer.disconnect();
-  }, []);
+  
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [sortBy, setSortBy] = useState('latest');
+  const [viewType, setViewType] = useState('list');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8090/freeboard", {
-        params: { page, size }
-      })
-      .then((res) => {
-        console.log("🔍 응답 데이터:", res.data);
-        setBoards(res.data.boards || res.data.content || []);
-        setTotalCount(res.data.totalCount || res.data.totalElements || 0);
-      })
-      .catch((err) => {
-        console.error("목록 불러오기 실패:", err);
-        console.error("에러 상세:", err.response?.data);
-      });
-  }, [page]);
+    fetchPosts();
+  }, [currentPage, sortBy, pageSize, searchKeyword]);
 
-  // HTML에서 텍스트만 추출하는 함수
-  const extractTextFromHTML = (htmlString) => {
-    if (!htmlString) return "내용 없음";
-    
+  const fetchPosts = async () => {
     try {
-      let content = htmlString;
-      if (htmlString.startsWith('[')) {
-        const blocks = JSON.parse(htmlString);
-        if (blocks.length > 0 && blocks[0].content) {
-          content = blocks[0].content;
+      setLoading(true);
+      const response = await axiosInstance.get('/freeboard/list', {
+        params: {
+          page: currentPage,
+          size: pageSize,
+          sort: sortBy,
+          keyword: searchKeyword
         }
-      }
+      });
       
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = content;
-      const text = tempDiv.textContent || tempDiv.innerText || "";
-      return text.trim().slice(0, 150) || "내용 없음";
-      
-    } catch (e) {
-      console.error("텍스트 추출 실패:", e);
-      return "내용을 불러올 수 없습니다";
+      console.log('응답:', response.data);
+      setPosts(response.data.content || []);
+      setTotalPages(response.data.totalPages || 1);
+    } catch (error) {
+      console.error('게시글 목록 조회 실패:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setCurrentPage(1);
+    fetchPosts();
+  };
+
+  const handlePostClick = (postId) => {
+    navigate(`/freeboard/${postId}`);
+  };
+
+  const handleWriteClick = () => {
+    navigate('/freeboard/write');
+  };
+
+  const getPreviewText = (content) => {
+    if (!content) return '내용 없음';
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const text = tempDiv.textContent || tempDiv.innerText || '';
+    
+    return text.length > 100 ? text.substring(0, 100) + '...' : text;
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    const diffMinutes = Math.floor(diff / 60000);
+    const diffHours = Math.floor(diff / 3600000);
+    const diffDays = Math.floor(diff / 86400000);
+
+    if (diffMinutes < 1) return '방금 전';
+    if (diffMinutes < 60) return `${diffMinutes}분 전`;
+    if (diffHours < 24) return `${diffHours}시간 전`;
+    if (diffDays < 7) return `${diffDays}일 전`;
+    
+    return date.toLocaleDateString('ko-KR');
+  };
+
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className={`text-3xl font-bold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-          자유게시판
-        </h1>
-        <p className={`mt-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-          개발과 관련된 다양한 주제로 자유롭게 이야기를 나눠보세요
-        </p>
+    <div className="freeboard-list-container">
+      <div className="freeboard-header">
+        <h1 className="freeboard-title">자유게시판</h1>
+        <p className="freeboard-subtitle">개발과 관련된 다양한 주제로 자유롭게 이야기를 나눠보세요</p>
       </div>
 
-      {boards.length === 0 ? (
-        <div className="text-center text-gray-400 py-20">
-          작성된 게시글이 없습니다.
+      {/* 검색 및 필터 영역 */}
+      <div className="freeboard-controls">
+        <div className="control-left">
+          <form onSubmit={handleSearch} className="search-form">
+            <input
+              type="text"
+              placeholder="검색어를 입력하세요"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              className="search-input"
+            />
+            <button type="submit" className="search-button">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" 
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </form>
+        </div>
+
+        <div className="control-right">
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+            className="sort-select"
+          >
+            <option value="latest">최신순</option>
+            <option value="comments">댓글 많은 순</option>
+            <option value="likes">좋아요 순</option>
+            <option value="views">조회수 순</option>
+          </select>
+
+          <select 
+            value={pageSize} 
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="pagesize-select"
+          >
+            <option value="10">10개씩 보기</option>
+            <option value="20">20개씩 보기</option>
+            <option value="30">30개씩 보기</option>
+            <option value="50">50개씩 보기</option>
+          </select>
+
+          <div className="view-type-buttons">
+            <button 
+              className={`view-type-btn ${viewType === 'list' ? 'active' : ''}`}
+              onClick={() => setViewType('list')}
+              title="리스트형"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <rect x="2" y="4" width="16" height="2" fill="currentColor"/>
+                <rect x="2" y="9" width="16" height="2" fill="currentColor"/>
+                <rect x="2" y="14" width="16" height="2" fill="currentColor"/>
+              </svg>
+            </button>
+            <button 
+              className={`view-type-btn ${viewType === 'card' ? 'active' : ''}`}
+              onClick={() => setViewType('card')}
+              title="카드형"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <rect x="2" y="2" width="7" height="7" fill="currentColor"/>
+                <rect x="11" y="2" width="7" height="7" fill="currentColor"/>
+                <rect x="2" y="11" width="7" height="7" fill="currentColor"/>
+                <rect x="11" y="11" width="7" height="7" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 게시글 목록 */}
+      {loading ? (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>게시글을 불러오는 중입니다...</p>
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="empty-container">
+          <p>게시글이 없습니다.</p>
+          <button onClick={handleWriteClick} className="write-first-btn">
+            첫 게시글 작성하기
+          </button>
         </div>
       ) : (
-        <div className="space-y-6">
-          {boards.map((b) => (
-            <div
-              key={b.freeboardId}
-              className={`${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-100'} rounded-xl p-5 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 flex gap-5 border`}
-              onClick={() => navigate(`/freeboard/${b.freeboardId}`)}
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-9 h-9 rounded-full ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-300 text-gray-700'} flex items-center justify-center text-sm`}>
-                    {String(b.userId).slice(0, 1)}
-                  </div>
-                  <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>
-                    사용자 {b.userId}
-                    <span className={`ml-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                      · {new Date(b.freeboardCreatedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
+        <>
+          {viewType === 'list' ? (
+            <div className="posts-list">
+              {posts.map((post) => (
+                <div 
+                  key={post.freeboardId} 
+                  className="post-item"
+                  onClick={() => handlePostClick(post.freeboardId)}
+                >
+                  <div className="post-content">
+                    <div className="post-header">
+                      <div className="post-user-info">
+                        <div className="user-avatar">
+                          <span className="user-initial">
+                            {post.userNickname?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                        <div className="user-details">
+                          <span className="user-nickname">{post.userNickname || 'User'}</span>
+                          <span className="post-date">{formatDate(post.freeboardCreatedAt)}</span>
+                        </div>
+                      </div>
+                    </div>
 
-                <h3 className={`text-xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'} mb-2`}>
-                  {b.freeboardTitle || "제목 없음"}
-                </h3>
+                    <h2 className="post-title">{post.freeboardTitle}</h2>
+                    <p className="post-preview">{getPreviewText(post.freeboardSummary)}</p>
 
-                <div className="text-gray-500 line-clamp-2">
-                  {extractTextFromHTML(b.freeboardContent)}
-                </div>
+                    {post.tags && (
+                      <div className="post-tags">
+                        {(Array.isArray(post.tags) ? post.tags : post.tags.split(',')).map((tag, index) => (
+                          <span key={index} className="post-tag">#{tag.trim()}</span>
+                        ))}
+                      </div>
+                    )}
 
-                {/* 태그 */}
-                {b.tags && b.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {b.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className={`
-                          px-2 py-1 rounded-md text-xs font-medium
-                          ${isDark
-                            ? "bg-gray-800 text-blue-300 border border-gray-700"
-                            : "bg-blue-100 text-blue-800"}
-                        `}
-                      >
-                        #{tag}
+                    <div className="post-stats">
+                      <span className="stat-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" 
+                                stroke="currentColor" strokeWidth="2"/>
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                        {post.freeboardClick || 0}
                       </span>
-                    ))}
+                      <span className="stat-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" 
+                                stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                        {post.commentCount || 0}
+                      </span>
+                      <span className="stat-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" 
+                                stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                        {post.likeCount || 0}
+                      </span>
+                    </div>
                   </div>
-                )}
 
-                <div className={`flex items-center gap-6 mt-4 text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                  <span className="flex items-center gap-1">
-                    <Eye size={16} />
-                    {b.freeboardClick}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Heart size={16} />
-                    0
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MessageCircle size={16} />
-                    0
-                  </span>
+                  {post.freeboardRepresentImage && (
+                    <div className="post-thumbnail">
+                      <img src={post.freeboardRepresentImage} alt="thumbnail" />
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              {b.freeboardRepresentImage && (
-                <img
-                  src={b.freeboardRepresentImage}
-                  alt="썸네일"
-                  className="w-32 h-32 object-cover rounded-lg"
-                />
-              )}
+              ))}
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="posts-grid">
+              {posts.map((post) => (
+                <div 
+                  key={post.freeboardId} 
+                  className="post-card"
+                  onClick={() => handlePostClick(post.freeboardId)}
+                >
+                  {post.freeboardRepresentImage && (
+                    <div className="card-thumbnail">
+                      <img src={post.freeboardRepresentImage} alt="thumbnail" />
+                    </div>
+                  )}
+                  
+                  <div className="card-content">
+                    <div className="card-header">
+                      <div className="card-user-info">
+                        <div className="user-avatar">
+                          <span className="user-initial">
+                            {post.userNickname?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                        <span className="user-nickname">{post.userNickname || 'User'}</span>
+                      </div>
+                      <span className="post-date">{formatDate(post.freeboardCreatedAt)}</span>
+                    </div>
+
+                    <h3 className="card-title">{post.freeboardTitle}</h3>
+                    <p className="card-preview">{getPreviewText(post.freeboardSummary)}</p>
+
+                    {post.tags && (
+                      <div className="card-tags">
+                        {(Array.isArray(post.tags) ? post.tags : post.tags.split(',')).slice(0, 3).map((tag, index) => (
+                          <span key={index} className="post-tag">#{tag.trim()}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="card-stats">
+                      <span className="stat-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" 
+                                stroke="currentColor" strokeWidth="2"/>
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                        {post.freeboardClick || 0}
+                      </span>
+                      <span className="stat-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" 
+                                stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                        {post.commentCount || 0}
+                      </span>
+                      <span className="stat-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" 
+                                stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                        {post.likeCount || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="pagination">
+            <button 
+              className="page-btn"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              이전
+            </button>
+            
+            <span className="page-info">
+              {currentPage} / {totalPages}
+            </span>
+            
+            <button 
+              className="page-btn"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              다음
+            </button>
+          </div>
+        </>
       )}
 
-      {totalCount > 0 && (
-        <div className="mt-10 flex justify-center items-center gap-3">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className={`px-3 py-1 rounded disabled:opacity-40 ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700'}`}
-          >
-            이전
-          </button>
-
-          <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
-            {page} / {Math.ceil(totalCount / size)}
-          </span>
-
-          <button
-            onClick={() => setPage((p) => (p * size < totalCount ? p + 1 : p))}
-            disabled={page * size >= totalCount}
-            className={`px-3 py-1 rounded disabled:opacity-40 ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700'}`}
-          >
-            다음
-          </button>
-        </div>
-      )}
-
-      <button
-        onClick={() => navigate("/freeboard/write")}
-        className={`
-          fixed bottom-30 right-80
-          px-6 py-3 rounded-full font-medium shadow-md transition-all duration-200 border flex items-center gap-2
-          ${
-            isDark
-              ? "bg-gray-800 text-gray-200 border-gray-600 hover:bg-gray-700"
-              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-          }
-        `}
-      >
-        <PencilLine size={18} />
+      <button className="floating-write-btn" onClick={handleWriteClick}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
         글쓰기
       </button>
     </div>
