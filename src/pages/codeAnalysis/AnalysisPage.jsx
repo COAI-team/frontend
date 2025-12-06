@@ -313,7 +313,14 @@ const AnalysisPage = () => {
 
             {/* Floating Write Button */}
             <button 
-                onClick={() => navigate('/codeboard/write')}
+                onClick={() => {
+                    const id = analysisResult?.analysisId || analysisId;
+                    if (id) {
+                        navigate(`/codeboard/write/${id}`);
+                    } else {
+                        alert('분석 결과 ID를 찾을 수 없습니다.');
+                    }
+                }}
                 className="floating-write-btn"
             >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

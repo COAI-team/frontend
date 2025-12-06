@@ -41,6 +41,9 @@ import MySubmissions from "./pages/algorithm/MySubmissions";
 import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
 import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
 
+// 코드게시판
+import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
+
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
 import ProfilePage from "./pages/myPage/ProfilePage";
@@ -98,7 +101,6 @@ createRoot(document.getElementById("root")).render(
               </Route>
 
               {/* 자유게시판 */}
-
               <Route path="freeboard/list" element={<FreeboardList />} />
               <Route path="freeboard/write" element={<FreeboardWrite />} />
               <Route path="freeboard/edit/:id" element={<FreeboardEdit />} />
@@ -144,6 +146,8 @@ createRoot(document.getElementById("root")).render(
                 path="codeAnalysis/:analysisId"
                 element={<AnalysisPage />}
               />
+              <Route path="codeboard/write" element={<CodeboardWrite />} />
+              <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
             </Route>
 
             {/* 잘못된 경로는 홈으로 */}
