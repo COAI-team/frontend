@@ -61,29 +61,29 @@ const CodeboardWrite = () => {
         }];
 
         console.log("📤 전송할 데이터:", {
-            title: title,
+            codeboardTitle: title,
             blocks: blocks,
-            representImage: representImage || null,
             tags: tags || [],
             analysisId: analysisId
         });
 
         axiosInstance
             .post("/codeboard", {
-                title: title,
+                codeboardTitle: title,
                 blocks: blocks,
-                representImage: representImage || null,
                 tags: tags || [],
                 analysisId: analysisId
             })
             .then((response) => {
                 console.log("✅ 응답:", response.data);
+                const codeboardId = response.data.data.codeboardId;  // result → data
                 alert("게시글이 등록되었습니다.");
-                navigate("/codeboard/list");
+                navigate(`/codeboard/${codeboardId}`);
             })
             .catch((err) => {
                 console.error("등록 실패:", err);
                 console.error("에러 상세:", err.response?.data);
+                alert("게시글 등록에 실패했습니다.");
             });
     };
 
