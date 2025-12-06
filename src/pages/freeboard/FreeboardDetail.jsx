@@ -72,17 +72,17 @@ const FreeboardDetail = () => {
   }, [id]);
 
   const handleLike = async () => {
-  try {
-    const response = await axiosInstance.post(`/like/freeboard/${id}`);
-    const { isLiked } = response.data;
-    
-    setIsLiked(isLiked);
-    setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
-  } catch (error) {
-    console.error('좋아요 처리 실패:', error);
-    alert('좋아요 처리에 실패했습니다.');
-  }
-};
+    try {
+      const response = await axiosInstance.post(`/like/freeboard/${id}`);
+      const { isLiked } = response.data;
+      
+      setIsLiked(isLiked);
+      setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+    } catch (error) {
+      console.error('좋아요 처리 실패:', error);
+      alert('좋아요 처리에 실패했습니다.');
+    }
+  };
 
   const handleShare = () => {
     console.log("공유 클릭");
@@ -267,150 +267,273 @@ const FreeboardDetail = () => {
 
   if (!board) {
     return (
-      <div className={`p-10 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#101828',
+        color: 'white',
+        padding: '2.5rem'
+      }}>
         로딩 중...
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <button
-        onClick={() => navigate("/freeboard/list")}
-        className={`mb-4 flex items-center gap-2 ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
-      >
-        ← 목록으로
-      </button>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#101828',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{
+        maxWidth: '900px',
+        margin: '0 auto'
+      }}>
+        <button
+          onClick={() => navigate("/freeboard/list")}
+          style={{
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            color: '#9ca3af',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            transition: 'color 0.2s'
+          }}
+          onMouseEnter={(e) => e.target.style.color = '#e5e7eb'}
+          onMouseLeave={(e) => e.target.style.color = '#9ca3af'}
+        >
+          ← 목록으로
+        </button>
 
-      <div className="flex items-start justify-between mb-3">
-        <h1 className={`text-4xl font-bold flex-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-          {board.freeboardTitle || "제목 없음"}
-        </h1>
-        
-        <div className="flex gap-3 ml-4">
-          <button
-            onClick={() => navigate(`/freeboard/edit/${id}`)}
-            className={`px-5 py-2.5 rounded text-base font-medium transition-colors ${
-              isDark 
-                ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            수정
-          </button>
-          <button
-            onClick={() => {
-              if (window.confirm("정말 삭제하시겠습니까?")) {
-                axiosInstance
-                  .delete(`/freeboard/${id}`)
-                  .then(() => {
-                    alert("삭제되었습니다.");
-                    navigate("/freeboard/list");
-                  })
-                  .catch((err) => {
-                    console.error("삭제 실패:", err);
-                    alert("삭제에 실패했습니다.");
-                  });
-              }
-            }}
-            className={`px-5 py-2.5 rounded text-base font-medium transition-colors ${
-              isDark
-                ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50'
-                : 'bg-red-100 text-red-600 hover:bg-red-200'
-            }`}
-          >
-            삭제
-          </button>
-        </div>
-      </div>
-
-      <div className={`flex items-center gap-4 mb-6 pb-6 border-b ${isDark ? 'text-gray-400 border-gray-700' : 'text-gray-600 border-gray-300'}`}>
-        <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${isDark ? 'bg-gray-600 text-gray-200' : 'bg-gray-300 text-gray-700'}`}>
-            {board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'}
-          </div>
-          <span>{board.userNickname || '익명'}</span>
-        </div>
-        <span>·</span>
-        <span>{new Date(board.freeboardCreatedAt).toLocaleString()}</span>
-        <span>·</span>
-        <span>조회수 {board.freeboardClick}</span>
-      </div>
-
-      <div
-        ref={contentRef}
-        className="freeboard-content mb-8"
-        dangerouslySetInnerHTML={{ __html: getRenderedContent(board.freeboardContent) }}
-      ></div>
-
-      {board.tags && board.tags.length > 0 && (
-        <div className={`mt-8 pb-8 flex flex-wrap gap-2`}>
-          {board.tags.map((tag, index) => (
-            <span
-              key={index}
-              className={`px-3 py-1 rounded-full text-sm ${
-                isDark
-                  ? 'bg-blue-900 text-blue-200'
-                  : 'bg-blue-100 text-blue-800'
-              }`}
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          marginBottom: '0.75rem'
+        }}>
+          <h1 style={{
+            fontSize: '2.25rem',
+            fontWeight: '700',
+            flex: 1,
+            color: '#e5e7eb'
+          }}>
+            {board.freeboardTitle || "제목 없음"}
+          </h1>
+          
+          <div style={{ display: 'flex', gap: '0.75rem', marginLeft: '1rem' }}>
+            <button
+              onClick={() => navigate(`/freeboard/edit/${id}`)}
+              style={{
+                padding: '0.625rem 1.25rem',
+                borderRadius: '0.5rem',
+                fontSize: '1rem',
+                fontWeight: '500',
+                backgroundColor: '#374151',
+                color: '#e5e7eb',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#4b5563'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#374151'}
             >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div className={`flex items-center justify-between py-4 mt-32 pt-8 border-t ${isDark ? 'border-gray-700' : 'border-gray-300'}`}>
-        <div className="flex items-center gap-6">
-          <button
-            onClick={handleLike}
-            className={`flex items-center gap-2 transition-colors ${
-              isLiked
-                ? 'text-red-500'
-                : isDark ? 'text-gray-400 hover:text-red-400' : 'text-gray-600 hover:text-red-500'
-            }`}
-          >
-            <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
-            <span className="text-sm">좋아요</span>
-            <span className="font-medium">{likeCount}</span>
-          </button>
-
-          <div className={`flex items-center gap-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            <MessageCircle size={20} />
-            <span className="text-sm">댓글</span>
-            <span className="font-medium">{commentCount}</span>
+              수정
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm("정말 삭제하시겠습니까?")) {
+                  axiosInstance
+                    .delete(`/freeboard/${id}`)
+                    .then(() => {
+                      alert("삭제되었습니다.");
+                      navigate("/freeboard/list");
+                    })
+                    .catch((err) => {
+                      console.error("삭제 실패:", err);
+                      alert("삭제에 실패했습니다.");
+                    });
+                }
+              }}
+              style={{
+                padding: '0.625rem 1.25rem',
+                borderRadius: '0.5rem',
+                fontSize: '1rem',
+                fontWeight: '500',
+                backgroundColor: 'rgba(127, 29, 29, 0.3)',
+                color: '#fca5a5',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(127, 29, 29, 0.5)'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(127, 29, 29, 0.3)'}
+            >
+              삭제
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <button 
-            onClick={handleShare}
-            className={`flex items-center gap-2 text-sm transition-colors ${
-              isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Share2 size={18} />
-            <span>공유</span>
-          </button>
-
-          <button 
-            onClick={handleReport}
-            className={`flex items-center gap-2 text-sm transition-colors ${
-              isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <AlertCircle size={18} />
-            <span>신고</span>
-          </button>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          marginBottom: '1.5rem',
+          paddingBottom: '1.5rem',
+          borderBottom: '1px solid #374151',
+          color: '#9ca3af'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{
+              width: '2rem',
+              height: '2rem',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.875rem',
+              backgroundColor: '#374151',
+              color: '#e5e7eb'
+            }}>
+              {board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'}
+            </div>
+            <span>{board.userNickname || '익명'}</span>
+          </div>
+          <span>·</span>
+          <span>{new Date(board.freeboardCreatedAt).toLocaleString()}</span>
+          <span>·</span>
+          <span>조회수 {board.freeboardClick}</span>
         </div>
-      </div>
 
-      <CommentSection
-        boardId={Number(id)}
-        boardType="FREEBOARD"
-        currentUserId={currentUserId}
-        isDark={isDark}
-      />
+        <div
+          ref={contentRef}
+          className="freeboard-content"
+          style={{ marginBottom: '2rem' }}
+          dangerouslySetInnerHTML={{ __html: getRenderedContent(board.freeboardContent) }}
+        ></div>
+
+        {board.tags && board.tags.length > 0 && (
+          <div style={{
+            marginTop: '2rem',
+            paddingBottom: '2rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.5rem'
+          }}>
+            {board.tags.map((tag, index) => (
+              <span
+                key={index}
+                style={{
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.875rem',
+                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  color: '#60a5fa'
+                }}
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '1rem 0',
+          marginTop: '8rem',
+          paddingTop: '2rem',
+          borderTop: '1px solid #374151'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <button
+              onClick={handleLike}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: isLiked ? '#ef4444' : '#9ca3af',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => !isLiked && (e.currentTarget.style.color = '#fca5a5')}
+              onMouseLeave={(e) => !isLiked && (e.currentTarget.style.color = '#9ca3af')}
+            >
+              <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
+              <span style={{ fontSize: '0.875rem' }}>좋아요</span>
+              <span style={{ fontWeight: '500' }}>{likeCount}</span>
+            </button>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: '#9ca3af'
+            }}>
+              <MessageCircle size={20} />
+              <span style={{ fontSize: '0.875rem' }}>댓글</span>
+              <span style={{ fontWeight: '500' }}>{commentCount}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <button 
+              onClick={handleShare}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9ca3af',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.color = '#d1d5db'}
+              onMouseLeave={(e) => e.target.style.color = '#9ca3af'}
+            >
+              <Share2 size={18} />
+              <span>공유</span>
+            </button>
+
+            <button 
+              onClick={handleReport}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9ca3af',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.color = '#d1d5db'}
+              onMouseLeave={(e) => e.target.style.color = '#9ca3af'}
+            >
+              <AlertCircle size={18} />
+              <span>신고</span>
+            </button>
+          </div>
+        </div>
+
+        <CommentSection
+          boardId={Number(id)}
+          boardType="FREEBOARD"
+          currentUserId={currentUserId}
+          isDark={isDark}
+        />
+      </div>
     </div>
   );
 };
