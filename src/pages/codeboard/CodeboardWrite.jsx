@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import { axiosInstance } from '../../server/AxiosConfig';
 import WriteEditor from '../../components/editor/WriteEditor';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
@@ -8,6 +9,7 @@ import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUti
 const CodeboardWrite = () => {
     const { analysisId } = useParams();
     const navigate = useNavigate();
+    const { theme } = useTheme();
 
     // 분석 결과 상태
     const [fileContent, setFileContent] = useState('');
@@ -87,10 +89,10 @@ const CodeboardWrite = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                    <p className="text-gray-400">분석 결과를 불러오는 중...</p>
+                    <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>분석 결과를 불러오는 중...</p>
                 </div>
             </div>
         );
@@ -98,9 +100,11 @@ const CodeboardWrite = () => {
 
     if (error || !analysisResult) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
                 <div className="text-center">
-                    <p className="text-xl mb-4">{error || "분석 결과를 찾을 수 없습니다."}</p>
+                    <p className={`text-xl mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {error || "분석 결과를 찾을 수 없습니다."}
+                    </p>
                     <button
                         onClick={() => navigate('/codeAnalysis')}
                         className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
@@ -113,20 +117,20 @@ const CodeboardWrite = () => {
     }
 
     return (
-        <div className="min-h-screen">
+        <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
             {/* 상단 헤더 */}
-            <div className="shadow-sm border-b">
+            <div className={`shadow-sm border-b ${theme === 'dark' ? 'border-gray-800 bg-gray-900' : 'border-gray-200 bg-white'}`}>
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <button 
                                 onClick={() => navigate(-1)}
-                                className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                                className={`transition-colors ${theme === 'dark' ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-800'}`}
                             >
                                 ← 뒤로가기
                             </button>
-                            <span>|</span>
-                            <h1 className="text-lg font-semibold">
+                            <span className={theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}>|</span>
+                            <h1 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                                 💬 코드리뷰 게시글 작성
                             </h1>
                         </div>
@@ -141,76 +145,126 @@ const CodeboardWrite = () => {
                     {/* 왼쪽 패널: 코드 뷰어 + 분석 결과 */}
                     <div className="space-y-6">
                         {/* 코드 뷰어 */}
-                        <div className="rounded-lg shadow-sm border overflow-hidden">
-                            <div className="p-4 border-b flex justify-between items-center">
-                                <h3 className="font-semibold">
-                                    💻 코드 뷰어 - {analysisResult.filePath}
-                                </h3>
-                                <span className="text-xs">ReadOnly</span>
+                        <div className={`border rounded-lg overflow-hidden ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+                            {/* 헤더 */}
+                            <div className={`px-4 py-2 border-b flex justify-between items-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'}`}>
+                                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    {analysisResult.filePath?.split('/').pop()}
+                                </span>
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(fileContent);
+                                        alert('코드가 복사되었습니다.');
+                                    }}
+                                    className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    복사
+                                </button>
                             </div>
-                            <div className="p-0">
-                                <textarea
-                                    value={fileContent}
-                                    readOnly
-                                    className="w-full h-[600px] p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] resize-none focus:outline-none"
-                                    placeholder="코드를 불러오는 중..."
-                                />
+                            
+                            {/* 코드 영역 */}
+                            <div className="overflow-auto" style={{ maxHeight: '500px' }}>
+                                {fileContent.split('\n').map((line, index) => {
+                                    const lineNumber = index + 1;
+                                    return (
+                                        <div
+                                            key={lineNumber}
+                                            className={`flex ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}
+                                        >
+                                            <div className={`w-12 flex-shrink-0 px-2 text-right text-xs select-none border-r ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-600' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+                                                {lineNumber}
+                                            </div>
+                                            <div className="flex-1 px-4 py-0">
+                                                <pre className={`text-sm m-0 font-mono ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{line || ' '}</pre>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
 
                         {/* 분석 결과 */}
-                        <div className="rounded-lg shadow-sm border p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold">
-                                    📊 분석 결과
-                                </h2>
+                        <div className={`border rounded-lg overflow-hidden ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+                            {/* 헤더 */}
+                            <div className={`px-4 py-2 border-b flex justify-between items-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'}`}>
+                                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    분석 결과
+                                </span>
                                 {analysisResult && (
-                                    <div className="flex items-center gap-2">
-                                        <span className={`px-3 py-1 rounded-full font-bold text-sm ${getScoreBadgeColor(analysisResult.aiScore)}`}>
-                                            {getSmellKeyword(analysisResult.aiScore).text}
-                                        </span>
-                                    </div>
+                                    <span className={`px-3 py-1 rounded-full font-bold text-xs ${getScoreBadgeColor(analysisResult.aiScore)}`}>
+                                        {getSmellKeyword(analysisResult.aiScore).text}
+                                    </span>
                                 )}
                             </div>
 
-                            {analysisResult && (
-                                <div className="space-y-6">
-                                    {/* Code Smells */}
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-red-600 mb-3">🚨 발견된 문제점 (Code Smells)</h3>
-                                        <div className="space-y-3">
-                                            {analysisResult.codeSmells && (typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).map((smell, idx) => (
-                                                <div key={idx} className="p-3 bg-red-50 border border-red-100 rounded">
-                                                    <div className="font-medium text-red-800">{smell.name}</div>
-                                                    <div className="text-sm text-red-600 mt-1">{smell.description}</div>
+                            {/* 내용 */}
+                            <div className="p-4 space-y-4 overflow-auto" style={{ maxHeight: '600px' }}>
+                                {analysisResult && (
+                                    <>
+                                        {/* Code Smells */}
+                                        {analysisResult.codeSmells && (typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).length > 0 && (
+                                            <div>
+                                                <h3 className={`text-sm font-semibold mb-2 flex items-center gap-2 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                                    </svg>
+                                                    발견된 문제점
+                                                </h3>
+                                                <div className="space-y-2">
+                                                    {(typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).map((smell, idx) => (
+                                                        <div key={idx} className={`p-3 border rounded ${theme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'}`}>
+                                                            <div className={`font-medium text-sm ${theme === 'dark' ? 'text-red-300' : 'text-red-800'}`}>{smell.name}</div>
+                                                            <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>{smell.description}</div>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                            </div>
+                                        )}
 
-                                    {/* Suggestions */}
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-green-600 mb-3">💡 개선 제안</h3>
-                                        <div className="space-y-4">
-                                            {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
-                                                <div key={idx} className="border rounded-lg overflow-hidden">
-                                                    <div className="p-3 border-b text-sm font-medium">제안 #{idx + 1}</div>
-                                                    <div className="p-3 bg-white">
-                                                        <div className="text-xs text-gray-500 mb-1">변경 전:</div>
-                                                        <pre className="bg-red-50 p-2 rounded text-xs mb-3 overflow-x-auto text-red-700">
-                                                            {suggestion.problematicSnippet || suggestion.problematicCode}
-                                                        </pre>
-                                                        <div className="text-xs text-gray-500 mb-1">변경 후:</div>
-                                                        <pre className="bg-green-50 p-2 rounded text-xs overflow-x-auto text-green-700">
-                                                            {suggestion.proposedReplacement}
-                                                        </pre>
-                                                    </div>
+                                        {/* Suggestions */}
+                                        {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).length > 0 && (
+                                            <div>
+                                                <h3 className={`text-sm font-semibold mb-2 flex items-center gap-2 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                                                    </svg>
+                                                    개선 제안
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {(typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
+                                                        <div key={idx} className={`border rounded overflow-hidden ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                                                            <div className={`px-3 py-2 border-b ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                                                                <span className={`text-xs font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>제안 #{idx + 1}</span>
+                                                            </div>
+                                                            <div className="p-3 space-y-2">
+                                                                {suggestion.problematicSnippet && (
+                                                                    <div>
+                                                                        <div className={`text-xs mb-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>변경 전:</div>
+                                                                        <pre className={`p-2 rounded text-xs overflow-x-auto font-mono ${theme === 'dark' ? 'bg-red-900/20 text-red-300' : 'bg-red-50 text-red-700'}`}>
+                                                                            {suggestion.problematicSnippet || suggestion.problematicCode}
+                                                                        </pre>
+                                                                    </div>
+                                                                )}
+                                                                {suggestion.proposedReplacement && (
+                                                                    <div>
+                                                                        <div className={`text-xs mb-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>변경 후:</div>
+                                                                        <pre className={`p-2 rounded text-xs overflow-x-auto font-mono ${theme === 'dark' ? 'bg-green-900/20 text-green-300' : 'bg-green-50 text-green-700'}`}>
+                                                                            {suggestion.proposedReplacement}
+                                                                        </pre>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
 
