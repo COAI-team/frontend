@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { loadTossPayments } from "@tosspayments/tosspayments-sdk";
-import axiosInstance from "../../server/AxiosConfig";
-import { getAuth } from "../../utils/auth/token";
-import "./payment.css";
+import { fetchPointInfo } from "../../service/mypage/MyPageApi";
+import { fetchUpgradeQuote, readyPayment } from "../../service/payment/PaymentApi";
+import { getAuth, removeAuth } from "../../utils/auth/token";
+import AlertModal from "../../components/modal/AlertModal";
+import "./css/payment.css";
 
 const clientKey = import.meta.env.VITE_TOSS_PAYMENTS_CLIENT_KEY;
 const SUCCESS_URL = `${window.location.origin}/pages/payment/PaymentSuccess`;
@@ -22,10 +24,9 @@ function PaymentPage() {
   const planKey = PLANS[planParam] ? planParam : "basic";
   const plan = PLANS[planKey];
 
-  const [orderId] = useState(
-    () => `sub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
-  );
+  const [orderId] = useState(() => `sub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
   const customerKey = useMemo(() => `USER_${orderId}`, [orderId]);
+  const customerName = "CUSTOMER";
 
   const [userPoints, setUserPoints] = useState(0);
   const [pointsToUse, setPointsToUse] = useState(0);
@@ -36,19 +37,23 @@ function PaymentPage() {
   const [widgets, setWidgets] = useState(null);
   const [isWidgetReady, setIsWidgetReady] = useState(false);
   const hasRenderedWidgetsRef = useRef(false);
+  const isRenderingWidgetsRef = useRef(false);
 
   const [isReadySaving, setIsReadySaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [showPointConfirm, setShowPointConfirm] = useState(false);
+  const [showLoginAlert, setShowLoginAlert] = useState(!getAuth()?.accessToken);
 
   const [isUpgrade, setIsUpgrade] = useState(false);
   const [upgradeInfo, setUpgradeInfo] = useState(null);
 
   useEffect(() => {
-    setIsAuthed(!!getAuth()?.accessToken);
+    const authed = !!getAuth()?.accessToken;
+    setIsAuthed(authed);
+    setShowLoginAlert(!authed);
   }, []);
 
-  // 보유 포인트 조회
+  // 포인트 잔액 조회
   useEffect(() => {
     if (!isAuthed) {
       setErrorMsg("로그인 후 결제를 진행해 주세요.");
@@ -57,12 +62,20 @@ function PaymentPage() {
 
     async function fetchUserPoints() {
       try {
-        const res = await axiosInstance.get("/users/me/points");
+        const res = await fetchPointInfo();
         const raw = res.data?.points ?? 0;
         const numericPoints = typeof raw === "number" ? raw : Number(raw) || 0;
         setUserPoints(numericPoints);
       } catch (e) {
-        console.warn("포인트 조회 실패(임시 0P 적용):", e);
+        const status = e?.response?.status;
+        if (status === 401 || status === 403) {
+          removeAuth();
+          setIsAuthed(false);
+          setShowLoginAlert(true);
+          setUserPoints(0);
+          return;
+        }
+        console.warn("포인트 조회 실패(임시 0P 사용):", e);
         setUserPoints(0);
       }
     }
@@ -70,9 +83,9 @@ function PaymentPage() {
     fetchUserPoints();
   }, [isAuthed]);
 
-  // PRO 업그레이드 차액 조회
+  // PRO 업그레이드 추가 결제 금액 조회
   useEffect(() => {
-    async function fetchUpgradeQuote() {
+    async function fetchUpgradeQuoteData() {
       try {
         if (!isAuthed) return;
         if (plan.code !== "PRO") {
@@ -84,10 +97,7 @@ function PaymentPage() {
           return;
         }
 
-        const res = await axiosInstance.get("/payments/upgrade-quote", {
-          params: { planCode: plan.code },
-        });
-
+        const res = await fetchUpgradeQuote(plan.code);
         const info = res.data;
 
         if (!info || !info.upgrade) {
@@ -119,7 +129,19 @@ function PaymentPage() {
         setPointsToUse(0);
         setAmountValue(extra);
       } catch (e) {
-        console.warn("업그레이드 차액 조회 실패(기본 결제로 처리):", e);
+        const status = e?.response?.status;
+        if (status === 401 || status === 403) {
+          removeAuth();
+          setIsAuthed(false);
+          setShowLoginAlert(true);
+          setIsUpgrade(false);
+          setUpgradeInfo(null);
+          setBaseAmount(plan.baseAmount);
+          setPointsToUse(0);
+          setAmountValue(plan.baseAmount);
+          return;
+        }
+        console.warn("업그레이드 추가 금액 조회 실패(기본 결제):", e);
         setIsUpgrade(false);
         setUpgradeInfo(null);
         setBaseAmount(plan.baseAmount);
@@ -128,7 +150,7 @@ function PaymentPage() {
       }
     }
 
-    fetchUpgradeQuote();
+    fetchUpgradeQuoteData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan.code, isAuthed]);
 
@@ -150,15 +172,15 @@ function PaymentPage() {
     } else {
       setErrorMsg("Toss 결제 클라이언트 키가 설정되지 않았습니다.");
     }
-  }, []);
+  }, [customerKey]);
 
-  // 최초 한 번 위젯 렌더링
-  // render payment widgets once (prevent duplicate render)
+  // 결제 모듈 1회 렌더
   useEffect(() => {
     if (!widgets) return;
-    if (hasRenderedWidgetsRef.current) return;
+    if (hasRenderedWidgetsRef.current || isRenderingWidgetsRef.current) return;
 
     let isCancelled = false;
+    isRenderingWidgetsRef.current = true;
 
     async function renderPaymentWidgetsOnce() {
       try {
@@ -183,18 +205,13 @@ function PaymentPage() {
           setIsWidgetReady(true);
         }
       } catch (error) {
-        const msg = error?.message || String(error);
-        if (msg.toLowerCase().includes("widget")) {
-          if (!isCancelled) {
-            hasRenderedWidgetsRef.current = true;
-            setIsWidgetReady(true);
-          }
-          return;
-        }
-        console.error("payment widget render failed:", error);
         if (!isCancelled) {
-          setIsWidgetReady(false);
-          setErrorMsg("?? ??? ???? ?????. ?? ? ?? ??????.");
+          console.error("결제 모듈 렌더 실패:", error);
+          setErrorMsg("결제 모듈을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        }
+      } finally {
+        if (!isCancelled) {
+          isRenderingWidgetsRef.current = false;
         }
       }
     }
@@ -204,129 +221,135 @@ function PaymentPage() {
     return () => {
       isCancelled = true;
     };
-  }, [widgets, amountValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [widgets]);
 
-  // 금액 변경 시 setAmount만 재호출
+  // 금액 변경 시 업데이트
   useEffect(() => {
-    if (!widgets) return;
+    if (!widgets || !hasRenderedWidgetsRef.current) return;
 
-    widgets
-      .setAmount({
-        currency: "KRW",
-        value: amountValue,
-      })
-      .catch((error) => {
-        console.error("위젯 금액 변경 실패:", error);
-      });
+    const updateAmount = async () => {
+      try {
+        await widgets.setAmount({ currency: "KRW", value: amountValue });
+      } catch (err) {
+        console.warn("결제 금액 업데이트 실패:", err);
+      }
+    };
+    updateAmount();
   }, [widgets, amountValue]);
-
-  const handlePointsChange = (event) => {
-    let raw = event.target.value.replace(/[^0-9]/g, "");
-    let value = raw === "" ? 0 : parseInt(raw, 10);
-
-    if (Number.isNaN(value)) value = 0;
-    if (value > userPoints) value = userPoints;
-    if (value > baseAmount) value = baseAmount;
-
-    setPointsToUse(value);
-    setAmountValue(baseAmount - value);
-  };
-
-  const handleUseAllPoints = () => {
-    const maxUsable = Math.min(userPoints, baseAmount);
-    setPointsToUse(maxUsable);
-    setAmountValue(baseAmount - maxUsable);
-  };
 
   const maxUsablePoints = Math.min(userPoints, baseAmount);
 
-  const buildReadyPayload = (overrideAmount) => ({
-    orderId,
-    orderName: plan.name,
-    customerName: "구독 결제",
-    planCode: plan.code,
-    originalAmount: baseAmount,
-    usedPoint: pointsToUse,
-    amount: overrideAmount,
-  });
-
-  const handleRequestError = (error, fallbackMsg) => {
-    console.error(fallbackMsg, error);
-    if (error.response?.data?.message) {
-      setErrorMsg(error.response.data.message);
-    } else if (error.message) {
-      setErrorMsg(`${fallbackMsg}: ${error.message}`);
-    } else {
-      setErrorMsg(fallbackMsg);
+  const handlePointsChange = (e) => {
+    const raw = e.target.value.replace(/,/g, "");
+    const numeric = Number(raw);
+    if (Number.isNaN(numeric)) {
+      setPointsToUse(0);
+      setAmountValue(baseAmount);
+      return;
     }
+    const clamped = Math.max(0, Math.min(numeric, maxUsablePoints));
+    setPointsToUse(clamped);
+    setAmountValue(Math.max(baseAmount - clamped, 0));
+  };
+
+  const handleUseAllPoints = () => {
+    setPointsToUse(maxUsablePoints);
+    setAmountValue(Math.max(baseAmount - maxUsablePoints, 0));
+  };
+
+  const isDisabledPayButton = amountValue > 0 && (!widgets || !isWidgetReady);
+
+  const renderUpgradeNotice = () => {
+    if (!isUpgrade || !upgradeInfo) return null;
+    const remainDays = upgradeInfo.remainDays ?? upgradeInfo.remainingDays;
+    return (
+      <div className="pay-upgrade-box">
+        <div className="pay-upgrade-title">BASIC → PRO 업그레이드 결제입니다.</div>
+        <div className="pay-upgrade-text">
+          현재 Basic을 이용 중이며 {remainDays ?? 0}일이 남아 있습니다. 남은 기간만 PRO를 이용하시려면{" "}
+          <strong>{baseAmount.toLocaleString()}원</strong>을 추가 결제합니다.
+        </div>
+        {upgradeInfo.prevPlanEnd && (
+          <div className="pay-upgrade-sub">기존 Basic 구독 만료일: {upgradeInfo.prevPlanEnd}</div>
+        )}
+      </div>
+    );
   };
 
   const performPointOnlyPayment = async () => {
-    if (!isAuthed) {
-      navigate("/signin");
+    const maxPointSpend = Math.min(userPoints, baseAmount);
+    const pointSpend = Math.min(pointsToUse || 0, maxPointSpend);
+    if (pointSpend <= 0) {
+      setErrorMsg("포인트 전액 결제를 위해 사용 포인트를 입력해 주세요.");
       return;
     }
-    if (isReadySaving) return;
-    setErrorMsg("");
+    if (pointSpend < baseAmount) {
+      setErrorMsg("포인트가 부족해 전액 결제가 불가합니다.");
+      return;
+    }
+    setPointsToUse(pointSpend);
+    setShowPointConfirm(false);
     setIsReadySaving(true);
+    setErrorMsg("");
     try {
-      const readyPayload = buildReadyPayload(0);
-      const readyResponse = await axiosInstance.post("/payments/ready", readyPayload);
-
-      if (!(readyResponse.status === 201 || readyResponse.status === 200)) {
-        throw new Error("READY API 응답이 올바르지 않습니다.");
+      await readyPayment({
+        planCode: plan.code,
+        orderId,
+        amount: 0,
+        usedPoint: pointSpend,
+        orderName: plan.name,
+        customerName,
+        customerKey,
+        isUpgrade,
+      });
+      navigate(
+        `/pages/payment/PaymentSuccess?orderId=${orderId}&amount=0&pointOnly=true&plan=${plan.code}`
+      );
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 401 || status === 403) {
+        removeAuth();
+        setIsAuthed(false);
+        setShowLoginAlert(true);
+        return;
       }
-
+      setErrorMsg("포인트 결제 처리 중 오류가 발생했습니다.");
+    } finally {
       setIsReadySaving(false);
-      setShowPointConfirm(false);
-
-      window.location.href = `${SUCCESS_URL}?pointOnly=true&orderId=${orderId}`;
-    } catch (error) {
-      setIsReadySaving(false);
-      setShowPointConfirm(false);
-      handleRequestError(error, "포인트 전액 결제 실패");
     }
   };
 
   const handlePaymentRequest = async () => {
     if (!isAuthed) {
-      navigate("/signin");
+      setShowLoginAlert(true);
       return;
     }
 
     if (amountValue === 0) {
-      if (!showPointConfirm) {
-        setShowPointConfirm(true);
-        return;
-      }
-      await performPointOnlyPayment();
+      setShowPointConfirm(true);
       return;
     }
 
-    if (!widgets) return;
-
-    if (!clientKey) {
-      setErrorMsg("Toss 결제 클라이언트 키가 설정되지 않았습니다.");
+    if (!widgets || !isWidgetReady) {
+      setErrorMsg("결제 모듈 로드 중입니다. 잠시 후 다시 시도해 주세요.");
       return;
     }
 
-    if (amountValue < 0) {
-      setErrorMsg("최종 결제 금액이 0보다 작습니다. 포인트 사용을 줄여 주세요.");
-      return;
-    }
-
-    setErrorMsg("");
     setIsReadySaving(true);
+    setErrorMsg("");
 
     try {
-      const readyPayload = buildReadyPayload(amountValue);
-      const readyResponse = await axiosInstance.post("/payments/ready", readyPayload);
-
-      if (!(readyResponse.status === 201 || readyResponse.status === 200)) {
-        throw new Error("READY API 응답이 올바르지 않습니다.");
-      }
-
-      setIsReadySaving(false);
+      await readyPayment({
+        planCode: plan.code,
+        orderId,
+        amount: amountValue,
+        usedPoint: pointsToUse,
+        orderName: plan.name,
+        customerName,
+        customerKey,
+        isUpgrade,
+      });
 
       await widgets.requestPayment({
         orderId,
@@ -334,106 +357,62 @@ function PaymentPage() {
         successUrl: SUCCESS_URL,
         failUrl: FAIL_URL,
       });
-    } catch (error) {
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 401 || status === 403) {
+        removeAuth();
+        setIsAuthed(false);
+        setShowLoginAlert(true);
+        return;
+      }
+      console.error("결제 처리 중 오류:", e);
+      setErrorMsg("결제 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
       setIsReadySaving(false);
-      handleRequestError(error, "결제 요청 처리 실패");
     }
   };
 
-  if (!clientKey) {
-    return (
-      <div style={{ padding: "40px", color: "white" }}>
-        VITE_TOSS_PAYMENTS_CLIENT_KEY가 설정되지 않았습니다.
-      </div>
-    );
-  }
-
-  if (!isAuthed) {
-    return (
-      <div className="pay-page">
-        <h2 className="pay-title">결제</h2>
-        <p className="pay-error">로그인이 필요합니다.</p>
-        <button
-          type="button"
-          className="pay-btn-primary"
-          onClick={() => navigate("/signin")}
-        >
-          로그인하러 가기
-        </button>
-      </div>
-    );
-  }
-
-  const renderUpgradeNotice = () => {
-    if (!isUpgrade || !upgradeInfo) return null;
-
-    return (
-      <div
-        style={{
-          padding: "10px 12px",
-          backgroundColor: "#1f2937",
-          borderRadius: "8px",
-          fontSize: "13px",
-          marginBottom: "16px",
-          color: "#e5e7eb",
-          lineHeight: 1.5,
-        }}
-      >
-        <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-          BASIC → PRO 업그레이드 결제입니다.
-        </div>
-        <div>
-          현재 Basic을 <strong>{upgradeInfo.usedDays}일</strong> 사용했고{" "}
-          <strong>{upgradeInfo.remainingDays}일</strong>이 남아 있습니다.
-        </div>
-        <div>
-          남은 기간만큼 PRO로 이용하시려면{" "}
-          <strong>{Number(upgradeInfo.extraAmount).toLocaleString()}원</strong>
-          을 추가 결제합니다.
-        </div>
-        {upgradeInfo.basicEndDate && (
-          <div style={{ marginTop: "2px", fontSize: "12px", color: "#9ca3af" }}>
-            기존 Basic 구독 만료일: {upgradeInfo.basicEndDate}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const isDisabledPayButton =
-    isReadySaving || amountValue < 0 || (amountValue > 0 && !isWidgetReady);
-
   return (
     <div className="pay-page">
-      <h2 className="pay-title">구매: {plan.name}</h2>
-      <p className="pay-order">
-        주문번호: <strong>{orderId}</strong>
-      </p>
+      <div className="pay-summary-card">
+        <div className="pay-summary-header">
+          <div>
+            <h2 className="pay-title">구매: {plan.name}</h2>
+            <div className="pay-order">
+              주문번호: <strong>{orderId}</strong>
+            </div>
+          </div>
+          <div className="pay-price">
+            <span className="pay-price-label">{plan.code} 정가</span>
+            <span className="pay-price-value">{plan.baseAmount.toLocaleString()}원</span>
+          </div>
+        </div>
 
-      {!isUpgrade ? (
-        <p className="pay-text">
-          기본 금액: <strong>{plan.baseAmount.toLocaleString()}원</strong>
-        </p>
-      ) : (
-        <>
-          <p className="pay-text">
-            PRO 정가: <strong>{PLANS.pro.baseAmount.toLocaleString()}원</strong>
-          </p>
-          <p className="pay-text">
-            Basic → PRO 업그레이드 결제 금액:{" "}
-            <strong>{baseAmount.toLocaleString()}원</strong>
-          </p>
-        </>
-      )}
+        {isUpgrade ? (
+          <div className="pay-summary-row">
+            <span className="pay-summary-label">Basic → PRO 업그레이드 결제 금액</span>
+            <span className="pay-summary-value">{baseAmount.toLocaleString()}원</span>
+          </div>
+        ) : (
+          <div className="pay-summary-row">
+            <span className="pay-summary-label">{plan.name} 결제 금액</span>
+            <span className="pay-summary-value">{baseAmount.toLocaleString()}원</span>
+          </div>
+        )}
 
-      <p className="pay-summary">
-        사용 포인트{" "}
-        <strong style={{ color: "#facc15" }}>{pointsToUse.toLocaleString()}P</strong>{" "}
-        / 보유 <strong>{userPoints.toLocaleString()}P</strong>
-      </p>
-      <p className="pay-summary">
-        최종 결제 금액: <strong>{amountValue.toLocaleString()}원</strong>
-      </p>
+        <div className="pay-summary-row">
+          <span className="pay-summary-label">사용 포인트</span>
+          <span className="pay-summary-value">
+            <span className="pay-highlight">{pointsToUse.toLocaleString()}P</span>
+            <span className="pay-summary-sub"> / 보유 {userPoints.toLocaleString()}P</span>
+          </span>
+        </div>
+
+        <div className="pay-summary-row pay-summary-total">
+          <span className="pay-summary-label">최종 결제 금액</span>
+          <span className="pay-summary-value pay-total">{amountValue.toLocaleString()}원</span>
+        </div>
+      </div>
 
       <div className="pay-banner">Toss 결제 위젯으로 안전하게 결제됩니다.</div>
 
@@ -449,7 +428,7 @@ function PaymentPage() {
         <input
           id="points-input"
           type="text"
-          value={pointsToUse === 0 ? "" : pointsToUse}
+          value={pointsToUse === 0 ? "" : pointsToUse.toLocaleString()}
           onChange={handlePointsChange}
           placeholder="0"
           className="pay-input-dark"
@@ -463,9 +442,7 @@ function PaymentPage() {
           전액 사용
         </button>
       </div>
-      <div className="pay-helper">
-        최대 사용 가능 포인트 {maxUsablePoints.toLocaleString()}P
-      </div>
+      <div className="pay-helper">최대 사용 가능 포인트: {maxUsablePoints.toLocaleString()}P</div>
 
       {errorMsg && <div className="pay-error">{errorMsg}</div>}
 
@@ -484,22 +461,18 @@ function PaymentPage() {
           : `${amountValue.toLocaleString()}원 결제하기`}
       </button>
 
-      <button
-        type="button"
-        onClick={() => window.history.back()}
-        className="pay-btn-secondary"
-      >
+      <button type="button" onClick={() => window.history.back()} className="pay-btn-secondary">
         이전 페이지로 돌아가기
       </button>
 
       {showPointConfirm && (
         <div className="pay-modal-overlay">
           <div className="pay-modal">
-            <h3 className="pay-modal-title">포인트 전액 결제 확인</h3>
+            <h3 className="pay-modal-title">포인트 결제 확인</h3>
             <p className="pay-modal-text">
-              포인트로만 결제하면 최종 금액이 0원이 되며, <strong>환불이 불가</strong>합니다.
+              포인트만으로 결제하면 <strong>환불이 불가능 합니다</strong>.
             </p>
-            <p className="pay-modal-subtext">정말 포인트로 바로 결제할까요?</p>
+            <p className="pay-modal-subtext">정말 포인트만으로 바로 결제할까요?</p>
             <div className="pay-modal-actions">
               <button
                 type="button"
@@ -521,6 +494,21 @@ function PaymentPage() {
           </div>
         </div>
       )}
+
+      <AlertModal
+        open={showLoginAlert}
+        onClose={() => setShowLoginAlert(false)}
+        onConfirm={() =>
+          navigate("/signin", {
+            replace: true,
+            state: { redirect: `/pages/payment/buy?plan=${planKey}` },
+          })
+        }
+        type="warning"
+        title="로그인이 필요합니다"
+        message={"결제를 진행하려면 로그인이 필요합니다.\n로그인 화면으로 이동합니다."}
+        confirmText="확인"
+      />
     </div>
   );
 }

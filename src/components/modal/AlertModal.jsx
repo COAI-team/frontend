@@ -96,7 +96,11 @@ export default function AlertModal({
                                     {title}
                                 </DialogTitle>
                                 <div className="mt-2">
-                                    <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                    <p
+                                        className={`text-sm whitespace-pre-line ${
+                                            theme === "dark" ? "text-gray-300" : "text-gray-600"
+                                        }`}
+                                    >
                                         {message}
                                     </p>
                                 </div>
