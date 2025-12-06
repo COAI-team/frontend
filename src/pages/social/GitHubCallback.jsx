@@ -1,13 +1,26 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { loginWithGithub, linkGithubAccount } from "../../service/user/User";
 import { useNavigate } from "react-router-dom";
 import { useLogin } from "../../context/useLogin";
 import { saveAuth } from "../../utils/auth/token";
+import AlertModal from "../../components/modal/AlertModal";
 
 export default function GitHubCallback() {
     const navigate = useNavigate();
     const { login } = useLogin();
-    const executedRef = useRef(false); // 🔥 중복 실행 방지
+    const executedRef = useRef(false);
+
+    const [alertModal, setAlertModal] = useState({
+        open: false,
+        type: "info",
+        title: "",
+        message: "",
+        onConfirm: null,
+    });
+
+    const showAlert = (type, title, message, onConfirm = null) => {
+        setAlertModal({ open: true, type, title, message, onConfirm });
+    };
 
     useEffect(() => {
         if (executedRef.current) return;
@@ -19,55 +32,76 @@ export default function GitHubCallback() {
             const mode = url.searchParams.get("state");
 
             if (!code) {
-                console.error("❌ GitHub code 없음");
+                showAlert("error", "GitHub 오류", "GitHub code가 존재하지 않습니다.");
                 return;
             }
-
-            console.log("📨 GitHub 요청 시작:", { code, mode });
 
             const githubResult = await loginWithGithub(code, mode);
 
             if (githubResult?.error) {
-                console.error("❌ GitHub 처리 실패", githubResult.error);
+                console.error("❌ GitHub 처리 실패:", githubResult.error);
+                showAlert("error", "GitHub 처리 실패", githubResult.error);
                 return;
             }
 
-            // 🔗 연동 모드 (state=link)
+            // 🔗 연동 모드
             if (mode === "link") {
-                console.log("🔗 연동 모드 GitHubUserResponse =", githubResult);
-
                 const linkResult = await linkGithubAccount(githubResult.gitHubUser);
 
                 if (linkResult?.error) {
-                    console.error("❌ GitHub 연동 실패", linkResult.error);
+                    console.error("❌ GitHub 연동 실패:", linkResult.error);
+
+                    showAlert(
+                        "error",
+                        "GitHub 연동 실패",
+                        linkResult.error.response?.data?.message || "알 수 없는 오류가 발생했습니다.",
+                        () => navigate("/profile")   // ← 확인 버튼 클릭 시 이동!
+                    );
+
                     return;
                 }
 
-                alert("🎉 GitHub 계정 연동 완료!");
-                navigate("/profile");
+                showAlert("success", "연동 완료", "GitHub 계정 연동이 완료되었습니다!", () => {
+                    navigate("/profile");
+                });
                 return;
             }
 
-            // 🔐 로그인 모드 — loginResponse만 추출
+            // 🔐 로그인 모드
             const { loginResponse } = githubResult;
 
             if (!loginResponse) {
-                console.error("❌ loginResponse 누락됨:", githubResult);
+                console.error("❌ loginResponse 누락:", githubResult);
+                showAlert("error", "로그인 오류", "서버에서 loginResponse를 받지 못했습니다.");
                 return;
             }
 
             saveAuth(loginResponse);
             login(loginResponse, true);
 
-            navigate("/");
+            showAlert("success", "로그인 성공", "GitHub 로그인에 성공했습니다!", () => {
+                navigate("/");
+            });
         };
 
         processGithub();
     }, [navigate, login]);
 
     return (
-        <div style={{ padding: "20px", fontSize: "18px" }}>
+        <div className="flex items-center justify-center h-screen flex-col gap-4 text-lg">
+            <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full"></div>
             GitHub 인증 처리 중...
+
+            <AlertModal
+                open={alertModal.open}
+                onClose={() =>
+                    setAlertModal((prev) => ({ ...prev, open: false, onConfirm: null }))
+                }
+                onConfirm={alertModal.onConfirm}
+                type={alertModal.type}
+                title={alertModal.title}
+                message={alertModal.message}
+            />
         </div>
     );
 }

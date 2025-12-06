@@ -22,9 +22,18 @@ export const signup = async (payload) => {
             },
         });
         return res.data;
+
     } catch (err) {
-        console.error("❌ [signup] 오류:", err);
-        return {error: true};
+        console.error("❌ [signup] 서버 오류:", err);
+
+        // 서버가 보낸 메시지를 우선 반영
+        return {
+            error: true,
+            status: err.response?.status,
+            message: err.response?.data?.message
+                || err.response?.data?.error
+                || "알 수 없는 에러가 발생했습니다."
+        };
     }
 };
 
@@ -67,7 +76,7 @@ export const verifyEmailCode = async (email, code) => {
     }
 };
 
-// 임시 비밀번호 발급
+// 비밀번호 재설정 이메일 요청
 export const requestPasswordReset = async (email) => {
     try {
         const res = await axiosInstance.post("/users/password/reset/request", {
@@ -104,12 +113,11 @@ export const confirmPasswordReset = async (token, newPassword) => {
     }
 };
 
-// 회원 정보 수정 (🔥 accessToken 제거)
+// 회원 정보 수정
 export const updateMyInfo = async (payload) => {
     try {
         const formData = new FormData();
 
-        // 🔥 백엔드 DTO 필드명에 맞추기
         formData.append("userName", payload.name ?? "");
         formData.append("userNickname", payload.nickname ?? "");
 

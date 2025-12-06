@@ -1,25 +1,59 @@
-import { UserCircleIcon } from "@heroicons/react/24/solid";
-import { EditModeCardPropTypes } from "../../utils/propTypes";
-import { HiOutlineCamera } from "react-icons/hi";
+import {UserCircleIcon} from "@heroicons/react/24/solid";
+import {EditModeCardPropTypes} from "../../utils/propTypes";
+import {HiOutlineCamera} from "react-icons/hi";
+import {useState} from "react";
+import RuleItem from "../signup/RuleItem";
+import {validateNameRules, validateNicknameRules} from "../../utils/validators";
 
 export default function EditModeCard({
                                          profile,
                                          setProfile,
                                          handleImageChange,
                                          onCancel,
-                                         onSave
+                                         onSave,
                                      }) {
+    const [focusName, setFocusName] = useState(false);
+    const [focusNickname, setFocusNickname] = useState(false);
+
+    /** 이름 규칙 검사 */
+    const nameRules = validateNameRules(profile.name);
+    const showNameRules = focusName || profile.name.length > 0;
+    const isNameValid = nameRules.noSpaceSpecial;
+
+    /** 닉네임 규칙 검사 */
+    const nicknameRules = validateNicknameRules(profile.nickname);
+    const showNicknameRules = focusNickname || profile.nickname.length > 0;
+    const isNicknameValid =
+        nicknameRules.hasValidLength && nicknameRules.isAllowedChars;
+
+    /** 닉네임 변경 */
+    const handleNicknameChange = (e) => {
+        const value = e.target.value;
+        setProfile((prev) => ({...prev, nickname: value}));
+    };
+
+    /** 이름 변경 */
+    const handleNameChange = (e) => {
+        const value = e.target.value;
+        setProfile((prev) => ({...prev, name: value}));
+    };
+
     return (
         <div className="border rounded-2xl p-10 shadow-sm">
 
             {/* 프로필 이미지 */}
             <div className="flex justify-center mb-6">
                 <div className="relative w-32 h-32">
-                    <div className="w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                    <div
+                        className="w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
                         {profile.preview ? (
-                            <img src={profile.preview} className="w-full h-full object-cover" alt="profile" />
+                            <img
+                                src={profile.preview}
+                                className="w-full h-full object-cover"
+                                alt="profile"
+                            />
                         ) : (
-                            <UserCircleIcon className="w-28 h-28 text-gray-400" />
+                            <UserCircleIcon className="w-28 h-28 text-gray-400"/>
                         )}
                     </div>
 
@@ -28,7 +62,7 @@ export default function EditModeCard({
                         htmlFor="profile-upload"
                         className="absolute bottom-0 right-0 w-10 h-10 bg-white dark:bg-gray-800 rounded-full shadow flex items-center justify-center cursor-pointer"
                     >
-                        <HiOutlineCamera className="w-6 h-6 text-gray-700" />
+                        <HiOutlineCamera className="w-6 h-6 text-gray-700"/>
                         <input
                             id="profile-upload"
                             type="file"
@@ -43,35 +77,66 @@ export default function EditModeCard({
             {/* 입력 폼 */}
             <div className="space-y-6">
 
+                {/* 이름 */}
                 <div>
                     <label
-                        htmlFor="profile-upload"
+                        htmlFor="name"
                         className="text-sm font-medium text-gray-700">이름</label>
                     <input
-                        className="mt-1 w-full border rounded-md px-4 py-2"
+                        className={`mt-1 w-full border rounded-md px-4 py-2 
+                            ${!isNameValid && profile.name.length > 0 ? "border-red-500" : ""}
+                        `}
                         value={profile.name}
-                        onChange={(e) =>
-                            setProfile((prev) => ({ ...prev, name: e.target.value }))
-                        }
+                        onFocus={() => setFocusName(true)}
+                        onBlur={() => setFocusName(false)}
+                        onChange={handleNameChange}
                     />
+
+                    {/* 이름 규칙 리스트 */}
+                    {showNameRules && (
+                        <ul className="mt-2 text-xs space-y-1">
+                            <RuleItem
+                                ok={nameRules.noSpaceSpecial}
+                                text="공백과 특수문자를 사용할 수 없습니다."
+                            />
+                        </ul>
+                    )}
                 </div>
 
+                {/* 닉네임 */}
                 <div>
                     <label
-                        htmlFor="profile-upload"
+                        htmlFor="nickname"
                         className="text-sm font-medium text-gray-700">닉네임</label>
                     <input
-                        className="mt-1 w-full border rounded-md px-4 py-2"
+                        className={`mt-1 w-full border rounded-md px-4 py-2 
+                            ${!isNicknameValid && profile.nickname.length > 0 ? "border-red-500" : ""}
+                        `}
                         value={profile.nickname}
-                        onChange={(e) =>
-                            setProfile((prev) => ({ ...prev, nickname: e.target.value }))
-                        }
+                        onFocus={() => setFocusNickname(true)}
+                        onBlur={() => setFocusNickname(false)}
+                        onChange={handleNicknameChange}
                     />
+
+                    {/* 닉네임 규칙 리스트 */}
+                    {showNicknameRules && (
+                        <ul className="mt-2 text-xs space-y-1">
+                            <RuleItem
+                                ok={nicknameRules.hasValidLength}
+                                text="길이는 3~20자여야 합니다."
+                            />
+                            <RuleItem
+                                ok={nicknameRules.isAllowedChars}
+                                text="영문, 숫자, '_', '-'만 사용할 수 있습니다."
+                            />
+                        </ul>
+                    )}
                 </div>
 
+                {/* 이메일 */}
                 <div>
                     <label
-                        htmlFor="profile-upload"
+                        htmlFor="email"
                         className="text-sm font-medium text-gray-700">이메일</label>
                     <input
                         className="mt-1 w-full border rounded-md px-4 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
@@ -79,7 +144,6 @@ export default function EditModeCard({
                         readOnly
                     />
                 </div>
-
             </div>
 
             {/* 버튼 */}
@@ -92,14 +156,19 @@ export default function EditModeCard({
                 </button>
 
                 <button
-                    onClick={onSave}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500"
+                    onClick={() => onSave(!isNameValid || !isNicknameValid)}
+                    disabled={!isNameValid || !isNicknameValid}
+                    className={`px-6 py-2 rounded-md text-white ${
+                        isNameValid && isNicknameValid
+                            ? "bg-blue-600 hover:bg-blue-500"
+                            : "bg-gray-400 cursor-not-allowed"
+                    }`}
                 >
                     저장
                 </button>
             </div>
-
         </div>
     );
 }
+
 EditModeCard.propTypes = EditModeCardPropTypes;
