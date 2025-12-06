@@ -9,7 +9,7 @@ export const login = async (payload) => {
         return res.data;
     } catch (err) {
         console.error("❌ [login] 요청 실패:", err);
-        return { error: err };
+        return {error: err};
     }
 };
 
@@ -24,7 +24,7 @@ export const signup = async (payload) => {
         return res.data;
     } catch (err) {
         console.error("❌ [signup] 오류:", err);
-        return { error: true };
+        return {error: true};
     }
 };
 
@@ -35,7 +35,7 @@ export const getUserInfo = async () => {
         return res.data;
     } catch (err) {
         console.error("❌ getUserInfo 오류:", err);
-        return { error: err };
+        return {error: err};
     }
 };
 
@@ -46,12 +46,12 @@ export const sendEmailCode = async (email) => {
         params.append("email", email);
 
         const res = await axiosInstance.post("/email/send", params, {
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
         });
 
         return res.data;
     } catch (err) {
-        return { error: err };
+        return {error: err};
     }
 };
 
@@ -63,7 +63,7 @@ export const verifyEmailCode = async (email, code) => {
         );
         return res.data;
     } catch (err) {
-        return { error: err };
+        return {error: err};
     }
 };
 
@@ -75,7 +75,7 @@ export const requestPasswordReset = async (email) => {
         });
         return res.data;
     } catch (err) {
-        return { error: err };
+        return {error: err};
     }
 };
 
@@ -87,7 +87,7 @@ export const validateResetToken = async (token) => {
         );
         return res.data;
     } catch (err) {
-        return { error: err };
+        return {error: err};
     }
 };
 
@@ -100,7 +100,7 @@ export const confirmPasswordReset = async (token, newPassword) => {
         });
         return res.data;
     } catch (err) {
-        return { error: err };
+        return {error: err};
     }
 };
 
@@ -125,10 +125,9 @@ export const updateMyInfo = async (payload) => {
         });
 
         return res.data;
-
     } catch (err) {
         console.error("❌ updateMyInfo error:", err.response?.data);
-        return { error: true, detail: err.response?.data };
+        return {error: true, detail: err.response?.data};
     }
 };
 
@@ -139,7 +138,7 @@ export const deactivateUser = async () => {
         return res.data;
     } catch (err) {
         console.error(err);
-        return { error: true };
+        return {error: true};
     }
 };
 
@@ -150,7 +149,7 @@ export const restoreUser = async () => {
         return res.data;
     } catch (err) {
         console.error(err);
-        return { error: true };
+        return {error: true};
     }
 };
 
@@ -162,7 +161,7 @@ export const loginWithGithub = async (code, mode = null) => {
         return res.data;
     } catch (err) {
         console.error("❌ [GitHub Login] 오류:", err);
-        return { error: err };
+        return {error: err};
     }
 };
 
@@ -180,10 +179,9 @@ export const getGithubUserInfo = async () => {
         console.log("✅ [getGithubUserInfo] 성공:", res.data);
 
         return res.data;
-
     } catch (err) {
         console.error("❌ [getGithubUserInfo] 요청 실패:", err);
-        return { error: err };
+        return {error: err};
     }
 };
 
@@ -200,9 +198,10 @@ export const disconnectGithub = async () => {
             }
         );
         return res.data;
-    } catch (err) {
+    } catch (err
+        ) {
         console.error("❌ [GitHub Disconnect] 오류:", err);
-        return { error: err };
+        return {error: err};
     }
 };
 
@@ -223,6 +222,6 @@ export const linkGithubAccount = async (gitHubUser) => {
 
     } catch (err) {
         console.error("❌ [GitHub Link] 오류:", err);
-        return { error: err };
+        return {error: err};
     }
 };

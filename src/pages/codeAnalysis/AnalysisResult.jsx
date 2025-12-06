@@ -43,18 +43,11 @@ const AnalysisResult = () => {
 
     const { aiScore, codeSmells = [], suggestions = [] } = parsedResult;
 
-    // Get score color
-    const getScoreColor = (score) => {
-        if (score >= 80) return 'text-green-500';
-        if (score >= 60) return 'text-yellow-500';
-        return 'text-red-500';
-    };
+import { getScoreColor, getSmellKeyword, getToneEmoji } from '../../utils/codeAnalysisUtils';
 
-    // Get tone level emoji
-    const getToneEmoji = (level) => {
-        const emojis = { 1: '😊', 2: '🙂', 3: '😐', 4: '😠', 5: '😾' };
-        return emojis[level] || '😐';
-    };
+    const { aiScore, codeSmells = [], suggestions = [] } = parsedResult;
+
+    const smellInfo = getSmellKeyword(aiScore);
 
     return (
         <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-900'} py-12`}>
@@ -83,33 +76,22 @@ const AnalysisResult = () => {
                     </div>
                 </div>
 
-                {/* AI Score */}
+                {/* AI Score (Smell Keyword) */}
                 <div className={`p-8 rounded-lg ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} shadow-lg mb-8`}>
                     <div className="text-center">
-                        <h2 className={`text-2xl font-bold mb-4 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-                            AI 평가 점수
+                        <h2 className={`text-2xl font-bold mb-6 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
+                            AI 코드 냄새 판독
                         </h2>
-                        <div className={`text-7xl font-bold mb-2 ${getScoreColor(aiScore)}`}>
-                            {aiScore}
+                        
+                        {/* Keyword Display */}
+                        <div className={`text-5xl md:text-6xl font-bold mb-4 ${getScoreColor(aiScore)} transition-colors duration-300`}>
+                            {smellInfo.text}
                         </div>
-                        <p className={theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>
-                            / 100점
+                        
+                        {/* Description */}
+                        <p className={`text-xl font-medium mb-6 ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                            {smellInfo.desc}
                         </p>
-                        {aiScore >= 80 && (
-                            <p className="mt-4 text-green-500 font-semibold">
-                                훌륭한 코드입니다!
-                            </p>
-                        )}
-                        {aiScore >= 60 && aiScore < 80 && (
-                            <p className="mt-4 text-yellow-500 font-semibold">
-                                양호한 코드이지만 개선의 여지가 있습니다.
-                            </p>
-                        )}
-                        {aiScore < 60 && (
-                            <p className="mt-4 text-red-500 font-semibold">
-                                개선이 필요한 부분이 많습니다.
-                            </p>
-                        )}
                     </div>
                 </div>
 

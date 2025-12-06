@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { axiosInstance } from '../../server/AxiosConfig';
 
 export default function CommentForm({ 
   boardId, 
@@ -25,35 +26,27 @@ export default function CommentForm({
 
     setSubmitting(true);
     try {
-      const response = await fetch('http://localhost:8090/comments', {
-        method: 'POST',
+      await axiosInstance.post('/comments', {
+        boardId,
+        boardType,
+        parentCommentId,
+        content: content.trim()
+      }, {
         headers: {
-          'Content-Type': 'application/json',
           'userId': currentUserId
-        },
-        body: JSON.stringify({
-          boardId,
-          boardType,
-          parentCommentId,
-          content: content.trim()
-        })
+        }
       });
 
-      if (response.ok) {
-        setContent('');
-        onSuccess();
-      } else {
-        alert(`${isReply ? '답글' : '댓글'} 작성에 실패했습니다.`);
-      }
+      setContent('');
+      onSuccess();
     } catch (error) {
       console.error('작성 실패:', error);
-      alert(`${isReply ? '답글' : '댓글'} 작성 중 오류가 발생했습니다.`);
+      alert(`${isReply ? '답글' : '댓글'} 작성에 실패했습니다.`);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // 대댓글 스타일
   if (isReply) {
     return (
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -104,15 +97,12 @@ export default function CommentForm({
     );
   }
 
-  // 일반 댓글 스타일 - 새 디자인
   return (
     <form id={formId} onSubmit={handleSubmit} className={`border rounded-lg p-4 ${isDark ? "border-gray-700" : "border-gray-300"}`}>
-      {/* 작성자 표시 - 실제 사용자 정보로 변경 필요 */}
       <div className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
         사용자 {currentUserId}
       </div>
 
-      {/* 텍스트 영역 */}
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
@@ -132,7 +122,6 @@ export default function CommentForm({
         }}
       />
 
-      {/* 하단 바 */}
       <div className="flex items-center justify-end gap-3 mt-2">
         <span className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
           {content.length}/3000
