@@ -103,6 +103,7 @@ const FreeboardEdit = () => {
         initialContent={initialData?.content}
         initialTags={initialData?.tags}
         onSubmit={handleSubmit}
+        toolbarType="full"
       />
     </div>
   );

@@ -22,10 +22,9 @@ import { ToolbarButton } from "./ToolbarButton";
 import { addImage, addLink, addLinkCard } from "./ToolbarAction";
 import { TableButton, TableToolbar } from "./TableButton";
 
-const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker }) => {
+const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker, type = "full" }) => {
   const [isTableActive, setIsTableActive] = useState(false);
 
-  // useCallback으로 함수 메모이제이션
   const checkTableActive = useCallback(() => {
     if (!editor) return false;
     return editor.isActive("table");
@@ -34,15 +33,12 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker }) => {
   useEffect(() => {
     if (!editor) return;
 
-    // 초기 상태 설정
     setIsTableActive(checkTableActive());
 
-    // 이벤트 핸들러
     const handleUpdate = () => {
       setIsTableActive(checkTableActive());
     };
 
-    // 필요한 이벤트만 구독
     editor.on("selectionUpdate", handleUpdate);
     editor.on("transaction", handleUpdate);
 
@@ -69,6 +65,110 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker }) => {
     />
   );
 
+  // minimal 모드일 때
+  if (type === "minimal") {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.25rem",
+          flexWrap: "wrap",
+          backgroundColor: isDark
+            ? "rgba(31, 41, 55, 0.5)"
+            : "rgba(249, 250, 251, 0.9)",
+          padding: "0.9rem 1rem",
+          borderRadius: "0.75rem",
+          border: `1px solid ${
+            isDark ? "rgba(75, 85, 99, 0.5)" : "rgba(229, 231, 235, 0.8)"
+          }`,
+        }}
+      >
+        <ToolbarButton
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
+          active={editor.isActive("heading", { level: 1 })}
+          title="제목 1"
+          isDark={isDark}
+        >
+          <Heading1 size={18} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+          active={editor.isActive("heading", { level: 2 })}
+          title="제목 2"
+          isDark={isDark}
+        >
+          <Heading2 size={18} />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          active={editor.isActive("bold")}
+          title="굵게"
+          isDark={isDark}
+        >
+          <Bold size={18} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          active={editor.isActive("blockquote")}
+          title="인용구"
+          isDark={isDark}
+        >
+          <Quote size={18} />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton
+          onClick={() => addLinkCard(editor)}
+          title="링크 카드"
+          isDark={isDark}
+        >
+          <LinkIcon size={18} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() => addLink(editor)}
+          active={editor.isActive("link")}
+          title="텍스트 링크"
+          isDark={isDark}
+        >
+          <LinkIcon size={16} style={{ marginRight: '2px' }} />
+          <span style={{ fontSize: '12px' }}>T</span>
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          active={editor.isActive('codeBlock')}
+          title="코드 블록"
+          isDark={isDark}
+        >
+          {'</>'}
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={insertCodeBlock}
+          title="코드 작성"
+          isDark={isDark}
+        >
+          <Code size={18} />
+        </ToolbarButton>
+      </div>
+    );
+  }
+
+  // full 모드 (기존 코드)
   return (
     <div
       style={{
@@ -110,7 +210,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker }) => {
         <ToolbarButton
           onClick={() => addLinkCard(editor)}
           title="링크 카드"
-          label="링크카드"
+          label="링크 카드"
           isDark={isDark}
         >
           <LinkIcon size={18} />

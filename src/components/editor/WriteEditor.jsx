@@ -35,7 +35,8 @@ const WriteEditor = ({
   mode = "create", 
   initialTitle = "", 
   initialContent = "",
-  initialTags = []
+  initialTags = [],
+  toolbarType = "full" // "full" | "minimal"
 }) => {
   const [title, setTitle] = useState(initialTitle);
   const [tags, setTags] = useState(initialTags);
@@ -280,14 +281,14 @@ const WriteEditor = ({
         width: "100%",
         maxWidth: "900px",
         borderRadius: "1rem",
-        backgroundColor: isDark ? "#1a1a1a" : "white",
+        backgroundColor: isDark ? "#101828" : "white",
         border: `1px solid ${
           isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
         }`,
         boxShadow: isDark
           ? "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
           : "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-        transition: "all 0.3s",
+        transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s",
         position: "relative",
       }}
     >
@@ -297,6 +298,10 @@ const WriteEditor = ({
           borderBottom: `1px solid ${
             isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
           }`,
+          backgroundColor: isDark ? "#101828" : "white",
+          borderTopLeftRadius: "1rem", 
+          borderTopRightRadius: "1rem",
+          transition: "background-color 0.2s, border-color 0.2s",
         }}
       >
         <input
@@ -311,6 +316,7 @@ const WriteEditor = ({
             color: isDark ? "rgb(229, 231, 235)" : "rgb(17, 24, 39)",
             border: "none",
             outline: "none",
+            transition: "color 0.2s",
           }}
           className="placeholder-gray-400 dark:placeholder-gray-500"
         />
@@ -322,10 +328,11 @@ const WriteEditor = ({
           top: 0,
           zIndex: 50,
           padding: "1rem 1.5rem",
-          backgroundColor: isDark ? "#1a1a1a" : "white",
+          backgroundColor: isDark ? "#101828" : "white",
           borderBottom: `1px solid ${
             isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
           }`,
+          transition: "background-color 0.2s, border-color 0.2s",
         }}
       >
         <Toolbar
@@ -333,6 +340,7 @@ const WriteEditor = ({
           insertCodeBlock={insertCodeBlock}
           theme={currentTheme}
           onToggleSticker={() => setShowStickerPicker((v) => !v)}
+          type={toolbarType}
         />
 
         {showStickerPicker && (
@@ -351,6 +359,8 @@ const WriteEditor = ({
           fontSize: "1.125rem",
           lineHeight: "1.7",
           color: isDark ? "rgb(229, 231, 235)" : "rgb(31, 41, 55)",
+          backgroundColor: isDark ? "#101828" : "white",
+          transition: "background-color 0.2s, color 0.2s",
         }}
       >
         <EditorContent editor={editor} />
@@ -362,6 +372,8 @@ const WriteEditor = ({
           borderTop: `1px solid ${
             isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
           }`,
+          backgroundColor: isDark ? "#101828" : "white",
+          transition: "background-color 0.2s, border-color 0.2s",
         }}
       >
         <TagInput
@@ -381,6 +393,10 @@ const WriteEditor = ({
           borderTop: `1px solid ${
             isDark ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)"
           }`,
+          backgroundColor: isDark ? "#101828" : "white",
+          borderBottomLeftRadius: "1rem",
+          borderBottomRightRadius: "1rem",
+          transition: "background-color 0.2s, border-color 0.2s",
         }}
       >
         <button
@@ -395,7 +411,7 @@ const WriteEditor = ({
               isDark ? "rgb(55, 65, 81)" : "rgb(209, 213, 219)"
             }`,
             cursor: "pointer",
-            transition: "all 0.15s",
+            transition: "all 0.2s",
           }}
         >
           취소
@@ -422,14 +438,19 @@ const WriteEditor = ({
             borderRadius: "0.5rem",
             fontWeight: "bold",
             color: "white",
-            background:
-              "linear-gradient(to right, rgb(168, 85, 247), rgb(236, 72, 153))",
+            backgroundColor: "#ec4899", 
             border: "none",
             cursor: "pointer",
             boxShadow: isDark
               ? "0 10px 15px -3px rgba(0, 0, 0, 0.4)"
               : "0 10px 15px -3px rgba(0, 0, 0, 0.2)",
-            transition: "all 0.15s",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = "#db2777";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = "#ec4899";
           }}
         >
           {mode === "edit" ? "수정하기" : "발행하기"}

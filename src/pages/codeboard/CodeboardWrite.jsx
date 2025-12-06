@@ -188,16 +188,40 @@ const CodeboardWrite = () => {
 
                         {/* 분석 결과 */}
                         <div className={`border rounded-lg overflow-hidden ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+
                             {/* 헤더 */}
                             <div className={`px-4 py-2 border-b flex justify-between items-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'}`}>
                                 <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                     분석 결과
                                 </span>
-                                {analysisResult && (
-                                    <span className={`px-3 py-1 rounded-full font-bold text-xs ${getScoreBadgeColor(analysisResult.aiScore)}`}>
-                                        {getSmellKeyword(analysisResult.aiScore).text}
-                                    </span>
-                                )}
+                                {analysisResult && (() => {
+                                    const score = analysisResult.aiScore;
+                                    let colorClass = '';
+                                    
+                                    if (score >= 80) {
+                                        colorClass = theme === 'dark' 
+                                            ? 'bg-green-900/30 text-green-300 border border-green-700'
+                                            : 'bg-green-50 text-green-700 border border-green-200';
+                                    } else if (score >= 60) {
+                                        colorClass = theme === 'dark'
+                                            ? 'bg-blue-900/30 text-blue-300 border border-blue-700'
+                                            : 'bg-blue-50 text-blue-700 border border-blue-200';
+                                    } else if (score >= 40) {
+                                        colorClass = theme === 'dark'
+                                            ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-700'
+                                            : 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+                                    } else {
+                                        colorClass = theme === 'dark'
+                                            ? 'bg-red-900/30 text-red-300 border border-red-700'
+                                            : 'bg-red-50 text-red-700 border border-red-200';
+                                    }
+                                    
+                                    return (
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
+                                            {getSmellKeyword(score).text}
+                                        </span>
+                                    );
+                                })()}
                             </div>
 
                             {/* 내용 */}
@@ -270,7 +294,10 @@ const CodeboardWrite = () => {
 
                     {/* 오른쪽 패널: 글쓰기 영역 */}
                     <div className="space-y-6">
-                        <WriteEditor onSubmit={handleSubmit} />
+                        <WriteEditor 
+                        onSubmit={handleSubmit} 
+                        toolbarType="minimal"
+                        />
                     </div>
                 </div>
             </div>

@@ -41,7 +41,10 @@ const FreeboardWrite = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-6 text-white">
-      <WriteEditor onSubmit={handleSubmit} />
+      <WriteEditor 
+        onSubmit={handleSubmit} 
+        toolbarType="full"
+      />
     </div>
   );
 };
