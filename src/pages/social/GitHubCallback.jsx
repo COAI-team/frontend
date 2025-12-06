@@ -16,10 +16,30 @@ export default function GitHubCallback() {
         title: "",
         message: "",
         onConfirm: null,
+        onCancel: null,
+        confirmText: "확인",
+        cancelText: "취소",
     });
 
-    const showAlert = (type, title, message, onConfirm = null) => {
-        setAlertModal({ open: true, type, title, message, onConfirm });
+    const showAlert = (
+        type,
+        title,
+        message,
+        onConfirm = null,
+        onCancel = null,
+        confirmText = "확인",
+        cancelText = "취소"
+    ) => {
+        setAlertModal({
+            open: true,
+            type,
+            title,
+            message,
+            onConfirm,
+            onCancel,
+            confirmText,
+            cancelText,
+        });
     };
 
     useEffect(() => {
@@ -44,7 +64,7 @@ export default function GitHubCallback() {
                 return;
             }
 
-            // 🔗 연동 모드
+            // 🔗 GitHub 계정 연동 모드
             if (mode === "link") {
                 const linkResult = await linkGithubAccount(githubResult.gitHubUser);
 
@@ -55,7 +75,7 @@ export default function GitHubCallback() {
                         "error",
                         "GitHub 연동 실패",
                         linkResult.error.response?.data?.message || "알 수 없는 오류가 발생했습니다.",
-                        () => navigate("/profile")   // ← 확인 버튼 클릭 시 이동!
+                        () => navigate("/profile")
                     );
 
                     return;
@@ -67,17 +87,50 @@ export default function GitHubCallback() {
                 return;
             }
 
-            // 🔐 로그인 모드
+            // 🔐 GitHub 로그인 모드
             const { loginResponse } = githubResult;
 
+            // ⛔ 기존 계정 존재 → GitHub 연동 여부 확인 모달
             if (!loginResponse) {
-                console.error("❌ loginResponse 누락:", githubResult);
-                showAlert("error", "로그인 오류", "서버에서 loginResponse를 받지 못했습니다.");
+                if (githubResult.message?.includes("기존 일반 계정")) {
+                    showAlert(
+                        "warning",
+                        "기존 계정 발견",
+                        "기존 일반 계정이 존재합니다. GitHub 계정을 연동하시겠습니까?",
+                        async () => {
+                            // 🔥 실제 연동 호출
+                            const linkResult = await linkGithubAccount(githubResult.gitHubUser);
+
+                            if (linkResult?.error) {
+                                showAlert(
+                                    "error",
+                                    "연동 실패",
+                                    linkResult.error.response?.data?.message || "알 수 없는 오류입니다."
+                                );
+                                return;
+                            }
+
+                            showAlert(
+                                "success",
+                                "연동 완료",
+                                "GitHub 계정이 성공적으로 연동되었습니다!",
+                                () => navigate("/profile")
+                            );
+                        },
+                        () => navigate("/signin"), // 취소할 때
+                        "연동하기",
+                        "취소"
+                    );
+                    return;
+                }
+
+                showAlert("error", "로그인 오류", githubResult.message);
                 return;
             }
 
-            saveAuth(loginResponse);
-            login(loginResponse, true);
+            // 정상 로그인
+            saveAuth(loginResponse.accessToken, loginResponse.refreshToken);
+            login(loginResponse.user, true);
 
             showAlert("success", "로그인 성공", "GitHub 로그인에 성공했습니다!", () => {
                 navigate("/");
@@ -95,12 +148,15 @@ export default function GitHubCallback() {
             <AlertModal
                 open={alertModal.open}
                 onClose={() =>
-                    setAlertModal((prev) => ({ ...prev, open: false, onConfirm: null }))
+                    setAlertModal((prev) => ({ ...prev, open: false }))
                 }
                 onConfirm={alertModal.onConfirm}
+                onCancel={alertModal.onCancel}
                 type={alertModal.type}
                 title={alertModal.title}
                 message={alertModal.message}
+                confirmText={alertModal.confirmText}
+                cancelText={alertModal.cancelText}
             />
         </div>
     );
