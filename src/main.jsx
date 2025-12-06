@@ -42,6 +42,10 @@ import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
 import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
 import AnalysisPageWithoutRag from "./pages/codeAnalysis/AnalysisPageWithoutRag";
 
+// 코드게시판
+import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
+import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
+
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
 import ProfilePage from "./pages/myPage/ProfilePage";
@@ -99,11 +103,15 @@ createRoot(document.getElementById("root")).render(
               </Route>
 
               {/* 자유게시판 */}
-
               <Route path="freeboard/list" element={<FreeboardList />} />
               <Route path="freeboard/write" element={<FreeboardWrite />} />
               <Route path="freeboard/edit/:id" element={<FreeboardEdit />} />
               <Route path="freeboard/:id" element={<FreeboardDetail />} />
+
+              {/* 코드게시판 */}
+              <Route path="codeboard/write" element={<CodeboardWrite />} />
+              <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
+              <Route path="codeboard/:id" element={<CodeboardDetail />} />
 
               {/* 결제 */}
               <Route path="pages/payment/pricing" element={<PricingPage />} />
@@ -146,6 +154,8 @@ createRoot(document.getElementById("root")).render(
                 path="codeAnalysis/:analysisId"
                 element={<AnalysisPage />}
               />
+              <Route path="codeboard/write" element={<CodeboardWrite />} />
+              <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
             </Route>
 
             {/* 잘못된 경로는 홈으로 */}
