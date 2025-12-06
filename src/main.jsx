@@ -40,6 +40,7 @@ import MySubmissions from "./pages/algorithm/MySubmissions";
 // 코드 분석 도메인
 import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
 import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
+import AnalysisPageWithoutRag from "./pages/codeAnalysis/AnalysisPageWithoutRag";
 
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
@@ -140,6 +141,7 @@ createRoot(document.getElementById("root")).render(
               {/* 코드 분석 (CodeNose) */}
               <Route path="codeAnalysis" element={<CodeAnalysisMain />} />
               <Route path="codeAnalysis/new" element={<AnalysisPage />} />
+              <Route path="codeAnalysis/norag" element={<AnalysisPageWithoutRag />} />
               <Route
                 path="codeAnalysis/:analysisId"
                 element={<AnalysisPage />}
