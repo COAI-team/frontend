@@ -16,8 +16,14 @@ axiosInstance.defaults.baseURL = API_URL;
 // =====================================================
 axiosInstance.interceptors.request.use(
     (config) => {
-        const auth = getAuth();
 
+        // ⛔ 1) _skipAuth 요청은 토큰 주입 건너뛰기 (GitHub 연동용)
+        if (config._skipAuth === true) {
+            return config;
+        }
+
+        // ⛔ 2) 평소에는 자동 토큰 주입
+        const auth = getAuth();
         if (auth?.accessToken) {
             config.headers.Authorization = `Bearer ${auth.accessToken}`;
         }

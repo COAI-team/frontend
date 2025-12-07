@@ -197,32 +197,57 @@ export default function SignIn() {
                         </div>
 
                         {/* 소셜 로그인 아이콘 목록 */}
-                        <div className="mt-6 flex items-center justify-center gap-8">
+                        {/*<div className="mt-6 flex items-center justify-center gap-8">*/}
 
-                            {/* Google */}
-                            <button
-                                type="button"
-                                className="flex flex-col items-center"
-                                onClick={() => console.log("Google 로그인")}
-                            >
-                                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-100 hover:border-gray-100">
-                                    <img src="/socialLogos/Google.svg" alt="google" className="w-6 h-6"/>
-                                </div>
-                                <span className="mt-2 text-xs font-bold dark:text-gray-300">GOOGLE</span>
-                            </button>
+                        {/*    /!* Google *!/*/}
+                        {/*    <button*/}
+                        {/*        type="button"*/}
+                        {/*        className="flex flex-col items-center"*/}
+                        {/*        onClick={() => console.log("Google 로그인")}*/}
+                        {/*    >*/}
+                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-100 hover:border-gray-100">*/}
+                        {/*            <img src="/socialLogos/Google.svg" alt="google" className="w-6 h-6"/>*/}
+                        {/*        </div>*/}
+                        {/*        <span className="mt-2 text-xs font-bold dark:text-gray-300">GOOGLE</span>*/}
+                        {/*    </button>*/}
 
-                            {/* Kakao */}
-                            <button
-                                type="button"
-                                className="flex flex-col items-center"
-                                onClick={() => console.log("Kakao 로그인")}
-                            >
-                                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#FEE500] border border-[#FEE500] hover:bg-[#f5d900] hover:border-[#f5d900]">
-                                    <img src="/socialLogos/KakaoTalk.svg" alt="kakao" className="w-6 h-6"/>
-                                </div>
-                                <span className="mt-2 text-xs font-bold dark:text-gray-300">KAKAO</span>
-                            </button>
+                        {/*    /!* Kakao *!/*/}
+                        {/*    <button*/}
+                        {/*        type="button"*/}
+                        {/*        className="flex flex-col items-center"*/}
+                        {/*        onClick={() => console.log("Kakao 로그인")}*/}
+                        {/*    >*/}
+                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#FEE500] border border-[#FEE500] hover:bg-[#f5d900] hover:border-[#f5d900]">*/}
+                        {/*            <img src="/socialLogos/KakaoTalk.svg" alt="kakao" className="w-6 h-6"/>*/}
+                        {/*        </div>*/}
+                        {/*        <span className="mt-2 text-xs font-bold dark:text-gray-300">KAKAO</span>*/}
+                        {/*    </button>*/}
 
+                        {/*    /!* GitHub *!/*/}
+                        {/*    <button*/}
+                        {/*        type="button"*/}
+                        {/*        onClick={handleGitHubLogin}*/}
+                        {/*        className="flex flex-col items-center"*/}
+                        {/*    >*/}
+                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-100 hover:border-gray-100">*/}
+                        {/*            <img src="/socialLogos/GitHub.svg" alt="github" className="w-6 h-6"/>*/}
+                        {/*        </div>*/}
+                        {/*        <span className="mt-2 text-xs font-bold dark:text-gray-300">GITHUB</span>*/}
+                        {/*    </button>*/}
+
+                        {/*    /!* Naver *!/*/}
+                        {/*    <button*/}
+                        {/*        type="button"*/}
+                        {/*        onClick={() => console.log("Naver 로그인")}*/}
+                        {/*        className="flex flex-col items-center"*/}
+                        {/*    >*/}
+                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#03C75A] border border-[#03C75A] hover:bg-[#02b352] hover:border-[#02b352]">*/}
+                        {/*            <img src="/socialLogos/Naver.svg" alt="naver" className="w-6 h-6"/>*/}
+                        {/*        </div>*/}
+                        {/*        <span className="mt-2 text-xs font-bold  dark:text-gray-300">NAVER</span>*/}
+                        {/*    </button>*/}
+                        {/*</div>*/}
+                        <div className="mt-6 flex items-center justify-center">
                             {/* GitHub */}
                             <button
                                 type="button"
@@ -234,19 +259,8 @@ export default function SignIn() {
                                 </div>
                                 <span className="mt-2 text-xs font-bold dark:text-gray-300">GITHUB</span>
                             </button>
-
-                            {/* Naver */}
-                            <button
-                                type="button"
-                                onClick={() => console.log("Naver 로그인")}
-                                className="flex flex-col items-center"
-                            >
-                                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#03C75A] border border-[#03C75A] hover:bg-[#02b352] hover:border-[#02b352]">
-                                    <img src="/socialLogos/Naver.svg" alt="naver" className="w-6 h-6"/>
-                                </div>
-                                <span className="mt-2 text-xs font-bold  dark:text-gray-300">NAVER</span>
-                            </button>
                         </div>
+
                     </div>
                 </div>
             </div>

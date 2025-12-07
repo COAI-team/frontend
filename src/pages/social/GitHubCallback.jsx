@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { loginWithGithub, linkGithubAccount } from "../../service/user/User";
 import { useNavigate } from "react-router-dom";
 import { useLogin } from "../../context/useLogin";
+import axiosInstance from "../../server/AxiosConfig";
 import { saveAuth } from "../../utils/auth/token";
 import AlertModal from "../../components/modal/AlertModal";
 
@@ -64,9 +65,21 @@ export default function GitHubCallback() {
                 return;
             }
 
-            // 🔗 GitHub 계정 연동 모드
+            /* -------------------------------------------------
+                 🔗 GitHub 계정 연동 모드
+            ------------------------------------------------- */
             if (mode === "link") {
-                const linkResult = await linkGithubAccount(githubResult.gitHubUser);
+                const accessToken = localStorage.getItem("accessToken");
+
+                const linkResult = await linkGithubAccount(
+                    githubResult.gitHubUser,
+                    {
+                        _skipAuth: true,
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                        },
+                    }
+                );
 
                 if (linkResult?.error) {
                     console.error("❌ GitHub 연동 실패:", linkResult.error);
@@ -74,38 +87,95 @@ export default function GitHubCallback() {
                     showAlert(
                         "error",
                         "GitHub 연동 실패",
-                        linkResult.error.response?.data?.message || "알 수 없는 오류가 발생했습니다.",
+                        linkResult.error.response?.data?.message ||
+                        "알 수 없는 오류가 발생했습니다.",
                         () => navigate("/profile")
                     );
 
                     return;
                 }
 
-                showAlert("success", "연동 완료", "GitHub 계정 연동이 완료되었습니다!", () => {
-                    navigate("/profile");
-                });
+                showAlert(
+                    "success",
+                    "연동 완료",
+                    "GitHub 계정 연동이 완료되었습니다!",
+                    () => navigate("/profile")
+                );
                 return;
             }
 
-            // 🔐 GitHub 로그인 모드
+            /* -------------------------------------------------
+                 🔐 GitHub 로그인 모드
+            ------------------------------------------------- */
+
             const { loginResponse } = githubResult;
 
-            // ⛔ 기존 계정 존재 → GitHub 연동 여부 확인 모달
+            /* -------------------------------------------------
+                ⛔ 기존 일반 계정 존재 → GitHub 연동 필요
+            -------------------------------------------------- */
             if (!loginResponse) {
-                if (githubResult.message?.includes("기존 일반 계정")) {
+                if (githubResult.needLink) {
+                    // 1) 백엔드의 기존 계정 토큰 저장
+                    saveAuth({
+                        accessToken: githubResult.accessToken,
+                        refreshToken: githubResult.refreshToken,
+                    });
+
+                    // 2) 기존 계정 정보 조회
+                    let meResponse;
+                    try {
+                        meResponse = await axiosInstance.get("/users/me", {
+                            headers: {
+                                Authorization: `Bearer ${githubResult.accessToken}`,
+                            },
+                            _skipAuthRedirect: true,
+                        });
+                    } catch (err) {
+                        console.error("❌ /users/me 실패:", err);
+                        showAlert(
+                            "error",
+                            "사용자 정보 조회 실패",
+                            "기존 계정 정보를 불러오지 못했습니다."
+                        );
+                        return;
+                    }
+
+                    const user = meResponse.data;
+
+                    // ⭐ LoginProvider가 요구하는 구조에 맞게 전달
+                    login(
+                        {
+                            accessToken: githubResult.accessToken,
+                            refreshToken: githubResult.refreshToken,
+                            user: user,
+                        },
+                        true
+                    );
+
+                    // 연동 여부 모달
                     showAlert(
                         "warning",
                         "기존 계정 발견",
                         "기존 일반 계정이 존재합니다. GitHub 계정을 연동하시겠습니까?",
                         async () => {
-                            // 🔥 실제 연동 호출
-                            const linkResult = await linkGithubAccount(githubResult.gitHubUser);
+                            const accessToken = localStorage.getItem("accessToken");
+
+                            const linkResult = await linkGithubAccount(
+                                githubResult.gitHubUser,
+                                {
+                                    _skipAuth: true,
+                                    headers: {
+                                        Authorization: `Bearer ${accessToken}`,
+                                    },
+                                }
+                            );
 
                             if (linkResult?.error) {
                                 showAlert(
                                     "error",
                                     "연동 실패",
-                                    linkResult.error.response?.data?.message || "알 수 없는 오류입니다."
+                                    linkResult.error.response?.data?.message ||
+                                    "알 수 없는 오류입니다."
                                 );
                                 return;
                             }
@@ -117,10 +187,11 @@ export default function GitHubCallback() {
                                 () => navigate("/profile")
                             );
                         },
-                        () => navigate("/signin"), // 취소할 때
+                        () => navigate("/signin"),
                         "연동하기",
                         "취소"
                     );
+
                     return;
                 }
 
@@ -128,9 +199,22 @@ export default function GitHubCallback() {
                 return;
             }
 
-            // 정상 로그인
-            saveAuth(loginResponse.accessToken, loginResponse.refreshToken);
-            login(loginResponse.user, true);
+            /* -------------------------------------------------
+               🎉 정상 GitHub 로그인
+            -------------------------------------------------- */
+            saveAuth({
+                accessToken: loginResponse.accessToken,
+                refreshToken: loginResponse.refreshToken,
+            });
+
+            login(
+                {
+                    accessToken: loginResponse.accessToken,
+                    refreshToken: loginResponse.refreshToken,
+                    user: loginResponse.user,
+                },
+                true
+            );
 
             showAlert("success", "로그인 성공", "GitHub 로그인에 성공했습니다!", () => {
                 navigate("/");
