@@ -1,0 +1,95 @@
+.codeboard-content {
+  color: #e5e7eb;
+  line-height: 1.75;
+  font-size: 1rem;
+}
+
+.codeboard-content h1,
+.codeboard-content h2,
+.codeboard-content h3 {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.codeboard-content h1 {
+  font-size: 2rem;
+}
+
+.codeboard-content h2 {
+  font-size: 1.5rem;
+}
+
+.codeboard-content h3 {
+  font-size: 1.25rem;
+}
+
+.codeboard-content p {
+  margin-bottom: 1rem;
+}
+
+.codeboard-content ul,
+.codeboard-content ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.codeboard-content li {
+  margin-bottom: 0.5rem;
+}
+
+.codeboard-content a {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.codeboard-content a:hover {
+  color: #93c5fd;
+}
+
+.codeboard-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+.codeboard-content blockquote {
+  border-left: 4px solid #374151;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.code-block-wrapper {
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin: 1.5rem 0;
+}
+
+.code-header {
+  background-color: #374151;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #4b5563;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.code-language {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.code-block-wrapper code {
+  display: block;
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

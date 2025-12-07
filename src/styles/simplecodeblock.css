@@ -1,0 +1,202 @@
+/* 간단한 코드 블록 래퍼 - 노션 스타일 */
+.simple-code-block-wrapper {
+  margin: 1.5rem 0;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background-color: #f7f6f3;
+  border: 1px solid #e8e7e5;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.dark .simple-code-block-wrapper {
+  background-color: #2f3437;
+  border-color: #3d4144;
+}
+
+/* 상단 헤더 */
+.simple-code-block-wrapper > div:first-child {
+  border-bottom: 1px solid #e8e7e5;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.dark .simple-code-block-wrapper > div:first-child {
+  border-bottom-color: #3d4144;
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* 언어 선택 select */
+.simple-code-block-wrapper select {
+  padding: 0.25rem 1.5rem 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: transparent;
+  color: rgba(0, 0, 0, 0.65);
+  border: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23999' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.25rem center;
+  background-size: 10px;
+}
+
+.dark .simple-code-block-wrapper select {
+  color: rgba(255, 255, 255, 0.8);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23aaa' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+}
+
+.simple-code-block-wrapper select:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .simple-code-block-wrapper select:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* option 스타일 */
+.simple-code-block-wrapper select option {
+  background-color: #ffffff;
+  color: #000000;
+  padding: 0.5rem;
+}
+
+.dark .simple-code-block-wrapper select option {
+  background-color: #2f3437;
+  color: #e1e4e8;
+}
+
+/* pre 코드 영역 */
+.simple-code-block-wrapper pre {
+  padding: 1rem !important;
+  margin: 0 !important;
+  overflow-x: auto;
+  font-size: 0.875rem !important;
+  line-height: 1.65 !important;
+  background: transparent !important;
+}
+
+.simple-code-block-wrapper code {
+  background: none !important;
+  padding: 0 !important;
+  font-family: inherit !important;
+  color: inherit !important;
+}
+
+.simple-code-block-wrapper pre[class*="language-"],
+.simple-code-block-wrapper code[class*="language-"] {
+  background: none !important;
+  text-shadow: none !important;
+  color: #24292e !important;
+}
+
+.dark .simple-code-block-wrapper pre[class*="language-"],
+.dark .simple-code-block-wrapper code[class*="language-"] {
+  color: #e1e4e8 !important;
+}
+
+/* 노션 스타일 syntax highlighting - 라이트 모드 */
+.simple-code-block-wrapper .token.comment,
+.simple-code-block-wrapper .token.prolog,
+.simple-code-block-wrapper .token.doctype,
+.simple-code-block-wrapper .token.cdata {
+  color: #6a737d !important;
+  font-style: italic;
+}
+
+.simple-code-block-wrapper .token.punctuation {
+  color: #24292e !important;
+}
+
+.simple-code-block-wrapper .token.property,
+.simple-code-block-wrapper .token.tag,
+.simple-code-block-wrapper .token.boolean,
+.simple-code-block-wrapper .token.number,
+.simple-code-block-wrapper .token.constant,
+.simple-code-block-wrapper .token.symbol {
+  color: #005cc5 !important;
+}
+
+.simple-code-block-wrapper .token.selector,
+.simple-code-block-wrapper .token.attr-name,
+.simple-code-block-wrapper .token.string,
+.simple-code-block-wrapper .token.char,
+.simple-code-block-wrapper .token.builtin {
+  color: #032f62 !important;
+}
+
+.simple-code-block-wrapper .token.operator,
+.simple-code-block-wrapper .token.entity,
+.simple-code-block-wrapper .token.url {
+  color: #24292e !important;
+}
+
+.simple-code-block-wrapper .token.atrule,
+.simple-code-block-wrapper .token.attr-value,
+.simple-code-block-wrapper .token.keyword {
+  color: #d73a49 !important;
+}
+
+.simple-code-block-wrapper .token.function,
+.simple-code-block-wrapper .token.class-name {
+  color: #6f42c1 !important;
+}
+
+.simple-code-block-wrapper .token.regex,
+.simple-code-block-wrapper .token.important,
+.simple-code-block-wrapper .token.variable {
+  color: #e36209 !important;
+}
+
+/* 노션 스타일 syntax highlighting - 다크 모드 */
+.dark .simple-code-block-wrapper .token.comment,
+.dark .simple-code-block-wrapper .token.prolog,
+.dark .simple-code-block-wrapper .token.doctype,
+.dark .simple-code-block-wrapper .token.cdata {
+  color: #8b949e !important;
+  font-style: italic;
+}
+
+.dark .simple-code-block-wrapper .token.punctuation {
+  color: #e1e4e8 !important;
+}
+
+.dark .simple-code-block-wrapper .token.property,
+.dark .simple-code-block-wrapper .token.tag,
+.dark .simple-code-block-wrapper .token.boolean,
+.dark .simple-code-block-wrapper .token.number,
+.dark .simple-code-block-wrapper .token.constant,
+.dark .simple-code-block-wrapper .token.symbol {
+  color: #79c0ff !important;
+}
+
+.dark .simple-code-block-wrapper .token.selector,
+.dark .simple-code-block-wrapper .token.attr-name,
+.dark .simple-code-block-wrapper .token.string,
+.dark .simple-code-block-wrapper .token.char,
+.dark .simple-code-block-wrapper .token.builtin {
+  color: #a5d6ff !important;
+}
+
+.dark .simple-code-block-wrapper .token.operator,
+.dark .simple-code-block-wrapper .token.entity,
+.dark .simple-code-block-wrapper .token.url {
+  color: #e1e4e8 !important;
+}
+
+.dark .simple-code-block-wrapper .token.atrule,
+.dark .simple-code-block-wrapper .token.attr-value,
+.dark .simple-code-block-wrapper .token.keyword {
+  color: #ff7b72 !important;
+}
+
+.dark .simple-code-block-wrapper .token.function,
+.dark .simple-code-block-wrapper .token.class-name {
+  color: #d2a8ff !important;
+}
+
+.dark .simple-code-block-wrapper .token.regex,
+.dark .simple-code-block-wrapper .token.important,
+.dark .simple-code-block-wrapper .token.variable {
+  color: #ffa657 !important;
+}
