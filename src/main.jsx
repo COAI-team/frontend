@@ -50,6 +50,7 @@ import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
 import ProfilePage from "./pages/myPage/ProfilePage";
 import BillingPage from "./pages/myPage/BillingPage";
+import DashboardPage from "./pages/myPage/DashboardPage";
 
 //관리자 레이아웃
 import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
@@ -94,6 +95,7 @@ createRoot(document.getElementById("root")).render(
                 <Route index element={<Navigate to="profile" replace />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="billing" element={<BillingPage />} />
+                <Route path="dashboard" element={<DashboardPage />} />
               </Route>
 
               <Route path="admin" element={<AdminPageLayout />}>
