@@ -30,7 +30,7 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
 
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const { user, logout, hydrated } = useLogin();
+  const { user, logout, hydrated, accessToken } = useLogin();
 
   useEffect(() => setMounted(true), []);
 
@@ -139,6 +139,7 @@ export default function Navbar() {
             logout={logout}
             navigate={navigate}
             BASE_URL={BASE_URL}
+            accessToken={accessToken}
             hydrated={hydrated}
           />
         </div>

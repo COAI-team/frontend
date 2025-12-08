@@ -142,6 +142,8 @@ export const RightActionsPropTypes = {
     logout: PropTypes.func.isRequired,
     navigate: PropTypes.func.isRequired,
     BASE_URL: PropTypes.string.isRequired,
+    accessToken: PropTypes.string,
+    hydrated: PropTypes.bool,
 };
 
 export const RuleItemPropTypes = {

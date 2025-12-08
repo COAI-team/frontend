@@ -57,14 +57,10 @@ export default function LoginProvider({ children }) {
                 setAuth(newAuth);
             })
             .catch((err) => {
-                // 토큰 검증 실패만 auth 제거, 기타 오류는 유지
-                const status = err?.response?.status;
-                if (status === 401) {
-                    removeAuth();
-                    setAuth(null);
-                } else {
-                    console.warn("getUserInfo 실패(토큰 유지):", err?.message || err);
-                }
+                // 사용자 정보 확인 실패 시 저장된 인증 정보를 모두 제거해 로그아웃 상태가 확실히 반영되도록 처리
+                removeAuth();
+                setAuth(null);
+                console.warn("getUserInfo 실패로 인증 정보를 초기화했습니다:", err?.message || err);
             })
             .finally(() => {
                 setHydrated(true);
