@@ -9,7 +9,8 @@ const FreeboardList = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [sortBy, setSortBy] = useState('latest');
+  const [sortBy, setSortBy] = useState('CREATED_AT');
+  const [sortDirection, setSortDirection] = useState('DESC');
   const [viewType, setViewType] = useState('list');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,23 +18,27 @@ const FreeboardList = () => {
 
   useEffect(() => {
     fetchPosts();
-  }, [currentPage, sortBy, pageSize, searchKeyword]);
+  }, [currentPage, sortBy, sortDirection, pageSize, searchKeyword]);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/freeboard/list', {
+      const response = await axiosInstance.get('/freeboard', {
         params: {
           page: currentPage,
           size: pageSize,
           sort: sortBy,
+          direction: sortDirection,
           keyword: searchKeyword
         }
       });
       
       console.log('응답:', response.data);
-      setPosts(response.data.content || []);
-      setTotalPages(response.data.totalPages || 1);
+      
+      // ApiResponse 구조 처리
+      const data = response.data.data || response.data;
+      setPosts(data.content || []);
+      setTotalPages(data.totalPages || 1);
     } catch (error) {
       console.error('게시글 목록 조회 실패:', error);
     } finally {
@@ -45,6 +50,17 @@ const FreeboardList = () => {
     e.preventDefault();
     setCurrentPage(1);
     fetchPosts();
+  };
+
+  const handleSortChange = (newSort) => {
+    setSortBy(newSort);
+    // 정렬 기준에 따라 방향 자동 설정
+    if (newSort === 'CREATED_AT') {
+      setSortDirection('DESC'); // 최신순
+    } else {
+      setSortDirection('DESC'); // 많은 순
+    }
+    setCurrentPage(1);
   };
 
   const handlePostClick = (postId) => {
@@ -111,13 +127,13 @@ const FreeboardList = () => {
         <div className="control-right">
           <select 
             value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value)}
+            onChange={(e) => handleSortChange(e.target.value)}
             className="sort-select"
           >
-            <option value="latest">최신순</option>
-            <option value="comments">댓글 많은 순</option>
-            <option value="likes">좋아요 순</option>
-            <option value="views">조회수 순</option>
+            <option value="CREATED_AT">최신순</option>
+            <option value="COMMENT_COUNT">댓글 많은 순</option>
+            <option value="LIKE_COUNT">좋아요 순</option>
+            <option value="VIEW_COUNT">조회수 순</option>
           </select>
 
           <select 

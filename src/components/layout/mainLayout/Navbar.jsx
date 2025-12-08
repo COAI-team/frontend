@@ -12,7 +12,8 @@ import RightActions from "../../navbar/RightActions";
 const initialNavigation = [
   { name: "코드 분석", href: "/codeAnalysis" },
   { name: "알고리즘", href: "/algorithm" },
-  { name: "자유게시판", href: "/freeboard/list" },
+  { name: "자유게시판", href: "/freeboard" },
+  { name: "코드게시판", href: "/codeboard" },
   { name: "결제", href: "/payments" },
   { name: "관리자", href: "/admin" },
 ];

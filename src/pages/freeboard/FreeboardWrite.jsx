@@ -7,6 +7,7 @@ const FreeboardWrite = () => {
   const navigate = useNavigate();
 
   const handleSubmit = ({ title, content, representImage, tags }) => {
+
     const blocks = [{
       id: `block-${Date.now()}`,
       type: "tiptap",

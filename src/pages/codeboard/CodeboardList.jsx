@@ -22,7 +22,7 @@ const CodeboardList = () => {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/codeboard/list', {
+      const response = await axiosInstance.get('/codeboard', {
         params: {
           page: currentPage,
           size: pageSize,

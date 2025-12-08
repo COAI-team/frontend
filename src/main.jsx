@@ -104,13 +104,13 @@ createRoot(document.getElementById("root")).render(
               </Route>
 
               {/* 자유게시판 */}
-              <Route path="freeboard/list" element={<FreeboardList />} />
+              <Route path="freeboard" element={<FreeboardList />} />
               <Route path="freeboard/write" element={<FreeboardWrite />} />
               <Route path="freeboard/edit/:id" element={<FreeboardEdit />} />
               <Route path="freeboard/:id" element={<FreeboardDetail />} />
 
               {/* 코드게시판 */}
-              <Route path="codeboard/list" element={<CodeboardList />} />
+              <Route path="codeboard" element={<CodeboardList />} />
               <Route path="codeboard/write" element={<CodeboardWrite />} />
               <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
               <Route path="codeboard/:id" element={<CodeboardDetail />} />

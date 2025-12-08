@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { axiosInstance } from '../../server/AxiosConfig';
+import { getAuth } from '../../utils/auth/token';
 
 export default function CommentForm({ 
   boardId, 
   boardType, 
   parentCommentId = null,
-  currentUserId, 
   onSuccess,
   onCancel,
   isDark,
@@ -15,6 +15,10 @@ export default function CommentForm({
   const [submitting, setSubmitting] = useState(false);
 
   const isReply = parentCommentId !== null;
+
+  // 로그인한 사용자 정보
+  const auth = getAuth();
+  const currentUserNickname = auth?.nickname ?? '사용자';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,15 +30,11 @@ export default function CommentForm({
 
     setSubmitting(true);
     try {
-      await axiosInstance.post('/comments', {
+      await axiosInstance.post('/comment', {
         boardId,
         boardType,
         parentCommentId,
         content: content.trim()
-      }, {
-        headers: {
-          'userId': currentUserId
-        }
       });
 
       setContent('');
@@ -98,9 +98,13 @@ export default function CommentForm({
   }
 
   return (
-    <form id={formId} onSubmit={handleSubmit} className={`border rounded-lg p-4 ${isDark ? "border-gray-700" : "border-gray-300"}`}>
+    <form
+      id={formId}
+      onSubmit={handleSubmit}
+      className={`border rounded-lg p-4 ${isDark ? "border-gray-700" : "border-gray-300"}`}
+    >
       <div className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-        사용자 {currentUserId}
+        {currentUserNickname}
       </div>
 
       <textarea
@@ -112,8 +116,7 @@ export default function CommentForm({
           w-full px-0 py-1 resize-none transition-all border-0 focus:ring-0 text-sm
           ${isDark 
             ? "bg-transparent text-gray-100 placeholder-gray-500" 
-            : "bg-transparent text-gray-900 placeholder-gray-400"
-          }
+            : "bg-transparent text-gray-900 placeholder-gray-400"}
         `}
         disabled={submitting}
         onInput={(e) => {

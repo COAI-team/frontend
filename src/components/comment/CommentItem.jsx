@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { axiosInstance } from '../../server/AxiosConfig';
 import CommentForm from './CommentForm';
+import { getAuth } from '../../utils/auth/token';
 
-export default function CommentItem({ comment, currentUserId, onCommentUpdated, isReply = false, isDark }) {
+export default function CommentItem({ comment, onCommentUpdated, isReply = false, isDark }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // 로그인한 사용자 정보
+  const auth = getAuth();
+  const currentUserId = auth?.userId;
 
   // 수정
   const handleUpdate = async () => {
@@ -17,12 +22,8 @@ export default function CommentItem({ comment, currentUserId, onCommentUpdated, 
 
     setIsUpdating(true);
     try {
-      await axiosInstance.put(`/comments/${comment.commentId}`, {
+      await axiosInstance.put(`/comment/${comment.commentId}`, {
         content: editContent.trim()
-      }, {
-        headers: {
-          'userId': currentUserId
-        }
       });
 
       setIsEditing(false);
@@ -40,12 +41,7 @@ export default function CommentItem({ comment, currentUserId, onCommentUpdated, 
     if (!confirm(`${isReply ? '답글을' : '댓글을'} 삭제하시겠습니까?`)) return;
 
     try {
-      await axiosInstance.delete(`/comments/${comment.commentId}`, {
-        headers: {
-          'userId': currentUserId
-        }
-      });
-
+      await axiosInstance.delete(`/comment/${comment.commentId}`);
       onCommentUpdated();
     } catch (error) {
       console.error('삭제 실패:', error);
@@ -71,7 +67,7 @@ export default function CommentItem({ comment, currentUserId, onCommentUpdated, 
     });
   };
 
-  const isMyComment = comment.userId === currentUserId;
+  const isMyComment = currentUserId != null && comment.userId === currentUserId;
 
   // 대댓글 스타일
   if (isReply) {
@@ -359,7 +355,6 @@ export default function CommentItem({ comment, currentUserId, onCommentUpdated, 
             boardId={comment.boardId}
             boardType={comment.boardType}
             parentCommentId={comment.commentId}
-            currentUserId={currentUserId}
             onSuccess={() => {
               setShowReplyForm(false);
               onCommentUpdated();
@@ -387,7 +382,6 @@ export default function CommentItem({ comment, currentUserId, onCommentUpdated, 
             >
               <CommentItem
                 comment={reply}
-                currentUserId={currentUserId}
                 onCommentUpdated={onCommentUpdated}
                 isReply={true}
                 isDark={isDark}
