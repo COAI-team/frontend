@@ -28,15 +28,21 @@ export const signup = async (payload) => {
   }
 };
 
-// 유저 정보 가져오기 (🔥 accessToken 제거)
+// 유저 정보 가져오기 (accessToken 검증 포함)
 export const getUserInfo = async () => {
-  try {
-    const res = await axiosInstance.get("/users/me");
-    return res.data;
-  } catch (err) {
-    console.error("❌ getUserInfo 오류:", err);
-    return { error: err };
-  }
+    try {
+        const res = await axiosInstance.get("/users/me", {
+            headers: { "X-Skip-Auth-Redirect": "true" },
+            _skipAuthRedirect: true,
+        });
+        if (res?.data?.error) {
+            throw res.data.error;
+        }
+        return res.data;
+    } catch (err) {
+        console.error("❌ getUserInfo 오류:", err);
+        throw err;
+    }
 };
 
 // 이메일 인증번호 발송

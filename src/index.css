@@ -1,5 +1,76 @@
 @import "tailwindcss";
 
+:root {
+  /* 텍스트 */
+  --color-text-main: #111827;   /* 본문, 숫자, 합계 */
+  --color-text-sub: #374151;    /* 서브 제목, 라벨 */
+  --color-text-muted: #6b7280;  /* 설명, 힌트 */
+
+  /* 배경 */
+  --color-bg-main: #f9fafb;
+  --color-bg-panel: #ffffff;
+}
+
+.dark {
+  --color-text-main: #e5e7eb;   /* 본문 */
+  --color-text-sub: #cbd5e1;    /* 서브 */
+  --color-text-muted: #9ca3af;  /* 힌트 */
+
+  --color-bg-main: #020617;
+  --color-bg-panel: #0f172a;
+}
+
+.text-main {
+  color: var(--color-text-main);
+}
+
+.text-sub {
+  color: var(--color-text-sub);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.bg-main {
+  background-color: var(--color-bg-main);
+}
+
+.bg-panel {
+  background-color: var(--color-bg-panel);
+}
+
+/* 날짜 필터 전용 공통 스타일 */
+.input-date {
+  background-color: var(--billing-panel, var(--color-bg-panel));
+  color: var(--color-text-main);
+  border: 1px solid var(--billing-border, #e5e7eb);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.input-date::-webkit-datetime-edit {
+  color: var(--color-text-sub);
+  opacity: 1;
+}
+
+.input-date:focus::-webkit-datetime-edit,
+.input-date:valid::-webkit-datetime-edit {
+  color: var(--color-text-main);
+}
+
+.input-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+.dark .input-date {
+  background-color: var(--billing-panel, var(--color-bg-panel));
+  color: var(--color-text-main);
+  border-color: var(--billing-border, #1f2937);
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;

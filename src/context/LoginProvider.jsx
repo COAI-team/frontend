@@ -9,12 +9,20 @@ export default function LoginProvider({ children }) {
     const [auth, setAuth] = useState(null);
     const [loginResult, setLoginResult] = useState(null);
 
+    // ✅ 1) hydration 상태 추가
+    const [hydrated, setHydrated] = useState(false);
+
     // ===============================================================
     // 저장된 로그인 정보 복원 + 서버에서 AccessToken 검증
     // ===============================================================
     useEffect(() => {
         const saved = getAuth();
-        if (!saved?.accessToken) return;
+
+        // 저장된 토큰이 아예 없으면 → 그냥 hydration 완료 처리
+        if (!saved?.accessToken) {
+            setHydrated(true); // ✅ 토큰 없어도 "검사 끝" 표시
+            return;
+        }
 
         setAuth(saved);
 
@@ -40,9 +48,19 @@ export default function LoginProvider({ children }) {
                     return newAuth;
                 });
             })
-            .catch(() => {
-                removeAuth();
-                setAuth(null);
+            .catch((err) => {
+                // 토큰 검증 실패만 auth 제거, 기타 오류는 유지
+                const status = err?.response?.status;
+                if (status === 401) {
+                    removeAuth();
+                    setAuth(null);
+                } else {
+                    console.warn("getUserInfo 실패(토큰 유지):", err?.message || err);
+                }
+            })
+            .finally(() => {
+                // ✅ 성공이든 실패든 검사는 끝난 거니까 여기서 hydration 완료
+                setHydrated(true);
             });
     }, []);
 
@@ -69,6 +87,9 @@ export default function LoginProvider({ children }) {
 
         // 저장 (remember = localStorage / 아니면 sessionStorage)
         saveAuth(newAuth, remember);
+
+        // 이미 로그인 성공했으니 이 시점 이후 화면 들어온 곳에서는 hydration 완료된 상태라고 봐도 됨
+        setHydrated(true);
     };
 
     // ===============================================================
@@ -112,8 +133,9 @@ export default function LoginProvider({ children }) {
             loginResult,
             setLoginResult,
             setUser,
+            hydrated, // ✅ 여기서 컨텍스트로 내보내기
         }),
-        [auth, loginResult]
+        [auth, loginResult, hydrated]
     );
 
     return (
