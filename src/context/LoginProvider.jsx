@@ -24,9 +24,22 @@ export default function LoginProvider({ children }) {
             return;
         }
 
+        // 🔥 accessToken 없으면 사용자 정보 요청 금지
+        if (!saved?.accessToken) {
+            setAuth(null);
+            return;
+        }
+
+        // 🔥 저장된 auth 복원
         setAuth(saved);
 
-        // AccessToken으로 유저 정보 확인
+        // 🔥 이미 user 정보가 있으면 /users/me 호출 불필요
+        if (saved.user) {
+            setHydrated(true);
+            return;
+        }
+
+        // 🔥 accessToken은 있지만 user 정보가 없을 때만 /users/me 요청
         getUserInfo()
             .then((res) => {
                 if (!res) {
@@ -35,18 +48,13 @@ export default function LoginProvider({ children }) {
                     return;
                 }
 
-                setAuth((prev) => {
-                    if (!prev) return prev;
+                const newAuth = {
+                    ...saved,
+                    user: normalizeUser(res),
+                };
 
-                    const newAuth = {
-                        ...prev,
-                        user: normalizeUser(res, prev.user),
-                    };
-
-                    saveAuth(newAuth);
-
-                    return newAuth;
-                });
+                saveAuth(newAuth);
+                setAuth(newAuth);
             })
             .catch((err) => {
                 // 사용자 정보 확인 실패 시 저장된 인증 정보를 모두 제거해 로그아웃 상태가 확실히 반영되도록 처리
@@ -55,7 +63,6 @@ export default function LoginProvider({ children }) {
                 console.warn("getUserInfo 실패로 인증 정보를 초기화했습니다:", err?.message || err);
             })
             .finally(() => {
-                // ✅ 성공이든 실패든 검사는 끝난 거니까 여기서 hydration 완료
                 setHydrated(true);
             });
     }, []);
