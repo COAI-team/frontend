@@ -273,6 +273,48 @@ export default function ProfilePage() {
                             )}
                         </div>
                     </div>
+                    <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                className="sr-only peer"
+                                checked={JSON.parse(localStorage.getItem("walkingMoai") ?? "true")}
+                                onChange={(e) => {
+                                    localStorage.setItem("walkingMoai", e.target.checked);
+                                    window.dispatchEvent(new Event("storage"));
+                                    setProfile({...profile}); 
+                                }}
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+                </div>
+
+                <div className="border rounded-2xl shadow-sm p-6 flex flex-col gap-4 mt-4">
+                     <div className="flex justify-between items-center">
+                        <div>
+                            <h3 className="font-medium text-lg">모아이 대량 발생</h3>
+                            <p className="text-gray-500 text-sm">최대 {JSON.parse(localStorage.getItem("moaiCount") ?? "1")}마리의 모아이가 출현합니다.</p>
+                        </div>
+                        <span className="font-bold text-lg text-blue-600">
+                             {JSON.parse(localStorage.getItem("moaiCount") ?? "1")} 마리
+                        </span>
+                     </div>
+                     <input 
+                        type="range" 
+                        min="1" 
+                        max="10" 
+                        step="1"
+                        value={JSON.parse(localStorage.getItem("moaiCount") ?? "1")}
+                        onChange={(e) => {
+                            localStorage.setItem("moaiCount", e.target.value);
+                            window.dispatchEvent(new Event("storage"));
+                            setProfile({...profile});
+                        }}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
+                     />
                 </div>
             </div>
 
