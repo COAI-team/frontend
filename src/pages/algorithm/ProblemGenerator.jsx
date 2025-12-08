@@ -36,10 +36,17 @@ const ProblemGenerator = () => {
     { value: 'PLATINUM', label: '플래티넘 (고급)', color: 'blue', description: '복잡한 알고리즘, 수학적 사고' },
   ];
 
-  const TOPIC_SUGGESTIONS_ALGO = [
-    '배열', 'DP', '그리디', '그래프', '구현', '수학',
-    '문자열', '정렬', '탐색', '시뮬레이션', '재귀', '백트래킹'
-  ];
+  // 카테고리별 알고리즘 토픽 (24개)
+  const TOPIC_CATEGORIES_ALGO = {
+    '기초': ['배열', '구현', '시뮬레이션', '재귀', '수학', '문자열'],
+    '탐색': ['탐색', 'BFS', 'DFS', '이분탐색', '백트래킹'],
+    '알고리즘': ['DP', '그리디', '정렬', '분할정복', '투포인터'],
+    '그래프': ['그래프', '최단경로', 'MST', '위상정렬'],
+    '자료구조': ['스택/큐', '트리', '힙', '유니온파인드'],
+  };
+
+  // 평면화된 토픽 배열 (기존 호환성 유지)
+  const TOPIC_SUGGESTIONS_ALGO = Object.values(TOPIC_CATEGORIES_ALGO).flat();
 
   const TOPIC_SUGGESTIONS_SQL = [
     'SELECT', 'GROUP BY', 'String, Date', 'JOIN', 'SUM, MAX, MIN', 'IS NULL'
@@ -372,22 +379,50 @@ const ProblemGenerator = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   문제 주제 <span className="text-red-500">*</span>
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {(formData.problemType === 'SQL' ? TOPIC_SUGGESTIONS_SQL : TOPIC_SUGGESTIONS_ALGO).map((topic) => (
-                    <button
-                      key={topic}
-                      type="button"
-                      onClick={() => handleTopicSuggestionClick(topic)}
-                      className={`px-4 py-2 text-sm rounded-lg border-2 transition-all ${
-                        formData.topic === topic
-                          ? 'bg-blue-50 text-blue-800 border-blue-500 font-semibold'
-                          : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
-                      }`}
-                    >
-                      {topic}
-                    </button>
-                  ))}
-                </div>
+                {formData.problemType === 'SQL' ? (
+                  // SQL 토픽 (기존 방식)
+                  <div className="flex flex-wrap gap-2">
+                    {TOPIC_SUGGESTIONS_SQL.map((topic) => (
+                      <button
+                        key={topic}
+                        type="button"
+                        onClick={() => handleTopicSuggestionClick(topic)}
+                        className={`px-4 py-2 text-sm rounded-lg border-2 transition-all ${
+                          formData.topic === topic
+                            ? 'bg-blue-50 text-blue-800 border-blue-500 font-semibold'
+                            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
+                        }`}
+                      >
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  // 알고리즘 토픽 (카테고리별)
+                  <div className="space-y-3">
+                    {Object.entries(TOPIC_CATEGORIES_ALGO).map(([category, topics]) => (
+                      <div key={category}>
+                        <div className="text-xs font-semibold text-gray-500 mb-1.5">{category}</div>
+                        <div className="flex flex-wrap gap-2">
+                          {topics.map((topic) => (
+                            <button
+                              key={topic}
+                              type="button"
+                              onClick={() => handleTopicSuggestionClick(topic)}
+                              className={`px-3 py-1.5 text-sm rounded-lg border-2 transition-all ${
+                                formData.topic === topic
+                                  ? 'bg-blue-50 text-blue-800 border-blue-500 font-semibold'
+                                  : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
+                              }`}
+                            >
+                              {topic}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {formData.topic && (
                   <div className="mt-3 text-sm text-blue-600">
                     선택된 주제: <span className="font-semibold">{formData.topic}</span>
