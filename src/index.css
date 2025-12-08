@@ -1,5 +1,76 @@
 @import "tailwindcss";
 
+:root {
+  /* 텍스트 */
+  --color-text-main: #111827;   /* 본문, 숫자, 합계 */
+  --color-text-sub: #374151;    /* 서브 제목, 라벨 */
+  --color-text-muted: #6b7280;  /* 설명, 힌트 */
+
+  /* 배경 */
+  --color-bg-main: #f9fafb;
+  --color-bg-panel: #ffffff;
+}
+
+.dark {
+  --color-text-main: #e5e7eb;   /* 본문 */
+  --color-text-sub: #cbd5e1;    /* 서브 */
+  --color-text-muted: #9ca3af;  /* 힌트 */
+
+  --color-bg-main: #020617;
+  --color-bg-panel: #0f172a;
+}
+
+.text-main {
+  color: var(--color-text-main);
+}
+
+.text-sub {
+  color: var(--color-text-sub);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.bg-main {
+  background-color: var(--color-bg-main);
+}
+
+.bg-panel {
+  background-color: var(--color-bg-panel);
+}
+
+/* 날짜 필터 전용 공통 스타일 */
+.input-date {
+  background-color: var(--billing-panel, var(--color-bg-panel));
+  color: var(--color-text-main);
+  border: 1px solid var(--billing-border, #e5e7eb);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.input-date::-webkit-datetime-edit {
+  color: var(--color-text-sub);
+  opacity: 1;
+}
+
+.input-date:focus::-webkit-datetime-edit,
+.input-date:valid::-webkit-datetime-edit {
+  color: var(--color-text-main);
+}
+
+.input-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+.dark .input-date {
+  background-color: var(--billing-panel, var(--color-bg-panel));
+  color: var(--color-text-main);
+  border-color: var(--billing-border, #1f2937);
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;
@@ -24,6 +95,7 @@ body.dark, html.dark body {
   background-color: #000;
 }
 
+
 /* 기본 스크롤바 */
 ::-webkit-scrollbar {
   width: 8px;
@@ -34,4 +106,151 @@ body.dark, html.dark body {
 }
 html.dark ::-webkit-scrollbar-thumb {
   background: #4b5563;
+}
+
+/* Custom Animations for Hero Section */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Scroll Reveal Animations */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); /* Premium ease-out */
+}
+
+.reveal-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Code Scanning Animation */
+@keyframes scan-line {
+  0% { top: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.animate-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #3b82f6, transparent); /* Blue scan line */
+  box-shadow: 0 0 10px #3b82f6;
+  animation: scan-line 2s ease-in-out infinite;
+  z-index: 10;
+  pointer-events: none;
+}
+
+
+.dark .animate-scan {
+  background: linear-gradient(to right, transparent, #60a5fa, transparent);
+  box-shadow: 0 0 15px #60a5fa;
+}
+
+/* 1. 360 Degree Spinning Moai */
+.moai-spinner-container {
+  display: inline-block;
+  perspective: 1000px;
+}
+
+.moai-spinner {
+  display: inline-block;
+  animation: spinMoai 10s linear infinite;
+  transform-style: preserve-3d;
+}
+
+@keyframes spinMoai {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+/* 2. Walking Moai in Header */
+.header-banner-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1; /* Navbar content is relative (z-auto), so this needs to be low but visible */
+}
+
+.walking-moai-container {
+  position: absolute;
+  left: -10%;
+  bottom: -5px; /* 바닥에 딱 붙거나 살짝 아래로 */
+  /* 기본 20초, 인라인 스타일로 오버라이드 가능하도록 */
+  animation: walkAcrossScreen var(--walk-duration, 20s) linear infinite;
+  animation-delay: var(--walk-delay, 0s);
+  z-index: 1;
+  will-change: left;
+}
+
+.moai-body {
+  font-size: 40px;
+  display: inline-block;
+  /* 더 무거운 느낌: 빠른 하강, 느린 상승, 착지 시 찌그러짐 */
+  animation: heavyBounce 0.8s infinite cubic-bezier(0.8, 0, 1, 1);
+  transform-origin: bottom center;
+}
+
+.moai-body.christmas::after {
+  content: '🎅';
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
+  z-index: 2;
+}
+
+@keyframes walkAcrossScreen {
+  from { left: -15%; }
+  to { left: 115%; }
+}
+
+@keyframes heavyBounce {
+  0%, 100% {
+    transform: translateY(0) scaleY(0.95) scaleX(1.05); /* 착지: 찌그러짐 */
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1); /* 점프 시작: 빠르게 튀어오름 */
+  }
+  40% {
+    transform: translateY(-20px) scaleY(1.05) scaleX(0.95); /* 정점: 늘어남 */
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1); /* 하강: 점점 빨라짐 (중력) */
+  }
+  100% {
+    transform: translateY(0) scaleY(0.95) scaleX(1.05); /* 착지 */
+  }
 }

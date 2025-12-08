@@ -18,16 +18,14 @@ export default function AlertModal({
                                        open = false,
                                        onClose = () => {},
                                        onConfirm,
+                                       onCancel,
                                        type = "success",
                                        title,
                                        message,
                                        confirmText = "확인",
+                                       cancelText = "취소",
                                    }) {
     const { theme } = useTheme();
-
-    useEffect(() => {
-        console.log("current theme =", theme);
-    }, [theme]);
 
     // HEX 색상 매핑
     const COLOR_MAP = {
@@ -45,7 +43,6 @@ export default function AlertModal({
         },
     };
 
-    // 아이콘 매핑
     const ICON_MAP = {
         success: CheckCircleIcon,
         warning: ExclamationTriangleIcon,
@@ -53,9 +50,8 @@ export default function AlertModal({
         info: InformationCircleIcon,
     };
 
-    const currentBg = theme === "dark"
-        ? COLOR_MAP.dark[type]
-        : COLOR_MAP.light[type];
+    const currentBg =
+        theme === "dark" ? COLOR_MAP.dark[type] : COLOR_MAP.light[type];
 
     const Icon = ICON_MAP[type] ?? CheckCircleIcon;
 
@@ -63,8 +59,9 @@ export default function AlertModal({
         <Dialog open={open} onClose={onClose} className="relative z-50">
             <DialogBackdrop
                 transition
-                className={`fixed inset-0 transition-opacity
-                    ${theme === "dark" ? "bg-black/70" : "bg-gray-500/75"}`}
+                className={`fixed inset-0 transition-opacity ${
+                    theme === "dark" ? "bg-black/70" : "bg-gray-500/75"
+                }`}
             />
 
             <div className="fixed inset-0 z-50 w-screen overflow-y-auto">
@@ -72,15 +69,11 @@ export default function AlertModal({
 
                     <DialogPanel
                         transition
-                        className={`
-                            relative transform overflow-hidden rounded-lg shadow-xl transition-all
+                        className={`relative transform overflow-hidden rounded-lg shadow-xl transition-all
                             ${theme === "dark" ? "bg-gray-800" : "bg-white"}
-                            px-4 pt-5 pb-4 text-left
-                            sm:my-8 sm:w-full sm:max-w-lg sm:p-6
-                        `}
+                            px-4 pt-5 pb-4 text-left sm:my-8 sm:w-full sm:max-w-lg sm:p-6`}
                     >
-
-                        {/* 아이콘 + 배경 컬러 */}
+                        {/* 아이콘 + 텍스트 */}
                         <div className="sm:flex sm:items-start">
                             <div
                                 className="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full sm:mx-0 sm:size-10"
@@ -95,28 +88,46 @@ export default function AlertModal({
                                 >
                                     {title}
                                 </DialogTitle>
+
                                 <div className="mt-2">
-                                    <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                    <p
+                                        className={`text-sm whitespace-pre-line ${
+                                            theme === "dark" ? "text-gray-300" : "text-gray-600"
+                                        }`}
+                                    >
                                         {message}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* 확인 버튼 */}
-                        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                        {/* 버튼 영역: 🟣 취소 + 확인 */}
+                        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
                             <button
                                 onClick={() => {
                                     if (onConfirm) onConfirm();
                                     onClose();
                                 }}
-                                className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-black shadow-sm sm:ml-3 sm:w-auto`}
+                                className="inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-black shadow-sm sm:w-auto"
                                 style={{ backgroundColor: currentBg }}
                             >
                                 {confirmText}
                             </button>
-                        </div>
 
+                            {onCancel && (
+                                <button
+                                    onClick={() => {
+                                        onCancel();
+                                        onClose();
+                                    }}
+                                    className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm sm:w-auto 
+                                       ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-800"}
+                                    `}
+                                >
+                                    {cancelText}
+                                </button>
+                            )}
+                        </div>
                     </DialogPanel>
                 </div>
             </div>

@@ -5,6 +5,8 @@ import {
     UserCircleIcon,
     Cog6ToothIcon,
     CreditCardIcon,
+    ChartBarIcon,
+    PresentationChartLineIcon,
 } from "@heroicons/react/24/outline";
 
 const myMenu = [
@@ -20,6 +22,13 @@ const myMenu = [
         icon: CreditCardIcon,
         children: [
             { name: "결제·구독 관리", href: "/mypage/billing", icon: Cog6ToothIcon },
+        ],
+    },
+    {
+        name: "활동 분석",
+        icon: ChartBarIcon,
+        children: [
+            { name: "대시보드", href: "/mypage/dashboard", icon: PresentationChartLineIcon },
         ],
     },
 ];

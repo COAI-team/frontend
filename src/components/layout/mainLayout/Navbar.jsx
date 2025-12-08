@@ -10,7 +10,8 @@ import { NavLinks } from "../../navbar/NavLinks";
 import RightActions from "../../navbar/RightActions";
 
 const initialNavigation = [
-  { name: "코드 분석", href: "/codeAnalysis" },
+  { name: "코드 분석", href: "/codeAnalysis/new" },
+  { name: "코드 분석 (No RAG)", href: "/codeAnalysis/norag" },
   { name: "알고리즘", href: "/algorithm" },
   { name: "자유게시판", href: "/freeboard" },
   { name: "코드게시판", href: "/codeboard" },
@@ -30,7 +31,7 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
 
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const { user, logout } = useLogin();
+  const { user, logout, hydrated, accessToken } = useLogin();
 
   useEffect(() => setMounted(true), []);
 
@@ -52,6 +53,27 @@ export default function Navbar() {
     );
   };
 
+  // Walking Moai Render State
+  // localStorage 접근은 안전하게 try-catch가 없으므로, SSR환경이 아니라고 가정
+  const [showMoai, setShowMoai] = useState(() => {
+    if (typeof window !== 'undefined') {
+       return JSON.parse(localStorage.getItem("walkingMoai") ?? "true");
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setShowMoai(JSON.parse(localStorage.getItem("walkingMoai") ?? "true"));
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // 크리스마스 시즌 체크 (12월)
+  const isChristmas = new Date().getMonth() === 11;
+
   if (!mounted) return null;
 
   return (
@@ -65,7 +87,36 @@ export default function Navbar() {
                 }
                 dark:after:absolute dark:after:bottom-0 dark:after:h-px dark:after:w-full dark:after:bg-white/10`}
     >
-      <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+      {/* 2 & 3. Walking Moai Animation */}
+      {/* 2 & 3. Walking Moai Animation */}
+      {showMoai && (
+        <div className="header-banner-area">
+          {Array.from({ length: Math.max(1, parseInt(localStorage.getItem("moaiCount") ?? "1")) }).map((_, i) => {
+            // 랜덤 속도 (15s ~ 35s) 및 딜레이 (0s ~ 15s) 계산
+            // useMemo를 쓰고 싶지만, 배열 길이가 바뀌면 재계산되어야 하므로 단순화. 
+            // 단, 리렌더링 시마다 모아이가 튀는 것을 방지하기 위해 key를 인덱스로 쓰고, 값은 고정된 범위 내에서 랜덤이 좋음.
+            // 여기서는 간단히 인덱스를 시드로 사용하여 유사 랜덤 생성
+            const seed = i * 1337;
+            const duration = 15 + (seed % 20) + "s"; 
+            const delay = (seed % 15) + "s";
+            
+            return (
+              <div 
+                key={i} 
+                className="walking-moai-container"
+                style={{
+                  "--walk-duration": duration,
+                  "--walk-delay": delay
+                }}
+              >
+                <div className={`moai-body ${isChristmas ? 'christmas' : ''}`}>🗿</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 relative z-20">
         <div className="relative flex h-16 items-center justify-between">
           <MobileMenuButton theme={theme} />
 
@@ -89,6 +140,8 @@ export default function Navbar() {
             logout={logout}
             navigate={navigate}
             BASE_URL={BASE_URL}
+            accessToken={accessToken}
+            hydrated={hydrated}
           />
         </div>
       </div>

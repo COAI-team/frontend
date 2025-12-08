@@ -77,6 +77,10 @@ export const ViewModeCardPropTypes = {
     }).isRequired,
     maskEmail: PropTypes.func.isRequired,
     onEdit: PropTypes.func.isRequired,
+    subscriptionInfo: PropTypes.shape({
+        text: PropTypes.string,
+        tone: PropTypes.oneOf(["muted", "primary", "error"]),
+    }),
 };
 
 /* ----------------------------------------
@@ -138,6 +142,8 @@ export const RightActionsPropTypes = {
     logout: PropTypes.func.isRequired,
     navigate: PropTypes.func.isRequired,
     BASE_URL: PropTypes.string.isRequired,
+    accessToken: PropTypes.string,
+    hydrated: PropTypes.bool,
 };
 
 export const RuleItemPropTypes = {
