@@ -10,6 +10,7 @@ export default function RightActions({
   logout,
   navigate,
   BASE_URL,
+  accessToken,
   hydrated,
 }) {
   let rawImage;
@@ -23,7 +24,7 @@ export default function RightActions({
     }
 
   const profileImage = rawImage + "?t=" + Date.now();
-  const showUser = hydrated && !!user;
+  const showUser = hydrated && !!user && !!accessToken;
 
   return (
     <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-2 sm:static sm:pr-0 sm:ml-6">

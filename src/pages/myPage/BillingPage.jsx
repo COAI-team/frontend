@@ -10,6 +10,7 @@ const statusLabel = {
   DONE: "결제 완료",
   READY: "진행중",
   CANCELED: "환불 완료",
+  ERROR: "결제 오류",
 };
 
 function normalizePointRow(item, idx = 0) {
@@ -425,6 +426,14 @@ export default function BillingPage() {
           >
             포인트 내역
           </button>
+          <button
+            className={`pb-2 px-1 font-semibold ${
+              tab === "inquiry" ? "border-b-2 border-indigo-500" : "text-gray-400"
+            }`}
+            onClick={() => setTab("inquiry")}
+          >
+            단건조회(테스트)
+          </button>
         </div>
 
         {tab === "history" ? (
@@ -509,13 +518,9 @@ export default function BillingPage() {
                 <span className="text-sub">총 환불 금액: {formatMoney(filteredRefundSum)}</span>
               </div>
             </div>
-            <Pagination
-              page={historyPage}
-              totalPages={historyTotalPages}
-              onPageChange={setHistoryPage}
-            />
+            <Pagination page={historyPage} totalPages={historyTotalPages} onPageChange={setHistoryPage} />
           </>
-        ) : (
+        ) : tab === "point" ? (
           <>
             <div className="flex flex-wrap items-center gap-3 mb-4 text-main">
               <div className="flex items-center gap-2">
@@ -591,11 +596,7 @@ export default function BillingPage() {
                 </label>
               </div>
             </div>
-            <PointTable
-              rows={filteredPointPageRows}
-              numberMap={pointNumberMap}
-              rowKeyFn={getPointKey}
-            />
+            <PointTable rows={filteredPointPageRows} numberMap={pointNumberMap} rowKeyFn={getPointKey} />
             <div className="flex items-center justify-between text-sm text-main mt-3">
               <span className="text-sub">총 {filteredPointHistory.length}건</span>
               <div className="text-right space-x-4">
@@ -604,15 +605,73 @@ export default function BillingPage() {
                 <span className="text-sub">총 적립 포인트: {formatPoint(filteredTotalPointEarn)}</span>
               </div>
             </div>
-            <Pagination
-              page={pointPage}
-              totalPages={pointTotalPages}
-              onPageChange={setPointPage}
-            />
+            <Pagination page={pointPage} totalPages={pointTotalPages} onPageChange={setPointPage} />
           </>
+        ) : (
+          <div className="space-y-4">
+            <div className="text-sm text-sub">
+              토스 단건조회 테스트용 탭입니다. 결제/구독 데이터에는 영향을 주지 않습니다.
+            </div>
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-sub">주문번호 (orderId)</label>
+                <input
+                  value={inquiryOrderId}
+                  onChange={(e) => setInquiryOrderId(e.target.value)}
+                  placeholder="예: ORD-123..."
+                  className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-sub">paymentKey</label>
+                <input
+                  value={inquiryPaymentKey}
+                  onChange={(e) => setInquiryPaymentKey(e.target.value)}
+                  placeholder="예: tosspayments_..."
+                  className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleInquiry}
+                disabled={inquiryLoading}
+                className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50"
+              >
+                {inquiryLoading ? "조회 중..." : "토스 단건 조회"}
+              </button>
+              <p className="text-xs text-sub">둘 중 하나만 입력해도 됩니다. 결제 소유자만 조회 가능합니다.</p>
+            </div>
+            {inquiryError && <p className="text-sm text-red-500">{inquiryError}</p>}
+            {inquiryResult && (
+              <div className="mt-1 text-sm space-y-1">
+                <div className="font-semibold text-main">
+                  상태: {inquiryResult.status || inquiryResult.paymentStatus || "-"}
+                </div>
+                <div className="text-sub">
+                  주문번호: {inquiryResult.orderId || inquiryResult.orderName || inquiryOrderId || "-"}
+                </div>
+                <div className="text-sub">paymentKey: {inquiryResult.paymentKey || "-"}</div>
+                <div className="text-sub">
+                  결제금액:{" "}
+                  {formatMoney(
+                    inquiryResult.totalAmount ?? inquiryResult.amount ?? inquiryResult.balanceAmount
+                  )}
+                </div>
+                <div className="text-sub">
+                  승인시각: {formatDate(inquiryResult.approvedAt || inquiryResult.approvedDate)}
+                </div>
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-indigo-500">원본 응답 보기</summary>
+                  <pre className="mt-1 text-xs bg-gray-900 text-gray-100 rounded-lg p-3 overflow-x-auto">
+                    {JSON.stringify(inquiryResult, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            )}
+          </div>
         )}
 
-        {loading && (
+        {loading && tab !== "inquiry" && (
           <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">이력을 불러오는 중...</p>
         )}
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
@@ -673,6 +732,9 @@ function HistoryTable({ rows, onRefund, onOrderLink, numberMap, rowKeyFn }) {
             if (isCanceled) {
               refundLabel = "환불됨";
               refundReason = "이미 환불 완료된 건입니다.";
+            } else if (status === "ERROR") {
+              refundLabel = "결제 오류";
+              refundReason = "결제 오류로 환불이 불가능합니다.";
             } else if (canRefund) {
               refundLabel = "환불 가능";
               refundReason = "결제 완료 건으로 환불 요청이 가능합니다.";
