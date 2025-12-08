@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../server/AxiosConfig";
+import Pagination from '../../components/common/Pagination';
 import "../../styles/FreeboardList.css";
 
 const FreeboardList = () => {
@@ -35,7 +36,6 @@ const FreeboardList = () => {
       
       console.log('응답:', response.data);
       
-      // ApiResponse 구조 처리
       const data = response.data.data || response.data;
       setPosts(data.content || []);
       setTotalPages(data.totalPages || 1);
@@ -54,13 +54,16 @@ const FreeboardList = () => {
 
   const handleSortChange = (newSort) => {
     setSortBy(newSort);
-    // 정렬 기준에 따라 방향 자동 설정
     if (newSort === 'CREATED_AT') {
-      setSortDirection('DESC'); // 최신순
+      setSortDirection('DESC');
     } else {
-      setSortDirection('DESC'); // 많은 순
+      setSortDirection('DESC');
     }
     setCurrentPage(1);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   const handlePostClick = (postId) => {
@@ -104,7 +107,6 @@ const FreeboardList = () => {
         <p className="freeboard-subtitle">개발과 관련된 다양한 주제로 자유롭게 이야기를 나눠보세요</p>
       </div>
 
-      {/* 검색 및 필터 영역 */}
       <div className="freeboard-controls">
         <div className="control-left">
           <form onSubmit={handleSearch} className="search-form">
@@ -138,7 +140,10 @@ const FreeboardList = () => {
 
           <select 
             value={pageSize} 
-            onChange={(e) => setPageSize(Number(e.target.value))}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1);
+            }}
             className="pagesize-select"
           >
             <option value="10">10개씩 보기</option>
@@ -175,7 +180,6 @@ const FreeboardList = () => {
         </div>
       </div>
 
-      {/* 게시글 목록 */}
       {loading ? (
         <div className="loading-container">
           <div className="loading-spinner"></div>
@@ -326,27 +330,11 @@ const FreeboardList = () => {
             </div>
           )}
 
-          <div className="pagination">
-            <button 
-              className="page-btn"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              이전
-            </button>
-            
-            <span className="page-info">
-              {currentPage} / {totalPages}
-            </span>
-            
-            <button 
-              className="page-btn"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
-              다음
-            </button>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         </>
       )}
 
