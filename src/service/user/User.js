@@ -178,7 +178,9 @@ export const getGithubUserInfo = async () => {
     const res = await axiosInstance.get("/auth/github/user", {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        "X-Skip-Auth-Redirect": "true",
       },
+      _skipAuthRedirect: true,
     });
 
     console.log("✅ [getGithubUserInfo] 성공:", res.data);
