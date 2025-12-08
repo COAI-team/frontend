@@ -155,14 +155,17 @@ export const runTestCode = async (data) => {
 
 /**
  * AI 문제 생성
+ * LLM API 호출로 인해 10초 이상 소요될 수 있으므로 타임아웃을 60초로 설정
  */
 export const generateProblem = async (data) => {
     try {
-        const res = await axiosInstance.post('/algo/problems/generate', {  // /algorithm -> /algo 로 변경
+        const res = await axiosInstance.post('/algo/problems/generate', {
             difficulty: data.difficulty,
             problemType: data.problemType || 'ALGORITHM',
             topic: data.topic,
             additionalRequirements: data.additionalRequirements || null,
+        }, {
+            timeout: 60000  // 60초 타임아웃 (LLM 호출 시간 고려)
         });
         return res.data;
     } catch (err) {
