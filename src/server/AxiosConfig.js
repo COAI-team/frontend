@@ -16,8 +16,14 @@ axiosInstance.defaults.baseURL = API_URL;
 // =====================================================
 axiosInstance.interceptors.request.use(
     (config) => {
-        const auth = getAuth();
 
+        // ⛔ 1) _skipAuth 요청은 토큰 주입 건너뛰기 (GitHub 연동용)
+        if (config._skipAuth === true) {
+            return config;
+        }
+
+        // ⛔ 2) 평소에는 자동 토큰 주입
+        const auth = getAuth();
         if (auth?.accessToken) {
             config.headers.Authorization = `Bearer ${auth.accessToken}`;
         }
@@ -120,16 +126,21 @@ axiosInstance.interceptors.response.use(
             originalRequest?.headers?.["X-Skip-Auth-Redirect"] === "true" ||
             originalRequest?._skipAuthRedirect;
 
+        const currentPath = globalThis.location?.pathname || "/";
+
+        if (currentPath.startsWith("/signin")) {
+            throw error;
+        }
+
         if (!skipAuthRedirect && (status === 401 || status === 403)) {
             removeAuth();
 
-            const currentPath =
-                (globalThis.location?.pathname || "/") +
-                (globalThis.location?.search || "");
+            const redirectParam = encodeURIComponent(
+                currentPath + (globalThis.location?.search || "")
+            );
 
             if (!originalRequest?._redirectedForAuth) {
                 originalRequest._redirectedForAuth = true;
-                const redirectParam = encodeURIComponent(currentPath);
                 globalThis.location.replace(`/signin?redirect=${redirectParam}`);
             }
         }
