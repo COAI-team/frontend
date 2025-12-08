@@ -1,9 +1,10 @@
-// src/pages/payment/PricingPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../../server/AxiosConfig";
+import { fetchSubscriptions } from "../../service/payment/PaymentApi";
+import { fetchMyProfile } from "../../service/mypage/MyPageApi";
 import { getAuth, removeAuth } from "../../utils/auth/token";
-import "./pricing.css";
+import AlertModal from "../../components/modal/AlertModal";
+import "./css/pricing.css";
 
 const PLANS = {
   free: { code: "FREE", name: "Free", price: 0 },
@@ -91,10 +92,11 @@ function PricingPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [userName, setUserName] = useState("");
   const [isAuthed, setIsAuthed] = useState(!!getAuth()?.accessToken);
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
 
   // 구독 상태 조회
   useEffect(() => {
-    const fetchSubscriptions = async () => {
+    const fetchSubs = async () => {
       try {
         if (!isAuthed) {
           setErrorMsg("로그인이 필요합니다.");
@@ -103,7 +105,7 @@ function PricingPage() {
           return;
         }
         setLoading(true);
-        const res = await axiosInstance.get("/payments/subscriptions/me");
+        const res = await fetchSubscriptions();
         const list = Array.isArray(res.data) ? res.data : [];
 
         if (list.length === 0) {
@@ -116,10 +118,10 @@ function PricingPage() {
       } catch (e) {
         console.error("구독 상태 조회 실패:", e);
         if (e.response?.status === 401) {
-          // 토큰 만료/없음으로 간주하고 로그인으로 유도
           removeAuth();
           setIsAuthed(false);
           setErrorMsg("세션이 만료되었습니다. 다시 로그인해 주세요.");
+          setShowLoginAlert(true);
         } else {
           setCurrentPlan("FREE");
           setErrorMsg("구독 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
@@ -129,7 +131,7 @@ function PricingPage() {
       }
     };
 
-    fetchSubscriptions();
+    fetchSubs();
   }, [isAuthed]);
 
   // 사용자 이름/닉네임 조회
@@ -137,7 +139,7 @@ function PricingPage() {
     const fetchMe = async () => {
       try {
         if (!isAuthed) return;
-        const res = await axiosInstance.get("/users/me");
+        const res = await fetchMyProfile();
         const data = res.data || {};
         setUserName(data.userNickname || data.userName || "");
       } catch (e) {
@@ -145,6 +147,7 @@ function PricingPage() {
           removeAuth();
           setIsAuthed(false);
           setErrorMsg("세션이 만료되었습니다. 다시 로그인해 주세요.");
+          setShowLoginAlert(true);
         } else {
           console.warn("내 정보 조회 실패(이름 표시 생략):", e);
         }
@@ -159,15 +162,18 @@ function PricingPage() {
   const isBasicCurrent = currentPlan === "BASIC";
   const isProCurrent = currentPlan === "PRO";
 
-  const handleSelectPlan = (planKey) => {
+  const handleSelectPlan = (planKeyValue) => {
     if (isProCurrent) return;
-    if (isBasicCurrent && planKey === "basic") return;
-    setSelectedPlan((prev) => (prev === planKey ? null : planKey));
+    if (isBasicCurrent && planKeyValue === "basic") return;
+    setSelectedPlan((prev) => (prev === planKeyValue ? null : planKeyValue));
   };
 
   const handleProceed = () => {
-    if (!isAuthed) {
-      navigate("/signin");
+    const token = getAuth()?.accessToken;
+    if (!isAuthed || !token) {
+      removeAuth();
+      setIsAuthed(false);
+      setShowLoginAlert(true);
       return;
     }
     if (!selectedPlan) return;
@@ -191,9 +197,7 @@ function PricingPage() {
           <div className="status-banner">
             <div className="status-icon">i</div>
             <div>
-              <div className="status-title">
-                {(userName || "사용자")}님의 구독 상태
-              </div>
+              <div className="status-title">{(userName || "사용자")}님의 구독 상태</div>
               <div className="status-text">
                 {!isAuthed
                   ? "로그인이 필요합니다."
@@ -210,8 +214,8 @@ function PricingPage() {
 
         {/* 요금제 카드 */}
         <div className="cards-grid">
-        {/* Free 카드 */}
-        <div className={cardClass("free", { variant: "white" })}>
+          {/* Free 카드 */}
+          <div className={cardClass("free", { variant: "white" })}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3 style={{ fontSize: 20, fontWeight: 700 }}>Free</h3>
@@ -376,6 +380,21 @@ function PricingPage() {
           </button>
         </div>
       </div>
+
+      <AlertModal
+        open={showLoginAlert}
+        onClose={() => setShowLoginAlert(false)}
+        onConfirm={() =>
+          navigate("/signin", {
+            replace: true,
+            state: { redirect: "/pages/payment/pricing" },
+          })
+        }
+        type="warning"
+        title="로그인이 필요합니다"
+        message={"결제를 진행하려면 로그인이 필요합니다.\n로그인 화면으로 이동합니다."}
+        confirmText="확인"
+      />
     </div>
   );
 }

@@ -1,0 +1,109 @@
+:root {
+  --billing-bg: #f9fafb;
+  --billing-text: var(--text-main);
+  --billing-muted: var(--text-muted);
+  --billing-subtle: var(--text-sub);
+  --billing-panel: #ffffff;
+  --billing-border: #e5e7eb; /* gray-200 */
+  --billing-header: #f1f5f9; /* slate-100 */
+  --billing-header-strong: #e2e8f0; /* slate-200 */
+  --billing-header-text: var(--text-main);
+  --billing-table-row: #ffffff;
+  --billing-table-row-alt: #f8fafc;
+  --billing-chip-bg: #eef2ff;
+  --billing-chip-border: #c7d2fe;
+  --billing-chip-text: #312e81;
+}
+
+.dark {
+  --billing-bg: #020617;
+  --billing-text: var(--text-main);
+  --billing-muted: var(--text-muted);
+  --billing-subtle: var(--text-sub);
+  --billing-panel: #0f172a; /* slate-900 */
+  --billing-border: #1f2937; /* gray-800/700 */
+  --billing-header: #111827;
+  --billing-header-strong: #1f2937; /* 더 밝은 헤더 배경 */
+  --billing-header-text: var(--text-main);
+  --billing-table-row: #0f172a;
+  --billing-table-row-alt: #111827;
+  --billing-chip-bg: #1f2937;
+  --billing-chip-border: #312e81;
+  --billing-chip-text: #e0e7ff;
+}
+
+.billing-page {
+  background-color: var(--billing-bg);
+  color: var(--billing-text);
+}
+
+.billing-panel {
+  background-color: var(--billing-panel);
+  border-color: var(--billing-border);
+  color: var(--billing-text);
+}
+
+.billing-current-plan {
+  border: 1px solid var(--billing-chip-border);
+  background-color: var(--billing-chip-bg);
+  color: var(--billing-chip-text);
+}
+
+.billing-table {
+  width: 100%;
+  background-color: var(--billing-panel);
+  color: var(--billing-text);
+  border-color: var(--billing-border);
+}
+
+.billing-table-head {
+  background-color: var(--billing-header-strong);
+  color: var(--billing-header-text);
+}
+
+/* 헤더 셀에 확실히 적용 */
+.billing-table-head tr,
+.billing-table-head th,
+.billing-table-head td {
+  background-color: var(--billing-header-strong) !important;
+  color: var(--billing-header-text) !important;
+}
+
+.billing-table tbody tr {
+  background-color: var(--billing-table-row);
+}
+
+.billing-table tbody tr:nth-child(even) {
+  background-color: var(--billing-table-row-alt);
+}
+
+.billing-table th,
+.billing-table td {
+  border-color: var(--billing-border);
+  color: var(--billing-text);
+}
+
+/* Pagination overrides to avoid inherited dark bg in light mode */
+.pagination-btn {
+  background-color: #ffffff;
+  color: var(--color-text-main);
+  border-color: var(--billing-border);
+}
+
+.dark .pagination-btn {
+  background-color: #111827;
+  color: var(--color-text-main);
+  border-color: var(--billing-border);
+}
+
+.pagination-btn.active {
+  background-color: #4f46e5;
+  color: #ffffff;
+  border-color: #4f46e5;
+}
+
+.dark .pagination-btn.active {
+  background-color: #312e81;
+  color: #e5e7eb;
+  border-color: #312e81;
+}

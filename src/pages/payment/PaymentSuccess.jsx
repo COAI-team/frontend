@@ -1,8 +1,8 @@
 // src/pages/payment/PaymentSuccess.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import axiosInstance from "../../server/AxiosConfig";
-import "./payment-screens.css";
+import { confirmPayment } from "../../service/payment/PaymentApi";
+import "./css/payment-screens.css";
 
 
 function PaymentSuccess() {
@@ -20,7 +20,12 @@ function PaymentSuccess() {
   const [orderLine, setOrderLine] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const confirmCalledRef = useRef(false);
+
   useEffect(() => {
+    if (confirmCalledRef.current) return;
+    confirmCalledRef.current = true;
+
     // 포인트 전액 결제 플로우
     if (pointOnly) {
       if (!orderId) {
@@ -44,9 +49,9 @@ function PaymentSuccess() {
       return;
     }
 
-    const confirmPayment = async () => {
+    const doConfirmPayment = async () => {
       try {
-        const response = await axiosInstance.post("/payments/confirm", {
+        const response = await confirmPayment({
           paymentKey,
           orderId,
           amount,
@@ -78,7 +83,7 @@ function PaymentSuccess() {
       }
     };
 
-    confirmPayment();
+    doConfirmPayment();
   }, [paymentKey, orderId, amount, pointOnly]);
 
   return (
@@ -95,22 +100,16 @@ function PaymentSuccess() {
         <p className="payment-status">{statusMessage}</p>
         {orderLine && <p className="payment-status">{orderLine}</p>}
 
-        {isSuccess && (
-          <p className="payment-subtext">
-            마이페이지 또는 서비스 화면에서 바로 이용하실 수 있습니다.
-          </p>
-        )}
-
         <div className="payment-buttons">
           <button className="payment-btn-primary" onClick={() => navigate("/")}>
-            서비스로 돌아가기
+            홈으로
           </button>
 
           <button
             className="payment-btn-secondary"
-            onClick={() => navigate("/pages/payment/pricing")}
+            onClick={() => navigate("/mypage/profile")}
           >
-            요금제 다시 보기
+            마이페이지
           </button>
         </div>
       </div>

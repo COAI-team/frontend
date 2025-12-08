@@ -1,7 +1,7 @@
 // src/pages/payment/PaymentFail.jsx
 import React from "react";
 import { useSearchParams } from "react-router-dom";
-import "./payment-screens.css";
+import "./css/payment-screens.css";
 
 function PaymentFail() {
   const [searchParams] = useSearchParams();
