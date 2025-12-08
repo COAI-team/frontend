@@ -53,7 +53,6 @@ export default function ResetPasswordPage() {
         onConfirm: null,
     });
 
-    // ⭐ 추가: 로딩 상태
     const [loadingSubmit, setLoadingSubmit] = useState(false);
 
     useEffect(() => {
@@ -100,11 +99,11 @@ export default function ResetPasswordPage() {
         }
 
         try {
-            setLoadingSubmit(true); // ⭐ 로딩 시작
+            setLoadingSubmit(true);
 
             await confirmPasswordReset(token, newPassword);
 
-            setLoadingSubmit(false); // ⭐ 로딩 끝
+            setLoadingSubmit(false);
 
             setAlert({
                 open: true,
