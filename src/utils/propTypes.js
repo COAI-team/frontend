@@ -77,6 +77,10 @@ export const ViewModeCardPropTypes = {
     }).isRequired,
     maskEmail: PropTypes.func.isRequired,
     onEdit: PropTypes.func.isRequired,
+    subscriptionInfo: PropTypes.shape({
+        text: PropTypes.string,
+        tone: PropTypes.oneOf(["muted", "primary", "error"]),
+    }),
 };
 
 /* ----------------------------------------

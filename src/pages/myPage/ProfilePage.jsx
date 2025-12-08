@@ -8,6 +8,7 @@ import {
     getGithubUserInfo,
     disconnectGithub
 } from "../../service/user/User";
+import { fetchSubscriptions } from "../../service/payment/PaymentApi";
 import { useLogin } from "../../context/useLogin";
 import { useNavigate } from "react-router-dom";
 import AlertModal from "../../components/modal/AlertModal";
@@ -30,6 +31,10 @@ export default function ProfilePage() {
         preview: null,
         image: null,
     });
+
+    const [subscription, setSubscription] = useState({ code: "FREE", label: "Free" });
+    const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+    const [subscriptionError, setSubscriptionError] = useState("");
     const [githubConnected, setGithubConnected] = useState(false);
 
     const openModal = (msg) => {
@@ -112,6 +117,44 @@ export default function ProfilePage() {
 
         loadUserInfo();
     }, [accessToken, user, navigate, setUser]);
+
+    useEffect(() => {
+        const fetchSubscription = async () => {
+            if (!accessToken) {
+                setSubscription({ code: "FREE", label: "Free" });
+                setSubscriptionLoading(false);
+                return;
+            }
+
+            setSubscriptionLoading(true);
+            setSubscriptionError("");
+
+            try {
+                const res = await fetchSubscriptions();
+
+                const list = Array.isArray(res.data) ? res.data : [];
+                if (list.length === 0) {
+                    setSubscription({ code: "FREE", label: "Free" });
+                    return;
+                }
+
+                const active =
+                    list.find((item) => (item.status || "").toUpperCase() === "ACTIVE") ||
+                    list[0];
+
+                const code = (active.subscriptionType || active.planCode || "FREE").toUpperCase();
+                const label = code === "PRO" ? "Pro" : code === "BASIC" ? "Basic" : "Free";
+
+                setSubscription({ code, label });
+            } catch (err) {
+                setSubscriptionError("구독 정보를 불러오지 못했습니다.");
+            } finally {
+                setSubscriptionLoading(false);
+            }
+        };
+
+        fetchSubscription();
+    }, [accessToken]);
 
     /** 🔥 GitHub OAuth 연결 */
     const handleGithubConnect = () => {
@@ -204,6 +247,18 @@ export default function ProfilePage() {
         setIsDeleted(false);
     };
 
+    const subscriptionTone = subscriptionError
+        ? "error"
+        : subscriptionLoading
+        ? "muted"
+        : "primary";
+
+    const subscriptionText = subscriptionLoading
+        ? "구독 정보를 불러오는 중..."
+        : subscriptionError
+        ? subscriptionError
+        : `현재 구독 요금제: ${subscription.label}`;
+
     return (
         <div className="max-w-3xl mx-auto p-6">
             <h1 className="text-xl font-bold mb-4">기본정보</h1>
@@ -220,6 +275,7 @@ export default function ProfilePage() {
                 <ViewModeCard
                     profile={profile}
                     maskEmail={maskEmail}
+                    subscriptionInfo={{ text: subscriptionText, tone: subscriptionTone }}
                     onEdit={() => setEditMode(true)}
                 />
             )}

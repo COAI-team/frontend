@@ -1,7 +1,14 @@
 import { ViewModeCardPropTypes } from "../../utils/propTypes";
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 
-export default function ViewModeCard({ profile, maskEmail, onEdit }) {
+export default function ViewModeCard({ profile, maskEmail, onEdit, subscriptionInfo }) {
+    const toneClass =
+        subscriptionInfo?.tone === "error"
+            ? "text-red-500"
+            : subscriptionInfo?.tone === "primary"
+            ? "text-indigo-600"
+            : "text-gray-600";
+
     return (
         <div className="border rounded-2xl p-10 shadow-sm">
             <div className="flex justify-center mb-6">
@@ -27,6 +34,12 @@ export default function ViewModeCard({ profile, maskEmail, onEdit }) {
                 <span className="text-gray-600">{maskEmail(profile.email)}</span>
                 <span className="text-green-600 text-sm font-medium">✔ 인증 완료</span>
             </div>
+
+            {subscriptionInfo?.text && (
+                <p className={`text-center text-sm mt-2 ${toneClass}`}>
+                    {subscriptionInfo.text}
+                </p>
+            )}
 
             <div className="flex justify-end mt-8">
                 <button

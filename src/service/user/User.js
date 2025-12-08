@@ -37,14 +37,20 @@ export const signup = async (payload) => {
     }
 };
 
-// 유저 정보 가져오기 (🔥 accessToken 제거)
+// 유저 정보 가져오기 (accessToken 검증 포함)
 export const getUserInfo = async () => {
     try {
-        const res = await axiosInstance.get("/users/me");
+        const res = await axiosInstance.get("/users/me", {
+            headers: {"X-Skip-Auth-Redirect": "true"},
+            _skipAuthRedirect: true,
+        });
+        if (res?.data?.error) {
+            throw res.data.error;
+        }
         return res.data;
     } catch (err) {
         console.error("❌ getUserInfo 오류:", err);
-        return {error: err};
+        throw err;
     }
 };
 
@@ -177,11 +183,12 @@ export const loginWithGithub = async (code, mode = null) => {
 export const getGithubUserInfo = async () => {
     try {
         console.log("📨 [getGithubUserInfo] 요청 시작");
-
         const res = await axiosInstance.get("/auth/github/user", {
             headers: {
                 Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                "X-Skip-Auth-Redirect": "true",
             },
+            _skipAuthRedirect: true,
         });
 
         console.log("✅ [getGithubUserInfo] 성공:", res.data);
