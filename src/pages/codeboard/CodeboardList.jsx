@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../server/AxiosConfig";
-import "../../styles/FreeboardList.css";
+import "../../styles/CodeboardList.css";
 
-const FreeboardList = () => {
+const CodeboardList = () => {
   const navigate = useNavigate();
   
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [sortBy, setSortBy] = useState('CREATED_AT');
-  const [sortDirection, setSortDirection] = useState('DESC');
+  const [sortBy, setSortBy] = useState('latest');
   const [viewType, setViewType] = useState('list');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -18,27 +17,23 @@ const FreeboardList = () => {
 
   useEffect(() => {
     fetchPosts();
-  }, [currentPage, sortBy, sortDirection, pageSize, searchKeyword]);
+  }, [currentPage, sortBy, pageSize, searchKeyword]);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/freeboard', {
+      const response = await axiosInstance.get('/codeboard', {
         params: {
           page: currentPage,
           size: pageSize,
           sort: sortBy,
-          direction: sortDirection,
           keyword: searchKeyword
         }
       });
       
       console.log('응답:', response.data);
-      
-      // ApiResponse 구조 처리
-      const data = response.data.data || response.data;
-      setPosts(data.content || []);
-      setTotalPages(data.totalPages || 1);
+      setPosts(response.data.content || []);
+      setTotalPages(response.data.totalPages || 1);
     } catch (error) {
       console.error('게시글 목록 조회 실패:', error);
     } finally {
@@ -52,23 +47,12 @@ const FreeboardList = () => {
     fetchPosts();
   };
 
-  const handleSortChange = (newSort) => {
-    setSortBy(newSort);
-    // 정렬 기준에 따라 방향 자동 설정
-    if (newSort === 'CREATED_AT') {
-      setSortDirection('DESC'); // 최신순
-    } else {
-      setSortDirection('DESC'); // 많은 순
-    }
-    setCurrentPage(1);
-  };
-
   const handlePostClick = (postId) => {
-    navigate(`/freeboard/${postId}`);
+    navigate(`/codeboard/${postId}`);
   };
 
   const handleWriteClick = () => {
-    navigate('/freeboard/write');
+    navigate('/codeboard/write');
   };
 
   const getPreviewText = (content) => {
@@ -97,15 +81,24 @@ const FreeboardList = () => {
     return date.toLocaleDateString('ko-KR');
   };
 
+  const getSmellBadgeClass = (smellResult) => {
+    if (!smellResult) return '';
+    const lower = smellResult.toLowerCase();
+    if (lower.includes('good') || lower.includes('양호')) return 'smell-good';
+    if (lower.includes('warning') || lower.includes('주의')) return 'smell-warning';
+    if (lower.includes('bad') || lower.includes('불량')) return 'smell-bad';
+    return '';
+  };
+
   return (
     <div className="freeboard-list-container">
       <div className="freeboard-header">
-        <h1 className="freeboard-title">자유게시판</h1>
-        <p className="freeboard-subtitle">개발과 관련된 다양한 주제로 자유롭게 이야기를 나눠보세요</p>
+        <h1 className="freeboard-title">코드보드</h1>
+        <p className="codeboard-subtitle">코드 리뷰와 분석을 통해 더 나은 코드를 작성해보세요</p>
       </div>
 
       {/* 검색 및 필터 영역 */}
-      <div className="freeboard-controls">
+      <div className="codeboard-controls">
         <div className="control-left">
           <form onSubmit={handleSearch} className="search-form">
             <input
@@ -127,13 +120,13 @@ const FreeboardList = () => {
         <div className="control-right">
           <select 
             value={sortBy} 
-            onChange={(e) => handleSortChange(e.target.value)}
+            onChange={(e) => setSortBy(e.target.value)}
             className="sort-select"
           >
-            <option value="CREATED_AT">최신순</option>
-            <option value="COMMENT_COUNT">댓글 많은 순</option>
-            <option value="LIKE_COUNT">좋아요 순</option>
-            <option value="VIEW_COUNT">조회수 순</option>
+            <option value="latest">최신순</option>
+            <option value="comments">댓글 많은 순</option>
+            <option value="likes">좋아요 순</option>
+            <option value="views">조회수 순</option>
           </select>
 
           <select 
@@ -194,9 +187,9 @@ const FreeboardList = () => {
             <div className="posts-list">
               {posts.map((post) => (
                 <div 
-                  key={post.freeboardId} 
+                  key={post.codeboardId} 
                   className="post-item"
-                  onClick={() => handlePostClick(post.freeboardId)}
+                  onClick={() => handlePostClick(post.codeboardId)}
                 >
                   <div className="post-content">
                     <div className="post-header">
@@ -208,13 +201,18 @@ const FreeboardList = () => {
                         </div>
                         <div className="user-details">
                           <span className="user-nickname">{post.userNickname || 'User'}</span>
-                          <span className="post-date">{formatDate(post.freeboardCreatedAt)}</span>
+                          <span className="post-date">{formatDate(post.codeboardCreatedAt)}</span>
                         </div>
                       </div>
+                      {post.smellResult && (
+                        <span className={`smell-badge ${getSmellBadgeClass(post.smellResult)}`}>
+                          {post.smellResult}
+                        </span>
+                      )}
                     </div>
 
-                    <h2 className="post-title">{post.freeboardTitle}</h2>
-                    <p className="post-preview">{getPreviewText(post.freeboardSummary)}</p>
+                    <h2 className="post-title">{post.codeboardTitle}</h2>
+                    <p className="post-preview">{getPreviewText(post.codeboardSummary)}</p>
 
                     {post.tags && (
                       <div className="post-tags">
@@ -231,7 +229,7 @@ const FreeboardList = () => {
                                 stroke="currentColor" strokeWidth="2"/>
                           <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
                         </svg>
-                        {post.freeboardClick || 0}
+                        {post.codeboardClick || 0}
                       </span>
                       <span className="stat-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -249,12 +247,6 @@ const FreeboardList = () => {
                       </span>
                     </div>
                   </div>
-
-                  {post.freeboardRepresentImage && (
-                    <div className="post-thumbnail">
-                      <img src={post.freeboardRepresentImage} alt="thumbnail" />
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -262,16 +254,10 @@ const FreeboardList = () => {
             <div className="posts-grid">
               {posts.map((post) => (
                 <div 
-                  key={post.freeboardId} 
+                  key={post.codeboardId} 
                   className="post-card"
-                  onClick={() => handlePostClick(post.freeboardId)}
+                  onClick={() => handlePostClick(post.codeboardId)}
                 >
-                  {post.freeboardRepresentImage && (
-                    <div className="card-thumbnail">
-                      <img src={post.freeboardRepresentImage} alt="thumbnail" />
-                    </div>
-                  )}
-                  
                   <div className="card-content">
                     <div className="card-header">
                       <div className="card-user-info">
@@ -282,11 +268,18 @@ const FreeboardList = () => {
                         </div>
                         <span className="user-nickname">{post.userNickname || 'User'}</span>
                       </div>
-                      <span className="post-date">{formatDate(post.freeboardCreatedAt)}</span>
+                      <div className="card-header-right">
+                        <span className="post-date">{formatDate(post.codeboardCreatedAt)}</span>
+                        {post.smellResult && (
+                          <span className={`smell-badge ${getSmellBadgeClass(post.smellResult)}`}>
+                            {post.smellResult}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <h3 className="card-title">{post.freeboardTitle}</h3>
-                    <p className="card-preview">{getPreviewText(post.freeboardSummary)}</p>
+                    <h3 className="card-title">{post.codeboardTitle}</h3>
+                    <p className="card-preview">{getPreviewText(post.codeboardSummary)}</p>
 
                     {post.tags && (
                       <div className="card-tags">
@@ -303,7 +296,7 @@ const FreeboardList = () => {
                                 stroke="currentColor" strokeWidth="2"/>
                           <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
                         </svg>
-                        {post.freeboardClick || 0}
+                        {post.codeboardClick || 0}
                       </span>
                       <span className="stat-item">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -361,4 +354,4 @@ const FreeboardList = () => {
   );
 };
 
-export default FreeboardList;
+export default CodeboardList;

@@ -64,28 +64,35 @@ const FreeboardEdit = () => {
       const stickerCount = (content.match(/data-sticker/g) || []).length;
       console.log(`제출할 스티커 개수: ${stickerCount}`);
       
-      const blocks = [{
-        id: `block-${Date.now()}`,
-        type: "tiptap",
-        content: content,
-        order: 0
-      }];
+      const blocks = [
+        {
+          id: `block-${crypto.randomUUID()}`,
+          type: "tiptap",                   
+          content: content,                 
+          language: null,
+          order: 0                  
+        }
+      ];
 
-      await axiosInstance.put(`/freeboard/${id}`, {
+      const payload = {
         freeboardTitle: title,
-        blocks: blocks,
+        blocks: blocks,                  
         freeboardRepresentImage: representImage || null,
-        tags: tags || [],
-      });
+        tags: tags || []
+      };
 
-      alert("게시글이 수정되었습니다.");
-      navigate(`/freeboard/${id}`);
-    } catch (error) {
-      console.error("수정 실패:", error);
-      console.error("에러 상세:", error.response?.data);
-      alert("게시글 수정에 실패했습니다.");
-    }
-  };
+      console.log("전송 payload:", payload);
+
+      await axiosInstance.put(`/freeboard/${id}`, payload);
+
+        alert("게시글이 수정되었습니다.");
+        navigate(`/freeboard/${id}`);
+      } catch (error) {
+        console.error("수정 실패:", error);
+        console.error("에러 상세:", error.response?.data);
+        alert("게시글 수정에 실패했습니다.");
+      }
+    };
 
   if (loading) {
     return (

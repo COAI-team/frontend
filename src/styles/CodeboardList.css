@@ -1,11 +1,12 @@
-.freeboard-list-container {
+.freeboard-list-container,
+.codeboard-list-container {
   min-height: 100vh;
   background-color: var(--bg-primary);
   padding: 2rem 1rem;
 }
 
 .freeboard-list-container > * {
-  max-width: 00px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -14,20 +15,23 @@
   padding: 0 1rem;
 }
 
-.freeboard-title {
+.freeboard-title,
+.codeboard-title {
   font-size: 2rem;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
-.freeboard-subtitle {
+.freeboard-subtitle,
+.codeboard-subtitle {
   font-size: 1rem;
   color: var(--text-secondary);
 }
 
 /* 검색 및 필터 컨트롤 */
-.freeboard-controls {
+.freeboard-controls,
+.codeboard-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -36,10 +40,6 @@
   flex-wrap: wrap;
 }
 
-.control-left {
-  flex: 1;
-  min-width: 300px;
-}
 
 .control-right {
   display: flex;
@@ -640,4 +640,34 @@ html:not(.dark) .freeboard-list-container {
   --primary-color: #3b82f6;
   --primary-hover: #2563eb;
   --tag-bg: rgba(59, 130, 246, 0.1);
+}
+
+/* 냄새평가 배지 */
+.smell-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.smell-good {
+  background-color: #d1f4e0;
+  color: #0d7c3a;
+}
+
+.smell-warning {
+  background-color: #fff4cc;
+  color: #a77c00;
+}
+
+.smell-bad {
+  background-color: #ffe0e0;
+  color: #c41e3a;
+}
+
+.card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

@@ -3,7 +3,7 @@ import CommentList from './CommentList';
 import CommentForm from './CommentForm';
 import { axiosInstance } from '../../server/AxiosConfig';
 
-export default function CommentSection({ boardId, boardType, currentUserId, isDark }) {
+export default function CommentSection({ boardId, boardType, isDark }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -11,17 +11,14 @@ export default function CommentSection({ boardId, boardType, currentUserId, isDa
   const fetchComments = async () => {
     setLoading(true);
     try {
-      const response = await axiosInstance.get('/comments', {
+      const response = await axiosInstance.get('/comment', {
         params: {
           boardId,
           boardType
-        },
-        headers: {
-          userId: currentUserId
         }
       });
 
-      setComments(response.data);
+      setComments(response.data.data);
     } catch (error) {
       console.error('댓글 조회 실패:', error);
     } finally {
@@ -46,7 +43,6 @@ export default function CommentSection({ boardId, boardType, currentUserId, isDa
         <CommentForm
           boardId={boardId}
           boardType={boardType}
-          currentUserId={currentUserId}
           onSuccess={handleCommentCreated}
           isDark={isDark}
           formId="comment-form"
@@ -66,7 +62,6 @@ export default function CommentSection({ boardId, boardType, currentUserId, isDa
       ) : (
         <CommentList
           comments={comments}
-          currentUserId={currentUserId}
           onCommentUpdated={fetchComments}
           isDark={isDark}
         />
