@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axiosInstance from '../../server/AxiosConfig';
+import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
 
 const DashboardPage = () => {
     const [patterns, setPatterns] = useState([]);
@@ -8,6 +9,7 @@ const DashboardPage = () => {
     const [error, setError] = useState(null);
 
     const [trends, setTrends] = useState({ data: [], patterns: [] });
+    const [currentMonthIndex, setCurrentMonthIndex] = useState(0);
     const [selectedPattern, setSelectedPattern] = useState(null);
     const [patternDetails, setPatternDetails] = useState([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
@@ -22,11 +24,11 @@ const DashboardPage = () => {
                 const historyResponse = await axiosInstance.get(`/api/insights/history/${userId}`);
                 const trendsResponse = await axiosInstance.get(`/api/insights/trends/${userId}`);
                 
-                setPatterns(patternsResponse.data);
-                setHistory(historyResponse.data);
+                setPatterns(Array.isArray(patternsResponse.data) ? patternsResponse.data : []);
+                setHistory(Array.isArray(historyResponse.data) ? historyResponse.data : []);
                 setTrends({
-                    data: trendsResponse.data.data,
-                    patterns: Array.from(trendsResponse.data.patterns || [])
+                    data: Array.isArray(trendsResponse.data?.data) ? trendsResponse.data.data : [],
+                    patterns: Array.from(trendsResponse.data?.patterns || [])
                 });
                 setError(null);
             } catch (err) {
@@ -52,6 +54,40 @@ const DashboardPage = () => {
         }
     };
 
+    // Randomized Word Cloud Data
+    const wordCloudData = useMemo(() => {
+        if (!trends.data.length || !trends.data[currentMonthIndex]) return [];
+
+        const currentMonthData = trends.data[currentMonthIndex];
+        const activePatterns = trends.patterns.filter(p => currentMonthData[p] > 0);
+        
+        if (activePatterns.length === 0) return [];
+
+        const maxInMonth = Math.max(...activePatterns.map(p => currentMonthData[p]));
+        
+        // Seeded-like randomization (stable for the same data)
+        return activePatterns.map((pattern, i) => {
+            const count = currentMonthData[pattern];
+            const size = 0.8 + ((count / maxInMonth) * 2.0); // 0.8rem to 2.8rem
+            const rotation = (i * 37) % 30 - 15; // -15 to +15 degrees deterministic
+            const margin = (i * 13) % 4 + 1; // 1 to 4 margin
+            
+            // Shuffle order deterministically
+            const order = (i * 7) % 100;
+
+            return {
+                text: pattern,
+                count,
+                size,
+                rotation,
+                margin,
+                order,
+                color: ["text-indigo-400", "text-green-400", "text-yellow-400", "text-orange-400", "text-blue-400", "text-teal-400"][i % 6]
+            };
+        }).sort((a, b) => a.order - b.order); // Randomize order
+    }, [trends, currentMonthIndex]);
+
+
     if (loading) {
         return <div className="flex justify-center items-center h-64 text-white">Loading dashboard...</div>;
     }
@@ -60,12 +96,7 @@ const DashboardPage = () => {
         return <div className="text-red-500 text-center mt-10">{error}</div>;
     }
 
-    // Colors for the chart
-    const colors = ["bg-indigo-500", "bg-green-500", "bg-yellow-500", "bg-orange-500", "bg-blue-500", "bg-teal-500"];
-
-    // Calculate max values for scaling
-    const maxFrequency = Math.max(...patterns.map(p => p.frequency), 1);
-    const maxTrendTotal = Math.max(...trends.data.map(d => d.total), 1);
+    const maxFrequency = Math.max(...(Array.isArray(patterns) ? patterns : []).map(p => p.frequency), 1);
 
     return (
         <div className="container mx-auto px-4 py-8 text-white">
@@ -76,11 +107,11 @@ const DashboardPage = () => {
                 
                 {/* 1. Overall Frequency Bar Chart (Horizontal) */}
                 <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
-                    <h2 className="text-xl font-semibold mb-4">Most Common Code Smells</h2>
+                    <h2 className="text-xl font-semibold mb-4">Most Common Code Smells (Top 5)</h2>
                     <p className="text-sm text-gray-400 mb-6">Click a bar to view details</p>
                     
                     <div className="space-y-4">
-                        {patterns.map((pattern, index) => (
+                        {patterns.slice(0, 5).map((pattern, index) => (
                             <div 
                                 key={pattern.patternType} 
                                 className="group cursor-pointer"
@@ -102,46 +133,53 @@ const DashboardPage = () => {
                     </div>
                 </div>
 
-                {/* 2. Monthly Trends Chart (Vertical Stacked) */}
-                <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
-                    <h2 className="text-xl font-semibold mb-4">Monthly Trends</h2>
-                    
-                    <div className="flex items-end justify-between h-64 space-x-4 mt-8 pb-4">
-                        {trends.data.map((monthData) => (
-                            <div key={monthData.month} className="flex flex-col items-center flex-1 h-full justify-end group">
-                                <div className="w-full max-w-[40px] flex flex-col-reverse h-full justify-end relative">
-                                    {/* Tooltip-ish overlay on hover could go here, but keeping it simple */}
-                                    
-                                    {/* Stacked Bars */}
-                                    {trends.patterns.map((pattern, idx) => {
-                                        const count = monthData[pattern] || 0;
-                                        if (count === 0) return null;
-                                        const heightPercent = (count / maxTrendTotal) * 100;
-                                        
-                                        return (
-                                            <div 
-                                                key={pattern}
-                                                className={`${colors[idx % colors.length]} w-full transition-all duration-300 hover:opacity-80`}
-                                                style={{ height: `${heightPercent}%` }}
-                                                title={`${pattern}: ${count}`}
-                                            ></div>
-                                        );
-                                    })}
-                                </div>
-                                <span className="text-xs text-gray-400 mt-2 rotate-0 truncate w-full text-center">{monthData.month}</span>
-                            </div>
-                        ))}
-                        {trends.data.length === 0 && <div className="w-full text-center text-gray-500 self-center">No trend data available.</div>}
+                {/* 2. Monthly Trends Word Cloud */}
+                <div className="bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-semibold">Monthly Trends</h2>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setCurrentMonthIndex(prev => Math.max(0, prev - 1))}
+                                disabled={currentMonthIndex === 0}
+                                className="p-1 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                            </button>
+                            <span className="font-mono font-bold min-w-[80px] text-center">
+                                {trends.data[currentMonthIndex]?.month || 'No Data'}
+                            </span>
+                            <button 
+                                onClick={() => setCurrentMonthIndex(prev => Math.min(trends.data.length - 1, prev + 1))}
+                                disabled={currentMonthIndex === trends.data.length - 1 || trends.data.length === 0}
+                                className="p-1 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                        </div>
                     </div>
-
-                    {/* Legend */}
-                    <div className="flex flex-wrap gap-3 mt-4 justify-center">
-                        {trends.patterns.map((pattern, idx) => (
-                            <div key={pattern} className="flex items-center text-xs text-gray-300">
-                                <span className={`w-3 h-3 rounded-full mr-1 ${colors[idx % colors.length]}`}></span>
-                                {pattern}
+                    
+                    <div className="flex-1 flex items-center justify-center min-h-[250px] relative overflow-hidden bg-gray-900/50 rounded-lg p-4">
+                        {wordCloudData.length > 0 ? (
+                            <div className="flex flex-wrap justify-center items-center content-center h-full w-full">
+                                {wordCloudData.map((item) => (
+                                    <span 
+                                        key={item.text}
+                                        className={`transition-all duration-500 hover:scale-110 cursor-pointer font-bold ${item.color} hover:text-white hover:z-10`}
+                                        style={{ 
+                                            fontSize: `${item.size}rem`, 
+                                            transform: `rotate(${item.rotation}deg)`,
+                                            margin: `${item.margin * 0.25}rem`,
+                                            opacity: 0.85
+                                        }}
+                                        title={`${item.text}: ${item.count}`}
+                                    >
+                                        {item.text}
+                                    </span>
+                                ))}
                             </div>
-                        ))}
+                        ) : (
+                            <div className="text-gray-500">No data for this month</div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -208,11 +246,8 @@ const DashboardPage = () => {
                                 </p>
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs text-gray-400">{new Date(item.createdAt).toLocaleDateString()}</span>
-                                    <span className={`text-xs font-bold ${
-                                        item.aiScore >= 80 ? 'text-green-400' :
-                                        item.aiScore >= 60 ? 'text-yellow-400' : 'text-red-400'
-                                    }`}>
-                                        Score: {item.aiScore}
+                                    <span className={`text-xs font-bold px-2 py-1 rounded ${getScoreBadgeColor(item.aiScore)}`}>
+                                        {getSmellKeyword(item.aiScore).text.split(' ')[1]}
                                     </span>
                                 </div>
                             </div>

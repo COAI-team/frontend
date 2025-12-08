@@ -41,6 +41,10 @@ import MySubmissions from "./pages/algorithm/MySubmissions";
 import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
 import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
 
+// 코드게시판
+import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
+import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
+
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
 import ProfilePage from "./pages/myPage/ProfilePage";
@@ -72,6 +76,8 @@ createRoot(document.getElementById("root")).render(
 
             {/* 비밀번호 재설정 페이지 */}
             <Route path="reset-password" element={<ResetPasswordPage />} />
+            {/* 알고리즘 문제풀이 페이지 */}
+            <Route path="algorithm/problems/:problemId/solve" element={<ProblemSolve />}/>
 
             {/* 기본 레이아웃 */}
             <Route path="/" element={<Layout />}>
@@ -96,11 +102,15 @@ createRoot(document.getElementById("root")).render(
               </Route>
 
               {/* 자유게시판 */}
-
               <Route path="freeboard/list" element={<FreeboardList />} />
               <Route path="freeboard/write" element={<FreeboardWrite />} />
               <Route path="freeboard/edit/:id" element={<FreeboardEdit />} />
               <Route path="freeboard/:id" element={<FreeboardDetail />} />
+
+              {/* 코드게시판 */}
+              <Route path="codeboard/write" element={<CodeboardWrite />} />
+              <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
+              <Route path="codeboard/:id" element={<CodeboardDetail />} />
 
               {/* 결제 */}
               <Route path="pages/payment/pricing" element={<PricingPage />} />
@@ -125,10 +135,7 @@ createRoot(document.getElementById("root")).render(
                 path="algorithm/problems/generate"
                 element={<ProblemGenerator />}
               />
-              <Route
-                path="algorithm/problems/:problemId/solve"
-                element={<ProblemSolve />}
-              />
+              
               <Route
                 path="algorithm/submissions/:submissionId"
                 element={<SubmissionResult />}
@@ -145,6 +152,8 @@ createRoot(document.getElementById("root")).render(
                 path="codeAnalysis/:analysisId"
                 element={<AnalysisPage />}
               />
+              <Route path="codeboard/write" element={<CodeboardWrite />} />
+              <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
             </Route>
 
             {/* 잘못된 경로는 홈으로 */}

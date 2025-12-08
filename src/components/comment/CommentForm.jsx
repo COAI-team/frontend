@@ -1,18 +1,20 @@
 import { useState } from 'react';
+import { axiosInstance } from '../../server/AxiosConfig';
 
 export default function CommentForm({ 
   boardId, 
   boardType, 
-  parentCommentId = null,  // null이면 댓글, 있으면 대댓글
+  parentCommentId = null,
   currentUserId, 
   onSuccess,
-  onCancel,                // 대댓글일 때만 사용
+  onCancel,
   isDark,
+  formId,
 }) {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const isReply = parentCommentId !== null;  // 대댓글인지 확인
+  const isReply = parentCommentId !== null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,35 +26,27 @@ export default function CommentForm({
 
     setSubmitting(true);
     try {
-      const response = await fetch('http://localhost:8090/comments', {
-        method: 'POST',
+      await axiosInstance.post('/comments', {
+        boardId,
+        boardType,
+        parentCommentId,
+        content: content.trim()
+      }, {
         headers: {
-          'Content-Type': 'application/json',
           'userId': currentUserId
-        },
-        body: JSON.stringify({
-          boardId,
-          boardType,
-          parentCommentId,
-          content: content.trim()
-        })
+        }
       });
 
-      if (response.ok) {
-        setContent('');
-        onSuccess();
-      } else {
-        alert(`${isReply ? '답글' : '댓글'} 작성에 실패했습니다.`);
-      }
+      setContent('');
+      onSuccess();
     } catch (error) {
       console.error('작성 실패:', error);
-      alert(`${isReply ? '답글' : '댓글'} 작성 중 오류가 발생했습니다.`);
+      alert(`${isReply ? '답글' : '댓글'} 작성에 실패했습니다.`);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // 대댓글 스타일
   if (isReply) {
     return (
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -103,34 +97,44 @@ export default function CommentForm({
     );
   }
 
-  // 일반 댓글 스타일
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form id={formId} onSubmit={handleSubmit} className={`border rounded-lg p-4 ${isDark ? "border-gray-700" : "border-gray-300"}`}>
+      <div className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+        사용자 {currentUserId}
+      </div>
+
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="댓글을 입력하세요"
-        rows={3}
+        placeholder="댓글을 남겨보세요"
+        rows={1}
         className={`
-          w-full px-4 py-3 rounded-lg resize-none transition-all border
+          w-full px-0 py-1 resize-none transition-all border-0 focus:ring-0 text-sm
           ${isDark 
-            ? "bg-gray-800 text-gray-100 border-gray-600 focus:ring-indigo-400" 
-            : "bg-white text-gray-900 border-gray-300 focus:ring-indigo-500"
+            ? "bg-transparent text-gray-100 placeholder-gray-500" 
+            : "bg-transparent text-gray-900 placeholder-gray-400"
           }
         `}
         disabled={submitting}
+        onInput={(e) => {
+          e.target.style.height = 'auto';
+          e.target.style.height = e.target.scrollHeight + 'px';
+        }}
       />
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3 mt-2">
+        <span className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+          {content.length}/3000
+        </span>
+        
         <button
           type="submit"
           disabled={submitting || !content.trim()}
           className={`
-            px-6 py-2 rounded-lg font-medium transition-colors
-            ${isDark
-              ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700"
-              : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"
-            }
+            px-4 py-1.5 text-sm rounded-lg transition-colors
+            ${isDark 
+              ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700" 
+              : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"}
           `}
         >
           {submitting ? '등록 중...' : '댓글 등록'}

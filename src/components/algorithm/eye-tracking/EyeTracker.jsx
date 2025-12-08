@@ -1,15 +1,26 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 import { useEyeTracking } from '../../../hooks/algorithm/useEyeTracking';
 import CalibrationScreen from './CalibrationScreen';
 
 /**
  * 시선 추적 래퍼 컴포넌트
  * 웹캠 권한, 캘리브레이션, 추적 활성화를 통합 관리
+ *
+ * 변경사항:
+ * - onSessionStart 콜백 추가 (monitoringSessionId 전달)
+ * - monitoringSessionId를 부모 컴포넌트에서 사용할 수 있도록 노출
+ * - timeLimitMinutes prop 추가 (사용자 지정 시간)
  */
-const EyeTracker = forwardRef(({ problemId, isEnabled, onReady, onSessionEnd }, ref) => {
+const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, onReady, onSessionStart, onSessionEnd }, ref) => {
     const [showCalibration, setShowCalibration] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(false);
     const [error, setError] = useState(null);
+
+    // Refs for cleanup (의존성 변경 시 cleanup 호출 방지)
+    const stopTrackingRef = useRef(null);
+    const sessionIdRef = useRef(null);
+    const onSessionEndRef = useRef(null);
+    const cleanupCalledRef = useRef(false);
 
     const {
         isCalibrated,
@@ -18,7 +29,14 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, onReady, onSessionEnd }, 
         startCalibration,
         completeCalibration,
         stopTracking
-    } = useEyeTracking(problemId, isEnabled && permissionGranted);
+    } = useEyeTracking(problemId, isEnabled && permissionGranted, timeLimitMinutes);
+
+    // Refs를 최신 값으로 유지
+    useEffect(() => {
+        stopTrackingRef.current = stopTracking;
+        sessionIdRef.current = sessionId;
+        onSessionEndRef.current = onSessionEnd;
+    }, [stopTracking, sessionId, onSessionEnd]);
 
     // 웹캠 권한 요청
     useEffect(() => {
@@ -44,6 +62,14 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, onReady, onSessionEnd }, 
         requestPermission();
     }, [isEnabled]);
 
+    // 세션 시작 시 onSessionStart 콜백 호출
+    useEffect(() => {
+        if (isTracking && sessionId && onSessionStart) {
+            console.log('🎯 Monitoring session started, notifying parent:', sessionId);
+            onSessionStart(sessionId);
+        }
+    }, [isTracking, sessionId, onSessionStart]);
+
     // 캘리브레이션 완료 처리
     const handleCalibrationComplete = () => {
         setShowCalibration(false);
@@ -55,29 +81,48 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, onReady, onSessionEnd }, 
     };
 
     // 부모 컴포넌트에서 stopTracking 호출 가능하도록 노출
+    // Ref를 통해 최신 함수 참조 (stale closure 방지)
     useImperativeHandle(ref, () => ({
-        stopTracking: async () => {
-            if (isTracking) {
-                await stopTracking();
-                if (onSessionEnd) {
-                    onSessionEnd(sessionId);
-                }
+        stopTracking: async (remainingSeconds = null) => {
+            if (cleanupCalledRef.current) return; // 이미 정리됨
+            cleanupCalledRef.current = true;
+
+            const currentStopTracking = stopTrackingRef.current;
+            const currentSessionId = sessionIdRef.current;
+            const currentOnSessionEnd = onSessionEndRef.current;
+
+            if (currentStopTracking) {
+                await currentStopTracking(remainingSeconds);
+            }
+            if (currentOnSessionEnd && currentSessionId) {
+                currentOnSessionEnd(currentSessionId);
             }
         }
-    }), [isTracking, sessionId, stopTracking, onSessionEnd]);
+    }), []); // 빈 의존성 - ref를 통해 최신 값 접근
 
-    // 컴포넌트 언마운트 시 추적 종료
+    // 컴포넌트 언마운트 시에만 추적 종료 (의존성 변경 시 호출 안 함)
     useEffect(() => {
+        // 마운트 시 cleanup 플래그 초기화
+        cleanupCalledRef.current = false;
+
         return () => {
-            if (isTracking) {
-                stopTracking().then(() => {
-                    if (onSessionEnd) {
-                        onSessionEnd(sessionId);
+            // 이미 부모에서 stopTracking을 호출했으면 스킵
+            if (cleanupCalledRef.current) return;
+            cleanupCalledRef.current = true;
+
+            const currentStopTracking = stopTrackingRef.current;
+            const currentSessionId = sessionIdRef.current;
+            const currentOnSessionEnd = onSessionEndRef.current;
+
+            if (currentStopTracking) {
+                currentStopTracking().then(() => {
+                    if (currentOnSessionEnd && currentSessionId) {
+                        currentOnSessionEnd(currentSessionId);
                     }
                 });
             }
         };
-    }, [isTracking, sessionId]);
+    }, []); // 빈 의존성 배열 - 언마운트 시에만 실행
 
     // 에러 표시
     if (error) {

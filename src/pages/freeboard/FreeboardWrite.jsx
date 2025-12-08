@@ -1,5 +1,5 @@
 import React from "react";
-import { axiosInstance } from "../../server/axiosConfig";
+import { axiosInstance } from "../../server/AxiosConfig";
 import { useNavigate } from "react-router-dom";
 import WriteEditor from "../../components/editor/WriteEditor";
 
@@ -22,7 +22,7 @@ const FreeboardWrite = () => {
     });
 
     axiosInstance
-      .post("http://localhost:8090/freeboard", {
+      .post("/freeboard", {
         freeboardTitle: title,
         blocks: blocks,
         freeboardRepresentImage: representImage || null,
@@ -40,8 +40,20 @@ const FreeboardWrite = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 text-white">
-      <WriteEditor onSubmit={handleSubmit} />
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#101828',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{
+        maxWidth: '900px',
+        margin: '0 auto'
+      }}>
+        <WriteEditor 
+          onSubmit={handleSubmit} 
+          toolbarType="full"
+        />
+      </div>
     </div>
   );
 };
