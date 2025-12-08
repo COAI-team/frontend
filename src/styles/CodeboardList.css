@@ -15,14 +15,16 @@
   padding: 0 1rem;
 }
 
-.freeboard-title {
+.freeboard-title,
+.codeboard-title {
   font-size: 2rem;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
-.freeboard-subtitle {
+.freeboard-subtitle,
+.codeboard-subtitle {
   font-size: 1rem;
   color: var(--text-secondary);
 }
@@ -511,7 +513,7 @@
 /* 글쓰기 버튼 - 다크모드 */
 html.dark .floating-write-btn {
   position: fixed;
-  right: 20rem;  
+  right: 15rem;  
   bottom: 2rem;
   display: flex;
   align-items: center;
