@@ -34,7 +34,10 @@ export default function LoginProvider({ children }) {
         setAuth(saved);
 
         // 🔥 이미 user 정보가 있으면 /users/me 호출 불필요
-        if (saved.user) return;
+        if (saved.user) {
+            setHydrated(true);
+            return;
+        }
 
         // 🔥 accessToken은 있지만 user 정보가 없을 때만 /users/me 요청
         getUserInfo()
@@ -64,7 +67,6 @@ export default function LoginProvider({ children }) {
                 }
             })
             .finally(() => {
-                // ✅ 성공이든 실패든 검사는 끝난 거니까 여기서 hydration 완료
                 setHydrated(true);
             });
     }, []);
