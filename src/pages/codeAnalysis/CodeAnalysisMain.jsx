@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAnalysisHistory } from '../../service/codeAnalysis/analysisApi';
-import DashboardPage from './DashboardPage';
 import { getScoreBadgeColor, getSmellKeyword } from '../../utils/codeAnalysisUtils';
 
 const CodeAnalysisMain = () => {
@@ -38,11 +37,7 @@ const CodeAnalysisMain = () => {
     return (
         <div className="min-h-screen py-8">
             <div className="max-w-6xl mx-auto px-4">
-                {/* Dashboard Section */}
-                <div className="mb-12">
-                    <DashboardPage />
-                </div>
-
+                
                 {/* 헤더 섹션 */}
                 <div className="flex justify-between items-end mb-8">
                     <div>

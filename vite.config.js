@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
         server: {
             proxy: {
                 "^/(api|analysis|users)": {
-                    target: env.VITE_PROXY_URL,
+                    target: env.VITE_PROXY_URL || 'http://localhost:9443',
                     changeOrigin: true,
                     secure: false
                 }

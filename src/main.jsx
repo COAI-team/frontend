@@ -40,6 +40,7 @@ import MySubmissions from "./pages/algorithm/MySubmissions";
 // 코드 분석 도메인
 import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
 import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
+import AnalysisPageWithoutRag from "./pages/codeAnalysis/AnalysisPageWithoutRag";
 
 // 코드게시판
 import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
@@ -49,6 +50,7 @@ import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
 import ProfilePage from "./pages/myPage/ProfilePage";
 import BillingPage from "./pages/myPage/BillingPage";
+import DashboardPage from "./pages/myPage/DashboardPage";
 
 //관리자 레이아웃
 import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
@@ -88,12 +90,13 @@ createRoot(document.getElementById("root")).render(
                             <Route path="signin" element={<SignIn />} />
                             <Route path="signup" element={<SignUp />} />
 
-                            {/* 마이페이지 */}
-                            <Route path="mypage" element={<MyPageLayout />}>
-                                <Route index element={<Navigate to="profile" replace />} />
-                                <Route path="profile" element={<ProfilePage />} />
-                                <Route path="billing" element={<BillingPage />} />
-                            </Route>
+              {/* 마이페이지 */}
+              <Route path="mypage" element={<MyPageLayout />}>
+                <Route index element={<Navigate to="profile" replace />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="billing" element={<BillingPage />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+              </Route>
 
                             <Route path="admin" element={<AdminPageLayout />}>
                                 <Route index element={<Navigate to="stats" replace />} />
@@ -136,6 +139,7 @@ createRoot(document.getElementById("root")).render(
                                 element={<ProblemGenerator />}
                             />
 
+              
                             <Route
                                 path="algorithm/submissions/:submissionId"
                                 element={<SubmissionResult />}
@@ -146,14 +150,15 @@ createRoot(document.getElementById("root")).render(
                             />
 
                             {/* 코드 분석 (CodeNose) */}
-                            <Route path="codeAnalysis" element={<CodeAnalysisMain />} />
-                            <Route path="codeAnalysis/new" element={<AnalysisPage />} />
-                            <Route
-                                path="codeAnalysis/:analysisId"
-                                element={<AnalysisPage />}
-                            />
-                            <Route path="codeboard/write" element={<CodeboardWrite />} />
-                            <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
+                          <Route path="codeAnalysis" element={<CodeAnalysisMain />} />
+                          <Route path="codeAnalysis/new" element={<AnalysisPage />} />
+                          <Route path="codeAnalysis/norag" element={<AnalysisPageWithoutRag />} />
+                          <Route
+                            path="codeAnalysis/:analysisId"
+                            element={<AnalysisPage />}
+                          />
+                          <Route path="codeboard/write" element={<CodeboardWrite />} />
+                          <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
                         </Route>
 
                         {/* 잘못된 경로는 홈으로 */}
