@@ -361,6 +361,7 @@ const FreeboardDetail = () => {
           ← 목록으로
         </button>
 
+        {/* 제목 및 버튼 */}
         <div
           style={{
             display: "flex",

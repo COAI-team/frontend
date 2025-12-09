@@ -314,29 +314,6 @@ const CodeboardDetail = () => {
           >
             ← 목록으로
           </button>
-
-          {board.analysisId && (
-            <button
-              onClick={handleAnalysisView}
-              style={{
-                marginBottom: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                color: '#60a5fa',
-                border: '1px solid rgba(59, 130, 246, 0.2)',
-                cursor: 'pointer'
-              }}
-            >
-              <Code2 size={16} />
-              <span>코드 분석 결과 보기</span>
-            </button>
-          )}
         </div>
 
         {/* 그리드 레이아웃 */}
