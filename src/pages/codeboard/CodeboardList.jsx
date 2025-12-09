@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../server/AxiosConfig";
+import Pagination from '../../components/common/Pagination';
 import "../../styles/CodeboardList.css";
 
 const CodeboardList = () => {
@@ -9,7 +10,8 @@ const CodeboardList = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [sortBy, setSortBy] = useState('latest');
+  const [sortBy, setSortBy] = useState('CREATED_AT');
+  const [sortDirection, setSortDirection] = useState('DESC');
   const [viewType, setViewType] = useState('list');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,7 +19,7 @@ const CodeboardList = () => {
 
   useEffect(() => {
     fetchPosts();
-  }, [currentPage, sortBy, pageSize, searchKeyword]);
+  }, [currentPage, sortBy, sortDirection, pageSize, searchKeyword]);
 
   const fetchPosts = async () => {
     try {
@@ -27,13 +29,16 @@ const CodeboardList = () => {
           page: currentPage,
           size: pageSize,
           sort: sortBy,
+          direction: sortDirection,
           keyword: searchKeyword
         }
       });
       
       console.log('응답:', response.data);
-      setPosts(response.data.content || []);
-      setTotalPages(response.data.totalPages || 1);
+      
+      const data = response.data.data || response.data;
+      setPosts(data.content || []);
+      setTotalPages(data.totalPages || 1);
     } catch (error) {
       console.error('게시글 목록 조회 실패:', error);
     } finally {
@@ -45,6 +50,20 @@ const CodeboardList = () => {
     e.preventDefault();
     setCurrentPage(1);
     fetchPosts();
+  };
+
+  const handleSortChange = (newSort) => {
+    setSortBy(newSort);
+    if (newSort === 'CREATED_AT') {
+      setSortDirection('DESC');
+    } else {
+      setSortDirection('DESC');
+    }
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   const handlePostClick = (postId) => {
@@ -94,11 +113,10 @@ const CodeboardList = () => {
     <div className="freeboard-list-container">
       <div className="freeboard-header">
         <h1 className="freeboard-title">코드보드</h1>
-        <p className="codeboard-subtitle">코드 리뷰와 분석을 통해 더 나은 코드를 작성해보세요</p>
+        <p className="freeboard-subtitle">코드 리뷰와 분석을 통해 더 나은 코드를 작성해보세요</p>
       </div>
 
-      {/* 검색 및 필터 영역 */}
-      <div className="codeboard-controls">
+      <div className="freeboard-controls">
         <div className="control-left">
           <form onSubmit={handleSearch} className="search-form">
             <input
@@ -120,18 +138,21 @@ const CodeboardList = () => {
         <div className="control-right">
           <select 
             value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value)}
+            onChange={(e) => handleSortChange(e.target.value)}
             className="sort-select"
           >
-            <option value="latest">최신순</option>
-            <option value="comments">댓글 많은 순</option>
-            <option value="likes">좋아요 순</option>
-            <option value="views">조회수 순</option>
+            <option value="CREATED_AT">최신순</option>
+            <option value="COMMENT_COUNT">댓글 많은 순</option>
+            <option value="LIKE_COUNT">좋아요 순</option>
+            <option value="VIEW_COUNT">조회수 순</option>
           </select>
 
           <select 
             value={pageSize} 
-            onChange={(e) => setPageSize(Number(e.target.value))}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1);
+            }}
             className="pagesize-select"
           >
             <option value="10">10개씩 보기</option>
@@ -168,7 +189,6 @@ const CodeboardList = () => {
         </div>
       </div>
 
-      {/* 게시글 목록 */}
       {loading ? (
         <div className="loading-container">
           <div className="loading-spinner"></div>
@@ -319,27 +339,11 @@ const CodeboardList = () => {
             </div>
           )}
 
-          <div className="pagination">
-            <button 
-              className="page-btn"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              이전
-            </button>
-            
-            <span className="page-info">
-              {currentPage} / {totalPages}
-            </span>
-            
-            <button 
-              className="page-btn"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
-              다음
-            </button>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         </>
       )}
 

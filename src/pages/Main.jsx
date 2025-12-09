@@ -19,11 +19,12 @@ export default function Main() {
     }
   }, [user]);
 
+
   const fetchPopularPosts = async () => {
     try {
       setLoading(true);
       // 조회수 순으로 정렬하여 상위 6개 가져오기
-      const response = await axiosInstance.get("/freeboard/list", {
+      const response = await axiosInstance.get("/freeboard", {
         params: {
           page: 1,
           size: 6,
@@ -249,7 +250,7 @@ export default function Main() {
               다른 사람들의 고통을 즐겨보세요. (인기 게시글)
             </p>
           </div>
-          <Link to="/freeboard/list" className="text-sm font-medium text-blue-500 hover:text-blue-600 flex items-center">
+          <Link to="/freeboard" className="text-sm font-medium text-blue-500 hover:text-blue-600 flex items-center">
             전체보기
             <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
           </Link>

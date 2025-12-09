@@ -93,6 +93,63 @@ html:not(.dark) .freeboard-content img {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
+/* ========== code-block-wrapper 스타일 ========== */
+.freeboard-content .code-block-wrapper {
+  border-radius: 0.5rem;
+  overflow: auto;
+  margin: 2rem 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+html.dark .freeboard-content .code-block-wrapper {
+  background-color: #1e1e1e;
+  border: 1px solid #374151;
+}
+
+html:not(.dark) .freeboard-content .code-block-wrapper {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.freeboard-content .code-header {
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+}
+
+html.dark .freeboard-content .code-header {
+  background-color: #1f2937;
+  border-bottom: 1px solid #374151;
+  color: #d1d5db;
+}
+
+html:not(.dark) .freeboard-content .code-header {
+  background-color: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  color: #1f2937;
+}
+
+.freeboard-content .code-language {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.freeboard-content .code-block-wrapper code {
+  display: block !important;
+  padding: 1rem !important;
+  overflow-x: auto !important;
+  white-space: pre !important;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+  font-size: 0.875rem !important;
+  line-height: 1.7 !important;
+  background: transparent !important;
+}
+
 /* ========== Monaco 코드 블록 ========== */
 .freeboard-content pre[data-type="monaco-code-block"] {
   border-radius: 0.5rem;

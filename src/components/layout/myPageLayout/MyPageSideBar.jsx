@@ -34,10 +34,10 @@ const myMenu = [
         ],
     },
     {
-        name: "활동 분석",
+        name: "대시 보드",
         icon: ChartBarIcon,
         children: [
-            { name: "대시보드", href: "/mypage/dashboard", icon: PresentationChartLineIcon },
+            { name: "코드 분석", href: "/mypage/dashboard", icon: PresentationChartLineIcon },
         ],
     },
 ];

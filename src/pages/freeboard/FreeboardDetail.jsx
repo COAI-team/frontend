@@ -58,26 +58,26 @@ const FreeboardDetail = () => {
     };
   }, []);
 
-useEffect(() => {
-  if (!id) return;
+  useEffect(() => {
+    if (!id) return;
 
-  const fetchBoard = async () => {
-    try {
-      const res = await axiosInstance.get(`/freeboard/${id}`);
-      const responseData = res.data?.data || res.data;
-      
-      setBoard(responseData);
-      setIsLiked(responseData.isLiked || false);
-      setLikeCount(responseData.likeCount || 0);
-      setCommentCount(responseData.commentCount || 0);
-    } catch (err) {
-      console.error("게시글 불러오기 실패:", err);
-      alert("게시글을 불러오는데 실패했습니다.");
-    }
-  };
+    const fetchBoard = async () => {
+      try {
+        const res = await axiosInstance.get(`/freeboard/${id}`);
+        const responseData = res.data?.data || res.data;
+        
+        setBoard(responseData);
+        setIsLiked(responseData.isLiked || false);
+        setLikeCount(responseData.likeCount || 0);
+        setCommentCount(responseData.commentCount || 0);
+      } catch (err) {
+        console.error("게시글 불러오기 실패:", err);
+        alert("게시글을 불러오는데 실패했습니다.");
+      }
+    };
 
-  fetchBoard();
-}, [id]);
+    fetchBoard();
+  }, [id]);
 
   const handleLike = async () => {
     // 로그인 안 되어 있으면 좋아요 전에 로그인 유도
@@ -308,8 +308,8 @@ useEffect(() => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#101828",
-          color: "white",
+          backgroundColor: isDark ? "#101828" : "#f9fafb",
+          color: isDark ? "white" : "#1f2937",
           padding: "2.5rem",
         }}
       >
@@ -331,9 +331,9 @@ useEffect(() => {
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#101828",
+        backgroundColor: isDark ? "#101828" : "#f9fafb",
         padding: "2rem 1rem",
-    }}
+      }}
     >
       <div
         style={{
@@ -342,25 +342,26 @@ useEffect(() => {
         }}
       >
         <button
-          onClick={() => navigate("/freeboard/list")}
+          onClick={() => navigate("/freeboard")}
           style={{
             marginBottom: "1rem",
             display: "flex",
             alignItems: "center",
             gap: "0.5rem",
-            color: "#9ca3af",
+            color: isDark ? "#9ca3af" : "#4b5563",
             background: "none",
             border: "none",
             cursor: "pointer",
             fontSize: "1rem",
             transition: "color 0.2s",
           }}
-          onMouseEnter={(e) => (e.target.style.color = "#e5e7eb")}
-          onMouseLeave={(e) => (e.target.style.color = "#9ca3af")}
+          onMouseEnter={(e) => (e.target.style.color = isDark ? "#e5e7eb" : "#1f2937")}
+          onMouseLeave={(e) => (e.target.style.color = isDark ? "#9ca3af" : "#4b5563")}
         >
           ← 목록으로
         </button>
 
+        {/* 제목 및 버튼 */}
         <div
           style={{
             display: "flex",
@@ -374,7 +375,7 @@ useEffect(() => {
               fontSize: "2.25rem",
               fontWeight: "700",
               flex: 1,
-              color: "#e5e7eb",
+              color: isDark ? "#e5e7eb" : "#111827",
             }}
           >
             {board.freeboardTitle || "제목 없음"}
@@ -389,17 +390,17 @@ useEffect(() => {
                   borderRadius: "0.5rem",
                   fontSize: "1rem",
                   fontWeight: "500",
-                  backgroundColor: "#374151",
-                  color: "#e5e7eb",
+                  backgroundColor: isDark ? "#374151" : "#e5e7eb",
+                  color: isDark ? "#e5e7eb" : "#1f2937",
                   border: "none",
                   cursor: "pointer",
                   transition: "background-color 0.2s",
                 }}
                 onMouseEnter={(e) =>
-                  (e.target.style.backgroundColor = "#4b5563")
+                  (e.target.style.backgroundColor = isDark ? "#4b5563" : "#d1d5db")
                 }
                 onMouseLeave={(e) =>
-                  (e.target.style.backgroundColor = "#374151")
+                  (e.target.style.backgroundColor = isDark ? "#374151" : "#e5e7eb")
                 }
               >
                 수정
@@ -411,7 +412,7 @@ useEffect(() => {
                       .delete(`/freeboard/${id}`)
                       .then(() => {
                         alert("삭제되었습니다.");
-                        navigate("/freeboard/list");
+                        navigate("/freeboard");
                       })
                       .catch((err) => {
                         console.error("삭제 실패:", err);
@@ -424,17 +425,17 @@ useEffect(() => {
                   borderRadius: "0.5rem",
                   fontSize: "1rem",
                   fontWeight: "500",
-                  backgroundColor: "rgba(127, 29, 29, 0.3)",
-                  color: "#fca5a5",
+                  backgroundColor: isDark ? "rgba(127, 29, 29, 0.3)" : "rgba(220, 38, 38, 0.1)",
+                  color: isDark ? "#fca5a5" : "#dc2626",
                   border: "none",
                   cursor: "pointer",
                   transition: "background-color 0.2s",
                 }}
                 onMouseEnter={(e) =>
-                  (e.target.style.backgroundColor = "rgba(127, 29, 29, 0.5)")
+                  (e.target.style.backgroundColor = isDark ? "rgba(127, 29, 29, 0.5)" : "rgba(220, 38, 38, 0.2)")
                 }
                 onMouseLeave={(e) =>
-                  (e.target.style.backgroundColor = "rgba(127, 29, 29, 0.3)")
+                  (e.target.style.backgroundColor = isDark ? "rgba(127, 29, 29, 0.3)" : "rgba(220, 38, 38, 0.1)")
                 }
               >
                 삭제
@@ -450,8 +451,8 @@ useEffect(() => {
             gap: "1rem",
             marginBottom: "1.5rem",
             paddingBottom: "1.5rem",
-            borderBottom: "1px solid #374151",
-            color: "#9ca3af",
+            borderBottom: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
+            color: isDark ? "#9ca3af" : "#4b5563",
           }}
         >
           <div
@@ -466,8 +467,8 @@ useEffect(() => {
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: "0.875rem",
-                backgroundColor: "#374151",
-                color: "#e5e7eb",
+                backgroundColor: isDark ? "#374151" : "#d1d5db",
+                color: isDark ? "#e5e7eb" : "#1f2937",
               }}
             >
               {board.userNickname
@@ -484,7 +485,7 @@ useEffect(() => {
 
         <div
           ref={contentRef}
-          className="freeboard-content"
+          className={`freeboard-content ${isDark ? 'dark' : 'light'}`}
           style={{ marginBottom: "2rem" }}
           dangerouslySetInnerHTML={{
             __html: getRenderedContent(board.freeboardContent),
@@ -526,7 +527,7 @@ useEffect(() => {
             padding: "1rem 0",
             marginTop: "8rem",
             paddingTop: "2rem",
-            borderTop: "1px solid #374151",
+            borderTop: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
           }}
         >
           <div
@@ -541,14 +542,14 @@ useEffect(() => {
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                color: isLiked ? "#ef4444" : "#9ca3af",
+                color: isLiked ? "#ef4444" : (isDark ? "#9ca3af" : "#4b5563"),
                 transition: "color 0.2s",
               }}
               onMouseEnter={(e) =>
-                !isLiked && (e.currentTarget.style.color = "#fca5a5")
+                !isLiked && (e.currentTarget.style.color = isDark ? "#fca5a5" : "#dc2626")
               }
               onMouseLeave={(e) =>
-                !isLiked && (e.currentTarget.style.color = "#9ca3af")
+                !isLiked && (e.currentTarget.style.color = isDark ? "#9ca3af" : "#4b5563")
               }
             >
               <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
@@ -561,7 +562,7 @@ useEffect(() => {
                 display: "flex",
                 alignItems: "center",
                 gap: "0.5rem",
-                color: "#9ca3af",
+                color: isDark ? "#9ca3af" : "#4b5563",
               }}
             >
               <MessageCircle size={20} />
@@ -583,11 +584,11 @@ useEffect(() => {
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                color: "#9ca3af",
+                color: isDark ? "#9ca3af" : "#4b5563",
                 transition: "color 0.2s",
               }}
-              onMouseEnter={(e) => (e.target.style.color = "#d1d5db")}
-              onMouseLeave={(e) => (e.target.style.color = "#9ca3af")}
+              onMouseEnter={(e) => (e.target.style.color = isDark ? "#d1d5db" : "#1f2937")}
+              onMouseLeave={(e) => (e.target.style.color = isDark ? "#9ca3af" : "#4b5563")}
             >
               <Share2 size={18} />
               <span>공유</span>
@@ -603,11 +604,11 @@ useEffect(() => {
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                color: "#9ca3af",
+                color: isDark ? "#9ca3af" : "#4b5563",
                 transition: "color 0.2s",
               }}
-              onMouseEnter={(e) => (e.target.style.color = "#d1d5db")}
-              onMouseLeave={(e) => (e.target.style.color = "#9ca3af")}
+              onMouseEnter={(e) => (e.target.style.color = isDark ? "#d1d5db" : "#1f2937")}
+              onMouseLeave={(e) => (e.target.style.color = isDark ? "#9ca3af" : "#4b5563")}
             >
               <AlertCircle size={18} />
               <span>신고</span>
