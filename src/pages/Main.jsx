@@ -19,11 +19,12 @@ export default function Main() {
     }
   }, [user]);
 
+
   const fetchPopularPosts = async () => {
     try {
       setLoading(true);
       // 조회수 순으로 정렬하여 상위 6개 가져오기
-      const response = await axiosInstance.get("/freeboard/list", {
+      const response = await axiosInstance.get("/freeboard", {
         params: {
           page: 1,
           size: 6,
