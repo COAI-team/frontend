@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { axiosInstance } from '../../server/AxiosConfig';
 import CommentForm from './CommentForm';
 import { getAuth } from '../../utils/auth/token';
@@ -9,11 +9,30 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const [liked, setLiked] = useState(comment.isLiked || false);
+  const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
 
   const auth = getAuth();
   const currentUserId = auth?.userId;
+  const isMyComment = currentUserId != null && comment.userId === currentUserId;
+
+  // 메뉴 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
 
   const handleUpdate = async () => {
     if (!editContent.trim()) {
@@ -26,7 +45,6 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
       await axiosInstance.put(`/comment/${comment.commentId}`, {
         content: editContent.trim()
       });
-
       setIsEditing(false);
       onCommentUpdated();
     } catch (error) {
@@ -49,9 +67,23 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
     }
   };
 
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikeCount(liked ? likeCount - 1 : likeCount + 1);
+  const handleReport = () => {
+    setShowMenu(false);
+    if (confirm('이 댓글을 신고하시겠습니까?')) {
+      // TODO: 신고 API 연동
+      alert('신고가 접수되었습니다.');
+    }
+  };
+
+  const handleLike = async () => {
+    try {
+      const response = await axiosInstance.post(`/like/comment/${comment.commentId}`);
+      const { isLiked } = response.data;
+      setLiked(isLiked);
+      setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+    } catch (error) {
+      console.error('좋아요 실패:', error);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -66,234 +98,377 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
     }).replace(/\. /g, '.').replace(/\.$/, '');
   };
 
-  const isMyComment = currentUserId != null && comment.userId === currentUserId;
+  const authorBadgeStyle = {
+    marginLeft: '0.375rem',
+    padding: '0.125rem 0.375rem',
+    fontSize: '0.625rem',
+    fontWeight: '500',
+    borderRadius: '0.25rem',
+    backgroundColor: isDark ? 'rgba(74, 222, 128, 0.2)' : '#dcfce7',
+    color: isDark ? '#4ade80' : '#16a34a'
+  };
 
-  // 대댓글
-  if (isReply) {
+  const actionButtonStyle = {
+    fontSize: '0.75rem',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: 0,
+    color: isDark ? '#6b7280' : '#9ca3af'
+  };
+
+  // 수정 모드
+  if (isEditing) {
     return (
-      <div className={`flex gap-3 py-4 ${isDark ? "" : ""}`}>
-        <div className={`rounded-full flex items-center justify-center flex-shrink-0 ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-200 text-gray-600"}`} style={{ width: '2rem', height: '2rem', fontSize: '0.875rem' }}>
-          {comment.userNickname?.charAt(0)?.toUpperCase() || "?"}
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          {isEditing ? (
-            <div className="space-y-2">
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                rows={3}
-                className={`w-full px-3 py-2 text-sm rounded border focus:outline-none ${isDark ? "bg-gray-800 text-gray-100 border-gray-700 focus:border-indigo-500" : "bg-white text-gray-900 border-gray-300 focus:border-indigo-500"}`}
-                disabled={isUpdating}
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditContent(comment.content);
-                  }}
-                  className={`px-3 py-1 text-xs rounded ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-                  disabled={isUpdating}
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleUpdate}
-                  disabled={isUpdating || !editContent.trim()}
-                  className={`px-3 py-1 text-xs rounded ${isDark ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50" : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"}`}
-                >
-                  {isUpdating ? "등록 중..." : "등록"}
-                </button>
-              </div>
+      <div style={{ padding: isReply ? '0.75rem 0' : '1rem 0' }}>
+        <div style={{
+          border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          borderRadius: '0.5rem',
+          backgroundColor: isDark ? '#1f2937' : '#f9fafb',
+          overflow: 'hidden'
+        }}>
+          {/* 닉네임 */}
+          <div style={{
+            padding: '0.75rem 1rem 0.5rem',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            color: isDark ? '#e5e7eb' : '#111827'
+          }}>
+            {comment.userNickname}
+          </div>
+
+          {/* 텍스트 입력 */}
+          <div style={{ padding: '0 1rem' }}>
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              rows={3}
+              disabled={isUpdating}
+              style={{
+                width: '100%',
+                padding: '0',
+                border: 'none',
+                backgroundColor: 'transparent',
+                color: isDark ? '#f3f4f6' : '#111827',
+                fontSize: '0.875rem',
+                lineHeight: '1.5',
+                resize: 'none',
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          {/* 하단 액션 바 */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.5rem 1rem 0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button type="button" style={{ padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer', color: isDark ? '#9ca3af' : '#6b7280' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </button>
+              <button type="button" style={{ padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer', color: isDark ? '#9ca3af' : '#6b7280' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+                </svg>
+              </button>
             </div>
-          ) : (
-            <>
-              <div className="mb-1">
-                <span className={`font-bold text-sm ${isDark ? "text-gray-200" : "text-gray-900"}`}>
-                  {comment.userNickname}
-                </span>
-                {comment.isAuthor && (
-                  <span className={`ml-2 px-1.5 py-0.5 text-xs font-medium rounded ${isDark ? "bg-indigo-500/20 text-indigo-400" : "bg-indigo-100 text-indigo-700"}`}>
-                    작성자
-                  </span>
-                )}
-              </div>
 
-              <p className={`text-sm leading-relaxed whitespace-pre-wrap mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                {comment.content}
-              </p>
-
-              <div className="flex items-center gap-3">
-                <span className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-                  {formatDate(comment.createdAt)}
-                </span>
-                
-                <button
-                  onClick={() => setShowReplyForm(!showReplyForm)}
-                  className={`text-xs ${isDark ? "text-gray-500 hover:text-gray-300" : "text-gray-400 hover:text-gray-700"}`}
-                >
-                  답글쓰기
-                </button>
-
-                <button
-                  onClick={handleLike}
-                  className={`flex items-center gap-1 text-xs ${liked ? (isDark ? "text-red-400" : "text-red-500") : (isDark ? "text-gray-500 hover:text-red-400" : "text-gray-400 hover:text-red-500")}`}
-                >
-                  <span>좋아요 </span>
-                  <span>{likeCount}</span>
-                </button>
-
-                {isMyComment && (
-                  <>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className={`text-xs ${isDark ? "text-gray-500 hover:text-gray-300" : "text-gray-400 hover:text-gray-700"}`}
-                    >
-                      수정
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      className={`text-xs ${isDark ? "text-gray-500 hover:text-red-400" : "text-gray-400 hover:text-red-600"}`}
-                    >
-                      삭제
-                    </button>
-                  </>
-                )}
-              </div>
-            </>
-          )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditContent(comment.content);
+                }}
+                disabled={isUpdating}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  background: 'none',
+                  border: 'none',
+                  color: isDark ? '#9ca3af' : '#6b7280',
+                  cursor: 'pointer'
+                }}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleUpdate}
+                disabled={isUpdating || !editContent.trim()}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  fontWeight: '500',
+                  borderRadius: '0.25rem',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: isUpdating || !editContent.trim() 
+                    ? (isDark ? '#4b5563' : '#9ca3af') 
+                    : (isDark ? '#60a5fa' : '#2563eb'),
+                  cursor: isUpdating || !editContent.trim() ? 'default' : 'pointer'
+                }}
+              >
+                {isUpdating ? '수정 중...' : '수정'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // 일반 댓글
   return (
     <div>
-      <div style={{ display: 'flex', gap: '0.75rem', padding: '1.25rem 0' }}>
-        <div className={`rounded-full flex items-center justify-center flex-shrink-0 ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-200 text-gray-600"}`} style={{ width: '2rem', height: '2rem', fontSize: '0.875rem' }}>
-          {comment.userNickname?.charAt(0)?.toUpperCase() || "?"}
+      <div style={{ 
+        display: 'flex', 
+        gap: '0.75rem', 
+        padding: isReply ? '0.75rem 0' : '1rem 0' 
+      }}>
+        {/* 아바타 */}
+        <div style={{
+          width: isReply ? '1.75rem' : '2.25rem',
+          height: isReply ? '1.75rem' : '2.25rem',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          fontSize: isReply ? '0.75rem' : '0.875rem',
+          fontWeight: '500',
+          backgroundColor: isDark ? '#374151' : '#e5e7eb',
+          color: isDark ? '#d1d5db' : '#4b5563'
+        }}>
+          {comment.userNickname?.charAt(0)?.toUpperCase() || '?'}
         </div>
 
+        {/* 콘텐츠 */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {isEditing ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                rows={4}
-                className={`w-full px-3 py-2 rounded border focus:outline-none ${isDark ? "bg-gray-800 text-gray-100 border-gray-700 focus:border-indigo-500" : "bg-white text-gray-900 border-gray-300 focus:border-indigo-500"}`}
-                style={{ fontSize: '0.875rem' }}
-                disabled={isUpdating}
-              />
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditContent(comment.content);
-                  }}
-                  className={`px-4 py-1.5 rounded ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-                  style={{ fontSize: '0.875rem' }}
-                  disabled={isUpdating}
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleUpdate}
-                  disabled={isUpdating || !editContent.trim()}
-                  className={`px-4 py-1.5 rounded ${isDark ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50" : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"}`}
-                  style={{ fontSize: '0.875rem' }}
-                >
-                  {isUpdating ? "등록 중..." : "등록"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div style={{ marginBottom: '0.25rem' }}>
-                <span className={isDark ? "text-gray-100" : "text-gray-900"} style={{ fontSize: '1rem' }}>
-                  {comment.userNickname}
-                </span>
-                {comment.isAuthor && (
-                  <span className={`ml-2 px-2 py-0.5 rounded ${isDark ? "bg-indigo-500/20 text-indigo-400" : "bg-indigo-100 text-indigo-700"}`} style={{ fontSize: '0.75rem', fontWeight: '500' }}>
-                    작성자
-                  </span>
-                )}
-              </div>
-
-              <p className={`whitespace-pre-wrap ${isDark ? "text-gray-200" : "text-gray-800"}`} style={{ fontSize: '0.9375rem', lineHeight: '1.6', marginBottom: '0.5rem' }}>
-                {comment.content}
-              </p>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <span className={isDark ? "text-gray-500" : "text-gray-400"} style={{ fontSize: '0.75rem' }}>
-                  {formatDate(comment.createdAt)}
-                </span>
-
-                <button
-                  onClick={() => setShowReplyForm(!showReplyForm)}
-                  className={isDark ? "text-gray-500 hover:text-gray-300" : "text-gray-400 hover:text-gray-700"}
-                  style={{ fontSize: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                >
-                  답글쓰기
-                </button>
-
-                <button
-                  onClick={handleLike}
-                  className={liked ? (isDark ? "text-red-400" : "text-red-500") : (isDark ? "text-gray-500 hover:text-red-400" : "text-gray-400 hover:text-red-500")}
-                  style={{ fontSize: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                >
-                  <svg style={{ width: '0.875rem', height: '0.875rem' }} fill={liked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                  <span>{likeCount}</span>
-                </button>
-
-                {isMyComment && (
-                  <>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className={isDark ? "text-gray-500 hover:text-gray-300" : "text-gray-400 hover:text-gray-700"}
-                      style={{ fontSize: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                    >
-                      수정
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      className={isDark ? "text-gray-500 hover:text-red-400" : "text-gray-400 hover:text-red-600"}
-                      style={{ fontSize: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                    >
-                      삭제
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {comment.replies && comment.replies.length > 0 && (
-                <button
-                  onClick={() => setShowReplies(!showReplies)}
-                  className={isDark ? "text-indigo-400 hover:text-indigo-300" : "text-indigo-600 hover:text-indigo-700"}
-                  style={{ fontSize: '0.75rem', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.375rem' }}
-                >
-                  <svg 
-                    style={{ width: '0.875rem', height: '0.875rem', transition: 'transform 0.2s', transform: showReplies ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                  답글 {comment.replies.length}개 {showReplies ? '접기' : '보기'}
-                </button>
+          {/* 닉네임 & 작성자 뱃지 */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            marginBottom: '0.25rem' 
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ 
+                fontSize: isReply ? '0.8125rem' : '0.875rem', 
+                fontWeight: '600',
+                color: isDark ? '#f3f4f6' : '#111827'
+              }}>
+                {comment.userNickname}
+              </span>
+              {comment.isAuthor && (
+                <span style={authorBadgeStyle}>작성자</span>
               )}
-            </>
+            </div>
+
+            {/* 더보기 메뉴 */}
+            <div style={{ position: 'relative' }} ref={menuRef}>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                style={{
+                  padding: '0.25rem',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: isDark ? '#6b7280' : '#9ca3af',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="2"/>
+                  <circle cx="12" cy="12" r="2"/>
+                  <circle cx="12" cy="19" r="2"/>
+                </svg>
+              </button>
+
+              {showMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '0.25rem',
+                  minWidth: '100px',
+                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                  borderRadius: '0.375rem',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  zIndex: 50,
+                  overflow: 'hidden'
+                }}>
+                  {isMyComment ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setIsEditing(true);
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          padding: '0.5rem 1rem',
+                          fontSize: '0.8125rem',
+                          textAlign: 'left',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: isDark ? '#e5e7eb' : '#374151',
+                          borderBottom: `1px solid ${isDark ? '#374151' : '#f3f4f6'}`
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          handleDelete();
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          padding: '0.5rem 1rem',
+                          fontSize: '0.8125rem',
+                          textAlign: 'left',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: isDark ? '#fca5a5' : '#dc2626'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        삭제
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleReport}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.8125rem',
+                        textAlign: 'left',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: isDark ? '#fca5a5' : '#dc2626'
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    >
+                      신고하기
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 댓글 내용 */}
+          <p style={{ 
+            fontSize: isReply ? '0.8125rem' : '0.875rem',
+            lineHeight: '1.6',
+            whiteSpace: 'pre-wrap',
+            marginBottom: '0.5rem',
+            color: isDark ? '#e5e7eb' : '#374151'
+          }}>
+            {comment.content}
+          </p>
+
+          {/* 액션 버튼들 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ 
+              fontSize: '0.75rem', 
+              color: isDark ? '#6b7280' : '#9ca3af' 
+            }}>
+              {formatDate(comment.createdAt)}
+            </span>
+
+            <button
+              onClick={() => setShowReplyForm(!showReplyForm)}
+              style={actionButtonStyle}
+            >
+              답글쓰기
+            </button>
+
+            <button
+              onClick={handleLike}
+              style={{
+                ...actionButtonStyle,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                color: liked 
+                  ? (isDark ? '#f87171' : '#ef4444') 
+                  : (isDark ? '#6b7280' : '#9ca3af')
+              }}
+            >
+              <svg 
+                width="14" 
+                height="14" 
+                viewBox="0 0 24 24" 
+                fill={liked ? 'currentColor' : 'none'} 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+              {likeCount > 0 && <span>{likeCount}</span>}
+            </button>
+          </div>
+
+          {/* 답글 토글 버튼 */}
+          {!isReply && comment.replies && comment.replies.length > 0 && (
+            <button
+              onClick={() => setShowReplies(!showReplies)}
+              style={{
+                marginTop: '0.75rem',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                color: isDark ? '#60a5fa' : '#2563eb'
+              }}
+            >
+              <svg 
+                style={{ 
+                  width: '0.875rem', 
+                  height: '0.875rem', 
+                  transition: 'transform 0.2s', 
+                  transform: showReplies ? 'rotate(180deg)' : 'rotate(0deg)' 
+                }}
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+              답글 {comment.replies.length}개 {showReplies ? '접기' : '보기'}
+            </button>
           )}
         </div>
       </div>
 
+      {/* 답글 작성 폼 */}
       {showReplyForm && (
-        <div style={{ marginLeft: '2.75rem', marginBottom: '1rem' }}>
+        <div style={{ marginLeft: '3rem', marginBottom: '0.75rem' }}>
           <CommentForm
             boardId={comment.boardId}
             boardType={comment.boardType}
@@ -308,18 +483,19 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
         </div>
       )}
 
-      {showReplies && comment.replies && comment.replies.length > 0 && (
-        <div style={{ marginLeft: '2.75rem' }}>
+      {/* 답글 목록 */}
+      {!isReply && showReplies && comment.replies && comment.replies.length > 0 && (
+        <div style={{ marginLeft: '3rem' }}>
           {comment.replies.map((reply, index) => (
             <div key={reply.commentId}>
               <CommentItem
-                comment={reply}
+                comment={{ ...reply, boardId: comment.boardId, boardType: comment.boardType }}
                 onCommentUpdated={onCommentUpdated}
                 isReply={true}
                 isDark={isDark}
               />
               {index < comment.replies.length - 1 && (
-                <div className={`border-t ${isDark ? "border-gray-800" : "border-gray-100"}`} />
+                <div style={{ borderTop: `1px solid ${isDark ? '#1f2937' : '#f3f4f6'}` }} />
               )}
             </div>
           ))}

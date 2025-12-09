@@ -12,7 +12,9 @@ const CodeboardDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [board, setBoard] = useState(null);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => 
+    document.documentElement.classList.contains('dark')
+  );
   const contentRef = useRef(null);
   
   const [isLiked, setIsLiked] = useState(false);
@@ -23,25 +25,25 @@ const CodeboardDetail = () => {
   const [fileContent, setFileContent] = useState('');
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
 
-  const currentUserId = 1;
-
+  // highlight.js 테마 관리
   useEffect(() => {
-    const checkDarkMode = () => {
-      const darkMode = document.documentElement.classList.contains('dark');
-      setIsDark(darkMode);
-      
-      const existingStyle = document.getElementById('hljs-theme');
-      if (existingStyle) {
-        existingStyle.remove();
-      }
+    const loadHljsTheme = (darkMode) => {
+      // 기존 테마 모두 제거
+      document.querySelectorAll('link[data-hljs-theme]').forEach(el => el.remove());
       
       const link = document.createElement('link');
-      link.id = 'hljs-theme';
       link.rel = 'stylesheet';
+      link.setAttribute('data-hljs-theme', 'true');
       link.href = darkMode 
         ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css'
         : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
       document.head.appendChild(link);
+    };
+
+    const checkDarkMode = () => {
+      const darkMode = document.documentElement.classList.contains('dark');
+      setIsDark(darkMode);
+      loadHljsTheme(darkMode);
     };
     
     checkDarkMode();
@@ -54,13 +56,11 @@ const CodeboardDetail = () => {
     
     return () => {
       observer.disconnect();
-      const existingStyle = document.getElementById('hljs-theme');
-      if (existingStyle) {
-        existingStyle.remove();
-      }
+      document.querySelectorAll('link[data-hljs-theme]').forEach(el => el.remove());
     };
   }, []);
 
+  // 게시글 데이터 로드
   useEffect(() => {
     if (!id) return;
 
@@ -113,10 +113,10 @@ const CodeboardDetail = () => {
   const handleLike = async () => {
     try {
       const response = await axiosInstance.post(`/like/codeboard/${id}`);
-      const { isLiked } = response.data;
+      const { isLiked: newIsLiked } = response.data;
       
-      setIsLiked(isLiked);
-      setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+      setIsLiked(newIsLiked);
+      setLikeCount(prev => newIsLiked ? prev + 1 : prev - 1);
     } catch (error) {
       console.error('좋아요 처리 실패:', error);
       alert('좋아요 처리에 실패했습니다.');
@@ -124,7 +124,8 @@ const CodeboardDetail = () => {
   };
 
   const handleShare = () => {
-    console.log("공유 클릭");
+    navigator.clipboard.writeText(window.location.href);
+    alert('링크가 복사되었습니다.');
   };
 
   const handleReport = () => {
@@ -137,44 +138,71 @@ const CodeboardDetail = () => {
     }
   };
 
+  // 콘텐츠 렌더링 후 처리
   useEffect(() => {
-    if (!contentRef.current) return;
+    if (!contentRef.current || !board) return;
 
     const timer = setTimeout(() => {
-      const stickerImages = contentRef.current.querySelectorAll('img[data-sticker], img[src*="openmoji"]');
-      stickerImages.forEach(img => {
-        img.style.width = '1.5em';
-        img.style.height = '1.5em';
-        img.style.verticalAlign = '-0.3em';
-        img.style.display = 'inline-block';
-        img.style.margin = '0 0.1em';
+      // 스티커 이미지 스타일링
+      contentRef.current.querySelectorAll('img[data-sticker], img[src*="openmoji"]').forEach(img => {
+        Object.assign(img.style, {
+          width: '1.5em',
+          height: '1.5em',
+          verticalAlign: '-0.3em',
+          display: 'inline-block',
+          margin: '0 0.1em'
+        });
       });
 
-      const monacoBlocks = contentRef.current.querySelectorAll('pre[data-type="monaco-code-block"]');
-      
-      monacoBlocks.forEach(block => {
+      // 이미 렌더링된 코드블록의 헤더 스타일 업데이트
+      contentRef.current.querySelectorAll('.code-block-wrapper').forEach(block => {
+        const header = block.querySelector('.code-header');
+        if (header) {
+          Object.assign(header.style, {
+            backgroundColor: isDark ? '#1f2937' : '#f9fafb',
+            color: isDark ? '#d1d5db' : '#1f2937',
+            borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
+          });
+        }
+        
+        // 코드블록 배경 업데이트
+        Object.assign(block.style, {
+          backgroundColor: isDark ? '#1e1e1e' : '#ffffff',
+          border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
+        });
+      });
+
+      // 아직 처리되지 않은 Monaco 코드블록 처리
+      contentRef.current.querySelectorAll('pre[data-type="monaco-code-block"]').forEach(block => {
         const code = block.getAttribute('data-code');
-        const language = block.getAttribute('data-language');
+        const language = block.getAttribute('data-language') || 'plaintext';
         
         if (code) {
-          const decodeHTML = (html) => {
-            const txt = document.createElement('textarea');
-            txt.innerHTML = html;
-            return txt.value;
-          };
-          
-          const decodedCode = decodeHTML(code);
+          const decodedCode = decodeHTMLEntities(code);
           
           block.innerHTML = '';
           block.className = 'code-block-wrapper';
           block.removeAttribute('data-type');
+          Object.assign(block.style, {
+            backgroundColor: isDark ? '#1e1e1e' : '#ffffff',
+            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            borderRadius: '0.5rem',
+            overflow: 'hidden',
+            margin: '1.5rem 0'
+          });
           
           const header = document.createElement('div');
           header.className = 'code-header';
-          header.innerHTML = `<span class="code-language">${language || 'code'}</span>`;
+          Object.assign(header.style, {
+            backgroundColor: isDark ? '#1f2937' : '#f9fafb',
+            color: isDark ? '#d1d5db' : '#1f2937',
+            borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            padding: '0.5rem 1rem'
+          });
+          header.innerHTML = `<span class="code-language">${language}</span>`;
           
           const codeElement = document.createElement('code');
-          codeElement.className = `language-${language || 'plaintext'}`;
+          codeElement.className = `language-${language}`;
           codeElement.textContent = decodedCode;
           
           block.appendChild(header);
@@ -184,117 +212,91 @@ const CodeboardDetail = () => {
         }
       });
 
-      const linkPreviews = contentRef.current.querySelectorAll('div[data-type="link-preview"]');
-      
-      linkPreviews.forEach(preview => {
-        const title = preview.getAttribute('data-title');
-        const description = preview.getAttribute('data-description');
-        const image = preview.getAttribute('data-image');
-        const site = preview.getAttribute('data-site');
-        const url = preview.getAttribute('data-url');
-        
-        if (url) {
-          preview.innerHTML = '';
-          preview.className = `link-preview-card ${isDark ? 'dark' : 'light'}`;
-          preview.style.cssText = `
-            border: 1px solid ${isDark ? '#374151' : '#e5e7eb'};
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin: 1rem 0;
-            display: flex;
-            gap: 1rem;
-            background: ${isDark ? '#1f2937' : '#ffffff'};
-            cursor: pointer;
-            transition: all 0.2s;
-          `;
-          
-          preview.addEventListener('mouseenter', () => {
-            preview.style.borderColor = isDark ? '#60a5fa' : '#3b82f6';
-          });
-          
-          preview.addEventListener('mouseleave', () => {
-            preview.style.borderColor = isDark ? '#374151' : '#e5e7eb';
-          });
-          
-          preview.addEventListener('click', () => {
-            window.open(url, '_blank');
-          });
-          
-          if (image) {
-            const imgContainer = document.createElement('div');
-            imgContainer.style.cssText = 'flex-shrink: 0; width: 120px; height: 120px; overflow: hidden; border-radius: 0.375rem;';
-            
-            const img = document.createElement('img');
-            img.src = image;
-            img.alt = title || 'Link preview';
-            img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
-            
-            imgContainer.appendChild(img);
-            preview.appendChild(imgContainer);
-          }
-          
-          const textContainer = document.createElement('div');
-          textContainer.style.cssText = 'flex: 1; min-width: 0;';
-          
-          if (site) {
-            const siteSpan = document.createElement('div');
-            siteSpan.textContent = site;
-            siteSpan.style.cssText = `
-              font-size: 0.875rem;
-              color: ${isDark ? '#9ca3af' : '#6b7280'};
-              margin-bottom: 0.25rem;
-            `;
-            textContainer.appendChild(siteSpan);
-          }
-          
-          if (title) {
-            const titleDiv = document.createElement('div');
-            titleDiv.textContent = title;
-            titleDiv.style.cssText = `
-              font-weight: 600;
-              font-size: 1rem;
-              color: ${isDark ? '#f3f4f6' : '#111827'};
-              margin-bottom: 0.25rem;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-            `;
-            textContainer.appendChild(titleDiv);
-          }
-          
-          if (description) {
-            const descDiv = document.createElement('div');
-            descDiv.textContent = description;
-            descDiv.style.cssText = `
-              font-size: 0.875rem;
-              color: ${isDark ? '#d1d5db' : '#4b5563'};
-              overflow: hidden;
-              display: -webkit-box;
-              -webkit-line-clamp: 2;
-              -webkit-box-orient: vertical;
-            `;
-            textContainer.appendChild(descDiv);
-          }
-          
-          preview.appendChild(textContainer);
-        }
+      // 링크 프리뷰 처리
+      contentRef.current.querySelectorAll('div[data-type="link-preview"]').forEach(preview => {
+        renderLinkPreview(preview, isDark);
       });
 
-      const allCodeBlocks = contentRef.current.querySelectorAll('pre code:not([class*="language-"])');
-      allCodeBlocks.forEach(block => {
-        block.classList.remove('hljs');
-        block.removeAttribute('data-highlighted');
-        hljs.highlightElement(block);
-      });
     }, 100);
 
     return () => clearTimeout(timer);
   }, [board, isDark]);
 
-  const getRenderedContent = (content) => {
-    if (!content) {
-      return "";
+  const decodeHTMLEntities = (html) => {
+    const txt = document.createElement('textarea');
+    txt.innerHTML = html;
+    return txt.value;
+  };
+
+  const renderLinkPreview = (preview, isDark) => {
+    const { title, description, image, site, url } = {
+      title: preview.getAttribute('data-title'),
+      description: preview.getAttribute('data-description'),
+      image: preview.getAttribute('data-image'),
+      site: preview.getAttribute('data-site'),
+      url: preview.getAttribute('data-url')
+    };
+    
+    if (!url) return;
+    
+    preview.innerHTML = '';
+    preview.className = `link-preview-card ${isDark ? 'dark' : 'light'}`;
+    Object.assign(preview.style, {
+      border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+      borderRadius: '0.5rem',
+      padding: '1rem',
+      margin: '1rem 0',
+      display: 'flex',
+      gap: '1rem',
+      background: isDark ? '#1f2937' : '#ffffff',
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    });
+    
+    preview.onmouseenter = () => preview.style.borderColor = isDark ? '#60a5fa' : '#3b82f6';
+    preview.onmouseleave = () => preview.style.borderColor = isDark ? '#374151' : '#e5e7eb';
+    preview.onclick = () => window.open(url, '_blank');
+    
+    if (image) {
+      const imgContainer = document.createElement('div');
+      imgContainer.style.cssText = 'flex-shrink: 0; width: 120px; height: 120px; overflow: hidden; border-radius: 0.375rem;';
+      const img = document.createElement('img');
+      img.src = image;
+      img.alt = title || 'Link preview';
+      img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+      imgContainer.appendChild(img);
+      preview.appendChild(imgContainer);
     }
+    
+    const textContainer = document.createElement('div');
+    textContainer.style.cssText = 'flex: 1; min-width: 0;';
+    
+    if (site) {
+      const siteSpan = document.createElement('div');
+      siteSpan.textContent = site;
+      siteSpan.style.cssText = `font-size: 0.875rem; color: ${isDark ? '#9ca3af' : '#6b7280'}; margin-bottom: 0.25rem;`;
+      textContainer.appendChild(siteSpan);
+    }
+    
+    if (title) {
+      const titleDiv = document.createElement('div');
+      titleDiv.textContent = title;
+      titleDiv.style.cssText = `font-weight: 600; font-size: 1rem; color: ${isDark ? '#f3f4f6' : '#111827'}; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;`;
+      textContainer.appendChild(titleDiv);
+    }
+    
+    if (description) {
+      const descDiv = document.createElement('div');
+      descDiv.textContent = description;
+      descDiv.style.cssText = `font-size: 0.875rem; color: ${isDark ? '#d1d5db' : '#4b5563'}; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;`;
+      textContainer.appendChild(descDiv);
+    }
+    
+    preview.appendChild(textContainer);
+  };
+
+  const getRenderedContent = (content) => {
+    if (!content) return "";
     
     try {
       if (content.startsWith('[')) {
@@ -304,23 +306,14 @@ const CodeboardDetail = () => {
         }
       }
       return content;
-    } catch (e) {
-      console.error("컨텐츠 파싱 실패:", e);
+    } catch {
       return content;
     }
   };
 
   if (!board) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: isDark ? '#101828' : '#f9fafb',
-        color: isDark ? '#ffffff' : '#111827',
-        padding: '2.5rem'
-      }}>
+      <div className={`loading-container ${isDark ? 'dark' : ''}`}>
         로딩 중...
       </div>
     );
@@ -332,28 +325,23 @@ const CodeboardDetail = () => {
       backgroundColor: isDark ? '#101828' : '#f9fafb',
       padding: '2rem 1rem'
     }}>
-      <div style={{
-        maxWidth: '1400px',
-        margin: '0 auto'
-      }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         {/* 상단 헤더 */}
         <div style={{ marginBottom: '2rem' }}>
           <button
             onClick={() => navigate("/codeboard")}
+            className="back-button"
             style={{
               marginBottom: '1rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              color: isDark ? '#9ca3af' : '#6b7280',
+              color: isDark ? '#9ca3af' : '#4b5563',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              fontSize: '1rem',
-              transition: 'color 0.2s'
+              fontSize: '1rem'
             }}
-            onMouseEnter={(e) => e.target.style.color = isDark ? '#e5e7eb' : '#111827'}
-            onMouseLeave={(e) => e.target.style.color = isDark ? '#9ca3af' : '#6b7280'}
           >
             ← 목록으로
           </button>
@@ -373,16 +361,7 @@ const CodeboardDetail = () => {
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 color: '#60a5fa',
                 border: '1px solid rgba(59, 130, 246, 0.2)',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
-                e.target.style.borderColor = 'rgba(59, 130, 246, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-                e.target.style.borderColor = 'rgba(59, 130, 246, 0.2)';
+                cursor: 'pointer'
               }}
             >
               <Code2 size={16} />
@@ -392,252 +371,19 @@ const CodeboardDetail = () => {
         </div>
 
         {/* 그리드 레이아웃 */}
-        <div style={{ display: 'grid', gridTemplateColumns: analysisResult ? '1fr 1fr' : '1fr', gap: '1.5rem' }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: analysisResult ? '1fr 1fr' : '1fr', 
+          gap: '1.5rem' 
+        }}>
           
           {/* 왼쪽: 코드 & 분석 결과 */}
           {analysisResult && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              {/* 코드 뷰어 */}
-              <div style={{
-                border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                borderRadius: '0.5rem',
-                overflow: 'hidden',
-                backgroundColor: isDark ? '#1f2937' : '#ffffff'
-              }}>
-                <div style={{
-                  padding: '0.5rem 1rem',
-                  borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  backgroundColor: isDark ? '#111827' : '#f9fafb'
-                }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#374151' }}>
-                    {analysisResult.filePath?.split('/').pop()}
-                  </span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(fileContent);
-                      alert('코드가 복사되었습니다.');
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      padding: '0.25rem 0.5rem',
-                      fontSize: '0.75rem',
-                      borderRadius: '0.25rem',
-                      color: isDark ? '#d1d5db' : '#374151',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f3f4f6'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  >
-                    <svg style={{ width: '0.875rem', height: '0.875rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    복사
-                  </button>
-                </div>
-                
-                <div style={{ maxHeight: '500px', overflow: 'auto' }}>
-                  {fileContent.split('\n').map((line, index) => {
-                    const lineNumber = index + 1;
-                    return (
-                      <div
-                        key={lineNumber}
-                        style={{ display: 'flex' }}
-                      >
-                        <div style={{
-                          width: '3rem',
-                          flexShrink: 0,
-                          padding: '0 0.5rem',
-                          textAlign: 'right',
-                          fontSize: '0.75rem',
-                          userSelect: 'none',
-                          borderRight: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                          backgroundColor: isDark ? '#111827' : '#f9fafb',
-                          color: isDark ? '#6b7280' : '#9ca3af'
-                        }}>
-                          {lineNumber}
-                        </div>
-                        <div style={{ flex: 1, padding: '0 1rem' }}>
-                          <pre style={{
-                            fontSize: '0.875rem',
-                            margin: 0,
-                            fontFamily: 'monospace',
-                            color: isDark ? '#f3f4f6' : '#111827'
-                          }}>{line || ' '}</pre>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 분석 결과 */}
-              <div style={{
-                border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                borderRadius: '0.5rem',
-                overflow: 'hidden',
-                backgroundColor: isDark ? '#1f2937' : '#ffffff'
-              }}>
-                <div style={{
-                  padding: '0.5rem 1rem',
-                  borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  backgroundColor: isDark ? '#111827' : '#f9fafb'
-                }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#374151' }}>
-                    분석 결과
-                  </span>
-                  {analysisResult && (() => {
-                    const score = analysisResult.aiScore;
-                    let colorClass = '';
-                    
-                    if (score >= 80) {
-                      colorClass = 'rgba(34, 197, 94, 0.2)';
-                    } else if (score >= 60) {
-                      colorClass = 'rgba(59, 130, 246, 0.2)';
-                    } else if (score >= 40) {
-                      colorClass = 'rgba(234, 179, 8, 0.2)';
-                    } else {
-                      colorClass = 'rgba(239, 68, 68, 0.2)';
-                    }
-                    
-                    return (
-                      <span style={{
-                        padding: '0.125rem 0.75rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        backgroundColor: colorClass,
-                        color: score >= 80 ? '#86efac' : score >= 60 ? '#93c5fd' : score >= 40 ? '#fde047' : '#fca5a5'
-                      }}>
-                        {getSmellKeyword(score).text}
-                      </span>
-                    );
-                  })()}
-                </div>
-
-                <div style={{ padding: '1rem', maxHeight: '600px', overflow: 'auto' }}>
-                  {analysisResult && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {/* Code Smells */}
-                      {analysisResult.codeSmells && (typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).length > 0 && (
-                        <div>
-                          <h3 style={{
-                            fontSize: '0.875rem',
-                            fontWeight: '600',
-                            marginBottom: '0.5rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            color: '#fca5a5'
-                          }}>
-                            <svg style={{ width: '1rem', height: '1rem' }} fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                            </svg>
-                            발견된 문제점
-                          </h3>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {(typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).map((smell, idx) => (
-                              <div key={idx} style={{
-                                padding: '0.75rem',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                borderRadius: '0.375rem',
-                                backgroundColor: 'rgba(239, 68, 68, 0.1)'
-                              }}>
-                                <div style={{ fontWeight: '500', fontSize: '0.875rem', color: '#fca5a5' }}>{smell.name}</div>
-                                <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: '#fca5a5' }}>{smell.description}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Suggestions */}
-                      {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).length > 0 && (
-                        <div>
-                          <h3 style={{
-                            fontSize: '0.875rem',
-                            fontWeight: '600',
-                            marginBottom: '0.5rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            color: '#86efac'
-                          }}>
-                            <svg style={{ width: '1rem', height: '1rem' }} fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                            </svg>
-                            개선 제안
-                          </h3>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {(typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
-                              <div key={idx} style={{
-                                border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                                borderRadius: '0.375rem',
-                                overflow: 'hidden'
-                              }}>
-                                <div style={{
-                                  padding: '0.5rem 0.75rem',
-                                  borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                                  backgroundColor: isDark ? '#111827' : '#f9fafb'
-                                }}>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#374151' }}>제안 #{idx + 1}</span>
-                                </div>
-                                <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                  {suggestion.problematicSnippet && (
-                                    <div>
-                                      <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: isDark ? '#9ca3af' : '#6b7280' }}>변경 전:</div>
-                                      <pre style={{
-                                        padding: '0.5rem',
-                                        borderRadius: '0.25rem',
-                                        fontSize: '0.75rem',
-                                        overflowX: 'auto',
-                                        fontFamily: 'monospace',
-                                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                        color: '#fca5a5',
-                                        margin: 0
-                                      }}>
-                                        {suggestion.problematicSnippet || suggestion.problematicCode}
-                                      </pre>
-                                    </div>
-                                  )}
-                                  {suggestion.proposedReplacement && (
-                                    <div>
-                                      <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: isDark ? '#9ca3af' : '#6b7280' }}>변경 후:</div>
-                                      <pre style={{
-                                        padding: '0.5rem',
-                                        borderRadius: '0.25rem',
-                                        fontSize: '0.75rem',
-                                        overflowX: 'auto',
-                                        fontFamily: 'monospace',
-                                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                                        color: '#86efac',
-                                        margin: 0
-                                      }}>
-                                        {suggestion.proposedReplacement}
-                                      </pre>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <AnalysisPanel 
+              analysisResult={analysisResult}
+              fileContent={fileContent}
+              isDark={isDark}
+            />
           )}
 
           {/* 오른쪽: 게시글 내용 */}
@@ -667,14 +413,11 @@ const CodeboardDetail = () => {
                     borderRadius: '0.5rem',
                     fontSize: '1rem',
                     fontWeight: '500',
-                    backgroundColor: isDark ? '#374151' : '#f3f4f6',
-                    color: isDark ? '#e5e7eb' : '#374151',
+                    backgroundColor: isDark ? '#374151' : '#e5e7eb',
+                    color: isDark ? '#e5e7eb' : '#1f2937',
                     border: 'none',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
+                    cursor: 'pointer'
                   }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#4b5563' : '#e5e7eb'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f3f4f6'}
                 >
                   수정
                 </button>
@@ -698,14 +441,11 @@ const CodeboardDetail = () => {
                     borderRadius: '0.5rem',
                     fontSize: '1rem',
                     fontWeight: '500',
-                    backgroundColor: 'rgba(127, 29, 29, 0.3)',
-                    color: '#fca5a5',
+                    backgroundColor: isDark ? 'rgba(127, 29, 29, 0.3)' : 'rgba(220, 38, 38, 0.1)',
+                    color: isDark ? '#fca5a5' : '#dc2626',
                     border: 'none',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
+                    cursor: 'pointer'
                   }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(127, 29, 29, 0.5)'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(127, 29, 29, 0.3)'}
                 >
                   삭제
                 </button>
@@ -719,7 +459,7 @@ const CodeboardDetail = () => {
               gap: '1rem',
               paddingBottom: '1.5rem',
               borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-              color: isDark ? '#9ca3af' : '#6b7280'
+              color: isDark ? '#9ca3af' : '#4b5563'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <div style={{
@@ -730,8 +470,8 @@ const CodeboardDetail = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '0.875rem',
-                  backgroundColor: isDark ? '#374151' : '#e5e7eb',
-                  color: isDark ? '#e5e7eb' : '#6b7280'
+                  backgroundColor: isDark ? '#374151' : '#d1d5db',
+                  color: isDark ? '#e5e7eb' : '#1f2937'
                 }}>
                   {board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'}
                 </div>
@@ -746,10 +486,10 @@ const CodeboardDetail = () => {
             {/* 본문 */}
             <div
               ref={contentRef}
-              className="codeboard-content"
-              style={{ marginBottom: '2rem', minHeight: '300px', color: isDark ? '#e5e7eb' : '#374151' }}
+              className={`codeboard-content ${isDark ? 'dark' : 'light'}`}
+              style={{ marginBottom: '2rem', minHeight: '300px' }}
               dangerouslySetInnerHTML={{ __html: getRenderedContent(board.codeboardContent) }}
-            ></div>
+            />
 
             {/* 태그 */}
             {board.tags && board.tags.length > 0 && (
@@ -797,11 +537,8 @@ const CodeboardDetail = () => {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: isLiked ? '#ef4444' : (isDark ? '#9ca3af' : '#6b7280'),
-                    transition: 'color 0.2s'
+                    color: isLiked ? '#ef4444' : (isDark ? '#9ca3af' : '#4b5563')
                   }}
-                  onMouseEnter={(e) => !isLiked && (e.currentTarget.style.color = '#fca5a5')}
-                  onMouseLeave={(e) => !isLiked && (e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280')}
                 >
                   <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
                   <span style={{ fontSize: '0.875rem' }}>좋아요</span>
@@ -812,7 +549,7 @@ const CodeboardDetail = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  color: isDark ? '#9ca3af' : '#6b7280'
+                  color: isDark ? '#9ca3af' : '#4b5563'
                 }}>
                   <MessageCircle size={20} />
                   <span style={{ fontSize: '0.875rem' }}>댓글</span>
@@ -831,11 +568,8 @@ const CodeboardDetail = () => {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: isDark ? '#9ca3af' : '#6b7280',
-                    transition: 'color 0.2s'
+                    color: isDark ? '#9ca3af' : '#4b5563'
                   }}
-                  onMouseEnter={(e) => e.target.style.color = isDark ? '#d1d5db' : '#111827'}
-                  onMouseLeave={(e) => e.target.style.color = isDark ? '#9ca3af' : '#6b7280'}
                 >
                   <Share2 size={18} />
                   <span>공유</span>
@@ -851,11 +585,8 @@ const CodeboardDetail = () => {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: isDark ? '#9ca3af' : '#6b7280',
-                    transition: 'color 0.2s'
+                    color: isDark ? '#9ca3af' : '#4b5563'
                   }}
-                  onMouseEnter={(e) => e.target.style.color = isDark ? '#d1d5db' : '#111827'}
-                  onMouseLeave={(e) => e.target.style.color = isDark ? '#9ca3af' : '#6b7280'}
                 >
                   <AlertCircle size={18} />
                   <span>신고</span>
@@ -873,6 +604,260 @@ const CodeboardDetail = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// 분석 패널 컴포넌트 분리
+const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
+  const parseJSON = (data) => {
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch {
+        return [];
+      }
+    }
+    return data || [];
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* 코드 뷰어 */}
+      <div style={{
+        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+        borderRadius: '0.5rem',
+        overflow: 'hidden',
+        backgroundColor: isDark ? '#1f2937' : '#ffffff'
+      }}>
+        <div style={{
+          padding: '0.5rem 1rem',
+          borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: isDark ? '#1f2937' : '#F9FAFB'
+        }}>
+          <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
+            {analysisResult.filePath?.split('/').pop()}
+          </span>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(fileContent);
+              alert('코드가 복사되었습니다.');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.25rem 0.5rem',
+              fontSize: '0.75rem',
+              borderRadius: '0.25rem',
+              color: isDark ? '#d1d5db' : '#1f2937',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            복사
+          </button>
+        </div>
+        
+        <div style={{ maxHeight: '500px', overflow: 'auto' }}>
+          {fileContent.split('\n').map((line, index) => (
+            <div key={index} style={{ display: 'flex' }}>
+              <div style={{
+                width: '3rem',
+                flexShrink: 0,
+                padding: '0 0.5rem',
+                textAlign: 'right',
+                fontSize: '0.75rem',
+                userSelect: 'none',
+                borderRight: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                backgroundColor: isDark ? '#111827' : '#f9fafb',
+                color: '#6b7280'
+              }}>
+                {index + 1}
+              </div>
+              <div style={{ flex: 1, padding: '0 1rem' }}>
+                <pre style={{
+                  fontSize: '0.875rem',
+                  margin: 0,
+                  fontFamily: 'monospace',
+                  color: isDark ? '#f3f4f6' : '#1f2937'
+                }}>{line || ' '}</pre>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 분석 결과 */}
+      <div style={{
+        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+        borderRadius: '0.5rem',
+        overflow: 'hidden',
+        backgroundColor: isDark ? '#1f2937' : '#ffffff'
+      }}>
+        <div style={{
+          padding: '0.5rem 1rem',
+          borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: isDark ? '#111827' : '#f9fafb'
+        }}>
+          <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
+            분석 결과
+          </span>
+          <ScoreBadge score={analysisResult.aiScore} isDark={isDark} />
+        </div>
+
+        <div style={{ padding: '1rem', maxHeight: '600px', overflow: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Code Smells */}
+            {parseJSON(analysisResult.codeSmells).length > 0 && (
+              <div>
+                <h3 style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: isDark ? '#fca5a5' : '#dc2626'
+                }}>
+                  발견된 문제점
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {parseJSON(analysisResult.codeSmells).map((smell, idx) => (
+                    <div key={idx} style={{
+                      padding: '0.75rem',
+                      border: `1px solid ${isDark ? 'rgba(239, 68, 68, 0.3)' : 'rgba(220, 38, 38, 0.3)'}`,
+                      borderRadius: '0.375rem',
+                      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(254, 226, 226, 1)'
+                    }}>
+                      <div style={{ fontWeight: '500', fontSize: '0.875rem', color: isDark ? '#fca5a5' : '#dc2626' }}>
+                        {smell.name}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: isDark ? '#fca5a5' : '#dc2626' }}>
+                        {smell.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Suggestions */}
+            {parseJSON(analysisResult.suggestions).length > 0 && (
+              <div>
+                <h3 style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: isDark ? '#86efac' : '#16a34a'
+                }}>
+                  개선 제안
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {parseJSON(analysisResult.suggestions).map((suggestion, idx) => (
+                    <div key={idx} style={{
+                      border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                      borderRadius: '0.375rem',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        padding: '0.5rem 0.75rem',
+                        borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                        backgroundColor: isDark ? '#111827' : '#f9fafb'
+                      }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
+                          제안 #{idx + 1}
+                        </span>
+                      </div>
+                      <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {suggestion.problematicSnippet && (
+                          <div>
+                            <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: isDark ? '#9ca3af' : '#4b5563' }}>
+                              변경 전:
+                            </div>
+                            <pre style={{
+                              padding: '0.5rem',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.75rem',
+                              overflowX: 'auto',
+                              fontFamily: 'monospace',
+                              backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(254, 226, 226, 1)',
+                              color: isDark ? '#fca5a5' : '#dc2626',
+                              margin: 0
+                            }}>
+                              {suggestion.problematicSnippet}
+                            </pre>
+                          </div>
+                        )}
+                        {suggestion.proposedReplacement && (
+                          <div>
+                            <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: isDark ? '#9ca3af' : '#4b5563' }}>
+                              변경 후:
+                            </div>
+                            <pre style={{
+                              padding: '0.5rem',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.75rem',
+                              overflowX: 'auto',
+                              fontFamily: 'monospace',
+                              backgroundColor: isDark ? 'rgba(34, 197, 94, 0.1)' : 'rgba(220, 252, 231, 1)',
+                              color: isDark ? '#86efac' : '#16a34a',
+                              margin: 0
+                            }}>
+                              {suggestion.proposedReplacement}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ScoreBadge = ({ score, isDark }) => {
+  let bgColor, textColor;
+  
+  if (score >= 80) {
+    bgColor = isDark ? 'rgba(34, 197, 94, 0.2)' : 'rgba(220, 252, 231, 1)';
+    textColor = isDark ? '#86efac' : '#16a34a';
+  } else if (score >= 60) {
+    bgColor = isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(219, 234, 254, 1)';
+    textColor = isDark ? '#93c5fd' : '#2563eb';
+  } else if (score >= 40) {
+    bgColor = isDark ? 'rgba(234, 179, 8, 0.2)' : 'rgba(254, 249, 195, 1)';
+    textColor = isDark ? '#fde047' : '#ca8a04';
+  } else {
+    bgColor = isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(254, 226, 226, 1)';
+    textColor = isDark ? '#fca5a5' : '#dc2626';
+  }
+  
+  return (
+    <span style={{
+      padding: '0.125rem 0.75rem',
+      borderRadius: '9999px',
+      fontSize: '0.75rem',
+      fontWeight: '500',
+      backgroundColor: bgColor,
+      color: textColor
+    }}>
+      {getSmellKeyword(score).text}
+    </span>
   );
 };
 

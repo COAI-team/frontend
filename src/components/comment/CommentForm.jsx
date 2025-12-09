@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { axiosInstance } from '../../server/AxiosConfig';
 import { getAuth } from '../../utils/auth/token';
 
@@ -9,16 +9,20 @@ export default function CommentForm({
   onSuccess,
   onCancel,
   isDark,
-  formId,
 }) {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const textareaRef = useRef(null);
 
   const isReply = parentCommentId !== null;
-
-  // 로그인한 사용자 정보
   const auth = getAuth();
-  const currentUserNickname = auth?.nickname ?? '사용자';
+  const userNickname = auth?.nickname || '사용자';
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,101 +51,143 @@ export default function CommentForm({
     }
   };
 
-  if (isReply) {
-    return (
-      <form onSubmit={handleSubmit} className="space-y-3">
+  const handleTextareaInput = (e) => {
+    e.target.style.height = 'auto';
+    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+  };
+
+  return (
+    <form 
+      onSubmit={handleSubmit}
+      style={{
+        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+        borderRadius: '0.5rem',
+        backgroundColor: isDark ? '#1f2937' : '#f9fafb',
+        overflow: 'hidden'
+      }}
+    >
+      {/* 닉네임 */}
+      <div style={{
+        padding: '0.75rem 1rem 0.5rem',
+        fontSize: '0.875rem',
+        fontWeight: '500',
+        color: isDark ? '#e5e7eb' : '#111827'
+      }}>
+        {userNickname}
+      </div>
+
+      {/* 텍스트 입력 */}
+      <div style={{ padding: '0 1rem' }}>
         <textarea
+          ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="답글을 입력하세요"
-          rows={3}
-          className={`
-            w-full px-4 py-3 rounded-lg resize-none transition-all border
-            ${isDark 
-              ? "bg-gray-800 text-gray-100 border-gray-600 focus:ring-indigo-400" 
-              : "bg-white text-gray-900 border-gray-300 focus:ring-indigo-500"
-            }
-          `}
+          onInput={handleTextareaInput}
+          placeholder={isReply ? '답글을 남겨보세요' : '댓글을 남겨보세요'}
+          rows={2}
           disabled={submitting}
+          style={{
+            width: '100%',
+            padding: '0',
+            border: 'none',
+            backgroundColor: 'transparent',
+            color: isDark ? '#f3f4f6' : '#111827',
+            fontSize: '0.875rem',
+            lineHeight: '1.5',
+            resize: 'none',
+            outline: 'none'
+          }}
         />
+      </div>
 
-        <div className="flex justify-end space-x-2">
+      {/* 하단 액션 바 */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0.5rem 1rem 0.75rem'
+      }}>
+        {/* 왼쪽: 이미지, 이모티콘 버튼 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button
             type="button"
-            onClick={onCancel}
-            className={`
-              px-4 py-1.5 text-sm rounded-lg transition-colors
-              ${isDark 
-                ? "text-gray-300 hover:bg-gray-700" 
-                : "text-gray-700 hover:bg-gray-100"}
-            `}
-            disabled={submitting}
+            style={{
+              padding: '0.25rem',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: isDark ? '#9ca3af' : '#6b7280',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            title="이미지 첨부"
           >
-            취소
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
           </button>
+          <button
+            type="button"
+            style={{
+              padding: '0.25rem',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: isDark ? '#9ca3af' : '#6b7280',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            title="이모티콘"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/>
+              <line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
+          </button>
+        </div>
 
+        {/* 오른쪽: 취소, 등록 버튼 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {isReply && onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={submitting}
+              style={{
+                padding: '0.375rem 0.75rem',
+                fontSize: '0.8125rem',
+                background: 'none',
+                border: 'none',
+                color: isDark ? '#9ca3af' : '#6b7280',
+                cursor: 'pointer'
+              }}
+            >
+              취소
+            </button>
+          )}
           <button
             type="submit"
             disabled={submitting || !content.trim()}
-            className={`
-              px-4 py-1.5 text-sm rounded-lg transition-colors
-              ${isDark 
-                ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700" 
-                : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"}
-            `}
+            style={{
+              padding: '0.375rem 0.75rem',
+              fontSize: '0.8125rem',
+              fontWeight: '500',
+              borderRadius: '0.25rem',
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: submitting || !content.trim() 
+                ? (isDark ? '#4b5563' : '#9ca3af') 
+                : (isDark ? '#60a5fa' : '#2563eb'),
+              cursor: submitting || !content.trim() ? 'default' : 'pointer'
+            }}
           >
-            {submitting ? '등록 중...' : '답글 등록'}
+            {submitting ? '등록 중...' : '등록'}
           </button>
         </div>
-      </form>
-    );
-  }
-
-  return (
-    <form
-      id={formId}
-      onSubmit={handleSubmit}
-      className={`border rounded-lg p-4 ${isDark ? "border-gray-700" : "border-gray-300"}`}
-    >
-      <div className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-        {currentUserNickname}
-      </div>
-
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="댓글을 남겨보세요"
-        rows={1}
-        className={`
-          w-full px-0 py-1 resize-none transition-all border-0 focus:ring-0 text-sm
-          ${isDark 
-            ? "bg-transparent text-gray-100 placeholder-gray-500" 
-            : "bg-transparent text-gray-900 placeholder-gray-400"}
-        `}
-        disabled={submitting}
-        onInput={(e) => {
-          e.target.style.height = 'auto';
-          e.target.style.height = e.target.scrollHeight + 'px';
-        }}
-      />
-
-      <div className="flex items-center justify-end gap-3 mt-2">
-        <span className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-          {content.length}/3000
-        </span>
-        
-        <button
-          type="submit"
-          disabled={submitting || !content.trim()}
-          className={`
-            px-4 py-1.5 text-sm rounded-lg transition-colors
-            ${isDark 
-              ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700" 
-              : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"}
-          `}
-        >
-          {submitting ? '등록 중...' : '댓글 등록'}
-        </button>
       </div>
     </form>
   );
