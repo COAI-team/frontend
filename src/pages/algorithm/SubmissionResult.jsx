@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubmissionResult, completeMission } from '../../service/algorithm/AlgorithmApi';
 
@@ -102,6 +102,135 @@ const MarkdownRenderer = ({ content }) => {
 };
 
 /**
+ * 문제 설명 파싱 함수
+ */
+const parseProblemDescription = (description) => {
+  if (!description) return null;
+
+  const sections = {
+    description: '',
+    input: '',
+    output: '',
+    constraints: '',
+    exampleInput: '',
+    exampleOutput: '',
+  };
+
+  // 섹션 구분자 패턴
+  const patterns = {
+    input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+    output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+    constraints: /(?:^|\n)(?:\*\*)?(?:제한사항|제한 ?사항|제한|조건|Constraints?)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+    exampleInput: /(?:^|\n)(?:\*\*)?(?:예제 ?입력|입력 ?예제|예시 ?입력|Sample Input|Example Input)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
+    exampleOutput: /(?:^|\n)(?:\*\*)?(?:예제 ?출력|출력 ?예제|예시 ?출력|Sample Output|Example Output)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
+  };
+
+  let remaining = description;
+  let firstSectionStart = remaining.length;
+
+  // 각 섹션의 시작 위치 찾기
+  const sectionPositions = [];
+  for (const [key, pattern] of Object.entries(patterns)) {
+    const match = remaining.match(pattern);
+    if (match) {
+      const pos = remaining.indexOf(match[0]);
+      sectionPositions.push({ key, pos, matchLength: match[0].length });
+      if (pos < firstSectionStart) {
+        firstSectionStart = pos;
+      }
+    }
+  }
+
+  // 문제 설명 (첫 섹션 이전의 모든 텍스트)
+  sections.description = remaining.substring(0, firstSectionStart).trim();
+
+  // 위치순 정렬
+  sectionPositions.sort((a, b) => a.pos - b.pos);
+
+  // 각 섹션 내용 추출
+  for (let i = 0; i < sectionPositions.length; i++) {
+    const current = sectionPositions[i];
+    const next = sectionPositions[i + 1];
+    const startPos = current.pos + current.matchLength;
+    const endPos = next ? next.pos : remaining.length;
+    sections[current.key] = remaining.substring(startPos, endPos).trim();
+  }
+
+  return sections;
+};
+
+/**
+ * 마크다운 텍스트 파싱 함수 (라이트 테마용)
+ */
+const renderFormattedText = (text) => {
+  if (!text) return null;
+
+  // **text** 패턴을 찾아서 <strong>으로 변환
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      const boldText = part.slice(2, -2);
+      return (
+        <strong key={index} className="font-bold text-gray-900">
+          {boldText}
+        </strong>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+};
+
+/**
+ * 섹션 카드 컴포넌트 (라이트 테마)
+ */
+const SectionCard = ({ title, icon, content, bgColor = 'bg-gray-50' }) => {
+  if (!content) return null;
+  return (
+    <div className={`${bgColor} rounded-lg p-4 border border-gray-200`}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-lg">{icon}</span>
+        <h4 className="font-semibold text-gray-800">{title}</h4>
+      </div>
+      <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+        {renderFormattedText(content)}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * 코드 블록 컴포넌트 (라이트 테마)
+ */
+const CodeBlock = ({ title, icon, content }) => {
+  if (!content) return null;
+  return (
+    <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700">
+      <div className="flex items-center gap-2 px-4 py-2 bg-gray-800 border-b border-gray-700">
+        <span>{icon}</span>
+        <span className="text-sm font-medium text-gray-300">{title}</span>
+      </div>
+      <pre className="p-4 text-sm text-green-400 font-mono overflow-x-auto">
+        {content}
+      </pre>
+    </div>
+  );
+};
+
+/**
+ * 난이도 배지 스타일 (라이트 테마)
+ */
+const getDifficultyBadge = (diff) => {
+  const styles = {
+    'BRONZE': 'bg-orange-100 text-orange-800 border-orange-300',
+    'SILVER': 'bg-gray-100 text-gray-800 border-gray-300',
+    'GOLD': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    'PLATINUM': 'bg-cyan-100 text-cyan-800 border-cyan-300'
+  };
+  return styles[diff] || 'bg-gray-100 text-gray-700 border-gray-300';
+};
+
+/**
  * 제출 결과 페이지 - 실시간 업데이트 버전
  */
 const SubmissionResult = () => {
@@ -113,6 +242,7 @@ const SubmissionResult = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAIFeedback, setShowAIFeedback] = useState(true);
+  const [showProblemDescription, setShowProblemDescription] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
   // 🎯 데일리 미션 완료 상태
@@ -264,6 +394,11 @@ const SubmissionResult = () => {
       default: return { color: 'text-gray-600', bg: 'bg-gray-100', icon: '⏳', text: 'Judging...' };
     }
   };
+
+  // 파싱된 문제 섹션
+  const parsedSections = useMemo(() => {
+    return parseProblemDescription(submission?.problemDescription);
+  }, [submission?.problemDescription]);
 
   // 공유하기
   const handleShare = () => {
@@ -437,6 +572,102 @@ const SubmissionResult = () => {
               </div>
             </div>
           </div>
+
+          {/* 문제 설명 (접이식) */}
+          {submission.problemDescription && (
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div
+                className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => setShowProblemDescription(!showProblemDescription)}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">📋</span>
+                  <h3 className="text-lg font-semibold text-gray-900">문제 설명</h3>
+                  <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(submission.difficulty)}`}>
+                    {submission.difficulty || 'N/A'}
+                  </span>
+                </div>
+                <button className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1">
+                  <span>{showProblemDescription ? '접기' : '펼치기'}</span>
+                  <span className={`transform transition-transform ${showProblemDescription ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+              </div>
+
+              {showProblemDescription && (
+                <div className="p-6 pt-0 border-t border-gray-100">
+                  {/* 제한 정보 표시 */}
+                  <div className="flex flex-wrap gap-3 mb-4 mt-4">
+                    <span className="px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700 border border-blue-200">
+                      ⏱ 시간제한: {submission.timeLimit || 1000}ms
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700 border border-green-200">
+                      💾 메모리제한: {submission.memoryLimit || 256}MB
+                    </span>
+                  </div>
+
+                  {/* 구조화된 문제 내용 */}
+                  {parsedSections && (parsedSections.description || parsedSections.input || parsedSections.output) ? (
+                    <div className="space-y-4">
+                      {/* 문제 설명 */}
+                      <SectionCard
+                        title="문제 설명"
+                        icon="📝"
+                        content={parsedSections.description}
+                        bgColor="bg-gray-50"
+                      />
+
+                      {/* 입력/출력 */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <SectionCard
+                          title="입력"
+                          icon="📥"
+                          content={parsedSections.input}
+                          bgColor="bg-blue-50"
+                        />
+                        <SectionCard
+                          title="출력"
+                          icon="📤"
+                          content={parsedSections.output}
+                          bgColor="bg-green-50"
+                        />
+                      </div>
+
+                      {/* 제한사항 */}
+                      <SectionCard
+                        title="제한사항"
+                        icon="⚠️"
+                        content={parsedSections.constraints}
+                        bgColor="bg-yellow-50"
+                      />
+
+                      {/* 예제 입출력 */}
+                      {(parsedSections.exampleInput || parsedSections.exampleOutput) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <CodeBlock
+                            title="예제 입력"
+                            icon="📝"
+                            content={parsedSections.exampleInput}
+                          />
+                          <CodeBlock
+                            title="예제 출력"
+                            icon="✅"
+                            content={parsedSections.exampleOutput}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* 파싱 실패 시 원본 출력 */
+                    <div className="prose prose-sm max-w-none">
+                      <div className="text-gray-700 whitespace-pre-wrap leading-relaxed bg-gray-50 p-4 rounded-lg">
+                        {renderFormattedText(submission.problemDescription)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 상세 결과 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
