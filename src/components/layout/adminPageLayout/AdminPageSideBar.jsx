@@ -13,7 +13,7 @@ const adminMenu = [
         icon: ShieldCheckIcon,
         children: [
             { name: "통계 대시보드", href: "/admin/stats", icon: ChartBarIcon },
-            { name: "유저 관리", href: "/admin/users", icon: UsersIcon },
+            { name: "사용자 관리", href: "/admin/users", icon: UsersIcon },
             { name: "설정", href: "/admin/settings", icon: Cog6ToothIcon },
         ],
     },
@@ -52,7 +52,7 @@ export default function AdminPageSideBar() {
                     return (
                         <div key={section.name} className="flex flex-col gap-2">
 
-                            {/* 부모 메뉴 */}
+                            {/* 부문메뉴 */}
                             <div className="flex items-center gap-3 px-2 py-1 text-lg font-bold">
                                 <ParentIcon className="w-6 h-6" />
                                 {section.name}

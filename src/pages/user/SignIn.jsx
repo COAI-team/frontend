@@ -1,5 +1,4 @@
 import {AiFillEye, AiFillEyeInvisible} from "react-icons/ai";
-import {FaGithub} from "react-icons/fa";
 import {useContext, useState} from "react";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import {login as apiLogin} from "../../service/user/User";
@@ -12,8 +11,8 @@ import {useTheme} from "next-themes";
 export default function SignIn() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login: loginContextLogin, setLoginResult } = useContext(LoginContext);
-    const { theme } = useTheme();
+    const {login: loginContextLogin, setLoginResult} = useContext(LoginContext);
+    const {theme} = useTheme();
     const [resetModalOpen, setResetModalOpen] = useState(false);
 
     const [alertModal, setAlertModal] = useState({
@@ -35,8 +34,11 @@ export default function SignIn() {
             ? "text-[#04BDF2] hover:text-[#0398c2]"
             : "text-[#CC67FA] hover:text-[#a647d4]";
 
-    const redirect =
-        new URLSearchParams(location.search).get("redirect") || "/";
+    let redirect = new URLSearchParams(location.search).get("redirect") || "/";
+
+    if (redirect.startsWith("/signin")) {
+        redirect = "/";
+    }
 
     // ✅ GitHub OAuth 로그인 함수 추가됨
     const handleGitHubLogin = () => {
@@ -102,7 +104,8 @@ export default function SignIn() {
         <div className="flex h-full overflow-hidden">
             {/* 왼쪽 레이아웃 */}
             <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-16">
-                <div className="mx-auto w-full max-w-sm border dark:border-gray-700 rounded-xl shadow-lg p-8 dark:bg-gray-900">
+                <div
+                    className="mx-auto w-full max-w-sm border dark:border-gray-700 rounded-xl shadow-lg p-8 dark:bg-gray-900">
                     <div className="text-center">
                         <h2 className="mt-2 text-2xl font-bold dark:text-white">로그인</h2>
                         <p className="mt-2 text-sm dark:text-gray-400">
@@ -158,7 +161,7 @@ export default function SignIn() {
                                         onClick={() => setShowPassword((prev) => !prev)}
                                         className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-gray-500 dark:text-gray-300"
                                     >
-                                        {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+                                        {showPassword ? <AiFillEyeInvisible/> : <AiFillEye/>}
                                     </button>
                                 </div>
                             </div>
@@ -193,17 +196,71 @@ export default function SignIn() {
                             </div>
                         </div>
 
-                        {/* ⭐ GitHub OAuth 로그인 버튼 */}
-                        <div className="mt-4 flex justify-center">
+                        {/* 소셜 로그인 아이콘 목록 */}
+                        {/*<div className="mt-6 flex items-center justify-center gap-8">*/}
+
+                        {/*    /!* Google *!/*/}
+                        {/*    <button*/}
+                        {/*        type="button"*/}
+                        {/*        className="flex flex-col items-center"*/}
+                        {/*        onClick={() => console.log("Google 로그인")}*/}
+                        {/*    >*/}
+                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-100 hover:border-gray-100">*/}
+                        {/*            <img src="/socialLogos/Google.svg" alt="google" className="w-6 h-6"/>*/}
+                        {/*        </div>*/}
+                        {/*        <span className="mt-2 text-xs font-bold dark:text-gray-300">GOOGLE</span>*/}
+                        {/*    </button>*/}
+
+                        {/*    /!* Kakao *!/*/}
+                        {/*    <button*/}
+                        {/*        type="button"*/}
+                        {/*        className="flex flex-col items-center"*/}
+                        {/*        onClick={() => console.log("Kakao 로그인")}*/}
+                        {/*    >*/}
+                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#FEE500] border border-[#FEE500] hover:bg-[#f5d900] hover:border-[#f5d900]">*/}
+                        {/*            <img src="/socialLogos/KakaoTalk.svg" alt="kakao" className="w-6 h-6"/>*/}
+                        {/*        </div>*/}
+                        {/*        <span className="mt-2 text-xs font-bold dark:text-gray-300">KAKAO</span>*/}
+                        {/*    </button>*/}
+
+                        {/*    /!* GitHub *!/*/}
+                        {/*    <button*/}
+                        {/*        type="button"*/}
+                        {/*        onClick={handleGitHubLogin}*/}
+                        {/*        className="flex flex-col items-center"*/}
+                        {/*    >*/}
+                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-100 hover:border-gray-100">*/}
+                        {/*            <img src="/socialLogos/GitHub.svg" alt="github" className="w-6 h-6"/>*/}
+                        {/*        </div>*/}
+                        {/*        <span className="mt-2 text-xs font-bold dark:text-gray-300">GITHUB</span>*/}
+                        {/*    </button>*/}
+
+                        {/*    /!* Naver *!/*/}
+                        {/*    <button*/}
+                        {/*        type="button"*/}
+                        {/*        onClick={() => console.log("Naver 로그인")}*/}
+                        {/*        className="flex flex-col items-center"*/}
+                        {/*    >*/}
+                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#03C75A] border border-[#03C75A] hover:bg-[#02b352] hover:border-[#02b352]">*/}
+                        {/*            <img src="/socialLogos/Naver.svg" alt="naver" className="w-6 h-6"/>*/}
+                        {/*        </div>*/}
+                        {/*        <span className="mt-2 text-xs font-bold  dark:text-gray-300">NAVER</span>*/}
+                        {/*    </button>*/}
+                        {/*</div>*/}
+                        <div className="mt-6 flex items-center justify-center">
+                            {/* GitHub */}
                             <button
                                 type="button"
                                 onClick={handleGitHubLogin}
-                                className="flex items-center justify-center gap-2 w-full rounded-md border dark:border-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white"
+                                className="flex flex-col items-center"
                             >
-                                <FaGithub className="text-xl" />
-                                GitHub로 계속하기
+                                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-100 hover:border-gray-100">
+                                    <img src="/socialLogos/GitHub.svg" alt="github" className="w-6 h-6"/>
+                                </div>
+                                <span className="mt-2 text-xs font-bold dark:text-gray-300">GITHUB</span>
                             </button>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -219,7 +276,7 @@ export default function SignIn() {
 
             <AlertModal
                 open={alertModal.open}
-                onClose={() => setAlertModal((prev) => ({ ...prev, open: false }))}
+                onClose={() => setAlertModal((prev) => ({...prev, open: false}))}
                 onConfirm={alertModal.onConfirm}
                 type={alertModal.type}
                 title={alertModal.title}

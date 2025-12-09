@@ -26,6 +26,13 @@ export const fetchUpgradeQuote = (planCode) =>
     params: { planCode },
   });
 
+export const fetchPaymentInquiry = ({ orderId, paymentKey }) =>
+  axiosInstance.get("/payments/inquiry", {
+    params: { orderId, paymentKey },
+    headers: { "X-Skip-Auth-Redirect": "true" },
+    _skipAuthRedirect: true,
+  });
+
 export const readyPayment = (payload) => axiosInstance.post("/payments/ready", payload);
 
 export const confirmPayment = (payload) => axiosInstance.post("/payments/confirm", payload);
