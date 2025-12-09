@@ -19,6 +19,7 @@ export default function Main() {
     }
   }, [user]);
 
+
   const fetchPopularPosts = async () => {
     try {
       setLoading(true);

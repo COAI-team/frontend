@@ -17,6 +17,9 @@ const BranchSelector = ({ repository, onSelect }) => {
                 setLoading(true);
                 const response = await axiosInstance.get(`/api/github/repos/${repository.owner}/${repository.name}/branches`);
                 setBranches(response.data);
+                if (response.data.length === 1) {
+                    onSelect(response.data[0]);
+                }
                 setError(null);
             } catch (err) {
                 setError('Failed to fetch branches.');

@@ -6,9 +6,10 @@ import BranchSelector from '../../components/github/BranchSelector';
 import FileTree from '../../components/github/FileTree';
 import AnalysisForm from '../../components/github/AnalysisForm';
 import { saveFile, getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
+import AnalysisLoading from '../../components/codeAnalysis/AnalysisLoading';
 import axiosInstance from '../../server/AxiosConfig';
 import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
-import { fetchEventSource } from '@microsoft/fetch-event-source';
+
 
 const AnalysisPageWithoutRag = () => {
     const { analysisId } = useParams();
@@ -107,28 +108,7 @@ const AnalysisPageWithoutRag = () => {
         return trimmed;
     };
 
-    // Custom stream function for No-RAG endpoint
-    const analyzeStoredFileStreamNoRag = async (data, onChunk) => {
-        const ctrl = new AbortController();
-        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:9443'}/api/analysis/norag/analyze-stored/stream`;
-        
-        await fetchEventSource(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-            signal: ctrl.signal,
-            onmessage(msg) {
-                if (msg.data) {
-                    onChunk(msg.data);
-                }
-            },
-            onerror(err) {
-                throw err;
-            }
-        });
-    };
+
 
     const handleAnalysisSubmit = async (formState) => {
         if (!selectedFile || !selectedRepo) return;
@@ -148,9 +128,8 @@ const AnalysisPageWithoutRag = () => {
                 userId: 1 // TODO: Auth Context
             });
 
-            // 2. 분석 요청 (스트리밍 - No RAG)
-            let accumulated = "";
-            await analyzeStoredFileStreamNoRag({
+            // 2. 분석 요청 (동기 - No RAG)
+            const response = await axiosInstance.post('/api/analysis/norag/analyze-stored', {
                 analysisId: saveResponse.data.fileId,
                 repositoryUrl: selectedRepo.url,
                 filePath: selectedFile.path,
@@ -158,10 +137,10 @@ const AnalysisPageWithoutRag = () => {
                 toneLevel: formState.toneLevel,
                 customRequirements: formState.customRequirements,
                 userId: 1
-            }, (chunk) => {
-                accumulated += chunk;
-                setStreamedContent(prev => prev + chunk);
             });
+
+            // ApiResponse.success(result) -> response.data is { status:.., data: result }
+            const accumulated = response.data.data;
 
             // 3. 결과 파싱
             try {
@@ -256,12 +235,15 @@ const AnalysisPageWithoutRag = () => {
                             </div>
                         )}
 
-                        {/* 스트리밍 중이거나 결과가 있을 때 */}
-                        {(isLoading || analysisResult) && (
-                            <div className="rounded-lg shadow-sm border p-6">
+                        {/* 로딩 상태 (New Premium UX) */}
+                        {isLoading && <AnalysisLoading />}
+
+                        {/* 분석 결과 */}
+                        {!isLoading && analysisResult && (
+                            <div className="rounded-lg shadow-sm border p-6 bg-white dark:bg-gray-800">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-xl font-bold">
-                                        {isLoading ? '분석 중...' : '분석 결과'}
+                                        분석 결과 (No RAG)
                                     </h2>
                                     {analysisResult && (
                                         <div className="flex items-center gap-2">
@@ -272,54 +254,44 @@ const AnalysisPageWithoutRag = () => {
                                     )}
                                 </div>
 
-                                {/* 스트리밍 출력 (로딩 중일 때 표시) */}
-                                {isLoading && (
-                                    <div className="mb-6 p-4 bg-gray-900 text-green-400 font-mono text-sm rounded-lg overflow-auto max-h-[400px] whitespace-pre-wrap">
-                                        {streamedContent || "분석을 시작합니다..."}
-                                        <span className="animate-pulse">_</span>
-                                    </div>
-                                )}
-
-                                {analysisResult && (
-                                    <div className="space-y-6">
-                                        {/* Code Smells */}
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-red-600 mb-3">🚨 발견된 문제점 (Code Smells)</h3>
-                                            <div className="space-y-3">
-                                                {analysisResult.codeSmells && (typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).map((smell, idx) => (
-                                                    <div key={idx} className="p-3 bg-red-50 border border-red-100 rounded">
-                                                        <div className="font-medium text-red-800">{smell.name}</div>
-                                                        <div className="text-sm text-red-600 mt-1">{smell.description}</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Suggestions */}
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-green-600 mb-3">💡 개선 제안</h3>
-                                            <div className="space-y-4">
-                                                {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
-                                                    <div key={idx} className="border rounded-lg overflow-hidden">
-                                                        <div className="p-3 border-b text-sm font-medium">제안 #{idx + 1}</div>
-                                                        <div className="p-3 bg-white">
-                                                            <div className="text-xs text-gray-500 mb-1">변경 전:</div>
-                                                            <pre className="bg-red-50 p-2 rounded text-xs mb-3 overflow-x-auto text-red-700">
-                                                                {suggestion.problematicSnippet || suggestion.problematicCode}
-                                                            </pre>
-                                                            <div className="text-xs text-gray-500 mb-1">변경 후:</div>
-                                                            <pre className="bg-green-50 p-2 rounded text-xs overflow-x-auto text-green-700">
-                                                                {suggestion.proposedReplacement}
-                                                            </pre>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                <div className="space-y-6">
+                                    {/* Code Smells */}
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-red-600 mb-3">🚨 발견된 문제점 (Code Smells)</h3>
+                                        <div className="space-y-3">
+                                            {analysisResult.codeSmells && (typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).map((smell, idx) => (
+                                                <div key={idx} className="p-3 bg-red-50 border border-red-100 rounded">
+                                                    <div className="font-medium text-red-800">{smell.name}</div>
+                                                    <div className="text-sm text-red-600 mt-1">{smell.description}</div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
-                                )}
+
+                                    {/* Suggestions */}
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-green-600 mb-3">💡 개선 제안</h3>
+                                        <div className="space-y-4">
+                                            {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
+                                                <div key={idx} className="border rounded-lg overflow-hidden">
+                                                    <div className="p-3 border-b text-sm font-medium">제안 #{idx + 1}</div>
+                                                    <div className="p-3 bg-white">
+                                                        <div className="text-xs text-gray-500 mb-1">변경 전:</div>
+                                                        <pre className="bg-red-50 p-2 rounded text-xs mb-3 overflow-x-auto text-red-700">
+                                                            {suggestion.problematicSnippet || suggestion.problematicCode}
+                                                        </pre>
+                                                        <div className="text-xs text-gray-500 mb-1">변경 후:</div>
+                                                        <pre className="bg-green-50 p-2 rounded text-xs overflow-x-auto text-green-700">
+                                                            {suggestion.proposedReplacement}
+                                                        </pre>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
                                 
-                                {isNew && !isLoading && (
+                                {isNew && (
                                     <div className="mt-6 pt-6 border-t text-center">
                                         <button 
                                             onClick={() => navigate('/codeAnalysis')}
