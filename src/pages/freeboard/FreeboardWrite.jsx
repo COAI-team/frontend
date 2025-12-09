@@ -30,9 +30,9 @@ const FreeboardWrite = () => {
         tags: tags || [],
       })
       .then((response) => {
-        console.log("✅ 응답:", response.data);
+        console.log("응답:", response.data);
         alert("게시글이 등록되었습니다.");
-        navigate("/freeboard/list");
+        navigate("/freeboard");
       })
       .catch((err) => {
         console.error("등록 실패:", err);

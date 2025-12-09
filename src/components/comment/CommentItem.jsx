@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { axiosInstance } from '../../server/AxiosConfig';
 import CommentForm from './CommentForm';
 import { getAuth } from '../../utils/auth/token';
@@ -7,13 +7,33 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [showReplies, setShowReplies] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [liked, setLiked] = useState(comment.isLiked || false);
+  const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
 
-  // 로그인한 사용자 정보
   const auth = getAuth();
   const currentUserId = auth?.userId;
+  const isMyComment = currentUserId != null && comment.userId === currentUserId;
 
-  // 수정
+  // 메뉴 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
   const handleUpdate = async () => {
     if (!editContent.trim()) {
       alert('댓글 내용을 입력해주세요.');
@@ -25,7 +45,6 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
       await axiosInstance.put(`/comment/${comment.commentId}`, {
         content: editContent.trim()
       });
-
       setIsEditing(false);
       onCommentUpdated();
     } catch (error) {
@@ -36,7 +55,6 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
     }
   };
 
-  // 삭제
   const handleDelete = async () => {
     if (!confirm(`${isReply ? '답글을' : '댓글을'} 삭제하시겠습니까?`)) return;
 
@@ -49,308 +67,408 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
     }
   };
 
-  // 시간 포맷팅
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = Math.floor((now - date) / 1000);
-
-    if (diff < 60) return '방금 전';
-    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-    if (diff < 604800) return `${Math.floor(diff / 86400)}일 전`;
-    
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const handleReport = () => {
+    setShowMenu(false);
+    if (confirm('이 댓글을 신고하시겠습니까?')) {
+      // TODO: 신고 API 연동
+      alert('신고가 접수되었습니다.');
+    }
   };
 
-  const isMyComment = currentUserId != null && comment.userId === currentUserId;
+  const handleLike = async () => {
+    try {
+      const response = await axiosInstance.post(`/like/comment/${comment.commentId}`);
+      const { isLiked } = response.data;
+      setLiked(isLiked);
+      setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+    } catch (error) {
+      console.error('좋아요 실패:', error);
+    }
+  };
 
-  // 대댓글 스타일
-  if (isReply) {
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).replace(/\. /g, '.').replace(/\.$/, '');
+  };
+
+  const authorBadgeStyle = {
+    marginLeft: '0.375rem',
+    padding: '0.125rem 0.375rem',
+    fontSize: '0.625rem',
+    fontWeight: '500',
+    borderRadius: '0.25rem',
+    backgroundColor: isDark ? 'rgba(74, 222, 128, 0.2)' : '#dcfce7',
+    color: isDark ? '#4ade80' : '#16a34a'
+  };
+
+  const actionButtonStyle = {
+    fontSize: '0.75rem',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: 0,
+    color: isDark ? '#6b7280' : '#9ca3af'
+  };
+
+  // 수정 모드
+  if (isEditing) {
     return (
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-3">
-            <div
-              className={`
-                w-8 h-8 rounded-full flex items-center justify-center
-                ${isDark ? "bg-gray-600 text-gray-200" : "bg-gray-200 text-gray-600"}
-              `}
-            >
-              <span className="font-semibold text-xs">
-                {comment.userNickname?.charAt(0) || "?"}
-              </span>
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className={`font-medium text-sm ${isDark ? "text-gray-100" : "text-gray-900"}`}>
-                  {comment.userNickname}
-                </span>
-                {comment.isAuthor && (
-                  <span
-                    className={`
-                      px-2 py-0.5 text-xs font-medium rounded
-                      ${isDark ? "bg-indigo-900 text-indigo-200" : "bg-indigo-100 text-indigo-700"}
-                    `}
-                  >
-                    작성자
-                  </span>
-                )}
-              </div>
-              <span className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                {formatDate(comment.createdAt)}
-              </span>
-            </div>
+      <div style={{ padding: isReply ? '0.75rem 0' : '1rem 0' }}>
+        <div style={{
+          border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          borderRadius: '0.5rem',
+          backgroundColor: isDark ? '#1f2937' : '#f9fafb',
+          overflow: 'hidden'
+        }}>
+          {/* 닉네임 */}
+          <div style={{
+            padding: '0.75rem 1rem 0.5rem',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            color: isDark ? '#e5e7eb' : '#111827'
+          }}>
+            {comment.userNickname}
           </div>
 
-          {isMyComment && !isEditing && (
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setIsEditing(true)}
-                className={`
-                  text-xs transition-colors
-                  ${isDark ? "text-gray-300 hover:text-indigo-300" : "text-gray-600 hover:text-indigo-600"}
-                `}
-              >
-                수정
-              </button>
-              <span className={isDark ? "text-gray-600" : "text-gray-300"}>|</span>
-              <button
-                onClick={handleDelete}
-                className={`
-                  text-xs transition-colors
-                  ${isDark ? "text-gray-300 hover:text-red-400" : "text-gray-600 hover:text-red-600"}
-                `}
-              >
-                삭제
-              </button>
-            </div>
-          )}
-        </div>
-
-        {isEditing ? (
-          <div className="space-y-2">
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              rows={2}
-              className={`
-                w-full px-3 py-2 text-sm rounded-lg resize-none border focus:ring-2 transition-all
-                ${isDark
-                  ? "bg-gray-800 text-gray-100 border-gray-600 focus:ring-indigo-400"
-                  : "bg-white text-gray-900 border-gray-300 focus:ring-indigo-500"
-                }
-              `}
-              disabled={isUpdating}
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditContent(comment.content);
-                }}
-                className={`
-                  px-3 py-1.5 text-sm rounded-lg transition-colors
-                  ${isDark ? "text-gray-300 hover:bg-gray-700" : "text-gray-700 hover:bg-gray-100"}
-                `}
-                disabled={isUpdating}
-              >
-                취소
-              </button>
-              <button
-                onClick={handleUpdate}
-                disabled={isUpdating || !editContent.trim()}
-                className={`
-                  px-3 py-1.5 text-sm rounded-lg transition-colors
-                  ${isDark
-                    ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700"
-                    : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"
-                  }
-                `}
-              >
-                {isUpdating ? "수정 중..." : "수정"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p
-            className={`
-              text-sm whitespace-pre-wrap leading-relaxed pl-11
-              ${isDark ? "text-gray-200" : "text-gray-800"}
-            `}
-          >
-            {comment.content}
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  // 일반 댓글 스타일
-  return (
-    <div
-      className={`
-        rounded-lg shadow-sm border
-        ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}
-      `}
-    >
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-3">
-            <div
-              className={`
-                w-10 h-10 rounded-full flex items-center justify-center
-                ${isDark ? "bg-gray-600 text-gray-200" : "bg-indigo-100 text-indigo-600"}
-              `}
-            >
-              <span className="font-semibold text-sm">
-                {comment.userNickname?.charAt(0) || "?"}
-              </span>
-            </div>
-
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className={`font-medium ${isDark ? "text-gray-100" : "text-gray-900"}`}>
-                  {comment.userNickname}
-                </span>
-
-                {comment.isAuthor && (
-                  <span
-                    className={`
-                      px-2 py-0.5 text-xs font-medium rounded
-                      ${isDark ? "bg-indigo-900 text-indigo-200" : "bg-indigo-100 text-indigo-700"}
-                    `}
-                  >
-                    작성자
-                  </span>
-                )}
-              </div>
-
-              <span className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                {formatDate(comment.createdAt)}
-              </span>
-            </div>
-          </div>
-
-          {isMyComment && !isEditing && (
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setIsEditing(true)}
-                className={`
-                  text-sm transition-colors
-                  ${isDark ? "text-gray-300 hover:text-indigo-300" : "text-gray-600 hover:text-indigo-600"}
-                `}
-              >
-                수정
-              </button>
-
-              <span className={isDark ? "text-gray-600" : "text-gray-300"}>|</span>
-
-              <button
-                onClick={handleDelete}
-                className={`
-                  text-sm transition-colors
-                  ${isDark ? "text-gray-300 hover:text-red-400" : "text-gray-600 hover:text-red-600"}
-                `}
-              >
-                삭제
-              </button>
-            </div>
-          )}
-        </div>
-
-        {isEditing ? (
-          <div className="space-y-3">
+          {/* 텍스트 입력 */}
+          <div style={{ padding: '0 1rem' }}>
             <textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               rows={3}
-              className={`
-                w-full px-4 py-3 rounded-lg resize-none border focus:ring-2 transition-all
-                ${isDark
-                  ? "bg-gray-800 text-gray-100 border-gray-600 focus:ring-indigo-400"
-                  : "bg-white text-gray-900 border-gray-300 focus:ring-indigo-500"
-                }
-              `}
               disabled={isUpdating}
+              style={{
+                width: '100%',
+                padding: '0',
+                border: 'none',
+                backgroundColor: 'transparent',
+                color: isDark ? '#f3f4f6' : '#111827',
+                fontSize: '0.875rem',
+                lineHeight: '1.5',
+                resize: 'none',
+                outline: 'none'
+              }}
             />
+          </div>
 
-            <div className="flex justify-end space-x-2">
+          {/* 하단 액션 바 */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.5rem 1rem 0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button type="button" style={{ padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer', color: isDark ? '#9ca3af' : '#6b7280' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </button>
+              <button type="button" style={{ padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer', color: isDark ? '#9ca3af' : '#6b7280' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+                </svg>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <button
+                type="button"
                 onClick={() => {
                   setIsEditing(false);
                   setEditContent(comment.content);
                 }}
-                className={`
-                  px-4 py-2 rounded-lg transition-colors
-                  ${isDark ? "text-gray-300 hover:bg-gray-700" : "text-gray-700 hover:bg-gray-100"}
-                `}
                 disabled={isUpdating}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  background: 'none',
+                  border: 'none',
+                  color: isDark ? '#9ca3af' : '#6b7280',
+                  cursor: 'pointer'
+                }}
               >
                 취소
               </button>
-
               <button
+                type="button"
                 onClick={handleUpdate}
                 disabled={isUpdating || !editContent.trim()}
-                className={`
-                  px-4 py-2 rounded-lg transition-colors
-                  ${isDark
-                    ? "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-700"
-                    : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300"
-                  }
-                `}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  fontWeight: '500',
+                  borderRadius: '0.25rem',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: isUpdating || !editContent.trim() 
+                    ? (isDark ? '#4b5563' : '#9ca3af') 
+                    : (isDark ? '#60a5fa' : '#2563eb'),
+                  cursor: isUpdating || !editContent.trim() ? 'default' : 'pointer'
+                }}
               >
-                {isUpdating ? "수정 중..." : "수정 완료"}
+                {isUpdating ? '수정 중...' : '수정'}
               </button>
             </div>
           </div>
-        ) : (
-          <>
-            <p
-              className={`
-                whitespace-pre-wrap leading-relaxed
-                ${isDark ? "text-gray-200" : "text-gray-800"}
-              `}
-            >
-              {comment.content}
-            </p>
+        </div>
+      </div>
+    );
+  }
 
-            <div className="mt-4">
-              <button
-                onClick={() => setShowReplyForm(!showReplyForm)}
-                className={`
-                  flex items-center gap-1.5 text-sm transition-colors
-                  ${isDark ? "text-gray-300 hover:text-indigo-300" : "text-gray-600 hover:text-indigo-600"}
-                `}
-              >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  strokeWidth={1.5} 
-                  stroke="currentColor" 
-                  className="w-4 h-4"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" 
-                  />
-                </svg>
-                답글 {comment.replies?.length > 0 && `${comment.replies.length}개`}
-              </button>
+  return (
+    <div>
+      <div style={{ 
+        display: 'flex', 
+        gap: '0.75rem', 
+        padding: isReply ? '0.75rem 0' : '1rem 0' 
+      }}>
+        {/* 아바타 */}
+        <div style={{
+          width: isReply ? '1.75rem' : '2.25rem',
+          height: isReply ? '1.75rem' : '2.25rem',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          fontSize: isReply ? '0.75rem' : '0.875rem',
+          fontWeight: '500',
+          backgroundColor: isDark ? '#374151' : '#e5e7eb',
+          color: isDark ? '#d1d5db' : '#4b5563'
+        }}>
+          {comment.userNickname?.charAt(0)?.toUpperCase() || '?'}
+        </div>
+
+        {/* 콘텐츠 */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* 닉네임 & 작성자 뱃지 */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            marginBottom: '0.25rem' 
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ 
+                fontSize: isReply ? '0.8125rem' : '0.875rem', 
+                fontWeight: '600',
+                color: isDark ? '#f3f4f6' : '#111827'
+              }}>
+                {comment.userNickname}
+              </span>
+              {comment.isAuthor && (
+                <span style={authorBadgeStyle}>작성자</span>
+              )}
             </div>
-          </>
-        )}
+
+            {/* 더보기 메뉴 */}
+            <div style={{ position: 'relative' }} ref={menuRef}>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                style={{
+                  padding: '0.25rem',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: isDark ? '#6b7280' : '#9ca3af',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="2"/>
+                  <circle cx="12" cy="12" r="2"/>
+                  <circle cx="12" cy="19" r="2"/>
+                </svg>
+              </button>
+
+              {showMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '0.25rem',
+                  minWidth: '100px',
+                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                  borderRadius: '0.375rem',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  zIndex: 50,
+                  overflow: 'hidden'
+                }}>
+                  {isMyComment ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setIsEditing(true);
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          padding: '0.5rem 1rem',
+                          fontSize: '0.8125rem',
+                          textAlign: 'left',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: isDark ? '#e5e7eb' : '#374151',
+                          borderBottom: `1px solid ${isDark ? '#374151' : '#f3f4f6'}`
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          handleDelete();
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          padding: '0.5rem 1rem',
+                          fontSize: '0.8125rem',
+                          textAlign: 'left',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: isDark ? '#fca5a5' : '#dc2626'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        삭제
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleReport}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.8125rem',
+                        textAlign: 'left',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: isDark ? '#fca5a5' : '#dc2626'
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    >
+                      신고하기
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 댓글 내용 */}
+          <p style={{ 
+            fontSize: isReply ? '0.8125rem' : '0.875rem',
+            lineHeight: '1.6',
+            whiteSpace: 'pre-wrap',
+            marginBottom: '0.5rem',
+            color: isDark ? '#e5e7eb' : '#374151'
+          }}>
+            {comment.content}
+          </p>
+
+          {/* 액션 버튼들 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ 
+              fontSize: '0.75rem', 
+              color: isDark ? '#6b7280' : '#9ca3af' 
+            }}>
+              {formatDate(comment.createdAt)}
+            </span>
+
+            <button
+              onClick={() => setShowReplyForm(!showReplyForm)}
+              style={actionButtonStyle}
+            >
+              답글쓰기
+            </button>
+
+            <button
+              onClick={handleLike}
+              style={{
+                ...actionButtonStyle,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                color: liked 
+                  ? (isDark ? '#f87171' : '#ef4444') 
+                  : (isDark ? '#6b7280' : '#9ca3af')
+              }}
+            >
+              <svg 
+                width="14" 
+                height="14" 
+                viewBox="0 0 24 24" 
+                fill={liked ? 'currentColor' : 'none'} 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+              {likeCount > 0 && <span>{likeCount}</span>}
+            </button>
+          </div>
+
+          {/* 답글 토글 버튼 */}
+          {!isReply && comment.replies && comment.replies.length > 0 && (
+            <button
+              onClick={() => setShowReplies(!showReplies)}
+              style={{
+                marginTop: '0.75rem',
+                fontSize: '0.75rem',
+                fontWeight: '500',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                color: isDark ? '#60a5fa' : '#2563eb'
+              }}
+            >
+              <svg 
+                style={{ 
+                  width: '0.875rem', 
+                  height: '0.875rem', 
+                  transition: 'transform 0.2s', 
+                  transform: showReplies ? 'rotate(180deg)' : 'rotate(0deg)' 
+                }}
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+              답글 {comment.replies.length}개 {showReplies ? '접기' : '보기'}
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* 답글 작성 폼 */}
       {showReplyForm && (
-        <div className="px-6 pb-4">
+        <div style={{ marginLeft: '3rem', marginBottom: '0.75rem' }}>
           <CommentForm
             boardId={comment.boardId}
             boardType={comment.boardType}
@@ -365,27 +483,20 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
         </div>
       )}
 
-      {comment.replies && comment.replies.length > 0 && (
-        <div
-          className={`
-            border-t
-            ${isDark ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-200"}
-          `}
-        >
-          {comment.replies.map((reply) => (
-            <div
-              key={reply.commentId}
-              className={`
-                p-6 border-b last:border-b-0
-                ${isDark ? "border-gray-700" : "border-gray-200"}
-              `}
-            >
+      {/* 답글 목록 */}
+      {!isReply && showReplies && comment.replies && comment.replies.length > 0 && (
+        <div style={{ marginLeft: '3rem' }}>
+          {comment.replies.map((reply, index) => (
+            <div key={reply.commentId}>
               <CommentItem
-                comment={reply}
+                comment={{ ...reply, boardId: comment.boardId, boardType: comment.boardType }}
                 onCommentUpdated={onCommentUpdated}
                 isReply={true}
                 isDark={isDark}
               />
+              {index < comment.replies.length - 1 && (
+                <div style={{ borderTop: `1px solid ${isDark ? '#1f2937' : '#f3f4f6'}` }} />
+              )}
             </div>
           ))}
         </div>
