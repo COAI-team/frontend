@@ -92,6 +92,31 @@ const DailyMission = () => {
         }
     }, [hydrated, loadData]);
 
+    // 🔄 페이지 포커스 시 데이터 새로고침 (미션 완료 후 돌아왔을 때)
+    useEffect(() => {
+        const handleFocus = () => {
+            if (hydrated && isLoggedIn) {
+                console.log('🔄 페이지 포커스 - 데이터 새로고침');
+                loadData();
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && hydrated && isLoggedIn) {
+                console.log('🔄 탭 활성화 - 데이터 새로고침');
+                loadData();
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [hydrated, isLoggedIn, loadData]);
+
     // ===== 미션 카드 클릭 핸들러 =====
     const handleMissionClick = (mission) => {
         if (mission.completed) return;

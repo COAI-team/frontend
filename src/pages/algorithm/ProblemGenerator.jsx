@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateProblem } from '../../service/algorithm/algorithmApi';
+import { generateProblem, completeMission } from '../../service/algorithm/AlgorithmApi';
 
 /**
  * AI 문제 생성 페이지
@@ -22,6 +22,14 @@ const ProblemGenerator = () => {
   const [error, setError] = useState(null);
   const [generatedProblem, setGeneratedProblem] = useState(null);
   const [generationStep, setGenerationStep] = useState('');
+
+  // 🎯 데일리 미션 완료 상태
+  const [missionStatus, setMissionStatus] = useState({
+    completed: false,
+    message: null,
+    rewardPoints: 0,
+    error: null
+  });
 
   // 타이핑 효과 관련 상태
   const [displayedText, setDisplayedText] = useState('');
@@ -181,6 +189,48 @@ const ProblemGenerator = () => {
       setGeneratedProblem(result.data);
       setGenerationStep('생성 완료!');
 
+      // 🎯 데일리 미션 완료 처리 (PROBLEM_GENERATE)
+      // TODO: 실제 로그인 구현 후 user.userId로 변경
+      const testUserId = 3; // 개발용 테스트 userId
+      try {
+        const missionResult = await completeMission('PROBLEM_GENERATE', testUserId);
+        console.log('🎯 미션 완료 API 응답 (전체):', JSON.stringify(missionResult, null, 2));
+
+        const mResult = missionResult.data || missionResult;
+
+        if (mResult.error) {
+          console.warn('미션 완료 API 오류:', mResult.message);
+          setMissionStatus(prev => ({ ...prev, error: mResult.message }));
+        } else if (mResult.success || mResult.completed) {
+          setMissionStatus({
+            completed: true,
+            message: mResult.message || 'AI 문제 생성 미션 완료!',
+            rewardPoints: mResult.rewardPoints || 0,
+            error: null
+          });
+          console.log('✅ 미션 완료:', mResult.message, `+${mResult.rewardPoints || 0}P`);
+        } else if (mResult.alreadyCompleted) {
+          setMissionStatus({
+            completed: true,
+            message: '이미 완료된 미션입니다',
+            rewardPoints: 0,
+            error: null
+          });
+          console.log('ℹ️ 이미 완료된 미션');
+        } else {
+          // 에러가 아니면 성공으로 간주
+          console.log('ℹ️ 예상치 못한 응답 구조, 성공으로 처리:', mResult);
+          setMissionStatus({
+            completed: true,
+            message: 'AI 문제 생성 미션 완료!',
+            rewardPoints: 0,
+            error: null
+          });
+        }
+      } catch (missionErr) {
+        console.warn('미션 완료 처리 실패 (무시됨):', missionErr);
+      }
+
     } catch (err) {
       console.error('문제 생성 에러:', err);
       setError('문제 생성 중 오류가 발생했습니다.');
@@ -203,6 +253,13 @@ const ProblemGenerator = () => {
     setError(null);
     setDisplayedText('');
     setTypingComplete(false);
+    // 미션 상태 초기화
+    setMissionStatus({
+      completed: false,
+      message: null,
+      rewardPoints: 0,
+      error: null
+    });
   };
 
   const skipTyping = () => {
@@ -311,6 +368,29 @@ const ProblemGenerator = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">AI 문제 생성</h1>
           <p className="text-gray-600">원하는 난이도와 주제를 선택하면 AI가 문제를 생성합니다</p>
         </div>
+
+        {/* 🎯 데일리 미션 완료 배너 */}
+        {missionStatus.completed && (
+          <div className="mb-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-lg p-4 text-white animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🎉</span>
+                <div>
+                  <h3 className="font-bold text-lg">데일리 미션 완료!</h3>
+                  <p className="text-green-100 text-sm">
+                    {missionStatus.message || 'AI 문제 생성 미션을 완료했습니다'}
+                  </p>
+                </div>
+              </div>
+              {missionStatus.rewardPoints > 0 && (
+                <div className="text-right">
+                  <p className="text-2xl font-bold">+{missionStatus.rewardPoints}P</p>
+                  <p className="text-green-100 text-xs">보상 포인트</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 왼쪽: 문제 생성 폼 */}
