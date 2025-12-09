@@ -18,7 +18,7 @@ export default function CommentForm({
 
   // 로그인한 사용자 정보
   const auth = getAuth();
-  const currentUserNickname = auth?.nickname ?? '사용자';
+  const currentUserNickname = auth?.username ?? '사용자';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,6 +50,10 @@ export default function CommentForm({
   if (isReply) {
     return (
       <form onSubmit={handleSubmit} className="space-y-3">
+        <div className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+          {currentUserNickname}
+        </div>
+        
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}

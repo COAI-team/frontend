@@ -364,32 +364,6 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
           />
         </div>
       )}
-
-      {comment.replies && comment.replies.length > 0 && (
-        <div
-          className={`
-            border-t
-            ${isDark ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-200"}
-          `}
-        >
-          {comment.replies.map((reply) => (
-            <div
-              key={reply.commentId}
-              className={`
-                p-6 border-b last:border-b-0
-                ${isDark ? "border-gray-700" : "border-gray-200"}
-              `}
-            >
-              <CommentItem
-                comment={reply}
-                onCommentUpdated={onCommentUpdated}
-                isReply={true}
-                isDark={isDark}
-              />
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

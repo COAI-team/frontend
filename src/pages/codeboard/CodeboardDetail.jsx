@@ -876,7 +876,6 @@ const CodeboardDetail = () => {
             <CommentSection
               boardId={Number(id)}
               boardType="CODEBOARD"
-              currentUserId={currentUserId}
               isDark={isDark}
             />
           </div>
