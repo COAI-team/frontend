@@ -103,7 +103,7 @@ const ProblemList = () => {
             <p className="text-gray-600">다양한 알고리즘 문제를 풀어보세요</p>
           </div>
           <Link
-            to="/algorithm/daily-mission"
+            to="/mypage/daily-mission"
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg"
           >
             <span className="text-lg">🎯</span>

@@ -36,7 +36,7 @@ import ProblemGenerator from "./pages/algorithm/ProblemGenerator";
 import ProblemSolve from "./pages/algorithm/ProblemSolve";
 import SubmissionResult from "./pages/algorithm/SubmissionResult";
 import MySubmissions from "./pages/algorithm/MySubmissions";
-import DailyMission from "./pages/algorithm/DailyMission";
+import DailyMission from "./pages/myPage/DailyMission";
 
 // 코드 분석 도메인
 import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
@@ -99,6 +99,7 @@ createRoot(document.getElementById("root")).render(
                           <Route path="profile" element={<ProfilePage />} />
                           <Route path="billing" element={<BillingPage />} />
                           <Route path="dashboard" element={<DashboardPage />} />
+                          <Route path="daily-mission" element={<DailyMission />} />
                         </Route>
 
                         <Route path="admin" element={<AdminPageLayout />}>
@@ -143,10 +144,6 @@ createRoot(document.getElementById("root")).render(
               <Route
                 path="algorithm/problems/generate"
                 element={<ProblemGenerator />}
-              />
-              <Route
-                path="algorithm/daily-mission"
-                element={<DailyMission />}
               />
               <Route
                 path="algorithm/submissions/:submissionId"

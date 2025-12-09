@@ -4,7 +4,6 @@ import {
     getTodayMissions,
     getUsageInfo,
     getUserLevel,
-    ALGO_LEVEL_INFO,
     MISSION_TYPE_INFO,
     DIFFICULTY_OPTIONS
 } from '../../service/algorithm/AlgorithmApi';
@@ -165,73 +164,26 @@ const DailyMission = () => {
 
     // ===== 렌더링 =====
 
-    // hydration 완료 전 로딩 표시
-    if (!hydrated) {
+    // hydration 완료 전 또는 로딩 중 표시
+    if (!hydrated || loading) {
         return (
-            <div className="min-h-screen bg-gray-50 py-8">
-                <div className="max-w-4xl mx-auto px-4">
-                    <div className="text-center py-12">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        <p className="mt-2 text-gray-600">로딩 중...</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // 로그인이 안 되어 있을 때
-    if (!isLoggedIn) {
-        return (
-            <div className="min-h-screen bg-gray-50 py-8">
-                <div className="max-w-4xl mx-auto px-4">
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                            오늘의 미션
-                        </h1>
-                        <p className="text-gray-600">
-                            매일 미션을 완료하고 포인트를 획득하세요!
-                        </p>
-                    </div>
-
-                    <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
-                        <div className="text-6xl mb-4">🔐</div>
-                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                            로그인이 필요합니다
-                        </h2>
-                        <p className="text-gray-600 mb-6">
-                            데일리 미션에 참여하려면 로그인해주세요.
-                        </p>
-                        <div className="flex justify-center gap-4">
-                            <Link
-                                to="/signin"
-                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-                            >
-                                로그인하기
-                            </Link>
-                            <Link
-                                to="/signup"
-                                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
-                            >
-                                회원가입
-                            </Link>
-                        </div>
-                    </div>
-                </div>
+            <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">데이터를 불러오는 중...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
-            <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-4xl">
                 {/* 페이지 헤더 */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                                 오늘의 미션
                             </h1>
-                            <p className="text-gray-600">
+                            <p className="text-gray-600 dark:text-gray-400">
                                 매일 미션을 완료하고 포인트를 획득하세요!
                             </p>
                         </div>
@@ -241,7 +193,7 @@ const DailyMission = () => {
                                 disabled={isRefreshing}
                                 className={`px-4 py-2 rounded-md transition-colors flex items-center gap-2 ${
                                     isRefreshing
-                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                                 }`}
                             >
@@ -249,7 +201,7 @@ const DailyMission = () => {
                                 {isRefreshing ? '새로고침 중...' : '새로고침'}
                             </button>
                             {lastUpdated && (
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-gray-400 dark:text-gray-500">
                                     마지막 업데이트: {lastUpdated.toLocaleTimeString('ko-KR')}
                                 </span>
                             )}
@@ -257,29 +209,21 @@ const DailyMission = () => {
                     </div>
                 </div>
 
-                {/* 로딩 상태 */}
-                {loading && (
-                    <div className="text-center py-12">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        <p className="mt-2 text-gray-600">데이터를 불러오는 중...</p>
-                    </div>
-                )}
-
                 {/* 에러 상태 */}
                 {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md mb-6">
                         <p className="font-medium">오류가 발생했습니다</p>
                         <p className="text-sm">{error}</p>
                         <button
                             onClick={loadData}
-                            className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                            className="mt-2 text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
                         >
                             다시 시도
                         </button>
                     </div>
                 )}
 
-                {!loading && !error && (
+                {!error && (
                     <>
                         {/* 상단 정보 카드 */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -291,16 +235,16 @@ const DailyMission = () => {
                         </div>
 
                         {/* 미션 진행 상황 */}
-                        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6 mb-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-semibold text-gray-900">
+                                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                                     미션 진행률
                                 </h2>
-                                <span className="text-sm text-gray-500">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
                                     {completedCount} / {totalMissions} 완료
                                 </span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                                 <div
                                     className="bg-green-500 h-3 rounded-full transition-all duration-500"
                                     style={{
@@ -311,7 +255,7 @@ const DailyMission = () => {
                                 ></div>
                             </div>
                             {completedCount === totalMissions && totalMissions > 0 && (
-                                <p className="mt-3 text-center text-green-600 font-medium">
+                                <p className="mt-3 text-center text-green-600 dark:text-green-400 font-medium">
                                     오늘의 모든 미션을 완료했습니다!
                                 </p>
                             )}
@@ -319,13 +263,13 @@ const DailyMission = () => {
 
                         {/* 미션 목록 */}
                         <div className="space-y-4">
-                            <h2 className="text-lg font-semibold text-gray-900">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                                 오늘의 미션 목록
                             </h2>
 
                             {missions.length === 0 ? (
-                                <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
-                                    <p className="text-gray-500">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-8 text-center">
+                                    <p className="text-gray-500 dark:text-gray-400">
                                         오늘의 미션이 없습니다.
                                     </p>
                                 </div>
@@ -338,10 +282,10 @@ const DailyMission = () => {
                                         <div
                                             key={mission.missionId || index}
                                             onClick={() => handleMissionClick(mission)}
-                                            className={`bg-white rounded-lg shadow-sm border p-6 transition-all ${
+                                            className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6 transition-all ${
                                                 isCompleted
                                                     ? 'opacity-70 cursor-default'
-                                                    : 'hover:shadow-md cursor-pointer hover:border-blue-300'
+                                                    : 'hover:shadow-md cursor-pointer hover:border-blue-300 dark:hover:border-blue-500'
                                             }`}
                                         >
                                             <div className="flex items-start justify-between">
@@ -349,8 +293,8 @@ const DailyMission = () => {
                                                     {/* 아이콘 */}
                                                     <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
                                                         isCompleted
-                                                            ? 'bg-green-100'
-                                                            : 'bg-blue-100'
+                                                            ? 'bg-green-100 dark:bg-green-900/30'
+                                                            : 'bg-blue-100 dark:bg-blue-900/30'
                                                     }`}>
                                                         {isCompleted ? '✅' : typeInfo.icon}
                                                     </div>
@@ -359,23 +303,23 @@ const DailyMission = () => {
                                                     <div>
                                                         <h3 className={`font-semibold text-lg ${
                                                             isCompleted
-                                                                ? 'text-gray-500 line-through'
-                                                                : 'text-gray-900'
+                                                                ? 'text-gray-500 dark:text-gray-400 line-through'
+                                                                : 'text-gray-900 dark:text-white'
                                                         }`}>
                                                             {typeInfo.name || mission.missionType}
                                                         </h3>
-                                                        <p className="text-gray-500 text-sm mt-1">
+                                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                                                             {typeInfo.description}
                                                         </p>
 
                                                         {/* 문제 정보 (PROBLEM_SOLVE인 경우) */}
                                                         {mission.missionType === 'PROBLEM_SOLVE' && mission.problemTitle && (
-                                                            <div className="mt-2 p-2 bg-gray-50 rounded-md">
-                                                                <p className="text-sm text-gray-700">
+                                                            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
+                                                                <p className="text-sm text-gray-700 dark:text-gray-300">
                                                                     <span className="font-medium">문제:</span> {mission.problemTitle}
                                                                 </p>
                                                                 {mission.problemDifficulty && (
-                                                                    <p className="text-sm text-gray-500">
+                                                                    <p className="text-sm text-gray-500 dark:text-gray-400">
                                                                         <span className="font-medium">난이도:</span>{' '}
                                                                         {getDifficultyLabel(mission.problemDifficulty)}
                                                                     </p>
@@ -389,12 +333,12 @@ const DailyMission = () => {
                                                 <div className="text-right">
                                                     <div className={`text-lg font-bold ${
                                                         isCompleted
-                                                            ? 'text-green-600'
-                                                            : 'text-yellow-600'
+                                                            ? 'text-green-600 dark:text-green-400'
+                                                            : 'text-yellow-600 dark:text-yellow-400'
                                                     }`}>
                                                         +{mission.rewardPoints}P
                                                     </div>
-                                                    <div className="text-xs text-gray-400 mt-1">
+                                                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                                                         {isCompleted ? '획득 완료' : '보상'}
                                                     </div>
                                                 </div>
@@ -402,15 +346,15 @@ const DailyMission = () => {
 
                                             {/* 완료 시간 */}
                                             {isCompleted && mission.completedAt && (
-                                                <div className="mt-3 pt-3 border-t text-sm text-gray-400">
+                                                <div className="mt-3 pt-3 border-t dark:border-gray-700 text-sm text-gray-400 dark:text-gray-500">
                                                     완료 시간: {new Date(mission.completedAt).toLocaleTimeString('ko-KR')}
                                                 </div>
                                             )}
 
                                             {/* 미완료 시 안내 */}
                                             {!isCompleted && (
-                                                <div className="mt-4 pt-3 border-t">
-                                                    <span className="text-blue-600 text-sm font-medium">
+                                                <div className="mt-4 pt-3 border-t dark:border-gray-700">
+                                                    <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
                                                         클릭하여 미션 시작하기 →
                                                     </span>
                                                 </div>
@@ -438,7 +382,6 @@ const DailyMission = () => {
                         </div>
                     </>
                 )}
-            </div>
         </div>
     );
 };
