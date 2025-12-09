@@ -199,8 +199,19 @@ const ProblemGenerator = () => {
         const mResult = missionResult.data || missionResult;
 
         if (mResult.error) {
-          console.warn('미션 완료 API 오류:', mResult.message);
-          setMissionStatus(prev => ({ ...prev, error: mResult.message }));
+          // "이미 완료된 미션" 에러(ALGO_4501)는 정상 케이스로 처리
+          if (mResult.code === 'ALGO_4501') {
+            setMissionStatus({
+              completed: true,
+              message: '오늘의 미션은 이미 완료되었습니다',
+              rewardPoints: 0,
+              error: null
+            });
+            console.log('ℹ️ 오늘 미션은 이미 완료되었습니다.');
+          } else {
+            console.warn('미션 완료 API 오류:', mResult.message);
+            setMissionStatus(prev => ({ ...prev, error: mResult.message }));
+          }
         } else if (mResult.success || mResult.completed) {
           setMissionStatus({
             completed: true,
@@ -228,7 +239,24 @@ const ProblemGenerator = () => {
           });
         }
       } catch (missionErr) {
-        console.warn('미션 완료 처리 실패 (무시됨):', missionErr);
+        // "이미 완료된 미션" 에러(ALGO_4501)는 정상 케이스로 처리
+        const errorCode = missionErr.response?.data?.code;
+        const errorMessage = missionErr.response?.data?.message;
+
+        if (errorCode === 'ALGO_4501') {
+          // 이미 완료된 미션 - 에러가 아닌 정상 상태로 처리
+          setMissionStatus({
+            completed: true,
+            message: '오늘의 미션은 이미 완료되었습니다',
+            rewardPoints: 0,
+            error: null
+          });
+          console.log('ℹ️ 오늘 미션은 이미 완료되었습니다.');
+        } else {
+          // 다른 에러는 경고로 처리 (문제 생성 자체는 성공했으므로)
+          console.warn('미션 완료 처리 실패 (무시됨):', errorMessage || missionErr);
+          setMissionStatus(prev => ({ ...prev, error: errorMessage || '미션 완료 처리 실패' }));
+        }
       }
 
     } catch (err) {
