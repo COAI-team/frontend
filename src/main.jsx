@@ -36,6 +36,7 @@ import ProblemGenerator from "./pages/algorithm/ProblemGenerator";
 import ProblemSolve from "./pages/algorithm/ProblemSolve";
 import SubmissionResult from "./pages/algorithm/SubmissionResult";
 import MySubmissions from "./pages/algorithm/MySubmissions";
+import DailyMission from "./pages/myPage/DailyMission";
 
 // 코드 분석 도메인
 import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
@@ -98,6 +99,7 @@ createRoot(document.getElementById("root")).render(
                           <Route path="profile" element={<ProfilePage />} />
                           <Route path="billing" element={<BillingPage />} />
                           <Route path="dashboard" element={<DashboardPage />} />
+                          <Route path="daily-mission" element={<DailyMission />} />
                         </Route>
 
                         <Route path="admin" element={<AdminPageLayout />}>
@@ -132,27 +134,25 @@ createRoot(document.getElementById("root")).render(
                             element={<PaymentFail />}
                         />
 
-                        {/* 알고리즘 */}
-                        <Route path="algorithm" element={<ProblemList />} />
-                        <Route path="algorithm/problems" element={<ProblemList />} />
-                        <Route
-                            path="algorithm/problems/:problemId"
-                            element={<ProblemDetail />}
-                        />
-                        <Route
-                            path="algorithm/problems/generate"
-                            element={<ProblemGenerator />}
-                        />
-
-          
-                        <Route
-                            path="algorithm/submissions/:submissionId"
-                            element={<SubmissionResult />}
-                        />
-                        <Route
-                            path="algorithm/my-submissions"
-                            element={<MySubmissions />}
-                        />
+              {/* 알고리즘 */}
+              <Route path="algorithm" element={<ProblemList />} />
+              <Route path="algorithm/problems" element={<ProblemList />} />
+              <Route
+                path="algorithm/problems/:problemId"
+                element={<ProblemDetail />}
+              />
+              <Route
+                path="algorithm/problems/generate"
+                element={<ProblemGenerator />}
+              />
+              <Route
+                path="algorithm/submissions/:submissionId"
+                element={<SubmissionResult />}
+              />
+              <Route
+                path="algorithm/my-submissions"
+                element={<MySubmissions />}
+              />
 
                         {/* 코드 분석 (CodeNose) */}
                         <Route path="codeAnalysis" element={<CodeAnalysisMain />} />
