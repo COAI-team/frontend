@@ -32,10 +32,9 @@ export default function ScrollToTopButton() {
             className={`fixed right-15 z-9998 w-16 h-16 rounded-full 
     flex items-center justify-center shadow-lg transition-all duration-300 border
     dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600
-    ${isVisible ? "bottom-36 opacity-100" : "bottom-32 opacity-0 pointer-events-none"}
-  `}
+    ${isVisible ? "bottom-16 opacity-100" : "bottom-16 opacity-0 pointer-events-none"}`}
         >
-            <AiOutlineArrowUp size={28}/> {/* 22 → 28 로 키워서 버튼 비율 통일 */}
+            <AiOutlineArrowUp size={28}/>
         </button>
     );
 }

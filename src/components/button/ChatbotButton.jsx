@@ -52,7 +52,7 @@ export default function ChatbotButton() {
                 className="fixed right-15 z-9999
                            w-16 h-16 rounded-full border flex items-center justify-center shadow-lg
                            dark:bg-neutral-800 transition-all duration-300"
-                style={{ bottom: bottomOffset }}
+                style={{ bottom: bottomOffset + 85 }}
             >
                 {isOpen ? <AiOutlineClose size={28}/> : <AiOutlineMessage size={28}/> }
             </button>
@@ -63,7 +63,7 @@ export default function ChatbotButton() {
                     className="fixed right-15 w-80 h-96
                                bg-white dark:bg-neutral-900 rounded-xl shadow-xl border dark:border-neutral-700
                                z-9999 flex flex-col overflow-hidden transition-all duration-300"
-                    style={{ bottom: bottomOffset + 70 }}
+                    style={{ bottom: bottomOffset + 165 }}
                 >
                     {/* Header (WhatsApp 스타일 초록색 바) */}
                     <div className="bg-[#075E54] text-white px-4 py-3 flex items-center justify-between">
