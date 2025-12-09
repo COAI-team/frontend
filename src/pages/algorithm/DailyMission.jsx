@@ -32,11 +32,13 @@ const DailyMission = () => {
     const [userLevel, setUserLevel] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [lastUpdated, setLastUpdated] = useState(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const navigate = useNavigate();
 
     // ===== 데이터 로딩 =====
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (showRefreshing = false) => {
         // 로그인 체크
         if (!isLoggedIn || !user?.userId) {
             setLoading(false);
@@ -46,8 +48,14 @@ const DailyMission = () => {
         const userId = user.userId;
 
         try {
-            setLoading(true);
+            if (showRefreshing) {
+                setIsRefreshing(true);
+            } else {
+                setLoading(true);
+            }
             setError(null);
+
+            console.log('📡 [DailyMission] 데이터 로딩 시작 - userId:', userId);
 
             // 병렬로 데이터 로딩 (testUserId 전달)
             const [missionsResult, usageResult, levelResult] = await Promise.all([
@@ -55,6 +63,12 @@ const DailyMission = () => {
                 getUsageInfo(userId),
                 getUserLevel(userId)
             ]);
+
+            console.log('📊 [DailyMission] API 응답:', {
+                missions: missionsResult,
+                usage: usageResult,
+                level: levelResult
+            });
 
             // 미션 데이터 설정
             if (missionsResult.error) {
@@ -67,6 +81,7 @@ const DailyMission = () => {
             if (usageResult.error) {
                 console.warn('사용량 로딩 실패:', usageResult.message);
             } else {
+                console.log('✅ [DailyMission] 사용량 데이터:', usageResult.data);
                 setUsageInfo(usageResult.data);
             }
 
@@ -74,16 +89,25 @@ const DailyMission = () => {
             if (levelResult.error) {
                 console.warn('레벨 로딩 실패:', levelResult.message);
             } else {
+                console.log('✅ [DailyMission] 레벨 데이터:', levelResult.data);
                 setUserLevel(levelResult.data);
             }
+
+            setLastUpdated(new Date());
 
         } catch (err) {
             console.error('데이터 로딩 에러:', err);
             setError('데이터를 불러오는데 실패했습니다.');
         } finally {
             setLoading(false);
+            setIsRefreshing(false);
         }
     }, [isLoggedIn, user]);
+
+    // 수동 새로고침 핸들러
+    const handleRefresh = () => {
+        loadData(true);
+    };
 
     // hydrated 상태와 로그인 상태가 확인되면 데이터 로딩
     useEffect(() => {
@@ -202,12 +226,35 @@ const DailyMission = () => {
             <div className="max-w-4xl mx-auto px-4">
                 {/* 페이지 헤더 */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                        오늘의 미션
-                    </h1>
-                    <p className="text-gray-600">
-                        매일 미션을 완료하고 포인트를 획득하세요!
-                    </p>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                                오늘의 미션
+                            </h1>
+                            <p className="text-gray-600">
+                                매일 미션을 완료하고 포인트를 획득하세요!
+                            </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                            <button
+                                onClick={handleRefresh}
+                                disabled={isRefreshing}
+                                className={`px-4 py-2 rounded-md transition-colors flex items-center gap-2 ${
+                                    isRefreshing
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                }`}
+                            >
+                                <span className={isRefreshing ? 'animate-spin' : ''}>🔄</span>
+                                {isRefreshing ? '새로고침 중...' : '새로고침'}
+                            </button>
+                            {lastUpdated && (
+                                <span className="text-xs text-gray-400">
+                                    마지막 업데이트: {lastUpdated.toLocaleTimeString('ko-KR')}
+                                </span>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* 로딩 상태 */}
