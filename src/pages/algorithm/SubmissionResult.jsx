@@ -3,6 +3,105 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getSubmissionResult, completeMission } from '../../service/algorithm/AlgorithmApi';
 
 /**
+ * 간단한 마크다운 렌더러 컴포넌트
+ * - ## 헤딩, **볼드**, - 리스트 지원
+ */
+const MarkdownRenderer = ({ content }) => {
+  if (!content) return null;
+
+  const lines = content.split('\n');
+  const elements = [];
+  let currentList = [];
+  let listKey = 0;
+
+  const flushList = () => {
+    if (currentList.length > 0) {
+      elements.push(
+        <ul key={`list-${listKey++}`} className="list-disc list-inside space-y-1 ml-2 text-gray-700">
+          {currentList.map((item, idx) => (
+            <li key={idx}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ul>
+      );
+      currentList = [];
+    }
+  };
+
+  // 인라인 마크다운 처리 (**볼드**, `코드`)
+  const renderInlineMarkdown = (text) => {
+    if (!text) return text;
+
+    // **볼드** 처리
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={idx} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>;
+      }
+      // `코드` 처리
+      const codeParts = part.split(/(`[^`]+`)/g);
+      return codeParts.map((codePart, codeIdx) => {
+        if (codePart.startsWith('`') && codePart.endsWith('`')) {
+          return <code key={`${idx}-${codeIdx}`} className="bg-gray-100 px-1 rounded text-sm font-mono text-blue-600">{codePart.slice(1, -1)}</code>;
+        }
+        return codePart;
+      });
+    });
+  };
+
+  lines.forEach((line, index) => {
+    const trimmedLine = line.trim();
+
+    // 빈 줄
+    if (!trimmedLine) {
+      flushList();
+      elements.push(<div key={`br-${index}`} className="h-2" />);
+      return;
+    }
+
+    // ## 헤딩 (h2)
+    if (trimmedLine.startsWith('## ')) {
+      flushList();
+      const headingText = trimmedLine.slice(3);
+      elements.push(
+        <h3 key={`h2-${index}`} className="text-lg font-bold text-gray-900 mt-4 mb-2 flex items-center gap-2">
+          {headingText}
+        </h3>
+      );
+      return;
+    }
+
+    // ### 헤딩 (h3)
+    if (trimmedLine.startsWith('### ')) {
+      flushList();
+      const headingText = trimmedLine.slice(4);
+      elements.push(
+        <h4 key={`h3-${index}`} className="text-md font-semibold text-gray-800 mt-3 mb-1">
+          {headingText}
+        </h4>
+      );
+      return;
+    }
+
+    // - 리스트 아이템
+    if (trimmedLine.startsWith('- ')) {
+      currentList.push(trimmedLine.slice(2));
+      return;
+    }
+
+    // 일반 텍스트
+    flushList();
+    elements.push(
+      <p key={`p-${index}`} className="text-gray-700 leading-relaxed">
+        {renderInlineMarkdown(trimmedLine)}
+      </p>
+    );
+  });
+
+  flushList();
+  return <div className="space-y-1">{elements}</div>;
+};
+
+/**
  * 제출 결과 페이지 - 실시간 업데이트 버전
  */
 const SubmissionResult = () => {
@@ -462,14 +561,19 @@ const SubmissionResult = () => {
                 </div>
 
                 {submission.aiFeedbackStatus === 'COMPLETED' ? (
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">📊 종합 평가</h4>
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-blue-800 whitespace-pre-wrap">{submission.aiFeedback || '피드백이 없습니다.'}</p>
-                      </div>
+                  showAIFeedback ? (
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-xl border border-blue-100">
+                      {submission.aiFeedback ? (
+                        <MarkdownRenderer content={submission.aiFeedback} />
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">피드백이 없습니다.</p>
+                      )}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      <p>피드백을 보려면 '펼치기'를 클릭하세요.</p>
+                    </div>
+                  )
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-2"></div>
