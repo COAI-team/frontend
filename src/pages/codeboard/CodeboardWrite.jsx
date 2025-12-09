@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from 'next-themes';
-import { axiosInstance } from '../../server/AxiosConfig';
+import axiosInstance from '../../server/AxiosConfig';  // 수정
 import WriteEditor from '../../components/editor/WriteEditor';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
 import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
@@ -53,19 +53,19 @@ const CodeboardWrite = () => {
     }, [analysisId]);
 
     const handleSubmit = ({ title, content, representImage, tags }) => {
-        const blocks = [{
-            id: `block-${Date.now()}`,
-            type: "tiptap",
-            content: content,
-            order: 0
-        }];
+            const blocks = [{
+                id: `block-${Date.now()}`,
+                type: "tiptap",
+                content: content,
+                order: 0
+            }];
 
-        console.log("📤 전송할 데이터:", {
-            codeboardTitle: title,
-            blocks: blocks,
-            tags: tags || [],
-            analysisId: analysisId
-        });
+            console.log("📤 전송할 데이터:", {
+                codeboardTitle: title,
+                blocks: blocks,
+                tags: tags || [],
+                analysisId: analysisId
+            });
 
         axiosInstance
             .post("/codeboard", {
@@ -76,7 +76,8 @@ const CodeboardWrite = () => {
             })
             .then((response) => {
                 console.log("✅ 응답:", response.data);
-                const codeboardId = response.data.data.codeboardId;  // result → data
+                // ApiResponse 구조 대응
+                const codeboardId = response.data.data?.codeboardId || response.data.codeboardId;
                 alert("게시글이 등록되었습니다.");
                 navigate(`/codeboard/${codeboardId}`);
             })
