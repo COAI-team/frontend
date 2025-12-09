@@ -19,7 +19,6 @@ const CodeboardDetail = () => {
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
 
-  // 분석 결과 상태 추가
   const [analysisResult, setAnalysisResult] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
@@ -68,25 +67,19 @@ const CodeboardDetail = () => {
     axiosInstance
       .get(`/codeboard/${id}`)
       .then((res) => {
-        console.log("API 응답:", res.data);
         const data = res.data.data || res.data;
-        console.log("tags:", data.tags);
         setBoard(data);
         setIsLiked(data.isLiked || false); 
         setLikeCount(data.likeCount || 0);
         setCommentCount(data.commentCount || 0);
 
-        // analysisId가 있으면 분석 결과 로드
         if (data.analysisId) {
           loadAnalysisData(data.analysisId);
-        } else {
-          console.log("분석 ID가 없습니다.");
         }
       })
       .catch((err) => console.error("게시글 불러오기 실패:", err));
   }, [id]);
 
-  // 분석 결과 로드 함수
   const loadAnalysisData = async (analysisId) => {
     try {
       setIsAnalysisLoading(true);
@@ -94,7 +87,6 @@ const CodeboardDetail = () => {
       const data = result.data;
       setAnalysisResult(data);
       
-      // 파일 내용 로드
       if (data.repositoryUrl && data.filePath) {
         try {
           const parts = data.repositoryUrl.split('/');
@@ -112,7 +104,6 @@ const CodeboardDetail = () => {
       }
     } catch (err) {
       console.error("분석 결과 로드 실패:", err);
-      // 에러가 나도 analysisResult를 null로 설정해서 레이아웃이 단일 컬럼으로 표시되도록
       setAnalysisResult(null);
     } finally {
       setIsAnalysisLoading(false);
@@ -326,8 +317,8 @@ const CodeboardDetail = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#101828',
-        color: 'white',
+        backgroundColor: isDark ? '#101828' : '#f9fafb',
+        color: isDark ? '#ffffff' : '#111827',
         padding: '2.5rem'
       }}>
         로딩 중...
@@ -338,7 +329,7 @@ const CodeboardDetail = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#101828',
+      backgroundColor: isDark ? '#101828' : '#f9fafb',
       padding: '2rem 1rem'
     }}>
       <div style={{
@@ -354,15 +345,15 @@ const CodeboardDetail = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              color: '#9ca3af',
+              color: isDark ? '#9ca3af' : '#6b7280',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
               fontSize: '1rem',
               transition: 'color 0.2s'
             }}
-            onMouseEnter={(e) => e.target.style.color = '#e5e7eb'}
-            onMouseLeave={(e) => e.target.style.color = '#9ca3af'}
+            onMouseEnter={(e) => e.target.style.color = isDark ? '#e5e7eb' : '#111827'}
+            onMouseLeave={(e) => e.target.style.color = isDark ? '#9ca3af' : '#6b7280'}
           >
             ← 목록으로
           </button>
@@ -403,25 +394,25 @@ const CodeboardDetail = () => {
         {/* 그리드 레이아웃 */}
         <div style={{ display: 'grid', gridTemplateColumns: analysisResult ? '1fr 1fr' : '1fr', gap: '1.5rem' }}>
           
-          {/* 왼쪽: 코드 & 분석 결과 (analysisId가 있을 때만 표시) */}
+          {/* 왼쪽: 코드 & 분석 결과 */}
           {analysisResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {/* 코드 뷰어 */}
               <div style={{
-                border: '1px solid #374151',
+                border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
                 borderRadius: '0.5rem',
                 overflow: 'hidden',
-                backgroundColor: '#1f2937'
+                backgroundColor: isDark ? '#1f2937' : '#ffffff'
               }}>
                 <div style={{
                   padding: '0.5rem 1rem',
-                  borderBottom: '1px solid #374151',
+                  borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  backgroundColor: '#111827'
+                  backgroundColor: isDark ? '#111827' : '#f9fafb'
                 }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#374151' }}>
                     {analysisResult.filePath?.split('/').pop()}
                   </span>
                   <button
@@ -436,13 +427,13 @@ const CodeboardDetail = () => {
                       padding: '0.25rem 0.5rem',
                       fontSize: '0.75rem',
                       borderRadius: '0.25rem',
-                      color: '#d1d5db',
+                      color: isDark ? '#d1d5db' : '#374151',
                       backgroundColor: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#374151'}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f3f4f6'}
                     onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
                     <svg style={{ width: '0.875rem', height: '0.875rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -467,9 +458,9 @@ const CodeboardDetail = () => {
                           textAlign: 'right',
                           fontSize: '0.75rem',
                           userSelect: 'none',
-                          borderRight: '1px solid #374151',
-                          backgroundColor: '#111827',
-                          color: '#6b7280'
+                          borderRight: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                          backgroundColor: isDark ? '#111827' : '#f9fafb',
+                          color: isDark ? '#6b7280' : '#9ca3af'
                         }}>
                           {lineNumber}
                         </div>
@@ -478,7 +469,7 @@ const CodeboardDetail = () => {
                             fontSize: '0.875rem',
                             margin: 0,
                             fontFamily: 'monospace',
-                            color: '#f3f4f6'
+                            color: isDark ? '#f3f4f6' : '#111827'
                           }}>{line || ' '}</pre>
                         </div>
                       </div>
@@ -489,20 +480,20 @@ const CodeboardDetail = () => {
 
               {/* 분석 결과 */}
               <div style={{
-                border: '1px solid #374151',
+                border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
                 borderRadius: '0.5rem',
                 overflow: 'hidden',
-                backgroundColor: '#1f2937'
+                backgroundColor: isDark ? '#1f2937' : '#ffffff'
               }}>
                 <div style={{
                   padding: '0.5rem 1rem',
-                  borderBottom: '1px solid #374151',
+                  borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  backgroundColor: '#111827'
+                  backgroundColor: isDark ? '#111827' : '#f9fafb'
                 }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#374151' }}>
                     분석 결과
                   </span>
                   {analysisResult && (() => {
@@ -590,21 +581,21 @@ const CodeboardDetail = () => {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {(typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
                               <div key={idx} style={{
-                                border: '1px solid #374151',
+                                border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
                                 borderRadius: '0.375rem',
                                 overflow: 'hidden'
                               }}>
                                 <div style={{
                                   padding: '0.5rem 0.75rem',
-                                  borderBottom: '1px solid #374151',
-                                  backgroundColor: '#111827'
+                                  borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                                  backgroundColor: isDark ? '#111827' : '#f9fafb'
                                 }}>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#d1d5db' }}>제안 #{idx + 1}</span>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#374151' }}>제안 #{idx + 1}</span>
                                 </div>
                                 <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                   {suggestion.problematicSnippet && (
                                     <div>
-                                      <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: '#9ca3af' }}>변경 전:</div>
+                                      <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: isDark ? '#9ca3af' : '#6b7280' }}>변경 전:</div>
                                       <pre style={{
                                         padding: '0.5rem',
                                         borderRadius: '0.25rem',
@@ -621,7 +612,7 @@ const CodeboardDetail = () => {
                                   )}
                                   {suggestion.proposedReplacement && (
                                     <div>
-                                      <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: '#9ca3af' }}>변경 후:</div>
+                                      <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: isDark ? '#9ca3af' : '#6b7280' }}>변경 후:</div>
                                       <pre style={{
                                         padding: '0.5rem',
                                         borderRadius: '0.25rem',
@@ -662,7 +653,7 @@ const CodeboardDetail = () => {
                 fontSize: '2.25rem',
                 fontWeight: '700',
                 flex: 1,
-                color: '#e5e7eb',
+                color: isDark ? '#e5e7eb' : '#111827',
                 margin: 0
               }}>
                 {board.codeboardTitle || "제목 없음"}
@@ -676,14 +667,14 @@ const CodeboardDetail = () => {
                     borderRadius: '0.5rem',
                     fontSize: '1rem',
                     fontWeight: '500',
-                    backgroundColor: '#374151',
-                    color: '#e5e7eb',
+                    backgroundColor: isDark ? '#374151' : '#f3f4f6',
+                    color: isDark ? '#e5e7eb' : '#374151',
                     border: 'none',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s'
                   }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#4b5563'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#374151'}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#4b5563' : '#e5e7eb'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f3f4f6'}
                 >
                   수정
                 </button>
@@ -727,8 +718,8 @@ const CodeboardDetail = () => {
               alignItems: 'center',
               gap: '1rem',
               paddingBottom: '1.5rem',
-              borderBottom: '1px solid #374151',
-              color: '#9ca3af'
+              borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+              color: isDark ? '#9ca3af' : '#6b7280'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <div style={{
@@ -739,8 +730,8 @@ const CodeboardDetail = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '0.875rem',
-                  backgroundColor: '#374151',
-                  color: '#e5e7eb'
+                  backgroundColor: isDark ? '#374151' : '#e5e7eb',
+                  color: isDark ? '#e5e7eb' : '#6b7280'
                 }}>
                   {board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'}
                 </div>
@@ -756,7 +747,7 @@ const CodeboardDetail = () => {
             <div
               ref={contentRef}
               className="codeboard-content"
-              style={{ marginBottom: '2rem', minHeight: '300px' }}
+              style={{ marginBottom: '2rem', minHeight: '300px', color: isDark ? '#e5e7eb' : '#374151' }}
               dangerouslySetInnerHTML={{ __html: getRenderedContent(board.codeboardContent) }}
             ></div>
 
@@ -767,7 +758,7 @@ const CodeboardDetail = () => {
                 flexWrap: 'wrap',
                 gap: '0.5rem',
                 paddingTop: '2rem',
-                borderTop: '1px solid #374151'
+                borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
               }}>
                 {board.tags.map((tag, index) => (
                   <span
@@ -794,7 +785,7 @@ const CodeboardDetail = () => {
               padding: '1rem 0',
               marginTop: '2rem',
               paddingTop: '2rem',
-              borderTop: '1px solid #374151'
+              borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <button
@@ -806,11 +797,11 @@ const CodeboardDetail = () => {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: isLiked ? '#ef4444' : '#9ca3af',
+                    color: isLiked ? '#ef4444' : (isDark ? '#9ca3af' : '#6b7280'),
                     transition: 'color 0.2s'
                   }}
                   onMouseEnter={(e) => !isLiked && (e.currentTarget.style.color = '#fca5a5')}
-                  onMouseLeave={(e) => !isLiked && (e.currentTarget.style.color = '#9ca3af')}
+                  onMouseLeave={(e) => !isLiked && (e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280')}
                 >
                   <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
                   <span style={{ fontSize: '0.875rem' }}>좋아요</span>
@@ -821,7 +812,7 @@ const CodeboardDetail = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  color: '#9ca3af'
+                  color: isDark ? '#9ca3af' : '#6b7280'
                 }}>
                   <MessageCircle size={20} />
                   <span style={{ fontSize: '0.875rem' }}>댓글</span>
@@ -840,11 +831,11 @@ const CodeboardDetail = () => {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: '#9ca3af',
+                    color: isDark ? '#9ca3af' : '#6b7280',
                     transition: 'color 0.2s'
                   }}
-                  onMouseEnter={(e) => e.target.style.color = '#d1d5db'}
-                  onMouseLeave={(e) => e.target.style.color = '#9ca3af'}
+                  onMouseEnter={(e) => e.target.style.color = isDark ? '#d1d5db' : '#111827'}
+                  onMouseLeave={(e) => e.target.style.color = isDark ? '#9ca3af' : '#6b7280'}
                 >
                   <Share2 size={18} />
                   <span>공유</span>
@@ -860,11 +851,11 @@ const CodeboardDetail = () => {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: '#9ca3af',
+                    color: isDark ? '#9ca3af' : '#6b7280',
                     transition: 'color 0.2s'
                   }}
-                  onMouseEnter={(e) => e.target.style.color = '#d1d5db'}
-                  onMouseLeave={(e) => e.target.style.color = '#9ca3af'}
+                  onMouseEnter={(e) => e.target.style.color = isDark ? '#d1d5db' : '#111827'}
+                  onMouseLeave={(e) => e.target.style.color = isDark ? '#9ca3af' : '#6b7280'}
                 >
                   <AlertCircle size={18} />
                   <span>신고</span>

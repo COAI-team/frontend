@@ -9,6 +9,35 @@ export default function CommentSection({ boardId, boardType, isDark }) {
   const [cursor, setCursor] = useState(null);
   const [hasNext, setHasNext] = useState(false);
 
+  // 평면 구조를 중첩 구조로 변환
+  const buildCommentTree = (flatComments) => {
+    const commentMap = new Map();
+    const rootComments = [];
+
+    // 먼저 모든 댓글을 Map에 저장
+    flatComments.forEach(comment => {
+      commentMap.set(comment.commentId, { ...comment, replies: [] });
+    });
+
+    // 부모-자식 관계 구성
+    flatComments.forEach(comment => {
+      const commentWithReplies = commentMap.get(comment.commentId);
+      
+      if (comment.parentCommentId === null) {
+        // 최상위 댓글
+        rootComments.push(commentWithReplies);
+      } else {
+        // 대댓글
+        const parent = commentMap.get(comment.parentCommentId);
+        if (parent) {
+          parent.replies.push(commentWithReplies);
+        }
+      }
+    });
+
+    return rootComments;
+  };
+
   // 댓글 목록 조회
   const fetchComments = async (isLoadMore = false) => {
     setLoading(true);
@@ -24,10 +53,13 @@ export default function CommentSection({ boardId, boardType, isDark }) {
 
       const { content, nextCursor, hasNext: hasNextPage } = response.data;
 
+      // 평면 구조를 트리 구조로 변환
+      const treeComments = buildCommentTree(content);
+
       if (isLoadMore) {
-        setComments(prev => [...prev, ...content]);
+        setComments(prev => [...prev, ...treeComments]);
       } else {
-        setComments(content);
+        setComments(treeComments);
       }
 
       setCursor(nextCursor);
