@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateProblem } from '../../service/algorithm/algorithmApi';
+import { generateProblem, completeMission } from '../../service/algorithm/AlgorithmApi';
 
 /**
  * AI 문제 생성 페이지
@@ -23,6 +23,14 @@ const ProblemGenerator = () => {
   const [generatedProblem, setGeneratedProblem] = useState(null);
   const [generationStep, setGenerationStep] = useState('');
 
+  // 🎯 데일리 미션 완료 상태
+  const [missionStatus, setMissionStatus] = useState({
+    completed: false,
+    message: null,
+    rewardPoints: 0,
+    error: null
+  });
+
   // 타이핑 효과 관련 상태
   const [displayedText, setDisplayedText] = useState('');
   const [typingComplete, setTypingComplete] = useState(false);
@@ -36,10 +44,17 @@ const ProblemGenerator = () => {
     { value: 'PLATINUM', label: '플래티넘 (고급)', color: 'blue', description: '복잡한 알고리즘, 수학적 사고' },
   ];
 
-  const TOPIC_SUGGESTIONS_ALGO = [
-    '배열', 'DP', '그리디', '그래프', '구현', '수학',
-    '문자열', '정렬', '탐색', '시뮬레이션', '재귀', '백트래킹'
-  ];
+  // 카테고리별 알고리즘 토픽 (24개)
+  const TOPIC_CATEGORIES_ALGO = {
+    '기초': ['배열', '구현', '시뮬레이션', '재귀', '수학', '문자열'],
+    '탐색': ['탐색', 'BFS', 'DFS', '이분탐색', '백트래킹'],
+    '알고리즘': ['DP', '그리디', '정렬', '분할정복', '투포인터'],
+    '그래프': ['그래프', '최단경로', 'MST', '위상정렬'],
+    '자료구조': ['스택/큐', '트리', '힙', '유니온파인드'],
+  };
+
+  // 평면화된 토픽 배열 (기존 호환성 유지)
+  const TOPIC_SUGGESTIONS_ALGO = Object.values(TOPIC_CATEGORIES_ALGO).flat();
 
   const TOPIC_SUGGESTIONS_SQL = [
     'SELECT', 'GROUP BY', 'String, Date', 'JOIN', 'SUM, MAX, MIN', 'IS NULL'
@@ -174,6 +189,76 @@ const ProblemGenerator = () => {
       setGeneratedProblem(result.data);
       setGenerationStep('생성 완료!');
 
+      // 🎯 데일리 미션 완료 처리 (PROBLEM_GENERATE)
+      // TODO: 실제 로그인 구현 후 user.userId로 변경
+      const testUserId = 3; // 개발용 테스트 userId
+      try {
+        const missionResult = await completeMission('PROBLEM_GENERATE', testUserId);
+        console.log('🎯 미션 완료 API 응답 (전체):', JSON.stringify(missionResult, null, 2));
+
+        const mResult = missionResult.data || missionResult;
+
+        if (mResult.error) {
+          // "이미 완료된 미션" 에러(ALGO_4501)는 정상 케이스로 처리
+          if (mResult.code === 'ALGO_4501') {
+            setMissionStatus({
+              completed: true,
+              message: '오늘의 미션은 이미 완료되었습니다',
+              rewardPoints: 0,
+              error: null
+            });
+            console.log('ℹ️ 오늘 미션은 이미 완료되었습니다.');
+          } else {
+            console.warn('미션 완료 API 오류:', mResult.message);
+            setMissionStatus(prev => ({ ...prev, error: mResult.message }));
+          }
+        } else if (mResult.success || mResult.completed) {
+          setMissionStatus({
+            completed: true,
+            message: mResult.message || 'AI 문제 생성 미션 완료!',
+            rewardPoints: mResult.rewardPoints || 0,
+            error: null
+          });
+          console.log('✅ 미션 완료:', mResult.message, `+${mResult.rewardPoints || 0}P`);
+        } else if (mResult.alreadyCompleted) {
+          setMissionStatus({
+            completed: true,
+            message: '이미 완료된 미션입니다',
+            rewardPoints: 0,
+            error: null
+          });
+          console.log('ℹ️ 이미 완료된 미션');
+        } else {
+          // 에러가 아니면 성공으로 간주
+          console.log('ℹ️ 예상치 못한 응답 구조, 성공으로 처리:', mResult);
+          setMissionStatus({
+            completed: true,
+            message: 'AI 문제 생성 미션 완료!',
+            rewardPoints: 0,
+            error: null
+          });
+        }
+      } catch (missionErr) {
+        // "이미 완료된 미션" 에러(ALGO_4501)는 정상 케이스로 처리
+        const errorCode = missionErr.response?.data?.code;
+        const errorMessage = missionErr.response?.data?.message;
+
+        if (errorCode === 'ALGO_4501') {
+          // 이미 완료된 미션 - 에러가 아닌 정상 상태로 처리
+          setMissionStatus({
+            completed: true,
+            message: '오늘의 미션은 이미 완료되었습니다',
+            rewardPoints: 0,
+            error: null
+          });
+          console.log('ℹ️ 오늘 미션은 이미 완료되었습니다.');
+        } else {
+          // 다른 에러는 경고로 처리 (문제 생성 자체는 성공했으므로)
+          console.warn('미션 완료 처리 실패 (무시됨):', errorMessage || missionErr);
+          setMissionStatus(prev => ({ ...prev, error: errorMessage || '미션 완료 처리 실패' }));
+        }
+      }
+
     } catch (err) {
       console.error('문제 생성 에러:', err);
       setError('문제 생성 중 오류가 발생했습니다.');
@@ -196,6 +281,13 @@ const ProblemGenerator = () => {
     setError(null);
     setDisplayedText('');
     setTypingComplete(false);
+    // 미션 상태 초기화
+    setMissionStatus({
+      completed: false,
+      message: null,
+      rewardPoints: 0,
+      error: null
+    });
   };
 
   const skipTyping = () => {
@@ -305,6 +397,29 @@ const ProblemGenerator = () => {
           <p className="text-gray-600">원하는 난이도와 주제를 선택하면 AI가 문제를 생성합니다</p>
         </div>
 
+        {/* 🎯 데일리 미션 완료 배너 */}
+        {missionStatus.completed && (
+          <div className="mb-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-lg p-4 text-white animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🎉</span>
+                <div>
+                  <h3 className="font-bold text-lg">데일리 미션 완료!</h3>
+                  <p className="text-green-100 text-sm">
+                    {missionStatus.message || 'AI 문제 생성 미션을 완료했습니다'}
+                  </p>
+                </div>
+              </div>
+              {missionStatus.rewardPoints > 0 && (
+                <div className="text-right">
+                  <p className="text-2xl font-bold">+{missionStatus.rewardPoints}P</p>
+                  <p className="text-green-100 text-xs">보상 포인트</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 왼쪽: 문제 생성 폼 */}
           <div className="bg-white rounded-lg shadow-md p-6">
@@ -372,22 +487,50 @@ const ProblemGenerator = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   문제 주제 <span className="text-red-500">*</span>
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {(formData.problemType === 'SQL' ? TOPIC_SUGGESTIONS_SQL : TOPIC_SUGGESTIONS_ALGO).map((topic) => (
-                    <button
-                      key={topic}
-                      type="button"
-                      onClick={() => handleTopicSuggestionClick(topic)}
-                      className={`px-4 py-2 text-sm rounded-lg border-2 transition-all ${
-                        formData.topic === topic
-                          ? 'bg-blue-50 text-blue-800 border-blue-500 font-semibold'
-                          : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
-                      }`}
-                    >
-                      {topic}
-                    </button>
-                  ))}
-                </div>
+                {formData.problemType === 'SQL' ? (
+                  // SQL 토픽 (기존 방식)
+                  <div className="flex flex-wrap gap-2">
+                    {TOPIC_SUGGESTIONS_SQL.map((topic) => (
+                      <button
+                        key={topic}
+                        type="button"
+                        onClick={() => handleTopicSuggestionClick(topic)}
+                        className={`px-4 py-2 text-sm rounded-lg border-2 transition-all ${
+                          formData.topic === topic
+                            ? 'bg-blue-50 text-blue-800 border-blue-500 font-semibold'
+                            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
+                        }`}
+                      >
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  // 알고리즘 토픽 (카테고리별)
+                  <div className="space-y-3">
+                    {Object.entries(TOPIC_CATEGORIES_ALGO).map(([category, topics]) => (
+                      <div key={category}>
+                        <div className="text-xs font-semibold text-gray-500 mb-1.5">{category}</div>
+                        <div className="flex flex-wrap gap-2">
+                          {topics.map((topic) => (
+                            <button
+                              key={topic}
+                              type="button"
+                              onClick={() => handleTopicSuggestionClick(topic)}
+                              className={`px-3 py-1.5 text-sm rounded-lg border-2 transition-all ${
+                                formData.topic === topic
+                                  ? 'bg-blue-50 text-blue-800 border-blue-500 font-semibold'
+                                  : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
+                              }`}
+                            >
+                              {topic}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {formData.topic && (
                   <div className="mt-3 text-sm text-blue-600">
                     선택된 주제: <span className="font-semibold">{formData.topic}</span>

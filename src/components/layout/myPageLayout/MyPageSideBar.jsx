@@ -7,6 +7,8 @@ import {
     CreditCardIcon,
     ChartBarIcon,
     PresentationChartLineIcon,
+    CalendarDaysIcon,
+    CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 
 const myMenu = [
@@ -15,6 +17,13 @@ const myMenu = [
         icon: UserIcon,
         children: [
             { name: "프로필 설정", href: "/mypage/profile", icon: UserCircleIcon },
+        ],
+    },
+    {
+        name: "미션",
+        icon: CalendarDaysIcon,
+        children: [
+            { name: "오늘의 미션", href: "/mypage/daily-mission", icon: CheckCircleIcon },
         ],
     },
     {
