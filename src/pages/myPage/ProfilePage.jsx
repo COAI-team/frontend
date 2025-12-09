@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { AiFillGithub } from "react-icons/ai";
+import {useState, useEffect} from "react";
+import {AiFillGithub} from "react-icons/ai";
 import {
     getUserInfo,
     updateMyInfo,
@@ -8,16 +8,16 @@ import {
     getGithubUserInfo,
     disconnectGithub
 } from "../../service/user/User";
-import { fetchSubscriptions } from "../../service/payment/PaymentApi";
-import { useLogin } from "../../context/useLogin";
-import { useNavigate } from "react-router-dom";
+import {fetchSubscriptions} from "../../service/payment/PaymentApi";
+import {useLogin} from "../../context/useLogin";
+import {useNavigate} from "react-router-dom";
 import AlertModal from "../../components/modal/AlertModal";
 import ViewModeCard from "../../components/card/ViewModeCard";
 import EditModeCard from "../../components/card/EditModeCard";
 
 export default function ProfilePage() {
     const navigate = useNavigate();
-    const { user, accessToken, setUser } = useLogin();
+    const {user, accessToken, setUser} = useLogin();
 
     const [editMode, setEditMode] = useState(false);
     const [isDeleted, setIsDeleted] = useState(false);
@@ -32,7 +32,7 @@ export default function ProfilePage() {
         image: null,
     });
 
-    const [subscription, setSubscription] = useState({ code: "FREE", label: "Free" });
+    const [subscription, setSubscription] = useState({code: "FREE", label: "Free"});
     const [subscriptionLoading, setSubscriptionLoading] = useState(true);
     const [subscriptionError, setSubscriptionError] = useState("");
     const [githubConnected, setGithubConnected] = useState(false);
@@ -121,7 +121,7 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchSubscription = async () => {
             if (!accessToken) {
-                setSubscription({ code: "FREE", label: "Free" });
+                setSubscription({code: "FREE", label: "Free"});
                 setSubscriptionLoading(false);
                 return;
             }
@@ -134,7 +134,7 @@ export default function ProfilePage() {
 
                 const list = Array.isArray(res.data) ? res.data : [];
                 if (list.length === 0) {
-                    setSubscription({ code: "FREE", label: "Free" });
+                    setSubscription({code: "FREE", label: "Free"});
                     return;
                 }
 
@@ -143,10 +143,15 @@ export default function ProfilePage() {
                     list[0];
 
                 const code = (active.subscriptionType || active.planCode || "FREE").toUpperCase();
-                const label = code === "PRO" ? "Pro" : code === "BASIC" ? "Basic" : "Free";
+                const labels = {
+                    PRO: "Pro",
+                    BASIC: "Basic",
+                };
 
-                setSubscription({ code, label });
-            } catch (err) {
+                const label = labels[code] ?? "Free";
+
+                setSubscription({code, label});
+            } catch {
                 setSubscriptionError("구독 정보를 불러오지 못했습니다.");
             } finally {
                 setSubscriptionLoading(false);
@@ -247,17 +252,25 @@ export default function ProfilePage() {
         setIsDeleted(false);
     };
 
-    const subscriptionTone = subscriptionError
-        ? "error"
-        : subscriptionLoading
-        ? "muted"
-        : "primary";
+    let subscriptionTone;
 
-    const subscriptionText = subscriptionLoading
-        ? "구독 정보를 불러오는 중..."
-        : subscriptionError
-        ? subscriptionError
-        : `현재 구독 요금제: ${subscription.label}`;
+    if (subscriptionError) {
+        subscriptionTone = "error";
+    } else if (subscriptionLoading) {
+        subscriptionTone = "muted";
+    } else {
+        subscriptionTone = "primary";
+    }
+
+    let subscriptionText;
+
+    if (subscriptionLoading) {
+        subscriptionText = "구독 정보를 불러오는 중...";
+    } else if (subscriptionError) {
+        subscriptionText = subscriptionError;
+    } else {
+        subscriptionText = `현재 구독 요금제: ${subscription.label}`;
+    }
 
     return (
         <div className="max-w-3xl mx-auto p-6">
@@ -275,7 +288,7 @@ export default function ProfilePage() {
                 <ViewModeCard
                     profile={profile}
                     maskEmail={maskEmail}
-                    subscriptionInfo={{ text: subscriptionText, tone: subscriptionTone }}
+                    subscriptionInfo={{text: subscriptionText, tone: subscriptionTone}}
                     onEdit={() => setEditMode(true)}
                 />
             )}
@@ -287,8 +300,9 @@ export default function ProfilePage() {
                 <div className="border rounded-2xl shadow-sm divide-y">
                     <div className="flex items-center justify-between p-4">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white">
-                                <AiFillGithub className="w-7 h-7 text-black" />
+                            <div
+                                className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white">
+                                <AiFillGithub className="w-7 h-7 text-black"/>
                             </div>
                             <span className="text-lg font-medium">Github</span>
                         </div>
@@ -297,7 +311,7 @@ export default function ProfilePage() {
                             {githubConnected ? (
                                 <button
                                     onClick={handleGithubDisconnect}
-                                    className="px-4 py-1 border rounded-md hover:bg-gray-100"
+                                    className="px-4 py-1 border rounded-md "
                                 >
                                     연결 해제
                                 </button>
@@ -313,46 +327,62 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex items-center justify-between p-4">
                         <div className="flex items-center">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                className="sr-only peer"
-                                checked={JSON.parse(localStorage.getItem("walkingMoai") ?? "true")}
-                                onChange={(e) => {
-                                    localStorage.setItem("walkingMoai", e.target.checked);
-                                    window.dispatchEvent(new Event("storage"));
-                                    setProfile({...profile}); 
-                                }}
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
+                            <label
+                                htmlFor="walkingMoai"
+                                className="relative inline-flex items-center cursor-pointer"
+                            >
+                                <span className="sr-only">워킹 모아이 사용 여부</span>
+
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={JSON.parse(localStorage.getItem("walkingMoai") ?? "true")}
+                                    onChange={(e) => {
+                                        localStorage.setItem("walkingMoai", e.target.checked);
+                                        globalThis.dispatchEvent(new Event("storage"));
+                                        setProfile({ ...profile });
+                                    }}
+                                />
+
+                                <div
+                                    className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4
+                   peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800
+                   rounded-full peer dark:bg-gray-700
+                   peer-checked:after:translate-x-full peer-checked:after:border-white
+                   after:content-[''] after:absolute after:top-0.5 after:left-0.5
+                   after:bg-white after:border-gray-300 after:border after:rounded-full
+                   after:h-5 after:w-5 after:transition-all dark:border-gray-600
+                   peer-checked:bg-blue-600">
+                                </div>
+                            </label>
+                        </div>
                     </div>
-                </div>
                 </div>
 
                 <div className="border rounded-2xl shadow-sm p-6 flex flex-col gap-4 mt-4">
-                     <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center">
                         <div>
                             <h3 className="font-medium text-lg">모아이 대량 발생</h3>
-                            <p className="text-gray-500 text-sm">최대 {JSON.parse(localStorage.getItem("moaiCount") ?? "1")}마리의 모아이가 출현합니다.</p>
+                            <p className="text-gray-500 text-sm">최대 {JSON.parse(localStorage.getItem("moaiCount") ?? "1")}마리의
+                                모아이가 출현합니다.</p>
                         </div>
                         <span className="font-bold text-lg text-blue-600">
                              {JSON.parse(localStorage.getItem("moaiCount") ?? "1")} 마리
                         </span>
-                     </div>
-                     <input 
-                        type="range" 
-                        min="1" 
-                        max="10" 
+                    </div>
+                    <input
+                        type="range"
+                        min="1"
+                        max="10"
                         step="1"
                         value={JSON.parse(localStorage.getItem("moaiCount") ?? "1")}
                         onChange={(e) => {
                             localStorage.setItem("moaiCount", e.target.value);
-                            window.dispatchEvent(new Event("storage"));
+                            globalThis.dispatchEvent(new Event("storage"));
                             setProfile({...profile});
                         }}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
-                     />
+                    />
                 </div>
             </div>
 
