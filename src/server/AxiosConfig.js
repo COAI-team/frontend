@@ -5,7 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 export const axiosInstance = axios.create({
     baseURL: API_URL,
-    timeout: 10000,
+    timeout: 300000,
 });
 
 // baseURL 한 번 더 강제

@@ -1,12 +1,12 @@
-import {useState, useEffect} from "react";
+import {useEffect, useState} from "react";
 import {AiFillGithub} from "react-icons/ai";
 import {
-    getUserInfo,
-    updateMyInfo,
-    restoreUser,
     deactivateUser,
+    disconnectGithub,
     getGithubUserInfo,
-    disconnectGithub
+    getUserInfo,
+    restoreUser,
+    updateMyInfo
 } from "../../service/user/User";
 import {fetchSubscriptions} from "../../service/payment/PaymentApi";
 import {useLogin} from "../../context/useLogin";
@@ -17,13 +17,13 @@ import EditModeCard from "../../components/card/EditModeCard";
 
 export default function ProfilePage() {
     const navigate = useNavigate();
-    const {user, accessToken, setUser} = useLogin();
-
+    const { accessToken, setUser } = useLogin();
     const [editMode, setEditMode] = useState(false);
     const [isDeleted, setIsDeleted] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMsg, setModalMsg] = useState("");
+
     const [profile, setProfile] = useState({
         name: "",
         nickname: "",
@@ -35,6 +35,7 @@ export default function ProfilePage() {
     const [subscription, setSubscription] = useState({code: "FREE", label: "Free"});
     const [subscriptionLoading, setSubscriptionLoading] = useState(true);
     const [subscriptionError, setSubscriptionError] = useState("");
+
     const [githubConnected, setGithubConnected] = useState(false);
 
     const openModal = (msg) => {
@@ -48,55 +49,11 @@ export default function ProfilePage() {
         return `${id.slice(0, 2)}****@${domain}`;
     };
 
-    /** 🔥 GitHub 연동 상태 확인 함수 — useEffect 위로 이동 */
-    const checkGithubLink = async () => {
-        const github = await getGithubUserInfo();
-        if (!github.error) {
-            setGithubConnected(github.linked);
-        }
-    };
-
     /** 🔥 사용자 기본 정보 불러오기 */
     useEffect(() => {
-        if (!accessToken) return;
-
-        // 이미 user 정보가 LoginProvider에 있는 경우
-        if (user) {
-            setProfile({
-                name: user.userName,
-                nickname: user.userNickname || "",
-                email: user.userEmail,
-                preview: user.userImage || null,
-                image: null,
-            });
-
-            setIsDeleted(user.isDeleted || false);
-
-            // 🔥 GitHub OAuth 로그인 → 자동으로 연동됨
-            if (user.oauthProvider === "GITHUB") {
-                setGithubConnected(true);
-            } else {
-                checkGithubLink(); // 🔥 문제 해결됨
-            }
-
-            return;
-        }
-
-        // user가 없고 accessToken만 있는 경우 서버 호출
         const loadUserInfo = async () => {
-            const res = await getUserInfo();
+            const res = await getUserInfo(accessToken);
             if (!res || res.error) return;
-
-            const normalizedUser = {
-                userName: res.userName,
-                userNickname: res.userNickname,
-                userEmail: res.userEmail,
-                userImage: res.userImage,
-                isDeleted: res.isDeleted,
-                oauthProvider: res.oauthProvider, // 🔥 중요
-            };
-
-            setUser(normalizedUser);
 
             setProfile({
                 name: res.userName,
@@ -108,15 +65,15 @@ export default function ProfilePage() {
 
             setIsDeleted(res.isDeleted || false);
 
-            if (normalizedUser.oauthProvider === "GITHUB") {
-                setGithubConnected(true);
-            } else {
-                checkGithubLink(); // 🔥 정상 작동
+            /** 🔥 GitHub 연동 상태 가져오기 */
+            const github = await getGithubUserInfo();
+            if (!github.error) {
+                setGithubConnected(github.linked); // ✔ linked 사용
             }
         };
 
         loadUserInfo();
-    }, [accessToken, user, navigate, setUser]);
+    }, [accessToken, navigate]);
 
     useEffect(() => {
         const fetchSubscription = async () => {
@@ -166,8 +123,7 @@ export default function ProfilePage() {
         const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
         const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
 
-        globalThis.location.href =
-            `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=link`;
+        globalThis.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}`;
     };
 
     /** 🔥 GitHub 연결 해제 */
@@ -226,7 +182,9 @@ export default function ProfilePage() {
     };
 
     /** 🔥 탈퇴 처리 */
-    const handleDeactivate = () => setDeleteModalOpen(true);
+    const handleDeactivate = () => {
+        setDeleteModalOpen(true);
+    };
 
     const confirmDeactivate = async () => {
         const res = await deactivateUser(accessToken);
@@ -317,44 +275,12 @@ export default function ProfilePage() {
                                 </button>
                             ) : (
                                 <button
-                                    onClick={handleGithubConnect}
+                                    onClick={handleGithubConnect} // ✔ 연결하기
                                     className="px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
                                 >
                                     연결하기
                                 </button>
                             )}
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center">
-                            <label
-                                htmlFor="walkingMoai"
-                                className="relative inline-flex items-center cursor-pointer"
-                            >
-                                <span className="sr-only">워킹 모아이 사용 여부</span>
-
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={JSON.parse(localStorage.getItem("walkingMoai") ?? "true")}
-                                    onChange={(e) => {
-                                        localStorage.setItem("walkingMoai", e.target.checked);
-                                        globalThis.dispatchEvent(new Event("storage"));
-                                        setProfile({ ...profile });
-                                    }}
-                                />
-
-                                <div
-                                    className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4
-                   peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800
-                   rounded-full peer dark:bg-gray-700
-                   peer-checked:after:translate-x-full peer-checked:after:border-white
-                   after:content-[''] after:absolute after:top-0.5 after:left-0.5
-                   after:bg-white after:border-gray-300 after:border after:rounded-full
-                   after:h-5 after:w-5 after:transition-all dark:border-gray-600
-                   peer-checked:bg-blue-600">
-                                </div>
-                            </label>
                         </div>
                     </div>
                 </div>
@@ -382,7 +308,40 @@ export default function ProfilePage() {
                             setProfile({...profile});
                         }}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
-                    />
+                     />
+                     <div className="flex items-center justify-between p-4 border-t pt-4 mt-4">
+                        <div>
+                            <h3 className="font-medium text-lg">뿅뿅 모아이</h3>
+                            <p className="text-gray-500 text-sm">화면에 모아이가 뿅뿅거립니다.</p>
+                        </div>
+                         <label
+                             htmlFor="walkingMoai"
+                             className="relative inline-flex items-center cursor-pointer"
+                         >
+                             {/* 접근성용 레이블 */}
+                             <span className="sr-only">워킹 모아이 설정</span>
+
+                             <input
+                                 type="checkbox"
+                                 className="sr-only peer"
+                                 checked={JSON.parse(localStorage.getItem("walkingMoai") ?? "true")}
+                                 onChange={(e) => {
+                                     localStorage.setItem("walkingMoai", e.target.checked);
+                                     globalThis.dispatchEvent(new Event("storage"));
+                                     setProfile({ ...profile });
+                                 }}
+                             />
+
+                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4
+                    peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full
+                    peer dark:bg-gray-700 peer-checked:after:translate-x-full
+                    peer-checked:after:border-white after:content-[''] after:absolute
+                    after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300
+                    after:border after:rounded-full after:h-5 after:w-5 after:transition-all
+                    dark:border-gray-600 peer-checked:bg-blue-600">
+                             </div>
+                         </label>
+                    </div>
                 </div>
             </div>
 
