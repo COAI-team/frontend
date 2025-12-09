@@ -132,6 +132,29 @@ axiosInstance.interceptors.response.use(
             throw error;
         }
 
+        // 공개 GET 엔드포인트 체크
+        const isPublicGetRequest = (request) => {
+            if (request.method?.toUpperCase() !== 'GET') return false;
+            
+            const publicPaths = [
+                '/freeboard', 
+                '/codeboard', 
+                '/like', 
+                '/comment', 
+                '/algo',
+                '/analysis',
+                '/api/analysis'
+            ];
+            
+            const url = request.url || '';
+            return publicPaths.some(path => url.includes(path));
+        };
+
+        // 공개 GET 요청이면 리다이렉트하지 않음
+        if (isPublicGetRequest(originalRequest) && (status === 401 || status === 403)) {
+            throw error;
+        }
+
         if (!skipAuthRedirect && (status === 401 || status === 403)) {
             removeAuth();
 
