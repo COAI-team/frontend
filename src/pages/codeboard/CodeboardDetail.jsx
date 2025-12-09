@@ -154,51 +154,26 @@ const CodeboardDetail = () => {
         });
       });
 
-      // 이미 렌더링된 코드블록의 헤더 스타일 업데이트
-      contentRef.current.querySelectorAll('.code-block-wrapper').forEach(block => {
-        const header = block.querySelector('.code-header');
-        if (header) {
-          Object.assign(header.style, {
-            backgroundColor: isDark ? '#1f2937' : '#f9fafb',
-            color: isDark ? '#d1d5db' : '#1f2937',
-            borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
-          });
-        }
-        
-        // 코드블록 배경 업데이트
-        Object.assign(block.style, {
-          backgroundColor: isDark ? '#1e1e1e' : '#ffffff',
-          border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
-        });
-      });
-
-      // 아직 처리되지 않은 Monaco 코드블록 처리
+      // Monaco 코드블록 처리
       contentRef.current.querySelectorAll('pre[data-type="monaco-code-block"]').forEach(block => {
         const code = block.getAttribute('data-code');
         const language = block.getAttribute('data-language') || 'plaintext';
         
         if (code) {
-          const decodedCode = decodeHTMLEntities(code);
+          const decodeHTML = (html) => {
+            const txt = document.createElement("textarea");
+            txt.innerHTML = html;
+            return txt.value;
+          };
+
+          const decodedCode = decodeHTML(code);
           
           block.innerHTML = '';
           block.className = 'code-block-wrapper';
           block.removeAttribute('data-type');
-          Object.assign(block.style, {
-            backgroundColor: isDark ? '#1e1e1e' : '#ffffff',
-            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-            borderRadius: '0.5rem',
-            overflow: 'hidden',
-            margin: '1.5rem 0'
-          });
           
           const header = document.createElement('div');
           header.className = 'code-header';
-          Object.assign(header.style, {
-            backgroundColor: isDark ? '#1f2937' : '#f9fafb',
-            color: isDark ? '#d1d5db' : '#1f2937',
-            borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-            padding: '0.5rem 1rem'
-          });
           header.innerHTML = `<span class="code-language">${language}</span>`;
           
           const codeElement = document.createElement('code');
@@ -221,12 +196,6 @@ const CodeboardDetail = () => {
 
     return () => clearTimeout(timer);
   }, [board, isDark]);
-
-  const decodeHTMLEntities = (html) => {
-    const txt = document.createElement('textarea');
-    txt.innerHTML = html;
-    return txt.value;
-  };
 
   const renderLinkPreview = (preview, isDark) => {
     const { title, description, image, site, url } = {

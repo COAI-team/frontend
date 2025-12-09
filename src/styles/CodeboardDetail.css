@@ -72,37 +72,60 @@
   font-style: italic;
 }
 
-/* 코드블록 래퍼 */
-.code-block-wrapper {
+/* ========== code-block-wrapper 스타일 ========== */
+.codeboard-content .code-block-wrapper {
   border-radius: 0.5rem;
-  overflow: hidden;
-  margin: 1.5rem 0;
+  overflow: auto;
+  margin: 2rem 0;
+  width: 100%;
+  max-width: 100%;
 }
 
-/* 코드 헤더 */
-.code-header {
+html.dark .codeboard-content .code-block-wrapper {
+  background-color: #1e1e1e;
+  border: 1px solid #374151;
+}
+
+html:not(.dark) .codeboard-content .code-block-wrapper {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.codeboard-content .code-header {
   padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  display: flex;
+  align-items: center;
 }
 
-.code-language {
-  font-size: 0.875rem;
-  font-weight: 500;
+html.dark .codeboard-content .code-header {
+  background-color: #1f2937;
+  border-bottom: 1px solid #374151;
+  color: #d1d5db;
 }
 
-/* 코드 블록 - highlight.js 테마가 적용되도록 배경 투명 */
-.code-block-wrapper code {
-  display: block;
-  padding: 1rem;
-  overflow-x: auto;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 0.875rem;
-  line-height: 1.5;
+html:not(.dark) .codeboard-content .code-header {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  color: #1f2937;
 }
 
-/* highlight.js 스타일 보존 */
-.code-block-wrapper code.hljs {
+.codeboard-content .code-language {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.codeboard-content .code-block-wrapper code {
+  display: block !important;
+  padding: 1rem !important;
+  overflow-x: auto !important;
+  white-space: pre !important;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+  font-size: 0.875rem !important;
+  line-height: 1.7 !important;
   background: transparent !important;
 }
 
