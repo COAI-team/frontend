@@ -5,13 +5,35 @@ import RepositorySelector from '../../components/github/RepositorySelector';
 import BranchSelector from '../../components/github/BranchSelector';
 import FileTree from '../../components/github/FileTree';
 import AnalysisForm from '../../components/github/AnalysisForm';
-import { saveFile, analyzeStoredFile, getAnalysisResult, analyzeStoredFileStream } from '../../service/codeAnalysis/analysisApi';
+import { saveFile, analyzeStoredFile, getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
+import AnalysisLoading from '../../components/codeAnalysis/AnalysisLoading';
 import axiosInstance from '../../server/AxiosConfig';
 import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
 
+import { getAuth, removeAuth } from "../../utils/auth/token";
+import AlertModal from "../../components/modal/AlertModal";
+
+
+
+
+
+
 const AnalysisPage = () => {
     const { analysisId } = useParams();
+
     const navigate = useNavigate();
+
+    // Auht State
+    const [isAuthed, setIsAuthed] = useState(!!getAuth()?.accessToken);
+    const [showLoginAlert, setShowLoginAlert] = useState(false);
+
+    useEffect(() => {
+        const authed = !!getAuth()?.accessToken;
+        setIsAuthed(authed);
+        if (!authed) {
+            setShowLoginAlert(true);
+        }
+    }, []);
     const isNew = !analysisId;
 
     // Selection State
@@ -25,7 +47,6 @@ const AnalysisPage = () => {
     const [analysisResult, setAnalysisResult] = useState(null);
     const [streamedContent, setStreamedContent] = useState('');
     const [error, setError] = useState(null);
-
 
 
     // Load existing analysis if ID is present
@@ -126,9 +147,8 @@ const AnalysisPage = () => {
                 userId: 1 // TODO: Auth Context
             });
 
-            // 2. 분석 요청 (스트리밍)
-            let accumulated = "";
-            await analyzeStoredFileStream({
+            // 2. 분석 요청 (동기 -> 결과 한 번에 수신)
+            const response = await analyzeStoredFile({
                 analysisId: saveResponse.data.fileId,
                 repositoryUrl: selectedRepo.url,
                 filePath: selectedFile.path,
@@ -136,10 +156,20 @@ const AnalysisPage = () => {
                 toneLevel: formState.toneLevel,
                 customRequirements: formState.customRequirements,
                 userId: 1
-            }, (chunk) => {
-                accumulated += chunk;
-                setStreamedContent(prev => prev + chunk);
             });
+
+            const accumulated = response.data; // API returns success(data) or just data depending on ApiResponse wrapping. 
+            // The controller returns ApiResponse.success(result), so response.data should be the ApiResponse object.
+            // Let's check AnalysisController.java: return ResponseEntity.ok(ApiResponse.success(result));
+            // And analysisApi.js: return res.data;
+            // So 'response' here is 'res.data' from axios, which is the ApiResponse JSON. 
+            // The actual content is in response.data (if ApiResponse has 'data' field).
+            // Wait, analyzeStoredFile in analysisApi.js returns res.data.
+            // So 'response' variable here holds the body of the HTTP response.
+            // The body is ApiResponse<String>. So response.data is the string content (the analysis result).
+            // Let's verify ApiResponse structure. Usually it has 'status', 'message', 'data'.
+            // So accumulated = response.data;
+
 
             // 3. 결과 파싱
             try {
@@ -232,12 +262,15 @@ const AnalysisPage = () => {
                             </div>
                         )}
 
-                        {/* 스트리밍 중이거나 결과가 있을 때 */}
-                        {(isLoading || analysisResult) && (
-                            <div className="rounded-lg shadow-sm border p-6">
+                        {/* 로딩 상태 (New Premium UX) */}
+                        {isLoading && <AnalysisLoading />}
+
+                        {/* 분석 결과 */}
+                        {!isLoading && analysisResult && (
+                            <div className="rounded-lg shadow-sm border p-6 bg-white dark:bg-gray-800">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-xl font-bold">
-                                        {isLoading ? '분석 중...' : '분석 결과'}
+                                        분석 결과
                                     </h2>
                                     {analysisResult && (
                                         <div className="flex items-center gap-2">
@@ -248,54 +281,86 @@ const AnalysisPage = () => {
                                     )}
                                 </div>
 
-                                {/* 스트리밍 출력 (로딩 중일 때 표시) */}
-                                {isLoading && (
-                                    <div className="mb-6 p-4 bg-gray-900 text-green-400 font-mono text-sm rounded-lg overflow-auto max-h-[400px] whitespace-pre-wrap">
-                                        {streamedContent || "분석을 시작합니다..."}
-                                        <span className="animate-pulse">_</span>
-                                    </div>
-                                )}
+                                {/* RAG References Section */}
+                                {analysisResult.relatedAnalysisIds && (
+                                    <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                                        <h3 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                                            📚 참고된 과거 분석 이력 (RAG Context)
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {(() => {
+                                                try {
+                                                    const refs = typeof analysisResult.relatedAnalysisIds === 'string' 
+                                                        ? JSON.parse(analysisResult.relatedAnalysisIds) 
+                                                        : analysisResult.relatedAnalysisIds;
+                                                    
+                                                    if (!refs || refs.length === 0) return <span className="text-xs text-blue-600">참조된 과거 이력이 없습니다.</span>;
 
-                                {analysisResult && (
-                                    <div className="space-y-6">
-                                        {/* Code Smells */}
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-red-600 mb-3">🚨 발견된 문제점 (Code Smells)</h3>
-                                            <div className="space-y-3">
-                                                {analysisResult.codeSmells && (typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).map((smell, idx) => (
-                                                    <div key={idx} className="p-3 bg-red-50 border border-red-100 rounded">
-                                                        <div className="font-medium text-red-800">{smell.name}</div>
-                                                        <div className="text-sm text-red-600 mt-1">{smell.description}</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Suggestions */}
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-green-600 mb-3">💡 개선 제안</h3>
-                                            <div className="space-y-4">
-                                                {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
-                                                    <div key={idx} className="border rounded-lg overflow-hidden">
-                                                        <div className="p-3 border-b text-sm font-medium">제안 #{idx + 1}</div>
-                                                        <div className="p-3 bg-white">
-                                                            <div className="text-xs text-gray-500 mb-1">변경 전:</div>
-                                                            <pre className="bg-red-50 p-2 rounded text-xs mb-3 overflow-x-auto text-red-700">
-                                                                {suggestion.problematicSnippet || suggestion.problematicCode}
-                                                            </pre>
-                                                            <div className="text-xs text-gray-500 mb-1">변경 후:</div>
-                                                            <pre className="bg-green-50 p-2 rounded text-xs overflow-x-auto text-green-700">
-                                                                {suggestion.proposedReplacement}
-                                                            </pre>
+                                                    return refs.map((ref, idx) => (
+                                                        <div key={idx} 
+                                                            className="flex items-center justify-between bg-white p-2 rounded border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors"
+                                                            onClick={() => window.open(`/codeAnalysis/result/${ref.id}`, '_blank')}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-xs font-mono bg-blue-100 text-blue-700 px-1 rounded">REF #{idx + 1}</span>
+                                                                <span className="text-sm font-medium text-gray-700">{ref.fileName}</span>
+                                                            </div>
+                                                            <span className="text-xs text-gray-400">{new Date(ref.timestamp).toLocaleString()}</span>
                                                         </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                                    ));
+                                                } catch (e) {
+                                                    return <span className="text-xs text-red-400">참조 데이터 로드 실패</span>;
+                                                }
+                                            })()}
                                         </div>
                                     </div>
                                 )}
+
+                                <div className="space-y-6">
+                                    {/* Code Smells */}
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-red-600 mb-3">🚨 발견된 문제점 (Code Smells)</h3>
+                                        <div className="space-y-3">
+                                            {analysisResult.codeSmells && (typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).map((smell, idx) => (
+                                                <div key={idx} className="p-3 bg-red-50 border border-red-100 rounded">
+                                                    <div className="font-medium text-red-800">{smell.name}</div>
+                                                    <div className="text-sm text-red-600 mt-1">{smell.description}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Suggestions */}
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-green-600 mb-3">💡 개선 제안</h3>
+                                        <div className="space-y-4">
+                                            {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
+                                                <div key={idx} className="border rounded-lg overflow-hidden">
+                                                    <div className="p-3 border-b text-sm font-medium flex justify-between items-center">
+                                                        <span>제안 #{idx + 1}</span>
+                                                        {suggestion.habitContext && (
+                                                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                                                                👀 {suggestion.habitContext}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="p-3 bg-white">
+                                                        <div className="text-xs text-gray-500 mb-1">변경 전:</div>
+                                                        <pre className="bg-red-50 p-2 rounded text-xs mb-3 overflow-x-auto text-red-700">
+                                                            {suggestion.problematicSnippet || suggestion.problematicCode}
+                                                        </pre>
+                                                        <div className="text-xs text-gray-500 mb-1">변경 후:</div>
+                                                        <pre className="bg-green-50 p-2 rounded text-xs overflow-x-auto text-green-700">
+                                                            {suggestion.proposedReplacement}
+                                                        </pre>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
                                 
-                                {isNew && !isLoading && (
+                                {isNew && (
                                     <div className="mt-6 pt-6 border-t text-center">
                                         <button 
                                             onClick={() => navigate('/codeAnalysis')}
@@ -329,6 +394,21 @@ const AnalysisPage = () => {
                 </svg>
                 글쓰기
             </button>
+
+            <AlertModal
+                open={showLoginAlert}
+                onClose={() => setShowLoginAlert(false)}
+                onConfirm={() =>
+                    navigate("/signin", {
+                        replace: true,
+                        state: { redirect: "/codeAnalysis" },
+                    })
+                }
+                type="warning"
+                title="로그인이 필요합니다"
+                message={"서비스를 이용하려면 로그인이 필요합니다.\n로그인 화면으로 이동합니다."}
+                confirmText="확인"
+            />
         </div>
     );
 };
