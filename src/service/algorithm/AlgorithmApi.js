@@ -154,18 +154,21 @@ export const runTestCode = async (data) => {
 };
 
 /**
- * AI 문제 생성
- * LLM API 호출로 인해 10초 이상 소요될 수 있으므로 타임아웃을 60초로 설정
+ * AI 문제 생성 (검증 파이프라인 포함)
+ * - 구조 검증, 유사도 검사, 코드 실행 검증, 시간 비율 검증 수행
+ * - Self-Correction을 통한 자동 수정 시도
+ * - LLM API + 검증 시간으로 인해 타임아웃을 120초로 설정
  */
 export const generateProblem = async (data) => {
     try {
-        const res = await axiosInstance.post('/algo/problems/generate', {
+        // const res = await axiosInstance.post('/algo/problems/generate', {
+        const res = await axiosInstance.post('/algo/problems/generate/validated', {
             difficulty: data.difficulty,
             problemType: data.problemType || 'ALGORITHM',
             topic: data.topic,
             additionalRequirements: data.additionalRequirements || null,
         }, {
-            timeout: 60000  // 60초 타임아웃 (LLM 호출 시간 고려)
+            timeout: 120000  // 120초 타임아웃 (LLM 호출 + 검증 시간 고려)
         });
         return res.data;
     } catch (err) {
@@ -412,6 +415,148 @@ export const LANGUAGE_ID_MAP = {
     'Perl': 85,
     'R': 99,
     'Scala': 112
+};
+
+// ============== 데일리 미션 API (Phase 6-1) ==============
+
+/**
+ * 오늘의 미션 조회
+ * GET /api/algo/missions/today
+ * @param {number} userId - 사용자 ID (개발용 testUserId)
+ */
+export const getTodayMissions = async (userId) => {
+    try {
+        const params = userId ? { testUserId: userId } : {};
+        const res = await axiosInstance.get('/algo/missions/today', { params });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [getTodayMissions] 요청 실패:', err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: '미션 정보를 가져오는데 실패했습니다.' };
+    }
+};
+
+/**
+ * 미션 완료 처리
+ * POST /api/algo/missions/complete
+ * @param {string} missionType - 미션 타입
+ * @param {number} userId - 사용자 ID (개발용 testUserId)
+ */
+export const completeMission = async (missionType, userId) => {
+    try {
+        const body = { missionType };
+        if (userId) {
+            body.testUserId = userId;
+        }
+        const res = await axiosInstance.post('/algo/missions/complete', body);
+        return res.data;
+    } catch (err) {
+        console.error('❌ [completeMission] 요청 실패:', err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: '미션 완료 처리에 실패했습니다.' };
+    }
+};
+
+/**
+ * 사용량 정보 조회
+ * GET /api/algo/missions/usage
+ * @param {number} userId - 사용자 ID (개발용 testUserId)
+ */
+export const getUsageInfo = async (userId) => {
+    try {
+        const params = userId ? { testUserId: userId } : {};
+        const res = await axiosInstance.get('/algo/missions/usage', { params });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [getUsageInfo] 요청 실패:', err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: '사용량 정보를 가져오는데 실패했습니다.' };
+    }
+};
+
+/**
+ * 사용자 알고리즘 레벨 조회
+ * GET /api/algo/missions/level
+ * @param {number} userId - 사용자 ID (개발용 testUserId)
+ */
+export const getUserLevel = async (userId) => {
+    try {
+        const params = userId ? { testUserId: userId } : {};
+        const res = await axiosInstance.get('/algo/missions/level', { params });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [getUserLevel] 요청 실패:', err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: '레벨 정보를 가져오는데 실패했습니다.' };
+    }
+};
+
+// ============== 레벨 상수 정의 ==============
+
+export const ALGO_LEVEL_INFO = {
+    EMERALD: {
+        name: '에메랄드',
+        color: 'emerald',
+        bgColor: 'bg-emerald-100',
+        textColor: 'text-emerald-700',
+        borderColor: 'border-emerald-300',
+        icon: '💎',
+        minSolved: 0,
+        rewardPoints: 10
+    },
+    SAPPHIRE: {
+        name: '사파이어',
+        color: 'blue',
+        bgColor: 'bg-blue-100',
+        textColor: 'text-blue-700',
+        borderColor: 'border-blue-300',
+        icon: '💠',
+        minSolved: 20,
+        rewardPoints: 20
+    },
+    RUBY: {
+        name: '루비',
+        color: 'red',
+        bgColor: 'bg-red-100',
+        textColor: 'text-red-700',
+        borderColor: 'border-red-300',
+        icon: '🔴',
+        minSolved: 50,
+        rewardPoints: 30
+    },
+    DIAMOND: {
+        name: '다이아몬드',
+        color: 'cyan',
+        bgColor: 'bg-cyan-100',
+        textColor: 'text-cyan-700',
+        borderColor: 'border-cyan-300',
+        icon: '💎',
+        minSolved: 100,
+        rewardPoints: 50
+    }
+};
+
+export const MISSION_TYPE_INFO = {
+    PROBLEM_GENERATE: {
+        name: 'AI 문제 생성',
+        description: 'AI를 이용해 새로운 문제를 생성하세요',
+        icon: '🤖',
+        link: '/algorithm/problems/generate'
+    },
+    PROBLEM_SOLVE: {
+        name: '문제 풀기',
+        description: '오늘의 추천 문제를 풀어보세요',
+        icon: '💻',
+        linkPrefix: '/algorithm/problems/'
+    }
 };
 
 // 페이지 크기 옵션 (ProblemList.jsx에서 사용)

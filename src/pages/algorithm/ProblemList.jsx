@@ -97,9 +97,18 @@ const ProblemList = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         {/* 페이지 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">알고리즘 문제</h1>
-          <p className="text-gray-600">다양한 알고리즘 문제를 풀어보세요</p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">알고리즘 문제</h1>
+            <p className="text-gray-600">다양한 알고리즘 문제를 풀어보세요</p>
+          </div>
+          <Link
+            to="/algorithm/daily-mission"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg"
+          >
+            <span className="text-lg">🎯</span>
+            <span className="font-medium">오늘의 미션</span>
+          </Link>
         </div>
 
         {/* 필터 및 검색 섹션 */}
