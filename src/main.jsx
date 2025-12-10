@@ -100,6 +100,7 @@ createRoot(document.getElementById("root")).render(
                           <Route path="billing" element={<BillingPage />} />
                           <Route path="dashboard" element={<DashboardPage />} />
                           <Route path="daily-mission" element={<DailyMission />} />
+                          <Route path="algo-history" element={<MySubmissions />} />
                         </Route>
 
                         <Route path="admin" element={<AdminPageLayout />}>
