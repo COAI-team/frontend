@@ -33,7 +33,7 @@ const CodeboardDetail = () => {
   useEffect(() => {
     const auth = getAuth();
     if (auth) {
-      setCurrentUser(auth);
+      setCurrentUser(auth.user);
     }
   }, []);
 
@@ -324,12 +324,12 @@ const CodeboardDetail = () => {
   }
 
   // 현재 로그인 유저가 게시글 작성자인지 여부
-  const currentUserId = currentUser?.userId ?? currentUser?.id ?? null;
-  const currentUserNickname = currentUser?.nickname ?? "";
+  const currentUserId = currentUser?.userId ?? currentUser?.userId ?? currentUser?.id ?? null;
+  const currentUserNickname = currentUser?.userNickname ?? currentUser?.nickname ?? "";
   const isAuthor =
     currentUserId != null && board.userId != null
       ? Number(currentUserId) === Number(board.userId)
-      : false;
+      : false;   
 
   return (
     <div style={{
