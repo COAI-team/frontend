@@ -75,6 +75,11 @@ const CodeboardList = () => {
     navigate('/codeAnalysis/new');
   };
 
+  const handleTagClick = (tag) => {
+    setSearchKeyword(tag);
+    setCurrentPage(1);
+  };
+
   const getPreviewText = (content) => {
     if (!content) return '내용 없음';
     
@@ -218,7 +223,17 @@ const CodeboardList = () => {
                     {post.codeboardTag && (
                       <div className="post-tags">
                         {(Array.isArray(post.codeboardTag) ? post.codeboardTag : post.codeboardTag.split(',')).map((tag, index) => (
-                          <span key={index} className="post-tag">#{tag.trim()}</span>
+                          <span 
+                            key={index} 
+                            className="post-tag"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTagClick(tag.trim());
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            #{tag.trim()}
+                          </span>
                         ))}
                       </div>
                     )}
@@ -294,7 +309,17 @@ const CodeboardList = () => {
                     {post.codeboardTag && (
                       <div className="card-tags">
                         {(Array.isArray(post.codeboardTag) ? post.codeboardTag : post.codeboardTag.split(',')).slice(0, 3).map((tag, index) => (
-                          <span key={index} className="post-tag">#{tag.trim()}</span>
+                          <span 
+                            key={index} 
+                            className="post-tag"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTagClick(tag.trim());
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            #{tag.trim()}
+                          </span>
                         ))}
                       </div>
                     )}

@@ -74,6 +74,11 @@ const FreeboardList = () => {
     navigate('/freeboard/write');
   };
 
+  const handleTagClick = (tag) => {
+    setSearchKeyword(tag);
+    setCurrentPage(1);
+  };
+
   const getPreviewText = (content) => {
     if (!content) return '내용 없음';
     
@@ -210,7 +215,17 @@ const FreeboardList = () => {
                     {post.tags && (
                       <div className="post-tags">
                         {(Array.isArray(post.tags) ? post.tags : post.tags.split(',')).map((tag, index) => (
-                          <span key={index} className="post-tag">#{tag.trim()}</span>
+                          <span 
+                            key={index} 
+                            className="post-tag"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTagClick(tag.trim());
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            #{tag.trim()}
+                          </span>
                         ))}
                       </div>
                     )}
@@ -291,7 +306,17 @@ const FreeboardList = () => {
                     {post.tags && (
                       <div className="card-tags">
                         {(Array.isArray(post.tags) ? post.tags : post.tags.split(',')).slice(0, 3).map((tag, index) => (
-                          <span key={index} className="post-tag">#{tag.trim()}</span>
+                          <span 
+                            key={index} 
+                            className="post-tag"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTagClick(tag.trim());
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            #{tag.trim()}
+                          </span>
                         ))}
                       </div>
                     )}
