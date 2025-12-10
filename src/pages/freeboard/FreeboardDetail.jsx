@@ -21,6 +21,14 @@ const FreeboardDetail = () => {
   // 로그인 유저 정보
   const [currentUser, setCurrentUser] = useState(null);
 
+  // 로그인 유저 정보 가져오기
+  useEffect(() => {
+    const auth = getAuth();
+    if (auth) {
+      setCurrentUser(auth);
+    }
+  }, []);
+
   // 다크 모드 감지
   useEffect(() => {
     const checkDarkMode = () => {
@@ -80,7 +88,7 @@ const FreeboardDetail = () => {
   }, [id]);
 
   const handleLike = async () => {
-    // 로그인 안 되어 있으면 좋아요 전에 로그인 유도
+    // 로그인 체크
     if (!currentUser) {
       const goLogin = window.confirm(
         "로그인 후 좋아요를 누를 수 있습니다. 로그인 하시겠습니까?"
@@ -102,6 +110,11 @@ const FreeboardDetail = () => {
       console.error("좋아요 처리 실패:", error);
       alert("좋아요 처리에 실패했습니다.");
     }
+  };
+
+  // 태그 클릭 핸들러
+  const handleTagClick = (tag) => {
+    navigate(`/freeboard?tag=${encodeURIComponent(tag)}`);
   };
 
   const handleShare = () => {
@@ -319,8 +332,7 @@ const FreeboardDetail = () => {
   }
 
   // 현재 로그인 유저가 게시글 작성자인지 여부
-  const currentUserId =
-    currentUser && (currentUser.userId ?? currentUser.id ?? null);
+  const currentUserId = currentUser?.userId ?? currentUser?.id ?? null;
   const currentUserNickname = currentUser?.nickname ?? "";
   const isAuthor =
     currentUserId != null && board.userId != null
@@ -505,13 +517,18 @@ const FreeboardDetail = () => {
             {board.tags.map((tag, index) => (
               <span
                 key={index}
+                onClick={() => handleTagClick(tag)}
                 style={{
                   padding: "0.25rem 0.75rem",
                   borderRadius: "9999px",
                   fontSize: "0.875rem",
                   backgroundColor: "rgba(59, 130, 246, 0.1)",
                   color: "#60a5fa",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s",
                 }}
+                onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.2)")}
+                onMouseLeave={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.1)")}
               >
                 #{tag}
               </span>
