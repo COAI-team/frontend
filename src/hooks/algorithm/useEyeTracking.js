@@ -126,10 +126,12 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
                                 y < 0 || y > window.innerHeight;
 
                             if (isOutOfBounds) {
-                                // 시선 이탈 위반 전송
+                                // 시선 이탈 위반 전송 (에러 발생해도 무시)
                                 sendMonitoringViolation(newSessionId, 'GAZE_AWAY', {
                                     description: `Gaze out of bounds: (${x.toFixed(0)}, ${y.toFixed(0)})`,
                                     duration: 1
+                                }).catch(err => {
+                                    console.warn('GAZE_AWAY violation send failed (non-critical):', err);
                                 });
                             }
                         } else {
@@ -165,10 +167,13 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
                                 sustainedViolationSentRef.current = true;
                                 console.log('🚨 NO_FACE_SUSTAINED violation sent (15+ seconds)');
 
+                                // 403 에러 시에도 페이지 리다이렉트 방지
                                 sendMonitoringViolation(newSessionId, 'NO_FACE_SUSTAINED', {
                                     description: `Face not detected for ${Math.round(duration / 1000)} seconds - serious violation`,
                                     duration: Math.round(duration / 1000),
                                     severity: 'HIGH'
+                                }).catch(err => {
+                                    console.warn('NO_FACE_SUSTAINED violation send failed (non-critical):', err);
                                 });
                             }
                         }
