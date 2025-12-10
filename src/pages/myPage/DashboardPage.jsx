@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../server/AxiosConfig';
 import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
+import { useLogin } from '../../context/useLogin';
 import "./css/dashboard.css";
 
 const DashboardPage = () => {
     const navigate = useNavigate();
+    const { user } = useLogin();
     const [patterns, setPatterns] = useState([]);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -18,10 +20,14 @@ const DashboardPage = () => {
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [wordCloudImage, setWordCloudImage] = useState(null);
     
-    // TODO: 실제 사용자 ID 사용 (Context에서 가져오기)
-    const userId = 1;
+    const userId = user?.userId;
 
     useEffect(() => {
+        if (!userId) {
+            setLoading(false);
+            return;
+        }
+
         const fetchData = async () => {
             try {
                 setLoading(true);
@@ -69,7 +75,7 @@ const DashboardPage = () => {
 
             try {
                 const response = await axiosInstance.get(`/api/insights/wordcloud`, {
-                    params: { userId, year, month }
+                    params: { year, month } // userId is now handled by backend token
                 });
                 if (response.status === 204) {
                     setWordCloudImage(null);
@@ -83,7 +89,7 @@ const DashboardPage = () => {
         };
 
         fetchWordCloud();
-    }, [trends, currentMonthIndex, userId]);
+    }, [trends, currentMonthIndex]);
 
 
     if (loading) {
