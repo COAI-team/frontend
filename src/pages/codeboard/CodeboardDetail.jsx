@@ -425,7 +425,7 @@ const CodeboardDetail = () => {
           )}
 
           {/* 우측 패널 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0, overflow: 'hidden'}}>
             <div style={{
               display: 'flex',
               alignItems: 'flex-start',
@@ -920,7 +920,7 @@ const ContentRenderer = React.memo(({ content, isDark }) => {
     <div
       ref={innerRef}
       className={`codeboard-content ${isDark ? 'dark' : 'light'}`}
-      style={{ marginBottom: '2rem', minHeight: '300px' }}
+      style={{ marginBottom: '2rem', minHeight: '300px', overflowX: 'auto' }}
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );

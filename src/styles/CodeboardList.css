@@ -723,3 +723,21 @@ html.dark .smell-bad {
   align-items: center;
   gap: 8px;
 }
+
+/* 코드블록 가로 스크롤 */
+.codeboard-content .code-block-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.codeboard-content .code-block-wrapper code {
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+/* 우측 패널 전체 */
+.codeboard-content {
+  min-width: 0;
+  overflow-x: auto;
+}
