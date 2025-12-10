@@ -52,6 +52,7 @@ const ProblemSolve = () => {
   const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [startTime, setStartTime] = useState(null);
+  const [timerEndTime, setTimerEndTime] = useState(null); // 타이머 종료 시점 (timestamp) - 브라우저 스로틀링 방지
 
   // 실행 결과 상태
   const [testResult, setTestResult] = useState(null);
@@ -83,7 +84,12 @@ const ProblemSolve = () => {
   const solveMode = selectedMode || 'BASIC';
 
   // [Phase 2] 시간 감소 콜백 (패널티 시스템용)
+  // timerEndTime을 조정하여 브라우저 스로틀링에도 정확하게 동작
   const handleTimeReduction = useCallback((seconds) => {
+    setTimerEndTime(prev => {
+      if (!prev) return prev;
+      return prev - seconds * 1000; // 종료 시점을 앞당김
+    });
     setTimeLeft(prev => Math.max(0, prev - seconds));
     console.log(`⏰ Time reduced by ${seconds / 60} minutes`);
   }, []);
@@ -163,6 +169,7 @@ const ProblemSolve = () => {
 
     if (mode === 'FOCUS') {
       // 집중 모드: 전체화면 진입 + 시선 추적 자동 활성화
+      // timerEndTime은 eyeTrackingReady 시점에 설정됨
       enterFullscreen();
       setEyeTrackingEnabled(true);
     }
@@ -172,10 +179,12 @@ const ProblemSolve = () => {
   // 집중 모드에서 시선 추적 준비 완료 시 타이머 자동 시작
   useEffect(() => {
     if (selectedMode === 'FOCUS' && eyeTrackingReady && solvingStarted && !isTimerRunning) {
+      // 타이머 종료 시점 설정 (브라우저 스로틀링 방지)
+      setTimerEndTime(Date.now() + timeLeft * 1000);
       setIsTimerRunning(true);
       console.log('🎯 집중 모드: 시선 추적 준비 완료, 타이머 자동 시작');
     }
-  }, [selectedMode, eyeTrackingReady, solvingStarted, isTimerRunning]);
+  }, [selectedMode, eyeTrackingReady, solvingStarted, isTimerRunning, timeLeft]);
 
   // [Phase 2] 위반 이벤트를 패널티 시스템에 연결
   // 전체화면 이탈 위반
@@ -212,9 +221,23 @@ const ProblemSolve = () => {
       const timeInSeconds = customTimeMinutes * 60;
       setTimeLeft(timeInSeconds);
       setStartTime(new Date());
+      // 타이머 종료 시점 설정 (브라우저 스로틀링 방지)
+      setTimerEndTime(Date.now() + timeInSeconds * 1000);
       setIsTimerRunning(true);
     }
   }, [selectedMode, customTimeMinutes]);
+
+  // 기본 모드 타이머 일시정지/재개
+  const handleToggleTimer = useCallback(() => {
+    if (isTimerRunning) {
+      // 일시정지: 현재 남은 시간 저장 (timeLeft는 이미 최신 상태)
+      setIsTimerRunning(false);
+    } else {
+      // 재개: 새로운 종료 시점 설정 (현재 시간 + 남은 시간)
+      setTimerEndTime(Date.now() + timeLeft * 1000);
+      setIsTimerRunning(true);
+    }
+  }, [isTimerRunning, timeLeft]);
 
   // 코드 제출
   // 변경: solveMode, monitoringSessionId 추가
@@ -312,17 +335,30 @@ const ProblemSolve = () => {
     }
   }, [problemId]);
 
-  // 타이머 효과
+  // 타이머 효과 - 시간 기반 계산 (브라우저 스로틀링 방지)
+  // 백그라운드 탭에서도 정확한 시간 계산을 위해 Date.now() 사용
   useEffect(() => {
-    let interval = null;
-    if (isTimerRunning && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
-    } else if (timeLeft === 0 && isTimerRunning) {
-      handleSubmit();
-      setIsTimerRunning(false);
-    }
+    if (!isTimerRunning || !timerEndTime) return;
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((timerEndTime - now) / 1000));
+      setTimeLeft(remaining);
+
+      if (remaining === 0) {
+        handleSubmit();
+        setIsTimerRunning(false);
+      }
+    };
+
+    // 초기 업데이트 즉시 실행
+    updateTimer();
+
+    // 1초마다 남은 시간 계산 (스로틀링되어도 다음 실행 시 정확한 시간 계산)
+    const interval = setInterval(updateTimer, 1000);
+
     return () => clearInterval(interval);
-  }, [isTimerRunning, timeLeft, handleSubmit]);
+  }, [isTimerRunning, timerEndTime, handleSubmit]);
 
   // 초기 코드 설정
   useEffect(() => {
@@ -696,7 +732,7 @@ const ProblemSolve = () => {
                   ) : (
                     // 이미 시작됨 - 일시정지/재개
                     <button
-                      onClick={() => setIsTimerRunning(!isTimerRunning)}
+                      onClick={handleToggleTimer}
                       className={`px-3 py-1 rounded text-sm ${isTimerRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
                     >
                       {isTimerRunning ? '일시정지' : '재개'}
