@@ -14,18 +14,31 @@ import {
  * - sendFocusEvent → sendMonitoringViolation
  * - endFocusSession → endMonitoringSession
  * - 모니터링은 점수에 미반영 (정보 제공 및 경고 목적)
+ * - [Phase 2] NO_FACE 지속 감지 (15초 이상 시 심각한 위반)
  *
  * @param {number} problemId - 현재 문제 ID
  * @param {boolean} isActive - 추적 활성화 여부
  * @param {number} timeLimitMinutes - 제한 시간 (분, 기본 30분)
- * @returns {object} - { isCalibrated, startCalibration, sessionId, isTracking, monitoringSessionId }
+ * @returns {object} - { isCalibrated, startCalibration, sessionId, isTracking, monitoringSessionId, noFaceWarning }
  */
+
+// 상수 정의
+const NO_FACE_THRESHOLD_MS = 15000; // 15초 이상 NO_FACE 시 심각한 위반
+const NO_FACE_WARNING_THRESHOLD_MS = 5000; // 5초 이상 시 경고 표시 시작
+
 export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 30) => {
     const [isCalibrated, setIsCalibrated] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
     const [sessionId, setSessionId] = useState(null);
     const gazeIntervalRef = useRef(null);
     const isCleaningUpRef = useRef(false); // 중복 정리 방지 플래그
+
+    // [Phase 2] NO_FACE 지속 감지 상태
+    const noFaceStartTimeRef = useRef(null); // 얼굴 미검출 시작 시간
+    const [noFaceDuration, setNoFaceDuration] = useState(0); // 현재 미검출 지속 시간 (ms)
+    const [showNoFaceWarning, setShowNoFaceWarning] = useState(false); // 경고 표시 여부
+    const warningShownRef = useRef(false); // 경고 표시 중복 방지 (stale closure 방지)
+    const sustainedViolationSentRef = useRef(false); // 15초 위반 이벤트 중복 전송 방지
 
     // WebGazer 초기화
     useEffect(() => {
@@ -91,11 +104,21 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
             setSessionId(newSessionId);
             setIsTracking(true);
 
-            // 시선 데이터 수집 시작 (5초마다)
+            // 시선 데이터 수집 시작 (1초마다 - NO_FACE 지속 감지를 위해 더 자주 체크)
             gazeIntervalRef.current = setInterval(() => {
                 if (window.webgazer && window.webgazer.isReady()) {
                     window.webgazer.getCurrentPrediction().then((prediction) => {
                         if (prediction) {
+                            // [Phase 2] 얼굴이 감지됨 - NO_FACE 추적 상태 리셋
+                            if (noFaceStartTimeRef.current !== null) {
+                                console.log('✅ Face detected - resetting NO_FACE tracking');
+                                noFaceStartTimeRef.current = null;
+                                setNoFaceDuration(0);
+                                setShowNoFaceWarning(false);
+                                warningShownRef.current = false;
+                                sustainedViolationSentRef.current = false;
+                            }
+
                             // 시선이 화면 밖으로 나갔는지 확인
                             const { x, y } = prediction;
                             const isOutOfBounds =
@@ -106,19 +129,51 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
                                 // 시선 이탈 위반 전송
                                 sendMonitoringViolation(newSessionId, 'GAZE_AWAY', {
                                     description: `Gaze out of bounds: (${x.toFixed(0)}, ${y.toFixed(0)})`,
-                                    duration: 5
+                                    duration: 1
                                 });
                             }
                         } else {
-                            // 얼굴 미검출 위반 전송
-                            sendMonitoringViolation(newSessionId, 'NO_FACE', {
-                                description: 'Face not detected',
-                                duration: 5
-                            });
+                            // [Phase 2] 얼굴 미검출 - 지속 시간 추적
+                            const now = Date.now();
+
+                            if (noFaceStartTimeRef.current === null) {
+                                // 미검출 시작 시간 기록
+                                noFaceStartTimeRef.current = now;
+                                console.log('⚠️ Face not detected - starting NO_FACE tracking');
+                            }
+
+                            // 지속 시간 계산
+                            const duration = now - noFaceStartTimeRef.current;
+                            setNoFaceDuration(duration);
+
+                            // 5초 이상: 경고 표시 시작
+                            if (duration >= NO_FACE_WARNING_THRESHOLD_MS && !warningShownRef.current) {
+                                warningShownRef.current = true;
+                                setShowNoFaceWarning(true);
+                                console.log('⚠️ NO_FACE warning shown (5+ seconds)');
+
+                                // 경고 시작 시 백엔드에 warning 기록
+                                recordMonitoringWarning(newSessionId, 'NO_FACE_WARNING', {
+                                    description: 'Face not detected for 5+ seconds',
+                                    duration: Math.round(duration / 1000)
+                                });
+                            }
+
+                            // 15초 이상: 심각한 위반 전송 (1회만)
+                            if (duration >= NO_FACE_THRESHOLD_MS && !sustainedViolationSentRef.current) {
+                                sustainedViolationSentRef.current = true;
+                                console.log('🚨 NO_FACE_SUSTAINED violation sent (15+ seconds)');
+
+                                sendMonitoringViolation(newSessionId, 'NO_FACE_SUSTAINED', {
+                                    description: `Face not detected for ${Math.round(duration / 1000)} seconds - serious violation`,
+                                    duration: Math.round(duration / 1000),
+                                    severity: 'HIGH'
+                                });
+                            }
                         }
                     });
                 }
-            }, 5000); // 5초마다 체크
+            }, 1000); // 1초마다 체크 (NO_FACE 지속 감지를 위해)
 
             console.log('🎯 Monitoring session started, sessionId:', newSessionId);
         } catch (error) {
@@ -207,6 +262,13 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
 
             setIsTracking(false);
             setSessionId(null);
+
+            // [Phase 2] NO_FACE 추적 상태 리셋
+            noFaceStartTimeRef.current = null;
+            setNoFaceDuration(0);
+            setShowNoFaceWarning(false);
+            warningShownRef.current = false;
+            sustainedViolationSentRef.current = false;
         } finally {
             // 정리 완료 후 플래그는 리셋하지 않음 (한 번만 호출되도록)
             // 새로운 세션 시작 시 startTracking에서 리셋
@@ -232,6 +294,10 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
         monitoringSessionId: sessionId,     // 모니터링 세션 ID (별칭)
         startCalibration,
         completeCalibration,
-        stopTracking
+        stopTracking,
+        // [Phase 2] NO_FACE 지속 감지 상태
+        noFaceDuration,                     // 현재 얼굴 미검출 지속 시간 (ms)
+        showNoFaceWarning,                  // NO_FACE 경고 표시 여부
+        noFaceProgress: noFaceDuration / NO_FACE_THRESHOLD_MS  // 위반 진행률 (0~1)
     };
 };
