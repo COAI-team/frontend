@@ -860,7 +860,7 @@ const ProblemSolve = () => {
             <div>
               <h1 className="text-xl font-bold">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
               <p className="text-sm text-gray-400 mt-1">
-                맞힌사람 {problem?.solvedCount || 0} • 제출한 사람 {problem?.submitCount || 0}
+                맞힌사람 {problem?.successCount || 0} • 제출 {problem?.totalAttempts || 0}
               </p>
             </div>
 
