@@ -54,6 +54,11 @@ const ProblemSolve = () => {
   const [startTime, setStartTime] = useState(null);
   const [timerEndTime, setTimerEndTime] = useState(null); // 타이머 종료 시점 (timestamp) - 브라우저 스로틀링 방지
 
+  // ========== 타이머 모드 관련 상태 ==========
+  const [timerMode, setTimerMode] = useState('TIMER'); // 'TIMER' (카운트다운) | 'STOPWATCH' (스톱워치)
+  const [elapsedTime, setElapsedTime] = useState(0); // 스톱워치용 경과 시간
+  const [showTimerSetup, setShowTimerSetup] = useState(false); // 집중모드 타이머 설정 화면 표시 여부
+
   // 실행 결과 상태
   const [testResult, setTestResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -77,7 +82,10 @@ const ProblemSolve = () => {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: null
+    onConfirm: null,
+    onCancel: null, // 취소 시 커스텀 동작 (null이면 기본 닫기)
+    confirmText: '확인',
+    cancelText: '취소'
   });
 
   // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
@@ -148,11 +156,16 @@ const ProblemSolve = () => {
     containerRef: editorContainerRef
   } = useVerticalResizable(70, 30, 85);
 
-  // 경과 시간 계산
+  // 경과 시간 계산 (제출용)
   const getElapsedTime = useCallback(() => {
+    if (selectedMode === 'BASIC' && timerMode === 'STOPWATCH') {
+      // 스톱워치 모드: 경과 시간 반환
+      return elapsedTime;
+    }
+    // 타이머 모드 또는 집중 모드: startTime 기준
     if (!startTime) return 0;
     return Math.floor((new Date() - startTime) / 1000);
-  }, [startTime]);
+  }, [startTime, selectedMode, timerMode, elapsedTime]);
 
   // ========== 모드 선택 및 시작 핸들러 ==========
 
@@ -160,20 +173,31 @@ const ProblemSolve = () => {
   const handleStartSolving = useCallback((mode) => {
     setSelectedMode(mode);
     setShowModeSelection(false);
-    setSolvingStarted(true);
 
-    // 사용자 지정 시간으로 타이머 설정
+    if (mode === 'FOCUS') {
+      // 집중 모드: 타이머 설정 화면 표시 (풀이 페이지 내에서)
+      setShowTimerSetup(true);
+    } else {
+      // 기본 모드: 바로 풀이 시작 (타이머는 페이지 내에서 수동 설정)
+      setSolvingStarted(true);
+      setStartTime(new Date());
+      // 타이머 초기값 설정 (카운트다운용)
+      setTimeLeft(customTimeMinutes * 60);
+    }
+  }, [customTimeMinutes]);
+
+  // 집중 모드 타이머 설정 완료 후 시작
+  const handleStartFocusMode = useCallback(() => {
     const timeInSeconds = customTimeMinutes * 60;
     setTimeLeft(timeInSeconds);
     setStartTime(new Date());
+    setShowTimerSetup(false);
+    setSolvingStarted(true);
 
-    if (mode === 'FOCUS') {
-      // 집중 모드: 전체화면 진입 + 시선 추적 자동 활성화
-      // timerEndTime은 eyeTrackingReady 시점에 설정됨
-      enterFullscreen();
-      setEyeTrackingEnabled(true);
-    }
-    // 기본 모드는 사용자가 수동으로 타이머 시작
+    // 집중 모드: 전체화면 진입 + 시선 추적 자동 활성화
+    // timerEndTime은 eyeTrackingReady 시점에 설정됨
+    enterFullscreen();
+    setEyeTrackingEnabled(true);
   }, [customTimeMinutes, enterFullscreen]);
 
   // 집중 모드에서 시선 추적 준비 완료 시 타이머 자동 시작
@@ -214,30 +238,63 @@ const ProblemSolve = () => {
     }
   }, [noFaceState.noFaceProgress, selectedMode, recordViolation]);
 
-  // 기본 모드 타이머 시작
+  // 기본 모드에서 타이머 설정 변경 시 timeLeft 업데이트 (시작 전에만)
+  useEffect(() => {
+    if (selectedMode === 'BASIC' && !isTimerRunning && timerMode === 'TIMER') {
+      setTimeLeft(customTimeMinutes * 60);
+    }
+  }, [customTimeMinutes, selectedMode, isTimerRunning, timerMode]);
+
+  // 기본 모드 타이머/스톱워치 시작
   const handleStartTimer = useCallback(() => {
     if (selectedMode === 'BASIC') {
-      // 기본 모드에서 시작 버튼 클릭 시
-      const timeInSeconds = customTimeMinutes * 60;
-      setTimeLeft(timeInSeconds);
-      setStartTime(new Date());
-      // 타이머 종료 시점 설정 (브라우저 스로틀링 방지)
-      setTimerEndTime(Date.now() + timeInSeconds * 1000);
+      if (timerMode === 'TIMER') {
+        // 타이머 모드: 카운트다운
+        const timeInSeconds = customTimeMinutes * 60;
+        setTimeLeft(timeInSeconds);
+        setTimerEndTime(Date.now() + timeInSeconds * 1000);
+      } else {
+        // 스톱워치 모드: 카운트업
+        setElapsedTime(0);
+        setStartTime(new Date());
+      }
       setIsTimerRunning(true);
     }
-  }, [selectedMode, customTimeMinutes]);
+  }, [selectedMode, customTimeMinutes, timerMode]);
 
-  // 기본 모드 타이머 일시정지/재개
+  // 기본 모드 타이머/스톱워치 일시정지/재개
   const handleToggleTimer = useCallback(() => {
     if (isTimerRunning) {
-      // 일시정지: 현재 남은 시간 저장 (timeLeft는 이미 최신 상태)
+      // 일시정지
       setIsTimerRunning(false);
+      if (timerMode === 'STOPWATCH') {
+        // 스톱워치: 현재 경과 시간 저장
+        setElapsedTime(prev => prev);
+      }
     } else {
-      // 재개: 새로운 종료 시점 설정 (현재 시간 + 남은 시간)
-      setTimerEndTime(Date.now() + timeLeft * 1000);
+      // 재개
+      if (timerMode === 'TIMER') {
+        // 타이머: 새로운 종료 시점 설정
+        setTimerEndTime(Date.now() + timeLeft * 1000);
+      } else {
+        // 스톱워치: 시작 시간 재설정 (경과 시간 고려)
+        setStartTime(new Date(Date.now() - elapsedTime * 1000));
+      }
       setIsTimerRunning(true);
     }
-  }, [isTimerRunning, timeLeft]);
+  }, [isTimerRunning, timeLeft, timerMode, elapsedTime]);
+
+  // 기본 모드 타이머/스톱워치 리셋
+  const handleResetTimer = useCallback(() => {
+    setIsTimerRunning(false);
+    if (timerMode === 'TIMER') {
+      const timeInSeconds = customTimeMinutes * 60;
+      setTimeLeft(timeInSeconds);
+      setTimerEndTime(null);
+    } else {
+      setElapsedTime(0);
+    }
+  }, [timerMode, customTimeMinutes]);
 
   // 코드 제출
   // 변경: solveMode, monitoringSessionId 추가
@@ -338,27 +395,61 @@ const ProblemSolve = () => {
   // 타이머 효과 - 시간 기반 계산 (브라우저 스로틀링 방지)
   // 백그라운드 탭에서도 정확한 시간 계산을 위해 Date.now() 사용
   useEffect(() => {
-    if (!isTimerRunning || !timerEndTime) return;
+    if (!isTimerRunning) return;
 
-    const updateTimer = () => {
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((timerEndTime - now) / 1000));
-      setTimeLeft(remaining);
+    // 타이머 모드 (카운트다운) - 집중 모드 또는 기본모드의 타이머
+    if ((selectedMode === 'FOCUS' || timerMode === 'TIMER') && timerEndTime) {
+      const updateTimer = () => {
+        const now = Date.now();
+        const remaining = Math.max(0, Math.floor((timerEndTime - now) / 1000));
+        setTimeLeft(remaining);
 
-      if (remaining === 0) {
-        handleSubmit();
-        setIsTimerRunning(false);
-      }
-    };
+        if (remaining === 0) {
+          setIsTimerRunning(false);
 
-    // 초기 업데이트 즉시 실행
-    updateTimer();
+          if (selectedMode === 'FOCUS') {
+            // 집중 모드: 자동 제출
+            handleSubmit();
+          } else {
+            // 기본 모드: 확인 모달 표시
+            setConfirmModal({
+              isOpen: true,
+              title: '⏰ 타이머 종료',
+              message: '설정한 풀이 시간이 종료되었습니다.\n이대로 제출하시겠습니까?',
+              confirmText: '제출하기',
+              cancelText: '계속 풀기',
+              onConfirm: () => {
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                handleSubmit();
+              },
+              onCancel: () => {
+                // 타이머 비활성화하고 계속 풀기
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                setTimerEndTime(null);
+              }
+            });
+          }
+        }
+      };
 
-    // 1초마다 남은 시간 계산 (스로틀링되어도 다음 실행 시 정확한 시간 계산)
-    const interval = setInterval(updateTimer, 1000);
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    }
 
-    return () => clearInterval(interval);
-  }, [isTimerRunning, timerEndTime, handleSubmit]);
+    // 스톱워치 모드 (카운트업) - 기본 모드에서만
+    if (selectedMode === 'BASIC' && timerMode === 'STOPWATCH' && startTime) {
+      const updateStopwatch = () => {
+        const now = Date.now();
+        const elapsed = Math.floor((now - startTime.getTime()) / 1000);
+        setElapsedTime(elapsed);
+      };
+
+      updateStopwatch();
+      const interval = setInterval(updateStopwatch, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isTimerRunning, timerEndTime, handleSubmit, selectedMode, timerMode, startTime]);
 
   // 초기 코드 설정
   useEffect(() => {
@@ -661,18 +752,109 @@ const ProblemSolve = () => {
         problemId={problemId}
         selectedMode={selectedMode}
         setSelectedMode={setSelectedMode}
-        customTimeMinutes={customTimeMinutes}
-        setCustomTimeMinutes={setCustomTimeMinutes}
         onStartSolving={handleStartSolving}
         onNavigateBack={() => navigate('/algorithm')}
       />
     );
   }
 
+  // ========== 집중 모드 타이머 설정 화면 ==========
+  const timePresets = [15, 30, 45, 60];
+
+  if (showTimerSetup && selectedMode === 'FOCUS') {
+    return (
+      <div className="min-h-screen bg-zinc-900 text-gray-100">
+        {/* 헤더 */}
+        <div className="bg-zinc-800 border-b border-zinc-700">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold">
+                  #{problem?.problemId || problemId} {problem?.title || '문제'}
+                </h1>
+                <p className="text-sm text-gray-400 mt-1">👁️ 집중 모드 - 타이머 설정</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowTimerSetup(false);
+                  setShowModeSelection(true);
+                  setSelectedMode(null);
+                }}
+                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"
+              >
+                모드 다시 선택
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 타이머 설정 */}
+        <div className="container mx-auto px-6 py-12">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-zinc-800 rounded-xl p-8 border border-zinc-700">
+              <div className="text-center mb-8">
+                <span className="text-6xl mb-4 block">⏱️</span>
+                <h2 className="text-2xl font-bold mb-2">풀이 시간을 설정하세요</h2>
+                <p className="text-gray-400">집중 모드에서는 설정한 시간 동안 시선 추적이 진행됩니다</p>
+              </div>
+
+              {/* 프리셋 버튼 */}
+              <div className="flex items-center justify-center gap-4 mb-6">
+                {timePresets.map(time => (
+                  <button
+                    key={time}
+                    onClick={() => setCustomTimeMinutes(time)}
+                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                      customTimeMinutes === time
+                        ? 'bg-purple-600 ring-2 ring-purple-400'
+                        : 'bg-zinc-700 hover:bg-zinc-600'
+                    }`}
+                  >
+                    {time}분
+                  </button>
+                ))}
+              </div>
+
+              {/* 커스텀 시간 입력 */}
+              <div className="flex items-center justify-center gap-3 mb-8">
+                <span className="text-gray-400">직접 입력:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={customTimeMinutes}
+                  onChange={(e) =>
+                    setCustomTimeMinutes(
+                      Math.max(1, Math.min(180, parseInt(e.target.value) || 30))
+                    )
+                  }
+                  className="w-24 px-4 py-3 bg-zinc-700 rounded-lg text-center text-xl font-mono"
+                />
+                <span className="text-gray-400">분</span>
+              </div>
+
+              {/* 시작 버튼 */}
+              <button
+                onClick={handleStartFocusMode}
+                className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-lg font-bold text-lg transition-all"
+              >
+                🎯 집중 모드 시작
+              </button>
+
+              <p className="text-center text-gray-500 text-sm mt-4">
+                시작하면 전체화면 모드로 전환되며 시선 추적이 활성화됩니다
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-zinc-900 text-gray-100">
+    <div className="h-screen bg-zinc-900 text-gray-100 flex flex-col overflow-hidden">
       {/* 헤더 */}
-      <div className="bg-zinc-800 border-b border-zinc-700">
+      <div className="bg-zinc-800 border-b border-zinc-700 flex-shrink-0">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -698,47 +880,112 @@ const ProblemSolve = () => {
                 )}
               </div>
 
-              {/* 타이머 */}
+              {/* 타이머/스톱워치 표시 */}
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${isTimerRunning ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>
-                <span className="text-sm">풀이 시간</span>
-                <span className={`font-mono text-lg ${timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400'}`}>
-                  {formatTime(timeLeft)}
+                <span className="text-sm">
+                  {selectedMode === 'BASIC' ? (timerMode === 'TIMER' ? '타이머' : '스톱워치') : '남은 시간'}
+                </span>
+                <span className={`font-mono text-lg ${
+                  selectedMode === 'FOCUS' || timerMode === 'TIMER'
+                    ? (timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400')
+                    : 'text-cyan-400'
+                }`}>
+                  {selectedMode === 'FOCUS' || timerMode === 'TIMER'
+                    ? formatTime(timeLeft)
+                    : formatTime(elapsedTime)
+                  }
                 </span>
               </div>
 
               {/* 타이머 컨트롤 - 기본 모드에서만 수동 제어 가능 */}
               {selectedMode === 'BASIC' && (
-                <>
-                  {!isTimerRunning && !startTime ? (
-                    // 아직 시작 안 함 - 시간 설정 가능
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  {/* 타이머/스톱워치 모드 토글 */}
+                  {!isTimerRunning && (
+                    <div className="flex items-center bg-zinc-700 rounded-lg p-0.5">
+                      <button
+                        onClick={() => setTimerMode('TIMER')}
+                        className={`px-2 py-1 rounded text-xs transition-all ${
+                          timerMode === 'TIMER'
+                            ? 'bg-yellow-600 text-white'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        ⏱️ 타이머
+                      </button>
+                      <button
+                        onClick={() => setTimerMode('STOPWATCH')}
+                        className={`px-2 py-1 rounded text-xs transition-all ${
+                          timerMode === 'STOPWATCH'
+                            ? 'bg-cyan-600 text-white'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        ⏱️ 스톱워치
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 타이머 모드: 시간 설정 */}
+                  {!isTimerRunning && timerMode === 'TIMER' && (
+                    <>
+                      {/* 프리셋 버튼 */}
+                      <div className="flex items-center gap-1">
+                        {[15, 30, 45, 60].map(time => (
+                          <button
+                            key={time}
+                            onClick={() => setCustomTimeMinutes(time)}
+                            className={`px-2 py-1 rounded text-xs transition-all ${
+                              customTimeMinutes === time
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-zinc-700 text-gray-400 hover:bg-zinc-600'
+                            }`}
+                          >
+                            {time}분
+                          </button>
+                        ))}
+                      </div>
                       <input
                         type="number"
                         min="1"
                         max="180"
                         value={customTimeMinutes}
                         onChange={(e) => setCustomTimeMinutes(Math.max(1, Math.min(180, parseInt(e.target.value) || 30)))}
-                        className="w-16 px-2 py-1 bg-zinc-700 rounded text-center text-sm"
+                        className="w-14 px-2 py-1 bg-zinc-700 rounded text-center text-xs"
                       />
-                      <span className="text-gray-400 text-sm">분</span>
-                      <button
-                        onClick={handleStartTimer}
-                        className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700"
-                      >
-                        시작
-                      </button>
-                    </div>
+                      <span className="text-gray-400 text-xs">분</span>
+                    </>
+                  )}
+
+                  {/* 시작/일시정지/재개 버튼 */}
+                  {!isTimerRunning ? (
+                    <button
+                      onClick={handleStartTimer}
+                      className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700"
+                    >
+                      시작
+                    </button>
                   ) : (
-                    // 이미 시작됨 - 일시정지/재개
                     <button
                       onClick={handleToggleTimer}
-                      className={`px-3 py-1 rounded text-sm ${isTimerRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                      className="px-3 py-1 rounded text-sm bg-red-600 hover:bg-red-700"
                     >
-                      {isTimerRunning ? '일시정지' : '재개'}
+                      일시정지
                     </button>
                   )}
-                </>
+
+                  {/* 리셋 버튼 - 실행 중이거나 경과 시간이 있을 때 */}
+                  {(isTimerRunning || elapsedTime > 0 || (timerMode === 'TIMER' && timeLeft !== customTimeMinutes * 60)) && (
+                    <button
+                      onClick={handleResetTimer}
+                      className="px-2 py-1 rounded text-sm bg-zinc-700 hover:bg-zinc-600 text-gray-300"
+                      title="리셋"
+                    >
+                      ↺
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* 집중 모드 상태 표시 */}
@@ -753,8 +1000,8 @@ const ProblemSolve = () => {
       </div>
 
       {/* 메인 컨텐츠 */}
-      <div className="container mx-auto px-6 py-6" ref={containerRef}>
-        <div className="flex h-[calc(100vh-220px)] gap-1">
+      <div className="flex-1 container mx-auto px-6 py-4 min-h-0" ref={containerRef}>
+        <div className="flex h-full gap-1">
 
           {/* 왼쪽: 문제 설명 */}
           <div className="bg-zinc-800 rounded-lg overflow-auto" style={{ width: `${leftPanelWidth}%` }}>
@@ -1087,7 +1334,9 @@ const ProblemSolve = () => {
         title={confirmModal.title}
         message={confirmModal.message}
         onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onCancel={confirmModal.onCancel || (() => setConfirmModal(prev => ({ ...prev, isOpen: false })))}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
       />
     </div>
   );

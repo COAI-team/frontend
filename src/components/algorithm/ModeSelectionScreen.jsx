@@ -5,21 +5,17 @@ import React from 'react';
  *
  * 기능:
  * - 기본 모드 / 집중 모드 선택
- * - 풀이 시간 설정
  * - 모드별 기능 안내
+ * - 집중 모드 선택 시 다음 화면에서 시간 설정
  */
 const ModeSelectionScreen = ({
   problem,
   problemId,
   selectedMode,
   setSelectedMode,
-  customTimeMinutes,
-  setCustomTimeMinutes,
   onStartSolving,
   onNavigateBack
 }) => {
-  const timePresets = [15, 30, 45, 60];
-
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-100">
       {/* 헤더 */}
@@ -45,41 +41,6 @@ const ModeSelectionScreen = ({
       {/* 모드 선택 컨테이너 */}
       <div className="container mx-auto px-6 py-12">
         <div className="max-w-4xl mx-auto">
-          {/* 시간 설정 */}
-          <div className="mb-8 text-center">
-            <h2 className="text-lg font-semibold mb-4">풀이 시간 설정</h2>
-            <div className="flex items-center justify-center gap-4">
-              {timePresets.map(time => (
-                <button
-                  key={time}
-                  onClick={() => setCustomTimeMinutes(time)}
-                  className={`px-4 py-2 rounded-lg transition-all ${
-                    customTimeMinutes === time
-                      ? 'bg-purple-600'
-                      : 'bg-zinc-700 hover:bg-zinc-600'
-                  }`}
-                >
-                  {time}분
-                </button>
-              ))}
-              <div className="flex items-center gap-2 ml-4">
-                <input
-                  type="number"
-                  min="1"
-                  max="180"
-                  value={customTimeMinutes}
-                  onChange={(e) =>
-                    setCustomTimeMinutes(
-                      Math.max(1, Math.min(180, parseInt(e.target.value) || 30))
-                    )
-                  }
-                  className="w-20 px-3 py-2 bg-zinc-700 rounded-lg text-center"
-                />
-                <span className="text-gray-400">분</span>
-              </div>
-            </div>
-          </div>
-
           {/* 모드 선택 카드 */}
           <div className="grid grid-cols-2 gap-6">
             {/* 기본 모드 */}
@@ -88,8 +49,8 @@ const ModeSelectionScreen = ({
               title="기본 모드"
               description="자유롭게 문제를 풀어보세요"
               features={[
-                { text: '타이머 기능 (수동 시작)', enabled: true },
-                { text: '자유로운 풀이 환경', enabled: true },
+                { text: '타이머 / 스톱워치 선택', enabled: true },
+                { text: '자유로운 시간 설정', enabled: true },
                 { text: '시선 추적 없음', enabled: false }
               ]}
               isSelected={selectedMode === 'BASIC'}
@@ -135,7 +96,11 @@ const ModeSelectionScreen = ({
                   : '모드를 선택해주세요'}
             </button>
             <p className="text-gray-500 text-sm mt-3">
-              {customTimeMinutes}분 동안 문제를 풀게 됩니다
+              {selectedMode === 'FOCUS'
+                ? '다음 화면에서 풀이 시간을 설정합니다'
+                : selectedMode === 'BASIC'
+                  ? '풀이 화면에서 타이머 또는 스톱워치를 설정할 수 있습니다'
+                  : '모드를 선택하면 시작할 수 있습니다'}
             </p>
           </div>
         </div>

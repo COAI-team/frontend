@@ -4,7 +4,15 @@ import React from 'react';
  * 전체화면 유지 가능한 커스텀 Confirm 모달
  * window.confirm() 대체용
  */
-const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
+const ConfirmModal = ({
+  isOpen,
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  confirmText = '확인',
+  cancelText = '취소'
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -17,13 +25,13 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
             onClick={onCancel}
             className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-gray-300 rounded-lg transition-colors"
           >
-            취소
+            {cancelText}
           </button>
           <button
             onClick={onConfirm}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
           >
-            확인
+            {confirmText}
           </button>
         </div>
       </div>
