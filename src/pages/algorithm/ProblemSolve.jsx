@@ -9,6 +9,7 @@ import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
 import PenaltyNotification from '../../components/algorithm/PenaltyNotification';
+import ConfirmModal from '../../components/algorithm/ConfirmModal';
 import { useViolationPenalty } from '../../hooks/algorithm/useViolationPenalty';
 
 /**
@@ -68,6 +69,14 @@ const ProblemSolve = () => {
     showNoFaceWarning: false,
     noFaceDuration: 0,
     noFaceProgress: 0
+  });
+
+  // 커스텀 Confirm 모달 상태 (전체화면 유지용)
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null
   });
 
   // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
@@ -335,18 +344,22 @@ const ProblemSolve = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 언어 변경
+  // 언어 변경 (커스텀 모달 사용 - 전체화면 유지)
   const handleLanguageChange = (lang) => {
-    const confirmed = window.confirm(`언어를 ${lang}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`);
-    // 집중 모드에서 confirm 다이얼로그 후 전체화면 복귀
-    if (selectedMode === 'FOCUS') {
-      enterFullscreen();
-    }
-    if (confirmed) {
-      setSelectedLanguage(lang);
-      const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[lang] || lang;
-      setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
-    }
+    // 현재 언어와 같으면 무시
+    if (lang === selectedLanguage) return;
+
+    setConfirmModal({
+      isOpen: true,
+      title: '언어 변경',
+      message: `언어를 ${lang}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`,
+      onConfirm: () => {
+        setSelectedLanguage(lang);
+        const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[lang] || lang;
+        setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   // 코드 테스트 실행
@@ -404,16 +417,18 @@ const ProblemSolve = () => {
     editorRef.current = { editor, monaco };
   };
 
-  // 코드 초기화
+  // 코드 초기화 (커스텀 모달 사용 - 전체화면 유지)
   const handleResetCode = () => {
-    const confirmed = window.confirm('코드를 초기화하시겠습니까?');
-    // 집중 모드에서 confirm 다이얼로그 후 전체화면 복귀
-    if (selectedMode === 'FOCUS') {
-      enterFullscreen();
-    }
-    if (confirmed) {
-      setCode(codeTemplates[selectedLanguage] || codeTemplates['default'] || '// 코드를 작성하세요');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: '코드 초기화',
+      message: '코드를 초기화하시겠습니까?\n현재 작성한 코드가 삭제됩니다.',
+      onConfirm: () => {
+        const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || selectedLanguage;
+        setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   // 난이도 배지 스타일
@@ -1028,6 +1043,15 @@ const ProblemSolve = () => {
         notification={penaltyNotification}
         onDismiss={dismissNotification}
         penaltyStatus={getPenaltyStatus()}
+      />
+
+      {/* 커스텀 Confirm 모달 (전체화면 유지용) */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
       />
     </div>
   );
