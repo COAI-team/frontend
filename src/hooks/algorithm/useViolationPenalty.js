@@ -46,6 +46,7 @@ const PENALTY_CONFIG = {
     SLEEPING: 2,      // 졸음도 심각한 위반
     MASK_DETECTED: 1,
     MULTIPLE_FACES: 2,
+    // DEVTOOLS_OPEN 제거됨 - 위반 기록 없이 콘텐츠 차단만 적용
   }
 };
 

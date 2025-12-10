@@ -91,13 +91,16 @@ const ProblemSolve = () => {
     showFullscreenWarning,
     showTabSwitchWarning,
     showMouseLeaveWarning,
+    showDevtoolsWarning,
     violationCount,
     enterFullscreen,
     dismissFullscreenWarning,
     dismissTabSwitchWarning,
-    dismissMouseLeaveWarning
+    dismissMouseLeaveWarning,
+    dismissDevtoolsWarning
   } = useFocusViolationDetection({
     isActive: selectedMode === 'FOCUS' && solvingStarted,
+    isDevtoolsCheckActive: solvingStarted, // 기본/집중 모드 모두 개발자도구 감지
     monitoringSessionId
   });
 
@@ -334,7 +337,12 @@ const ProblemSolve = () => {
 
   // 언어 변경
   const handleLanguageChange = (lang) => {
-    if (window.confirm(`언어를 ${lang}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`)) {
+    const confirmed = window.confirm(`언어를 ${lang}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`);
+    // 집중 모드에서 confirm 다이얼로그 후 전체화면 복귀
+    if (selectedMode === 'FOCUS') {
+      enterFullscreen();
+    }
+    if (confirmed) {
       setSelectedLanguage(lang);
       const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[lang] || lang;
       setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
@@ -398,7 +406,12 @@ const ProblemSolve = () => {
 
   // 코드 초기화
   const handleResetCode = () => {
-    if (window.confirm('코드를 초기화하시겠습니까?')) {
+    const confirmed = window.confirm('코드를 초기화하시겠습니까?');
+    // 집중 모드에서 confirm 다이얼로그 후 전체화면 복귀
+    if (selectedMode === 'FOCUS') {
+      enterFullscreen();
+    }
+    if (confirmed) {
       setCode(codeTemplates[selectedLanguage] || codeTemplates['default'] || '// 코드를 작성하세요');
     }
   };
@@ -998,10 +1011,12 @@ const ProblemSolve = () => {
         showFullscreenWarning={showFullscreenWarning}
         showTabSwitchWarning={showTabSwitchWarning}
         showMouseLeaveWarning={showMouseLeaveWarning}
+        showDevtoolsWarning={showDevtoolsWarning}
         violationCount={violationCount}
         onDismissFullscreen={dismissFullscreenWarning}
         onDismissTabSwitch={dismissTabSwitchWarning}
         onDismissMouseLeave={dismissMouseLeaveWarning}
+        onDismissDevtools={dismissDevtoolsWarning}
         // [Phase 2] NO_FACE 경고 props
         showNoFaceWarning={noFaceState.showNoFaceWarning}
         noFaceDuration={noFaceState.noFaceDuration}

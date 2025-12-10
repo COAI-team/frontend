@@ -8,15 +8,18 @@ import React from 'react';
  * - 탭 전환 경고
  * - 마우스 이탈 경고 (토스트)
  * - [Phase 2] NO_FACE 경고 (얼굴 미검출 경고)
+ * - [Phase 2] 개발자도구 열기 경고 (프로덕션 환경에서만 활성화)
  */
 const ViolationWarnings = ({
   showFullscreenWarning,
   showTabSwitchWarning,
   showMouseLeaveWarning,
+  showDevtoolsWarning = false,
   violationCount,
   onDismissFullscreen,
   onDismissTabSwitch,
   onDismissMouseLeave,
+  onDismissDevtools,
   // [Phase 2] NO_FACE 관련 props
   showNoFaceWarning = false,
   noFaceDuration = 0,
@@ -118,6 +121,34 @@ const ViolationWarnings = ({
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* [Phase 2] 개발자도구 열기 경고 - 콘텐츠 차단 (위반 기록 없음) */}
+      {showDevtoolsWarning && (
+        <div className="fixed inset-0 bg-zinc-900 z-[9999] flex items-center justify-center">
+          <div className="text-center max-w-lg p-8">
+            <div className="w-24 h-24 mx-auto mb-6 bg-zinc-800 rounded-full flex items-center justify-center">
+              <span className="text-5xl">🔒</span>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-4">페이지 콘텐츠 보호됨</h2>
+            <p className="text-gray-300 text-lg mb-2">
+              문제 풀이 중에는 개발자도구를 사용할 수 없습니다.
+            </p>
+            <p className="text-gray-400 mb-6">
+              개발자도구를 닫으면 페이지 콘텐츠가 다시 표시됩니다.
+            </p>
+            <div className="bg-zinc-800 rounded-lg p-4 text-left">
+              <p className="text-sm text-gray-400 mb-2">💡 개발자도구 닫는 방법:</p>
+              <ul className="text-sm text-gray-300 space-y-1">
+                <li>• Windows/Linux: <kbd className="px-2 py-1 bg-zinc-700 rounded text-xs">F12</kbd> 또는 <kbd className="px-2 py-1 bg-zinc-700 rounded text-xs">Ctrl + Shift + I</kbd></li>
+                <li>• Mac: <kbd className="px-2 py-1 bg-zinc-700 rounded text-xs">⌘ + ⌥ + I</kbd></li>
+              </ul>
+            </div>
+            <p className="text-xs text-green-400 mt-4">
+              ※ 이 경고는 위반으로 기록되지 않습니다.
+            </p>
           </div>
         </div>
       )}
