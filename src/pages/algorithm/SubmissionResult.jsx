@@ -815,6 +815,91 @@ const SubmissionResult = () => {
             </div>
           </div>
 
+          {/* 집중 모드 모니터링 통계 */}
+          {submission.solveMode === 'FOCUS' && submission.monitoringStats && (
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">👁️ 집중 모드 모니터링 결과</h3>
+                  {submission.monitoringStats.autoSubmitted && (
+                    <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                      자동 제출됨
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* 전체화면 이탈 */}
+                  <div className="bg-gray-50 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">🖥️</div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {submission.monitoringStats.fullscreenExitCount || 0}
+                    </div>
+                    <div className="text-xs text-gray-500">전체화면 이탈</div>
+                  </div>
+
+                  {/* 탭 전환 */}
+                  <div className="bg-gray-50 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">📑</div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {submission.monitoringStats.tabSwitchCount || 0}
+                    </div>
+                    <div className="text-xs text-gray-500">탭 전환</div>
+                  </div>
+
+                  {/* 얼굴 미검출 */}
+                  <div className="bg-gray-50 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">👤</div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {submission.monitoringStats.noFaceCount || 0}
+                    </div>
+                    <div className="text-xs text-gray-500">얼굴 미검출</div>
+                  </div>
+
+                  {/* 마우스 이탈 */}
+                  <div className="bg-gray-50 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">🖱️</div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {submission.monitoringStats.mouseLeaveCount || 0}
+                    </div>
+                    <div className="text-xs text-gray-500">마우스 이탈</div>
+                  </div>
+                </div>
+
+                {/* 요약 통계 */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-4">
+                      <span className="text-gray-600">
+                        총 위반: <span className="font-bold text-gray-900">{submission.monitoringStats.totalViolations || 0}회</span>
+                      </span>
+                      <span className="text-gray-600">
+                        경고 표시: <span className="font-bold text-gray-900">{submission.monitoringStats.warningShownCount || 0}회</span>
+                      </span>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      (submission.monitoringStats.totalViolations || 0) === 0
+                        ? 'bg-green-100 text-green-700'
+                        : (submission.monitoringStats.totalViolations || 0) <= 3
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-red-100 text-red-700'
+                    }`}>
+                      {(submission.monitoringStats.totalViolations || 0) === 0
+                        ? '완벽한 집중!'
+                        : (submission.monitoringStats.totalViolations || 0) <= 3
+                          ? '양호'
+                          : '주의 필요'}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-400 mt-3">
+                  * 집중 모드 모니터링 결과는 점수에 반영되지 않습니다. (정보 제공 목적)
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* 제출된 코드 */}
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-6">
