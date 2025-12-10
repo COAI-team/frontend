@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { axiosInstance } from "../../server/AxiosConfig";
+import { getAuth } from "../../utils/auth/token";
 import hljs from 'highlight.js';
 import { Heart, MessageCircle, Share2, AlertCircle, Code2 } from "lucide-react";
 import "../../styles/CodeboardDetail.css";
@@ -25,10 +26,20 @@ const CodeboardDetail = () => {
   const [fileContent, setFileContent] = useState('');
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
 
+  // 로그인 유저 정보
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // 로그인 유저 정보 가져오기
+  useEffect(() => {
+    const auth = getAuth();
+    if (auth) {
+      setCurrentUser(auth);
+    }
+  }, []);
+
   // highlight.js 테마 관리
   useEffect(() => {
     const loadHljsTheme = (darkMode) => {
-      // 기존 테마 모두 제거
       document.querySelectorAll('link[data-hljs-theme]').forEach(el => el.remove());
       
       const link = document.createElement('link');
@@ -111,6 +122,18 @@ const CodeboardDetail = () => {
   };
 
   const handleLike = async () => {
+    // 로그인 체크
+    if (!currentUser) {
+      const goLogin = window.confirm(
+        "로그인 후 좋아요를 누를 수 있습니다. 로그인 하시겠습니까?"
+      );
+      if (goLogin) {
+        const redirect = encodeURIComponent(`/codeboard/${id}`);
+        navigate(`/signin?redirect=${redirect}`);
+      }
+      return;
+    }
+
     try {
       const response = await axiosInstance.post(`/like/codeboard/${id}`);
       const { isLiked: newIsLiked } = response.data;
@@ -121,6 +144,11 @@ const CodeboardDetail = () => {
       console.error('좋아요 처리 실패:', error);
       alert('좋아요 처리에 실패했습니다.');
     }
+  };
+
+  // 태그 클릭 핸들러
+  const handleTagClick = (tag) => {
+    navigate(`/codeboard?keyword=${encodeURIComponent(tag)}`);
   };
 
   const handleShare = () => {
@@ -143,7 +171,6 @@ const CodeboardDetail = () => {
     if (!contentRef.current || !board) return;
 
     const timer = setTimeout(() => {
-      // 스티커 이미지 스타일링
       contentRef.current.querySelectorAll('img[data-sticker], img[src*="openmoji"]').forEach(img => {
         Object.assign(img.style, {
           width: '1.5em',
@@ -154,7 +181,6 @@ const CodeboardDetail = () => {
         });
       });
 
-      // Monaco 코드블록 처리
       contentRef.current.querySelectorAll('pre[data-type="monaco-code-block"]').forEach(block => {
         const code = block.getAttribute('data-code');
         const language = block.getAttribute('data-language') || 'plaintext';
@@ -187,9 +213,18 @@ const CodeboardDetail = () => {
         }
       });
 
-      // 링크 프리뷰 처리
       contentRef.current.querySelectorAll('div[data-type="link-preview"]').forEach(preview => {
         renderLinkPreview(preview, isDark);
+      });
+
+      // 일반 코드 블록도 하이라이트 적용
+      const allCodeBlocks = contentRef.current.querySelectorAll(
+        'pre code:not([class*="language-"])'
+      );
+      allCodeBlocks.forEach((block) => {
+        block.classList.remove("hljs");
+        block.removeAttribute("data-highlighted");
+        hljs.highlightElement(block);
       });
 
     }, 100);
@@ -288,6 +323,14 @@ const CodeboardDetail = () => {
     );
   }
 
+  // 현재 로그인 유저가 게시글 작성자인지 여부
+  const currentUserId = currentUser?.userId ?? currentUser?.id ?? null;
+  const currentUserNickname = currentUser?.nickname ?? "";
+  const isAuthor =
+    currentUserId != null && board.userId != null
+      ? Number(currentUserId) === Number(board.userId)
+      : false;
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -295,7 +338,6 @@ const CodeboardDetail = () => {
       padding: '2rem 1rem'
     }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        {/* 상단 헤더 */}
         <div style={{ marginBottom: '2rem' }}>
           <button
             onClick={() => navigate("/codeboard")}
@@ -316,14 +358,12 @@ const CodeboardDetail = () => {
           </button>
         </div>
 
-        {/* 그리드 레이아웃 */}
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: analysisResult ? '1fr 1fr' : '1fr', 
           gap: '1.5rem' 
         }}>
           
-          {/* 왼쪽: 코드 & 분석 결과 */}
           {analysisResult && (
             <AnalysisPanel 
               analysisResult={analysisResult}
@@ -332,9 +372,7 @@ const CodeboardDetail = () => {
             />
           )}
 
-          {/* 오른쪽: 게시글 내용 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* 제목 및 버튼 */}
             <div style={{
               display: 'flex',
               alignItems: 'flex-start',
@@ -351,54 +389,55 @@ const CodeboardDetail = () => {
                 {board.codeboardTitle || "제목 없음"}
               </h1>
               
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => navigate(`/codeboard/edit/${id}`)}
-                  style={{
-                    padding: '0.625rem 1.25rem',
-                    borderRadius: '0.5rem',
-                    fontSize: '1rem',
-                    fontWeight: '500',
-                    backgroundColor: isDark ? '#374151' : '#e5e7eb',
-                    color: isDark ? '#e5e7eb' : '#1f2937',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  수정
-                </button>
-                <button
-                  onClick={() => {
-                    if (window.confirm("정말 삭제하시겠습니까?")) {
-                      axiosInstance
-                        .delete(`/codeboard/${id}`)
-                        .then(() => {
-                          alert("삭제되었습니다.");
-                          navigate("/codeboard");
-                        })
-                        .catch((err) => {
-                          console.error("삭제 실패:", err);
-                          alert("삭제에 실패했습니다.");
-                        });
-                    }
-                  }}
-                  style={{
-                    padding: '0.625rem 1.25rem',
-                    borderRadius: '0.5rem',
-                    fontSize: '1rem',
-                    fontWeight: '500',
-                    backgroundColor: isDark ? 'rgba(127, 29, 29, 0.3)' : 'rgba(220, 38, 38, 0.1)',
-                    color: isDark ? '#fca5a5' : '#dc2626',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  삭제
-                </button>
-              </div>
+              {isAuthor && (
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => navigate(`/codeboard/edit/${id}`)}
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '500',
+                      backgroundColor: isDark ? '#374151' : '#e5e7eb',
+                      color: isDark ? '#e5e7eb' : '#1f2937',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm("정말 삭제하시겠습니까?")) {
+                        axiosInstance
+                          .delete(`/codeboard/${id}`)
+                          .then(() => {
+                            alert("삭제되었습니다.");
+                            navigate("/codeboard");
+                          })
+                          .catch((err) => {
+                            console.error("삭제 실패:", err);
+                            alert("삭제에 실패했습니다.");
+                          });
+                      }
+                    }}
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '500',
+                      backgroundColor: isDark ? 'rgba(127, 29, 29, 0.3)' : 'rgba(220, 38, 38, 0.1)',
+                      color: isDark ? '#fca5a5' : '#dc2626',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    삭제
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* 메타 정보 */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -429,7 +468,6 @@ const CodeboardDetail = () => {
               <span>조회수 {board.codeboardClick}</span>
             </div>
 
-            {/* 본문 */}
             <div
               ref={contentRef}
               className={`codeboard-content ${isDark ? 'dark' : 'light'}`}
@@ -437,7 +475,6 @@ const CodeboardDetail = () => {
               dangerouslySetInnerHTML={{ __html: getRenderedContent(board.codeboardContent) }}
             />
 
-            {/* 태그 */}
             {board.tags && board.tags.length > 0 && (
               <div style={{
                 display: 'flex',
@@ -449,13 +486,18 @@ const CodeboardDetail = () => {
                 {board.tags.map((tag, index) => (
                   <span
                     key={index}
+                    onClick={() => handleTagClick(tag)}
                     style={{
                       padding: '0.25rem 0.75rem',
                       borderRadius: '9999px',
                       fontSize: '0.875rem',
                       backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                      color: '#60a5fa'
+                      color: '#60a5fa',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
                     }}
+                    onMouseEnter={(e) => (e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)')}
+                    onMouseLeave={(e) => (e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)')}
                   >
                     #{tag}
                   </span>
@@ -463,7 +505,6 @@ const CodeboardDetail = () => {
               </div>
             )}
 
-            {/* 액션 버튼 */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -540,10 +581,11 @@ const CodeboardDetail = () => {
               </div>
             </div>
 
-            {/* 댓글 섹션 */}
             <CommentSection
               boardId={Number(id)}
               boardType="CODEBOARD"
+              currentUserId={currentUserId}
+              currentUserNickname={currentUserNickname}
               isDark={isDark}
             />
           </div>
@@ -553,7 +595,6 @@ const CodeboardDetail = () => {
   );
 };
 
-// 분석 패널 컴포넌트 분리
 const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
   const parseJSON = (data) => {
     if (typeof data === 'string') {
@@ -568,7 +609,6 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* 코드 뷰어 */}
       <div style={{
         border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
@@ -637,7 +677,6 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
         </div>
       </div>
 
-      {/* 분석 결과 */}
       <div style={{
         border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
@@ -660,7 +699,6 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
 
         <div style={{ padding: '1rem', maxHeight: '600px', overflow: 'auto' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Code Smells */}
             {parseJSON(analysisResult.codeSmells).length > 0 && (
               <div>
                 <h3 style={{
@@ -694,7 +732,6 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
               </div>
             )}
 
-            {/* Suggestions */}
             {parseJSON(analysisResult.suggestions).length > 0 && (
               <div>
                 <h3 style={{

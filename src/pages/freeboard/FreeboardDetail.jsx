@@ -114,11 +114,12 @@ const FreeboardDetail = () => {
 
   // 태그 클릭 핸들러
   const handleTagClick = (tag) => {
-    navigate(`/freeboard?tag=${encodeURIComponent(tag)}`);
+    navigate(`/freeboard?keyword=${encodeURIComponent(tag)}`);
   };
 
   const handleShare = () => {
-    console.log("공유 클릭");
+    navigator.clipboard.writeText(window.location.href);
+    alert('링크가 복사되었습니다.');
   };
 
   const handleReport = () => {
@@ -127,7 +128,7 @@ const FreeboardDetail = () => {
 
   // 콘텐츠(스티커/코드블록/링크프리뷰) 렌더링
   useEffect(() => {
-    if (!contentRef.current) return;
+    if (!contentRef.current || !board) return;
 
     const timer = setTimeout(() => {
       const stickerImages = contentRef.current.querySelectorAll(
@@ -281,6 +282,7 @@ const FreeboardDetail = () => {
         }
       });
 
+      // 일반 코드 블록도 하이라이트 적용
       const allCodeBlocks = contentRef.current.querySelectorAll(
         'pre code:not([class*="language-"])'
       );
