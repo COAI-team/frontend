@@ -8,6 +8,8 @@ import { startProblemSolve, submitCode, runTestCode } from '../../service/algori
 import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
+import PenaltyNotification from '../../components/algorithm/PenaltyNotification';
+import { useViolationPenalty } from '../../hooks/algorithm/useViolationPenalty';
 
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
@@ -27,6 +29,8 @@ const ProblemSolve = () => {
   const navigate = useNavigate();
   const editorRef = useRef(null);
   const eyeTrackerRef = useRef(null); // 시선 추적 ref
+  const handleSubmitRef = useRef(null); // 자동 제출용 ref (stale closure 방지)
+  const noFaceSustainedRecordedRef = useRef(false); // NO_FACE_SUSTAINED 중복 기록 방지
 
   // 문제 데이터 상태
   const [problem, setProblem] = useState(null);
@@ -69,6 +73,19 @@ const ProblemSolve = () => {
   // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
   const solveMode = selectedMode || 'BASIC';
 
+  // [Phase 2] 시간 감소 콜백 (패널티 시스템용)
+  const handleTimeReduction = useCallback((seconds) => {
+    setTimeLeft(prev => Math.max(0, prev - seconds));
+    console.log(`⏰ Time reduced by ${seconds / 60} minutes`);
+  }, []);
+
+  // [Phase 2] 자동 제출 콜백 (ref를 통해 최신 handleSubmit 호출)
+  const handleAutoSubmit = useCallback(() => {
+    if (handleSubmitRef.current) {
+      handleSubmitRef.current();
+    }
+  }, []);
+
   // 집중 모드 위반 감지 훅
   const {
     showFullscreenWarning,
@@ -82,6 +99,19 @@ const ProblemSolve = () => {
   } = useFocusViolationDetection({
     isActive: selectedMode === 'FOCUS' && solvingStarted,
     monitoringSessionId
+  });
+
+  // [Phase 2] 패널티 시스템 훅
+  const {
+    penaltyNotification,
+    recordViolation,
+    dismissNotification,
+    getPenaltyStatus
+  } = useViolationPenalty({
+    isActive: selectedMode === 'FOCUS' && solvingStarted,
+    currentTimeLeft: timeLeft,
+    onTimeReduction: handleTimeReduction,
+    onAutoSubmit: handleAutoSubmit
   });
 
   // ✅ 수평 리사이저 (문제설명 | 에디터)
@@ -134,6 +164,34 @@ const ProblemSolve = () => {
       console.log('🎯 집중 모드: 시선 추적 준비 완료, 타이머 자동 시작');
     }
   }, [selectedMode, eyeTrackingReady, solvingStarted, isTimerRunning]);
+
+  // [Phase 2] 위반 이벤트를 패널티 시스템에 연결
+  // 전체화면 이탈 위반
+  useEffect(() => {
+    if (showFullscreenWarning && selectedMode === 'FOCUS') {
+      recordViolation('FULLSCREEN_EXIT');
+    }
+  }, [showFullscreenWarning, selectedMode, recordViolation]);
+
+  // 탭 전환 위반
+  useEffect(() => {
+    if (showTabSwitchWarning && selectedMode === 'FOCUS') {
+      recordViolation('TAB_SWITCH');
+    }
+  }, [showTabSwitchWarning, selectedMode, recordViolation]);
+
+  // NO_FACE 15초 이상 위반 (심각한 위반) - 중복 기록 방지
+  useEffect(() => {
+    if (noFaceState.noFaceProgress >= 1 && selectedMode === 'FOCUS') {
+      if (!noFaceSustainedRecordedRef.current) {
+        noFaceSustainedRecordedRef.current = true;
+        recordViolation('NO_FACE_SUSTAINED');
+      }
+    } else if (noFaceState.noFaceProgress < 1) {
+      // 얼굴이 다시 감지되면 플래그 리셋 (다음 15초 미검출 시 다시 기록 가능)
+      noFaceSustainedRecordedRef.current = false;
+    }
+  }, [noFaceState.noFaceProgress, selectedMode, recordViolation]);
 
   // 기본 모드 타이머 시작
   const handleStartTimer = useCallback(() => {
@@ -191,6 +249,11 @@ const ProblemSolve = () => {
       setIsSubmitting(false);
     }
   }, [code, problemId, selectedLanguage, navigate, getElapsedTime, eyeTrackingEnabled, solveMode, monitoringSessionId, timeLeft]);
+
+  // [Phase 2] handleSubmit ref 업데이트 (자동 제출용)
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  }, [handleSubmit]);
 
   // 문제 데이터 로드
   useEffect(() => {
@@ -943,6 +1006,13 @@ const ProblemSolve = () => {
         showNoFaceWarning={noFaceState.showNoFaceWarning}
         noFaceDuration={noFaceState.noFaceDuration}
         noFaceProgress={noFaceState.noFaceProgress}
+      />
+
+      {/* [Phase 2] 패널티 알림 */}
+      <PenaltyNotification
+        notification={penaltyNotification}
+        onDismiss={dismissNotification}
+        penaltyStatus={getPenaltyStatus()}
       />
     </div>
   );
