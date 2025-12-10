@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getSubmissionResult } from '../../service/algorithm/algorithmApi';
+import { getSubmissionResult, completeMission } from '../../service/algorithm/AlgorithmApi';
 
 /**
  * 제출 결과 페이지 - 실시간 업데이트 버전
@@ -16,8 +16,18 @@ const SubmissionResult = () => {
   const [showAIFeedback, setShowAIFeedback] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
 
+  // 🎯 데일리 미션 완료 상태
+  const [missionStatus, setMissionStatus] = useState({
+    completed: false,
+    message: null,
+    rewardPoints: 0,
+    error: null
+  });
+
   // 폴링을 위한 Ref
   const pollingInterval = useRef(null);
+  // 미션 완료 중복 호출 방지
+  const missionCompletedRef = useRef(false);
 
   // 데이터 조회 함수
   const fetchResult = async () => {
@@ -45,6 +55,69 @@ const SubmissionResult = () => {
 
       const isJudgeComplete = data.judgeStatus === 'COMPLETED' || data.judgeStatus === 'ERROR';
       const isAiComplete = data.aiFeedbackStatus === 'COMPLETED' || data.aiFeedbackStatus === 'ERROR';
+
+      // 🔍 디버그 로그
+      console.log('📊 채점 상태:', {
+        judgeStatus: data.judgeStatus,
+        judgeResult: data.judgeResult,
+        aiFeedbackStatus: data.aiFeedbackStatus,
+        isJudgeComplete,
+        isAiComplete,
+        missionAlreadyCompleted: missionCompletedRef.current
+      });
+
+      // 🎯 채점 완료(AC) 시 바로 데일리 미션 완료 처리 (AI 완료 기다리지 않음)
+      if (isJudgeComplete && data.judgeResult === 'AC' && !missionCompletedRef.current) {
+        missionCompletedRef.current = true;
+        // TODO: 실제 로그인 구현 후 user.userId로 변경
+        const testUserId = 3; // 개발용 테스트 userId
+        console.log('🎯 미션 완료 API 호출 시작:', { missionType: 'PROBLEM_SOLVE', testUserId });
+        try {
+          const missionResult = await completeMission('PROBLEM_SOLVE', testUserId);
+          console.log('🎯 미션 완료 API 응답 (전체):', JSON.stringify(missionResult, null, 2));
+
+          // API 응답 구조 분석: 다양한 응답 패턴 처리
+          // 패턴 1: { success: true, message, rewardPoints }
+          // 패턴 2: { data: { success: true, ... } }
+          // 패턴 3: { alreadyCompleted: true }
+          // 패턴 4: { error: true, message }
+
+          const result = missionResult.data || missionResult; // data wrapper 처리
+
+          if (result.error) {
+            console.warn('미션 완료 API 오류:', result.message);
+            setMissionStatus(prev => ({ ...prev, error: result.message }));
+          } else if (result.success || result.completed) {
+            setMissionStatus({
+              completed: true,
+              message: result.message || '문제 풀기 미션 완료!',
+              rewardPoints: result.rewardPoints || 0,
+              error: null
+            });
+            console.log('✅ 미션 완료:', result.message, `+${result.rewardPoints || 0}P`);
+          } else if (result.alreadyCompleted) {
+            setMissionStatus({
+              completed: true,
+              message: '이미 완료된 미션입니다',
+              rewardPoints: 0,
+              error: null
+            });
+            console.log('ℹ️ 이미 완료된 미션');
+          } else {
+            // 에러가 아니면 성공으로 간주 (응답 구조가 예상과 다른 경우 대비)
+            console.log('ℹ️ 예상치 못한 응답 구조, 성공으로 처리:', result);
+            setMissionStatus({
+              completed: true,
+              message: '문제 풀기 미션 완료!',
+              rewardPoints: 0,
+              error: null
+            });
+          }
+        } catch (missionErr) {
+          console.warn('미션 완료 처리 실패:', missionErr);
+          setMissionStatus(prev => ({ ...prev, error: '미션 완료 처리 실패' }));
+        }
+      }
 
       // 둘 다 완료되면 폴링 중지
       if (isJudgeComplete && isAiComplete) {
@@ -185,6 +258,29 @@ const SubmissionResult = () => {
       {/* 메인 컨텐츠 */}
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
+          {/* 🎯 데일리 미션 완료 배너 */}
+          {missionStatus.completed && (
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-lg p-4 text-white animate-pulse">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">🎉</span>
+                  <div>
+                    <h3 className="font-bold text-lg">데일리 미션 완료!</h3>
+                    <p className="text-green-100 text-sm">
+                      {missionStatus.message || '문제 풀기 미션을 완료했습니다'}
+                    </p>
+                  </div>
+                </div>
+                {missionStatus.rewardPoints > 0 && (
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">+{missionStatus.rewardPoints}P</p>
+                    <p className="text-green-100 text-xs">보상 포인트</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* 결과 요약 카드 */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

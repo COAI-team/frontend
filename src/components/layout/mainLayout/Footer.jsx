@@ -19,7 +19,7 @@ export default function Footer() {
     ];
 
     return (
-        <footer className={`${footerStyle} transition-colors border-t ${borderStyle} py-10`}>
+        <footer className={`${footerStyle} transition-colors border-t ${borderStyle} py-3`}>
             <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
                 {/* 좌측 영역 (카피라이트 포함) */}
                 <div className="flex items-center h-full text-center md:text-left">

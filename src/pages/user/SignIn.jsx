@@ -11,7 +11,11 @@ import {useTheme} from "next-themes";
 export default function SignIn() {
     const navigate = useNavigate();
     const location = useLocation();
-    const {login: loginContextLogin, setLoginResult} = useContext(LoginContext);
+    const {
+        login: loginContextLogin,
+        setLoginResult,
+        setIsAlertOpen,
+    } = useContext(LoginContext);
     const {theme} = useTheme();
     const [resetModalOpen, setResetModalOpen] = useState(false);
 
@@ -91,12 +95,17 @@ export default function SignIn() {
         setLoginResult(result);
         loginContextLogin(result, true);
 
+        setIsAlertOpen(true);
+
         setAlertModal({
             open: true,
             type: "success",
             title: "로그인 성공",
             message: "환영합니다!",
-            onConfirm: () => navigate(redirect),
+            onConfirm: () => {
+                setIsAlertOpen(false); // 모달 닫힘
+                navigate(redirect);
+            },
         });
     };
 
@@ -188,65 +197,13 @@ export default function SignIn() {
                         {/* 소셜 로그인 Divider */}
                         <div className="mt-8">
                             <div className="relative w-full flex items-center justify-center">
-                                <div className="flex-grow border-t dark:border-gray-700"></div>
+                                <div className="grow border-t dark:border-gray-700"></div>
                                 <span className="px-4 text-sm font-medium dark:text-gray-300">
                                     또는 다음으로 계속하기
                                 </span>
-                                <div className="flex-grow border-t dark:border-gray-700"></div>
+                                <div className="grow border-t dark:border-gray-700"></div>
                             </div>
                         </div>
-
-                        {/* 소셜 로그인 아이콘 목록 */}
-                        {/*<div className="mt-6 flex items-center justify-center gap-8">*/}
-
-                        {/*    /!* Google *!/*/}
-                        {/*    <button*/}
-                        {/*        type="button"*/}
-                        {/*        className="flex flex-col items-center"*/}
-                        {/*        onClick={() => console.log("Google 로그인")}*/}
-                        {/*    >*/}
-                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-100 hover:border-gray-100">*/}
-                        {/*            <img src="/socialLogos/Google.svg" alt="google" className="w-6 h-6"/>*/}
-                        {/*        </div>*/}
-                        {/*        <span className="mt-2 text-xs font-bold dark:text-gray-300">GOOGLE</span>*/}
-                        {/*    </button>*/}
-
-                        {/*    /!* Kakao *!/*/}
-                        {/*    <button*/}
-                        {/*        type="button"*/}
-                        {/*        className="flex flex-col items-center"*/}
-                        {/*        onClick={() => console.log("Kakao 로그인")}*/}
-                        {/*    >*/}
-                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#FEE500] border border-[#FEE500] hover:bg-[#f5d900] hover:border-[#f5d900]">*/}
-                        {/*            <img src="/socialLogos/KakaoTalk.svg" alt="kakao" className="w-6 h-6"/>*/}
-                        {/*        </div>*/}
-                        {/*        <span className="mt-2 text-xs font-bold dark:text-gray-300">KAKAO</span>*/}
-                        {/*    </button>*/}
-
-                        {/*    /!* GitHub *!/*/}
-                        {/*    <button*/}
-                        {/*        type="button"*/}
-                        {/*        onClick={handleGitHubLogin}*/}
-                        {/*        className="flex flex-col items-center"*/}
-                        {/*    >*/}
-                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-100 hover:border-gray-100">*/}
-                        {/*            <img src="/socialLogos/GitHub.svg" alt="github" className="w-6 h-6"/>*/}
-                        {/*        </div>*/}
-                        {/*        <span className="mt-2 text-xs font-bold dark:text-gray-300">GITHUB</span>*/}
-                        {/*    </button>*/}
-
-                        {/*    /!* Naver *!/*/}
-                        {/*    <button*/}
-                        {/*        type="button"*/}
-                        {/*        onClick={() => console.log("Naver 로그인")}*/}
-                        {/*        className="flex flex-col items-center"*/}
-                        {/*    >*/}
-                        {/*        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#03C75A] border border-[#03C75A] hover:bg-[#02b352] hover:border-[#02b352]">*/}
-                        {/*            <img src="/socialLogos/Naver.svg" alt="naver" className="w-6 h-6"/>*/}
-                        {/*        </div>*/}
-                        {/*        <span className="mt-2 text-xs font-bold  dark:text-gray-300">NAVER</span>*/}
-                        {/*    </button>*/}
-                        {/*</div>*/}
                         <div className="mt-6 flex items-center justify-center">
                             {/* GitHub */}
                             <button

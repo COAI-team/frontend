@@ -144,6 +144,50 @@ export default function EditModeCard({
                         readOnly
                     />
                 </div>
+
+                {/* GitHub ID */}
+                <div>
+                    <label
+                        htmlFor="githubId"
+                        className="text-sm font-medium text-gray-700">GitHub ID</label>
+                    <input
+                        id="githubId"
+                        className="mt-1 w-full border rounded-md px-4 py-2"
+                        value={profile.githubId || ""}
+                        placeholder="GitHub 아이디를 입력하세요"
+                        onChange={(e) => setProfile(prev => ({...prev, githubId: e.target.value}))}
+                    />
+                </div>
+
+                {/* GitHub Token */}
+                <div>
+                    <div className="flex justify-between items-center mb-1">
+                        <label
+                            htmlFor="githubToken"
+                            className="text-sm font-medium text-gray-700"
+                        >
+                            GitHub Token
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => window.open('https://github.com/settings/tokens', '_blank')}
+                            className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        >
+                            토큰 발급받기
+                        </button>
+                    </div>
+                    <input
+                        id="githubToken"
+                        type="password"
+                        className="mt-1 w-full border rounded-md px-4 py-2"
+                        value={profile.githubToken || ""}
+                        placeholder={profile.hasGithubToken ? "토큰이 저장되어 있습니다 (수정하려면 입력)" : "GitHub Personal Access Token (repo scope)"}
+                        onChange={(e) => setProfile(prev => ({...prev, githubToken: e.target.value}))}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                        * Private Repository 접근 및 API 호출 제한 해제를 위해 필요합니다. (repo 권한 필요)
+                    </p>
+                </div>
             </div>
 
             {/* 버튼 */}
