@@ -30,6 +30,9 @@ export default function ProfilePage() {
         email: "",
         preview: null,
         image: null,
+        githubId: "",
+        githubToken: "",
+        hasGithubToken: false,
     });
 
     const [subscription, setSubscription] = useState({code: "FREE", label: "Free"});
@@ -61,6 +64,9 @@ export default function ProfilePage() {
                 email: res.userEmail,
                 preview: res.userImage || null,
                 image: null,
+                githubId: res.githubId || "",
+                githubToken: "", // 보안상 토큰은 비워둠 (입력 시에만 값 존재)
+                hasGithubToken: res.hasGithubToken || false,
             });
 
             setIsDeleted(res.isDeleted || false);
@@ -157,6 +163,8 @@ export default function ProfilePage() {
             name: profile.name,
             nickname: profile.nickname,
             image: profile.image,
+            githubId: profile.githubId,
+            githubToken: profile.githubToken,
         });
 
         if (!result || result.error) {
@@ -176,6 +184,9 @@ export default function ProfilePage() {
             ...prev,
             preview: result.user.userImage,
             image: null,
+            githubId: result.user.githubId, // 업데이트된 값 반영
+            hasGithubToken: result.user.hasGithubToken,
+            githubToken: "", // 저장 후 입력창 초기화
         }));
 
         setEditMode(false);

@@ -2,18 +2,33 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAnalysisHistory } from '../../service/codeAnalysis/analysisApi';
 import { getScoreBadgeColor, getSmellKeyword } from '../../utils/codeAnalysisUtils';
+import { useLogin } from '../../context/useLogin'; // useLogin 추가
 
 const CodeAnalysisMain = () => {
+    const { user, isLogin } = useLogin(); // user 정보 가져오기
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
+    const userId = user?.userId;
+
     useEffect(() => {
+        // 로그인이 안되어있거나 userId가 없으면 로딩만 끄고 리턴 (또는 로그인 페이지로 리다이렉트 가능)
+        if (!userId) {
+             // 만약 로그인이 필요한 페이지라면 여기서 체크
+             if (loading && !isLogin) {
+                 // 로그인 상태 확인 후에도 로그인이 아니라면? 
+                 // 일단 여기서는 리스트를 비우고 로딩 끝냄
+                 setLoading(false);
+             }
+            return;
+        }
+
         const loadHistory = async () => {
             try {
                 setLoading(true);
-                // TODO: 실제 사용자 ID 사용 (현재 하드코딩 1)
-                const result = await getAnalysisHistory(1);
+                // 실제 사용자 ID 사용
+                const result = await getAnalysisHistory(userId);
                 
                 if (result.data && Array.isArray(result.data)) {
                     setHistory(result.data);
@@ -27,8 +42,10 @@ const CodeAnalysisMain = () => {
             }
         };
 
-        loadHistory();
-    }, []);
+        if (userId) {
+            loadHistory();
+        }
+    }, [userId]); // userId가 변경되면(로드되면) 실행
 
     const handleCardClick = (analysisId) => {
         navigate(`/codeAnalysis/${analysisId}`);
