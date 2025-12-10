@@ -29,7 +29,7 @@ const ViolationWarnings = ({
     <>
       {/* 전체화면 이탈 경고 */}
       {showFullscreenWarning && (
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/90 z-9999 flex items-center justify-center">
           <div className="bg-red-900 p-8 rounded-xl text-center max-w-md shadow-2xl">
             <span className="text-6xl">⚠️</span>
             <h2 className="text-2xl font-bold mt-4 text-white">전체화면을 유지해주세요!</h2>
@@ -65,7 +65,7 @@ const ViolationWarnings = ({
 
       {/* 마우스 이탈 경고 (토스트) */}
       {showMouseLeaveWarning && (
-        <div className="fixed top-4 right-4 bg-yellow-900/95 p-4 rounded-lg z-[9999] animate-pulse shadow-lg border border-yellow-700">
+        <div className="fixed top-4 right-4 bg-yellow-900/95 p-4 rounded-lg z-9999 animate-pulse shadow-lg border border-yellow-700">
           <p className="text-yellow-200 font-medium">⚠️ 마우스가 화면 밖으로 나갔습니다!</p>
           <button
             onClick={onDismissMouseLeave}

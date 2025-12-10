@@ -29,7 +29,7 @@ export default function Dropdown({ button, items, width = "w-40" }) {
             {/* Dropdown 메뉴 */}
             <MenuItems
                 transition
-                className={`absolute right-0 z-10 mt-2 ${width} origin-top-right rounded-md 
+                className={`absolute right-0 z-10 mt-2 ${width} origin-top-right rounded-md border
                     ${theme === "dark" ? "bg-gray-800" : "bg-white"}
                     shadow-lg outline-1 
                     ${theme === "dark" ? "outline-white/10" : "outline-black/5"}
