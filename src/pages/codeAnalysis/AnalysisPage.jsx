@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useLogin } from '../../context/useLogin'; // Add Import
 
 import RepositorySelector from '../../components/github/RepositorySelector';
 import BranchSelector from '../../components/github/BranchSelector';
@@ -14,11 +15,8 @@ import { getAuth, removeAuth } from "../../utils/auth/token";
 import AlertModal from "../../components/modal/AlertModal";
 
 
-
-
-
-
 const AnalysisPage = () => {
+    const { user } = useLogin(); // Get User
     const { analysisId } = useParams();
 
     const navigate = useNavigate();
@@ -144,7 +142,7 @@ const AnalysisPage = () => {
                 owner: selectedRepo.owner,
                 repo: selectedRepo.name,
                 filePath: selectedFile.path,
-                userId: 1 // TODO: Auth Context
+                userId: user?.userId 
             });
 
             // 2. 분석 요청 (동기 -> 결과 한 번에 수신)
@@ -155,7 +153,7 @@ const AnalysisPage = () => {
                 analysisTypes: formState.analysisTypes,
                 toneLevel: formState.toneLevel,
                 customRequirements: formState.customRequirements,
-                userId: 1
+                userId: user?.userId 
             });
 
             const accumulated = response.data; // API returns success(data) or just data depending on ApiResponse wrapping. 
@@ -362,11 +360,11 @@ const AnalysisPage = () => {
                                 
                                 {isNew && (
                                     <div className="mt-6 pt-6 border-t text-center">
-                                        <button 
-                                            onClick={() => navigate('/codeAnalysis')}
+                                        <button
+                                            onClick={() => window.location.href = '/codeAnalysis/new'}
                                             className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                         >
-                                            목록으로 돌아가기
+                                            새로운 분석하기
                                         </button>
                                     </div>
                                 )}

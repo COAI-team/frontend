@@ -132,6 +132,9 @@ export const updateMyInfo = async (payload) => {
             formData.append("image", payload.image);
         }
 
+        if (payload.githubId !== undefined) formData.append("githubId", payload.githubId);
+        if (payload.githubToken !== undefined) formData.append("githubToken", payload.githubToken);
+
         const res = await axiosInstance.put("/users/me", formData, {
             headers: {
                 Authorization: `Bearer ${localStorage.getItem("accessToken")}`,

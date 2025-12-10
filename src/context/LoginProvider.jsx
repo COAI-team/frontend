@@ -8,6 +8,7 @@ import { normalizeUser } from "../utils/normalizeUser";
 export default function LoginProvider({ children }) {
     const [auth, setAuth] = useState(null);
     const [loginResult, setLoginResult] = useState(null);
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
 
     // ✅ 1) hydration 상태 추가
     const [hydrated, setHydrated] = useState(false);
@@ -136,9 +137,11 @@ export default function LoginProvider({ children }) {
             loginResult,
             setLoginResult,
             setUser,
-            hydrated, // ✅ 여기서 컨텍스트로 내보내기
+            hydrated,
+            isAlertOpen,
+            setIsAlertOpen
         }),
-        [auth, loginResult, hydrated]
+        [auth, loginResult, hydrated, isAlertOpen]
     );
 
     return (

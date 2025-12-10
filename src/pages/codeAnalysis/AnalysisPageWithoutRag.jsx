@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useLogin } from '../../context/useLogin';
 
 import RepositorySelector from '../../components/github/RepositorySelector';
 import BranchSelector from '../../components/github/BranchSelector';
@@ -12,6 +13,7 @@ import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUti
 
 
 const AnalysisPageWithoutRag = () => {
+    const { user } = useLogin();
     const { analysisId } = useParams();
     const navigate = useNavigate();
     const isNew = !analysisId;
@@ -125,7 +127,7 @@ const AnalysisPageWithoutRag = () => {
                 owner: selectedRepo.owner,
                 repo: selectedRepo.name,
                 filePath: selectedFile.path,
-                userId: 1 // TODO: Auth Context
+                userId: user?.userId
             });
 
             // 2. 분석 요청 (동기 - No RAG)
@@ -136,7 +138,7 @@ const AnalysisPageWithoutRag = () => {
                 analysisTypes: formState.analysisTypes,
                 toneLevel: formState.toneLevel,
                 customRequirements: formState.customRequirements,
-                userId: 1
+                userId: user?.userId
             });
 
             // ApiResponse.success(result) -> response.data is { status:.., data: result }
@@ -293,11 +295,11 @@ const AnalysisPageWithoutRag = () => {
                                 
                                 {isNew && (
                                     <div className="mt-6 pt-6 border-t text-center">
-                                        <button 
-                                            onClick={() => navigate('/codeAnalysis')}
+                                        <button
+                                            onClick={() => window.location.href = '/codeAnalysis/norag'}
                                             className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                         >
-                                            목록으로 돌아가기
+                                            새로운 분석하기
                                         </button>
                                     </div>
                                 )}
