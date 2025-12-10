@@ -81,9 +81,10 @@
   max-width: 100%;
 }
 
+/* highlight.js 색상 보존 */
 html.dark .codeboard-content .code-block-wrapper {
-  background-color: #1e1e1e;
-  border: 1px solid #374151;
+  background: transparent !important;
+  color: inherit !important;
 }
 
 html:not(.dark) .codeboard-content .code-block-wrapper {
@@ -146,4 +147,19 @@ html:not(.dark) .codeboard-content .code-header {
 .loading-container:not(.dark) {
   background-color: #f9fafb;
   color: #1f2937;
+}
+
+/* highlight.js 색상 우선 적용 */
+.codeboard-content .code-block-wrapper code.hljs {
+  background: transparent !important;
+}
+
+.codeboard-content .code-block-wrapper code.hljs * {
+  color: inherit !important;
+}
+
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
