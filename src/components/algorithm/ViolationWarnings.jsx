@@ -7,6 +7,7 @@ import React from 'react';
  * - 전체화면 이탈 경고
  * - 탭 전환 경고
  * - 마우스 이탈 경고 (토스트)
+ * - [Phase 2] NO_FACE 경고 (얼굴 미검출 경고)
  */
 const ViolationWarnings = ({
   showFullscreenWarning,
@@ -15,7 +16,11 @@ const ViolationWarnings = ({
   violationCount,
   onDismissFullscreen,
   onDismissTabSwitch,
-  onDismissMouseLeave
+  onDismissMouseLeave,
+  // [Phase 2] NO_FACE 관련 props
+  showNoFaceWarning = false,
+  noFaceDuration = 0,
+  noFaceProgress = 0,
 }) => {
   return (
     <>
@@ -65,6 +70,55 @@ const ViolationWarnings = ({
           >
             닫기
           </button>
+        </div>
+      )}
+
+      {/* [Phase 2] NO_FACE 경고 (얼굴 미검출 경고) */}
+      {showNoFaceWarning && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] animate-bounce">
+          <div className={`p-4 rounded-xl shadow-2xl border-2 ${
+            noFaceProgress >= 1
+              ? 'bg-red-900/95 border-red-500'
+              : 'bg-orange-900/95 border-orange-500'
+          }`}>
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">
+                {noFaceProgress >= 1 ? '🚨' : '👤'}
+              </span>
+              <div>
+                <h3 className={`font-bold text-lg ${
+                  noFaceProgress >= 1 ? 'text-red-200' : 'text-orange-200'
+                }`}>
+                  {noFaceProgress >= 1
+                    ? '심각한 위반 감지!'
+                    : '얼굴이 감지되지 않습니다!'}
+                </h3>
+                <p className="text-sm text-gray-300">
+                  {noFaceProgress >= 1
+                    ? '15초 이상 얼굴이 감지되지 않았습니다. 이 기록은 저장됩니다.'
+                    : '카메라를 향해 얼굴을 보여주세요.'}
+                </p>
+                <div className="mt-2">
+                  <div className="text-xs text-gray-400 mb-1">
+                    미검출 시간: {Math.round(noFaceDuration / 1000)}초 / 15초
+                  </div>
+                  {/* 프로그레스 바 */}
+                  <div className="w-48 h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        noFaceProgress >= 1
+                          ? 'bg-red-500'
+                          : noFaceProgress >= 0.7
+                            ? 'bg-orange-500'
+                            : 'bg-yellow-500'
+                      }`}
+                      style={{ width: `${Math.min(noFaceProgress * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </>

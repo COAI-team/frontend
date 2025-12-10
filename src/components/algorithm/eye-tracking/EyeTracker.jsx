@@ -10,8 +10,9 @@ import CalibrationScreen from './CalibrationScreen';
  * - onSessionStart 콜백 추가 (monitoringSessionId 전달)
  * - monitoringSessionId를 부모 컴포넌트에서 사용할 수 있도록 노출
  * - timeLimitMinutes prop 추가 (사용자 지정 시간)
+ * - [Phase 2] onNoFaceStateChange 콜백 추가 (NO_FACE 상태 전달)
  */
-const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, onReady, onSessionStart, onSessionEnd }, ref) => {
+const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, onReady, onSessionStart, onSessionEnd, onNoFaceStateChange }, ref) => {
     const [showCalibration, setShowCalibration] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(false);
     const [error, setError] = useState(null);
@@ -28,7 +29,11 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, on
         sessionId,
         startCalibration,
         completeCalibration,
-        stopTracking
+        stopTracking,
+        // [Phase 2] NO_FACE 상태
+        showNoFaceWarning,
+        noFaceDuration,
+        noFaceProgress
     } = useEyeTracking(problemId, isEnabled && permissionGranted, timeLimitMinutes);
 
     // Refs를 최신 값으로 유지
@@ -37,6 +42,17 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, on
         sessionIdRef.current = sessionId;
         onSessionEndRef.current = onSessionEnd;
     }, [stopTracking, sessionId, onSessionEnd]);
+
+    // [Phase 2] NO_FACE 상태가 변경될 때 부모에게 알림
+    useEffect(() => {
+        if (onNoFaceStateChange) {
+            onNoFaceStateChange({
+                showNoFaceWarning,
+                noFaceDuration,
+                noFaceProgress
+            });
+        }
+    }, [showNoFaceWarning, noFaceDuration, noFaceProgress, onNoFaceStateChange]);
 
     // 웹캠 권한 요청
     useEffect(() => {

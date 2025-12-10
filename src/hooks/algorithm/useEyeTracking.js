@@ -152,11 +152,12 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
                                 setShowNoFaceWarning(true);
                                 console.log('⚠️ NO_FACE warning shown (5+ seconds)');
 
-                                // 경고 시작 시 백엔드에 warning 기록
-                                recordMonitoringWarning(newSessionId, 'NO_FACE_WARNING', {
-                                    description: 'Face not detected for 5+ seconds',
-                                    duration: Math.round(duration / 1000)
-                                });
+                                // 경고 시작 시 백엔드에 warning 기록 (sessionId만 전달)
+                                if (newSessionId) {
+                                    recordMonitoringWarning(newSessionId).catch(err => {
+                                        console.warn('Warning record failed (non-critical):', err);
+                                    });
+                                }
                             }
 
                             // 15초 이상: 심각한 위반 전송 (1회만)

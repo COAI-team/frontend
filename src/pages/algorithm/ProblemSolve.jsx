@@ -59,6 +59,13 @@ const ProblemSolve = () => {
   const [eyeTrackingReady, setEyeTrackingReady] = useState(false);
   const [monitoringSessionId, setMonitoringSessionId] = useState(null);
 
+  // [Phase 2] NO_FACE 경고 상태
+  const [noFaceState, setNoFaceState] = useState({
+    showNoFaceWarning: false,
+    noFaceDuration: 0,
+    noFaceProgress: 0
+  });
+
   // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
   const solveMode = selectedMode || 'BASIC';
 
@@ -919,6 +926,7 @@ const ProblemSolve = () => {
           onReady={handleEyeTrackerReady}
           onSessionStart={handleSessionStart}
           onSessionEnd={handleSessionEnd}
+          onNoFaceStateChange={setNoFaceState}
         />
       )}
 
@@ -931,6 +939,10 @@ const ProblemSolve = () => {
         onDismissFullscreen={dismissFullscreenWarning}
         onDismissTabSwitch={dismissTabSwitchWarning}
         onDismissMouseLeave={dismissMouseLeaveWarning}
+        // [Phase 2] NO_FACE 경고 props
+        showNoFaceWarning={noFaceState.showNoFaceWarning}
+        noFaceDuration={noFaceState.noFaceDuration}
+        noFaceProgress={noFaceState.noFaceProgress}
       />
     </div>
   );
