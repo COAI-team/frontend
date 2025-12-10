@@ -175,7 +175,7 @@ const DailyMission = () => {
     }
 
     return (
-        <div className="max-w-4xl">
+        <div className="max-w-4xl mx-auto">
                 {/* 페이지 헤더 */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between">
