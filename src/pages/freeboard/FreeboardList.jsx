@@ -203,22 +203,9 @@ const FreeboardList = () => {
                   onClick={() => handlePostClick(post.freeboardId)}
                 >
                   <div className="post-content">
-                    <div className="post-header">
-                      <div className="post-user-info">
-                        <div className="user-avatar">
-                          <span className="user-initial">
-                            {post.userNickname?.charAt(0) || 'U'}
-                          </span>
-                        </div>
-                        <div className="user-details">
-                          <span className="user-nickname">{post.userNickname || 'User'}</span>
-                          <span className="post-date">{formatDate(post.freeboardCreatedAt)}</span>
-                        </div>
-                      </div>
-                    </div>
-
                     <h2 className="post-title">{post.freeboardTitle}</h2>
-                    <p className="post-preview">{getPreviewText(post.freeboardSummary)}</p>
+
+                    <p className="post-preview">{getPreviewText(post.freeboardContent || post.freeboardSummary)}</p>
 
                     {post.tags && (
                       <div className="post-tags">
@@ -228,7 +215,16 @@ const FreeboardList = () => {
                       </div>
                     )}
 
-                    <div className="post-stats">
+                    <div className="post-footer">
+                      <div className="post-user-info">
+                        <div className="user-avatar">
+                          <span className="user-initial">
+                            {post.userNickname?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                        <span className="user-nickname">{post.userNickname || 'User'}</span>
+                      </div>
+                      <span className="post-date">{formatDate(post.freeboardCreatedAt)}</span>
                       <span className="stat-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" 
