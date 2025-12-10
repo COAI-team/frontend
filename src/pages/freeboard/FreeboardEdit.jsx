@@ -14,7 +14,9 @@ const FreeboardEdit = () => {
     const fetchFreeboard = async () => {
       try {
         const response = await axiosInstance.get(`/freeboard/${id}`);
-        const data = response.data;
+        
+        // response.data.data로 실제 데이터 접근
+        const data = response.data.data || response.data;
         
         console.log("불러온 데이터:", data);
         
@@ -50,7 +52,7 @@ const FreeboardEdit = () => {
       } catch (error) {
         console.error("Error:", error);
         alert("게시글을 불러오는데 실패했습니다.");
-        navigate("/freeboard/list");
+        navigate("/freeboard");
       } finally {
         setLoading(false);
       }
@@ -85,14 +87,14 @@ const FreeboardEdit = () => {
 
       await axiosInstance.put(`/freeboard/${id}`, payload);
 
-        alert("게시글이 수정되었습니다.");
-        navigate(`/freeboard/${id}`);
-      } catch (error) {
-        console.error("수정 실패:", error);
-        console.error("에러 상세:", error.response?.data);
-        alert("게시글 수정에 실패했습니다.");
-      }
-    };
+      alert("게시글이 수정되었습니다.");
+      navigate(`/freeboard/${id}`);
+    } catch (error) {
+      console.error("수정 실패:", error);
+      console.error("에러 상세:", error.response?.data);
+      alert("게시글 수정에 실패했습니다.");
+    }
+  };
 
   if (loading) {
     return (

@@ -1,27 +1,55 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axiosInstance from "../../server/AxiosConfig";
 import Pagination from '../../components/common/Pagination';
 import "../../styles/FreeboardList.css";
 
 const FreeboardList = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [sortBy, setSortBy] = useState('CREATED_AT');
-  const [sortDirection, setSortDirection] = useState('DESC');
-  const [viewType, setViewType] = useState('list');
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [viewType, setViewType] = useState('list');
 
+  // URL에서 파라미터 읽기 (단일 진실 공급원)
+  const keyword = searchParams.get('keyword') || '';
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const pageSize = Number(searchParams.get('size')) || 10;
+  const sortBy = searchParams.get('sort') || 'CREATED_AT';
+  const sortDirection = searchParams.get('direction') || 'DESC';
+
+  // 검색 입력용 로컬 state (입력 중에는 URL 업데이트 안 함)
+  const [searchInput, setSearchInput] = useState(keyword);
+
+  // URL 파라미터 업데이트 헬퍼 함수
+  const updateParams = useCallback((updates, resetPage = false) => {
+    const newParams = new URLSearchParams(searchParams);
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === '') {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, String(value));
+      }
+    });
+
+    // 조건이 바뀌면 페이지 초기화
+    if (resetPage) {
+      newParams.delete('page');
+    }
+
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
+
+  // URL keyword 변경 시 검색 입력창 동기화
   useEffect(() => {
-    fetchPosts();
-  }, [currentPage, sortBy, sortDirection, pageSize, searchKeyword]);
+    setSearchInput(keyword);
+  }, [keyword]);
 
-  const fetchPosts = async () => {
+  // 게시글 목록 조회
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axiosInstance.get('/freeboard', {
@@ -30,7 +58,7 @@ const FreeboardList = () => {
           size: pageSize,
           sort: sortBy,
           direction: sortDirection,
-          keyword: searchKeyword
+          keyword: keyword
         }
       });
       
@@ -44,26 +72,38 @@ const FreeboardList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, sortBy, sortDirection, keyword]);
 
+  // URL 파라미터가 변경될 때마다 게시글 조회
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  // 검색 폼 제출
   const handleSearch = (e) => {
     e.preventDefault();
-    setCurrentPage(1);
-    fetchPosts();
+    updateParams({ keyword: searchInput }, true);
   };
 
+  // 정렬 변경
   const handleSortChange = (newSort) => {
-    setSortBy(newSort);
-    if (newSort === 'CREATED_AT') {
-      setSortDirection('DESC');
-    } else {
-      setSortDirection('DESC');
-    }
-    setCurrentPage(1);
+    updateParams({ sort: newSort, direction: 'DESC' }, true);
   };
 
+  // 페이지 크기 변경
+  const handlePageSizeChange = (newSize) => {
+    updateParams({ size: newSize }, true);
+  };
+
+  // 페이지 변경
   const handlePageChange = (page) => {
-    setCurrentPage(page);
+    updateParams({ page: page });
+  };
+
+  // 태그 클릭
+  const handleTagClick = (tag) => {
+    // 새로운 params로 완전히 교체 (다른 조건 초기화)
+    setSearchParams({ keyword: tag.trim() });
   };
 
   const handlePostClick = (postId) => {
@@ -113,8 +153,8 @@ const FreeboardList = () => {
             <input
               type="text"
               placeholder="검색어를 입력하세요"
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="search-input"
             />
             <button type="submit" className="search-button">
@@ -140,10 +180,7 @@ const FreeboardList = () => {
 
           <select 
             value={pageSize} 
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              setCurrentPage(1);
-            }}
+            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
             className="pagesize-select"
           >
             <option value="10">10개씩 보기</option>
@@ -203,32 +240,38 @@ const FreeboardList = () => {
                   onClick={() => handlePostClick(post.freeboardId)}
                 >
                   <div className="post-content">
-                    <div className="post-header">
+                    <h2 className="post-title">{post.freeboardTitle}</h2>
+
+                    <p className="post-preview">{getPreviewText(post.freeboardContent || post.freeboardSummary)}</p>
+
+                    {post.tags && (
+                      <div className="post-tags">
+                        {(Array.isArray(post.tags) ? post.tags : post.tags.split(',')).map((tag, index) => (
+                          <span 
+                            key={index} 
+                            className="post-tag"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTagClick(tag);
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            #{tag.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="post-footer">
                       <div className="post-user-info">
                         <div className="user-avatar">
                           <span className="user-initial">
                             {post.userNickname?.charAt(0) || 'U'}
                           </span>
                         </div>
-                        <div className="user-details">
-                          <span className="user-nickname">{post.userNickname || 'User'}</span>
-                          <span className="post-date">{formatDate(post.freeboardCreatedAt)}</span>
-                        </div>
+                        <span className="user-nickname">{post.userNickname || 'User'}</span>
                       </div>
-                    </div>
-
-                    <h2 className="post-title">{post.freeboardTitle}</h2>
-                    <p className="post-preview">{getPreviewText(post.freeboardSummary)}</p>
-
-                    {post.tags && (
-                      <div className="post-tags">
-                        {(Array.isArray(post.tags) ? post.tags : post.tags.split(',')).map((tag, index) => (
-                          <span key={index} className="post-tag">#{tag.trim()}</span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="post-stats">
+                      <span className="post-date">{formatDate(post.freeboardCreatedAt)}</span>
                       <span className="stat-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" 
@@ -295,7 +338,17 @@ const FreeboardList = () => {
                     {post.tags && (
                       <div className="card-tags">
                         {(Array.isArray(post.tags) ? post.tags : post.tags.split(',')).slice(0, 3).map((tag, index) => (
-                          <span key={index} className="post-tag">#{tag.trim()}</span>
+                          <span 
+                            key={index} 
+                            className="post-tag"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTagClick(tag);
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            #{tag.trim()}
+                          </span>
                         ))}
                       </div>
                     )}

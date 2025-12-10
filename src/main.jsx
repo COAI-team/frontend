@@ -46,6 +46,7 @@ import AnalysisPageWithoutRag from "./pages/codeAnalysis/AnalysisPageWithoutRag"
 import CodeboardList from "./pages/codeboard/codeboardList";
 import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
 import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
+import CodeboardEdit from "./pages/codeboard/CodeboardEdit";
 
 
 // 마이페이지 레이아웃
@@ -114,11 +115,11 @@ createRoot(document.getElementById("root")).render(
                         <Route path="freeboard/:id" element={<FreeboardDetail/>}/>
 
                         {/* 코드게시판 */}
-                        <Route path="codeboard" element={<CodeboardList/>}/>
-                        <Route path="codeboard/write" element={<CodeboardWrite/>}/>
-                        <Route path="codeboard/write/:analysisId" element={<CodeboardWrite/>}/>
-                        <Route path="codeboard/:id" element={<CodeboardDetail/>}/>
-
+                        <Route path="codeboard" element={<CodeboardList />} />
+                        <Route path="codeboard/write" element={<CodeboardWrite />} />
+                        <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
+                        <Route path="codeboard/edit/:id" element={<CodeboardEdit />} />
+                        <Route path="codeboard/:id" element={<CodeboardDetail />} />
 
                         {/* 결제 */}
                         <Route path="pages/payment/pricing" element={<PricingPage/>}/>

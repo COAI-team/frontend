@@ -21,6 +21,14 @@ const FreeboardDetail = () => {
   // 로그인 유저 정보
   const [currentUser, setCurrentUser] = useState(null);
 
+  // 로그인 유저 정보 가져오기
+  useEffect(() => {
+    const auth = getAuth();
+    if (auth) {
+      setCurrentUser(auth.user);
+    }
+  }, []);
+
   // 다크 모드 감지
   useEffect(() => {
     const checkDarkMode = () => {
@@ -80,7 +88,7 @@ const FreeboardDetail = () => {
   }, [id]);
 
   const handleLike = async () => {
-    // 로그인 안 되어 있으면 좋아요 전에 로그인 유도
+    // 로그인 체크
     if (!currentUser) {
       const goLogin = window.confirm(
         "로그인 후 좋아요를 누를 수 있습니다. 로그인 하시겠습니까?"
@@ -104,8 +112,14 @@ const FreeboardDetail = () => {
     }
   };
 
+  // 태그 클릭 핸들러
+  const handleTagClick = (tag) => {
+    navigate(`/freeboard?keyword=${encodeURIComponent(tag)}`);
+  };
+
   const handleShare = () => {
-    console.log("공유 클릭");
+    navigator.clipboard.writeText(window.location.href);
+    alert('링크가 복사되었습니다.');
   };
 
   const handleReport = () => {
@@ -114,7 +128,7 @@ const FreeboardDetail = () => {
 
   // 콘텐츠(스티커/코드블록/링크프리뷰) 렌더링
   useEffect(() => {
-    if (!contentRef.current) return;
+    if (!contentRef.current || !board) return;
 
     const timer = setTimeout(() => {
       const stickerImages = contentRef.current.querySelectorAll(
@@ -268,6 +282,7 @@ const FreeboardDetail = () => {
         }
       });
 
+      // 일반 코드 블록도 하이라이트 적용
       const allCodeBlocks = contentRef.current.querySelectorAll(
         'pre code:not([class*="language-"])'
       );
@@ -319,13 +334,17 @@ const FreeboardDetail = () => {
   }
 
   // 현재 로그인 유저가 게시글 작성자인지 여부
-  const currentUserId =
-    currentUser && (currentUser.userId ?? currentUser.id ?? null);
-  const currentUserNickname = currentUser?.nickname ?? "";
+  const currentUserId = currentUser?.userId ?? currentUser?.userId ?? currentUser?.id ?? null;
+  const currentUserNickname = currentUser?.userNickname ?? currentUser?.nickname ?? "";
   const isAuthor =
     currentUserId != null && board.userId != null
       ? Number(currentUserId) === Number(board.userId)
       : false;
+
+  console.log('현재 유저:', currentUser);
+  console.log('currentUserId:', currentUserId);
+  console.log('board.userId:', board.userId);
+  console.log('isAuthor:', isAuthor);    
 
   return (
     <div
@@ -505,13 +524,18 @@ const FreeboardDetail = () => {
             {board.tags.map((tag, index) => (
               <span
                 key={index}
+                onClick={() => handleTagClick(tag)}
                 style={{
                   padding: "0.25rem 0.75rem",
                   borderRadius: "9999px",
                   fontSize: "0.875rem",
                   backgroundColor: "rgba(59, 130, 246, 0.1)",
                   color: "#60a5fa",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s",
                 }}
+                onMouseEnter={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.2)")}
+                onMouseLeave={(e) => (e.target.style.backgroundColor = "rgba(59, 130, 246, 0.1)")}
               >
                 #{tag}
               </span>
