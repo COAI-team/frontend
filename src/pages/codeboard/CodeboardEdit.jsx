@@ -30,10 +30,25 @@ const CodeboardEdit = () => {
                 const data = response.data.data || response.data;
                 setPost(data);
 
+                // content 파싱
+                let content = "";
+                if (data.codeboardContent) {
+                    try {
+                        console.log("원본 codeboardContent:", data.codeboardContent);
+                        const blocks = JSON.parse(data.codeboardContent);
+                        console.log("파싱된 blocks:", blocks);
+                        content = blocks[0]?.content || "";
+                        console.log("추출된 content:", content);
+                    } catch (e) {
+                        console.error("JSON 파싱 에러:", e);
+                        content = data.codeboardContent;
+                    }
+                }
+
                 // WriteEditor에 전달할 초기 데이터 설정
                 setInitialData({
                     title: data.codeboardTitle,
-                    content: data.codeboardContent,
+                    content: content,  // 파싱된 content 사용
                     tags: data.tags || []
                 });
 

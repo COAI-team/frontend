@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { axiosInstance } from "../../server/AxiosConfig";
 import { getAuth } from "../../utils/auth/token";
 import hljs from 'highlight.js';
-import { Heart, MessageCircle, Share2, AlertCircle, Code2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, AlertCircle } from "lucide-react";
 import "../../styles/CodeboardDetail.css";
 import CommentSection from '../../components/comment/CommentSection';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
@@ -16,7 +16,6 @@ const CodeboardDetail = () => {
   const [isDark, setIsDark] = useState(() => 
     document.documentElement.classList.contains('dark')
   );
-  const contentRef = useRef(null);
   
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -26,13 +25,17 @@ const CodeboardDetail = () => {
   const [fileContent, setFileContent] = useState('');
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
 
+  // 처리된 content 저장
+  const [processedContent, setProcessedContent] = useState('');
+  const contentProcessed = useRef(false);
+
   // 로그인 유저 정보
   const [currentUser, setCurrentUser] = useState(null);
 
   // 로그인 유저 정보 가져오기
   useEffect(() => {
     const auth = getAuth();
-    if (auth) {
+    if (auth?.user) {
       setCurrentUser(auth.user);
     }
   }, []);
@@ -91,6 +94,79 @@ const CodeboardDetail = () => {
       .catch((err) => console.error("게시글 불러오기 실패:", err));
   }, [id]);
 
+  // content에서 실제 HTML 추출
+  const getRenderedContent = (content) => {
+    if (!content) return "";
+    
+    try {
+      if (content.startsWith('[')) {
+        const blocks = JSON.parse(content);
+        if (blocks.length > 0 && blocks[0].content) {
+          return blocks[0].content;
+        }
+      }
+      return content;
+    } catch {
+      return content;
+    }
+  };
+
+  // content 처리 - 한 번만 수행
+  useEffect(() => {
+    if (!board || contentProcessed.current) return;
+
+    const rawContent = getRenderedContent(board.codeboardContent);
+    if (!rawContent) return;
+
+    // DOM 파서로 처리
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${rawContent}</div>`, 'text/html');
+    const container = doc.body.firstChild;
+
+    // 스티커 처리
+    container.querySelectorAll('img[data-sticker], img[src*="openmoji"]').forEach(img => {
+      img.style.width = '1.5em';
+      img.style.height = '1.5em';
+      img.style.verticalAlign = '-0.3em';
+      img.style.display = 'inline-block';
+      img.style.margin = '0 0.1em';
+    });
+
+    // 코드블록 처리
+    container.querySelectorAll('pre[data-type="monaco-code-block"]').forEach(block => {
+      const code = block.getAttribute('data-code');
+      const language = block.getAttribute('data-language') || 'plaintext';
+
+      if (code) {
+        const decodeHTML = (html) => {
+          const txt = document.createElement("textarea");
+          txt.innerHTML = html;
+          return txt.value;
+        };
+
+        const decodedCode = decodeHTML(code);
+
+        block.innerHTML = '';
+        block.className = 'code-block-wrapper';
+        block.removeAttribute('data-type');
+
+        const header = document.createElement('div');
+        header.className = 'code-header';
+        header.innerHTML = `<span class="code-language">${language}</span>`;
+
+        const codeElement = document.createElement('code');
+        codeElement.className = `language-${language}`;
+        codeElement.textContent = decodedCode;
+
+        block.appendChild(header);
+        block.appendChild(codeElement);
+      }
+    });
+
+    setProcessedContent(container.innerHTML);
+    contentProcessed.current = true;
+  }, [board]);
+
   const loadAnalysisData = async (analysisId) => {
     try {
       setIsAnalysisLoading(true);
@@ -122,7 +198,6 @@ const CodeboardDetail = () => {
   };
 
   const handleLike = async () => {
-    // 로그인 체크
     if (!currentUser) {
       const goLogin = window.confirm(
         "로그인 후 좋아요를 누를 수 있습니다. 로그인 하시겠습니까?"
@@ -146,7 +221,6 @@ const CodeboardDetail = () => {
     }
   };
 
-  // 태그 클릭 핸들러
   const handleTagClick = (tag) => {
     navigate(`/codeboard?keyword=${encodeURIComponent(tag)}`);
   };
@@ -160,86 +234,12 @@ const CodeboardDetail = () => {
     console.log("신고 클릭");
   };
 
-  const handleAnalysisView = () => {
-    if (board?.analysisId) {
-      navigate(`/analysis/${board.analysisId}`);
-    }
-  };
-
-  // 콘텐츠 렌더링 후 처리
-  useEffect(() => {
-    if (!contentRef.current || !board) return;
-
-    const timer = setTimeout(() => {
-      contentRef.current.querySelectorAll('img[data-sticker], img[src*="openmoji"]').forEach(img => {
-        Object.assign(img.style, {
-          width: '1.5em',
-          height: '1.5em',
-          verticalAlign: '-0.3em',
-          display: 'inline-block',
-          margin: '0 0.1em'
-        });
-      });
-
-      contentRef.current.querySelectorAll('pre[data-type="monaco-code-block"]').forEach(block => {
-        const code = block.getAttribute('data-code');
-        const language = block.getAttribute('data-language') || 'plaintext';
-        
-        if (code) {
-          const decodeHTML = (html) => {
-            const txt = document.createElement("textarea");
-            txt.innerHTML = html;
-            return txt.value;
-          };
-
-          const decodedCode = decodeHTML(code);
-          
-          block.innerHTML = '';
-          block.className = 'code-block-wrapper';
-          block.removeAttribute('data-type');
-          
-          const header = document.createElement('div');
-          header.className = 'code-header';
-          header.innerHTML = `<span class="code-language">${language}</span>`;
-          
-          const codeElement = document.createElement('code');
-          codeElement.className = `language-${language}`;
-          codeElement.textContent = decodedCode;
-          
-          block.appendChild(header);
-          block.appendChild(codeElement);
-          
-          hljs.highlightElement(codeElement);
-        }
-      });
-
-      contentRef.current.querySelectorAll('div[data-type="link-preview"]').forEach(preview => {
-        renderLinkPreview(preview, isDark);
-      });
-
-      // 일반 코드 블록도 하이라이트 적용
-      const allCodeBlocks = contentRef.current.querySelectorAll(
-        'pre code:not([class*="language-"])'
-      );
-      allCodeBlocks.forEach((block) => {
-        block.classList.remove("hljs");
-        block.removeAttribute("data-highlighted");
-        hljs.highlightElement(block);
-      });
-
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [board, isDark]);
-
   const renderLinkPreview = (preview, isDark) => {
-    const { title, description, image, site, url } = {
-      title: preview.getAttribute('data-title'),
-      description: preview.getAttribute('data-description'),
-      image: preview.getAttribute('data-image'),
-      site: preview.getAttribute('data-site'),
-      url: preview.getAttribute('data-url')
-    };
+    const title = preview.getAttribute('data-title');
+    const description = preview.getAttribute('data-description');
+    const image = preview.getAttribute('data-image');
+    const site = preview.getAttribute('data-site');
+    const url = preview.getAttribute('data-url');
     
     if (!url) return;
     
@@ -299,22 +299,6 @@ const CodeboardDetail = () => {
     preview.appendChild(textContainer);
   };
 
-  const getRenderedContent = (content) => {
-    if (!content) return "";
-    
-    try {
-      if (content.startsWith('[')) {
-        const blocks = JSON.parse(content);
-        if (blocks.length > 0 && blocks[0].content) {
-          return blocks[0].content;
-        }
-      }
-      return content;
-    } catch {
-      return content;
-    }
-  };
-
   if (!board) {
     return (
       <div className={`loading-container ${isDark ? 'dark' : ''}`}>
@@ -323,13 +307,12 @@ const CodeboardDetail = () => {
     );
   }
 
-  // 현재 로그인 유저가 게시글 작성자인지 여부
-  const currentUserId = currentUser?.userId ?? currentUser?.userId ?? currentUser?.id ?? null;
+  const currentUserId = currentUser?.userId ?? currentUser?.id ?? null;
   const currentUserNickname = currentUser?.userNickname ?? currentUser?.nickname ?? "";
   const isAuthor =
     currentUserId != null && board.userId != null
       ? Number(currentUserId) === Number(board.userId)
-      : false;   
+      : false;
 
   return (
     <div style={{
@@ -360,18 +343,88 @@ const CodeboardDetail = () => {
 
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: analysisResult ? '1fr 1fr' : '1fr', 
+          gridTemplateColumns: board.analysisId ? '1fr 1fr' : '1fr', 
           gap: '1.5rem' 
         }}>
           
-          {analysisResult && (
-            <AnalysisPanel 
-              analysisResult={analysisResult}
-              fileContent={fileContent}
-              isDark={isDark}
-            />
+          {/* 좌측 패널 - analysisId가 있으면 항상 영역 확보 */}
+          {board.analysisId && (
+            analysisResult ? (
+              <AnalysisPanel 
+                analysisResult={analysisResult}
+                fileContent={fileContent}
+                isDark={isDark}
+              />
+            ) : (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.5rem'
+              }}>
+                {/* 코드 뷰어 스켈레톤 */}
+                <div style={{
+                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  height: '500px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{ 
+                    color: isDark ? '#9ca3af' : '#6b7280',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{
+                      width: '2rem',
+                      height: '2rem',
+                      border: `2px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                      borderTopColor: isDark ? '#60a5fa' : '#3b82f6',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    <span>코드 불러오는 중...</span>
+                  </div>
+                </div>
+
+                {/* 분석 결과 스켈레톤 */}
+                <div style={{
+                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  height: '300px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{ 
+                    color: isDark ? '#9ca3af' : '#6b7280',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{
+                      width: '2rem',
+                      height: '2rem',
+                      border: `2px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                      borderTopColor: isDark ? '#60a5fa' : '#3b82f6',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    <span>분석 결과 불러오는 중...</span>
+                  </div>
+                </div>
+              </div>
+            )
           )}
 
+          {/* 우측 패널 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{
               display: 'flex',
@@ -468,11 +521,9 @@ const CodeboardDetail = () => {
               <span>조회수 {board.codeboardClick}</span>
             </div>
 
-            <div
-              ref={contentRef}
-              className={`codeboard-content ${isDark ? 'dark' : 'light'}`}
-              style={{ marginBottom: '2rem', minHeight: '300px' }}
-              dangerouslySetInnerHTML={{ __html: getRenderedContent(board.codeboardContent) }}
+            <ContentRenderer 
+              content={processedContent || getRenderedContent(board.codeboardContent)}
+              isDark={isDark}
             />
 
             {board.tags && board.tags.length > 0 && (
@@ -762,7 +813,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
                         </span>
                       </div>
                       <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {suggestion.problematicSnippet && (
+                        {(suggestion.problematicSnippet || suggestion.problematicCode) && (
                           <div>
                             <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: isDark ? '#9ca3af' : '#4b5563' }}>
                               변경 전:
@@ -777,7 +828,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
                               color: isDark ? '#fca5a5' : '#dc2626',
                               margin: 0
                             }}>
-                              {suggestion.problematicSnippet}
+                              {suggestion.problematicSnippet || suggestion.problematicCode}
                             </pre>
                           </div>
                         )}
@@ -843,5 +894,36 @@ const ScoreBadge = ({ score, isDark }) => {
     </span>
   );
 };
+
+// ContentRenderer 컴포넌트 - analysisResult 변경에 영향받지 않음
+const ContentRenderer = React.memo(({ content, isDark }) => {
+  const innerRef = useRef(null);
+
+  useEffect(() => {
+    if (!innerRef.current || !content) return;
+
+    const timer = setTimeout(() => {
+      // 코드블록 하이라이트
+      innerRef.current.querySelectorAll('pre.code-block-wrapper code').forEach(block => {
+        block.classList.remove('hljs');
+        block.removeAttribute('data-highlighted');
+        hljs.highlightElement(block);
+      });
+
+      // 링크 프리뷰는 이미 처리됨
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [content, isDark]);
+
+  return (
+    <div
+      ref={innerRef}
+      className={`codeboard-content ${isDark ? 'dark' : 'light'}`}
+      style={{ marginBottom: '2rem', minHeight: '300px' }}
+      dangerouslySetInnerHTML={{ __html: content }}
+    />
+  );
+});
 
 export default CodeboardDetail;
