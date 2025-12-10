@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../server/AxiosConfig";
 import Pagination from '../../components/common/Pagination';
+import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
 import "../../styles/CodeboardList.css";
 
 const CodeboardList = () => {
@@ -71,7 +72,7 @@ const CodeboardList = () => {
   };
 
   const handleWriteClick = () => {
-    navigate('/codeboard/write');
+    navigate('/codeAnalysis/new');
   };
 
   const getPreviewText = (content) => {
@@ -98,15 +99,6 @@ const CodeboardList = () => {
     if (diffDays < 7) return `${diffDays}일 전`;
     
     return date.toLocaleDateString('ko-KR');
-  };
-
-  const getSmellBadgeClass = (smellResult) => {
-    if (!smellResult) return '';
-    const lower = smellResult.toLowerCase();
-    if (lower.includes('good') || lower.includes('양호')) return 'smell-good';
-    if (lower.includes('warning') || lower.includes('주의')) return 'smell-warning';
-    if (lower.includes('bad') || lower.includes('불량')) return 'smell-bad';
-    return '';
   };
 
   return (
@@ -198,7 +190,7 @@ const CodeboardList = () => {
         <div className="empty-container">
           <p>게시글이 없습니다.</p>
           <button onClick={handleWriteClick} className="write-first-btn">
-            첫 게시글 작성하기
+            첫 코드 분석하기
           </button>
         </div>
       ) : (
@@ -212,37 +204,35 @@ const CodeboardList = () => {
                   onClick={() => handlePostClick(post.codeboardId)}
                 >
                   <div className="post-content">
-                    <div className="post-header">
+                    <div className="post-title-with-badge">
+                      <h2 className="post-title">{post.codeboardTitle}</h2>
+                      {post.aiScore != null && (
+                        <span className={`smell-badge smell-${getSmellKeyword(post.aiScore).level}`}>
+                          {getSmellKeyword(post.aiScore).text}
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="post-preview">{getPreviewText(post.codeboardSummary || post.codeboardContent)}</p>
+
+                    {post.codeboardTag && (
+                      <div className="post-tags">
+                        {(Array.isArray(post.codeboardTag) ? post.codeboardTag : post.codeboardTag.split(',')).map((tag, index) => (
+                          <span key={index} className="post-tag">#{tag.trim()}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="post-footer">
                       <div className="post-user-info">
                         <div className="user-avatar">
                           <span className="user-initial">
                             {post.userNickname?.charAt(0) || 'U'}
                           </span>
                         </div>
-                        <div className="user-details">
-                          <span className="user-nickname">{post.userNickname || 'User'}</span>
-                          <span className="post-date">{formatDate(post.codeboardCreatedAt)}</span>
-                        </div>
+                        <span className="user-nickname">{post.userNickname || 'User'}</span>
                       </div>
-                      {post.smellResult && (
-                        <span className={`smell-badge ${getSmellBadgeClass(post.smellResult)}`}>
-                          {post.smellResult}
-                        </span>
-                      )}
-                    </div>
-
-                    <h2 className="post-title">{post.codeboardTitle}</h2>
-                    <p className="post-preview">{getPreviewText(post.codeboardSummary)}</p>
-
-                    {post.tags && (
-                      <div className="post-tags">
-                        {(Array.isArray(post.tags) ? post.tags : post.tags.split(',')).map((tag, index) => (
-                          <span key={index} className="post-tag">#{tag.trim()}</span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="post-stats">
+                      <span className="post-date">{formatDate(post.codeboardCreatedAt)}</span>
                       <span className="stat-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" 
@@ -290,20 +280,20 @@ const CodeboardList = () => {
                       </div>
                       <div className="card-header-right">
                         <span className="post-date">{formatDate(post.codeboardCreatedAt)}</span>
-                        {post.smellResult && (
-                          <span className={`smell-badge ${getSmellBadgeClass(post.smellResult)}`}>
-                            {post.smellResult}
+                        {post.aiScore != null && (
+                          <span className={`smell-badge smell-${getSmellKeyword(post.aiScore).level}`}>
+                            {getSmellKeyword(post.aiScore).text}
                           </span>
                         )}
                       </div>
                     </div>
 
                     <h3 className="card-title">{post.codeboardTitle}</h3>
-                    <p className="card-preview">{getPreviewText(post.codeboardSummary)}</p>
+                    <p className="card-preview">{getPreviewText(post.codeboardSummary || post.codeboardContent)}</p>
 
-                    {post.tags && (
+                    {post.codeboardTag && (
                       <div className="card-tags">
-                        {(Array.isArray(post.tags) ? post.tags : post.tags.split(',')).slice(0, 3).map((tag, index) => (
+                        {(Array.isArray(post.codeboardTag) ? post.codeboardTag : post.codeboardTag.split(',')).slice(0, 3).map((tag, index) => (
                           <span key={index} className="post-tag">#{tag.trim()}</span>
                         ))}
                       </div>
@@ -349,10 +339,10 @@ const CodeboardList = () => {
 
       <button className="floating-write-btn" onClick={handleWriteClick}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" 
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        글쓰기
+        분석하기
       </button>
     </div>
   );

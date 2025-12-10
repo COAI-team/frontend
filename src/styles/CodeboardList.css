@@ -231,7 +231,7 @@
   background: var(--bg-secondary, #1f2937);
   border: 1px solid var(--border-color, #374151);
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px;
   cursor: pointer;
   transition: all 0.2s;
   gap: 20px;
@@ -263,6 +263,13 @@
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.post-title-with-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .post-preview {
@@ -693,6 +700,22 @@ html:not(.dark) .freeboard-list-container {
 .smell-bad {
   background-color: #ffe0e0;
   color: #c41e3a;
+}
+
+/* 다크모드 냄새 배지 */
+html.dark .smell-good {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+html.dark .smell-warning {
+  background-color: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+}
+
+html.dark .smell-bad {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
 }
 
 .card-header-right {
