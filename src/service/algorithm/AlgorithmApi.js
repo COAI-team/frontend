@@ -204,7 +204,7 @@ export const generateProblemWithSSE = (data, callbacks) => {
     }
 
     // API 베이스 URL 가져오기
-    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:9443';
     const sseUrl = `${baseURL}/algo/problems/generate/stream?${params.toString()}`;
 
     console.log('🔗 [SSE] 연결 시작:', sseUrl);
