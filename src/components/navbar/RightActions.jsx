@@ -8,8 +8,6 @@ export default function RightActions({ user, logout, BASE_URL, hydrated }) {
     const { theme, setTheme } = useTheme();
     const navigate = useNavigate();
 
-    console.log("🎨 RightActions → theme:", theme);
-
     let rawImage;
     if (typeof user?.image === "string" && user.image.startsWith("http")) {
         rawImage = user.image;
@@ -54,7 +52,7 @@ export default function RightActions({ user, logout, BASE_URL, hydrated }) {
                                 className="w-8 h-8 rounded-full object-cover border border-gray-300 dark:border-gray-600"
                                 alt="프로필"
                             />
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">
+                            <span className="text-sm font-bold dark:text-white">
                                 {user.nickname}
                             </span>
                         </div>

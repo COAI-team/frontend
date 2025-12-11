@@ -15,9 +15,6 @@ export function ThemeProvider({ children }) {
 
     useEffect(() => {
         if (!mounted) return;
-
-        console.log("🏷️ HTML에 테마 적용 중, theme:", theme);
-
         const root = document.documentElement;
         const body = document.body;
 
@@ -30,16 +27,9 @@ export function ThemeProvider({ children }) {
 
         // 2) data-* 속성 추가 (추가 사용 가능)
         root.dataset.theme = theme;
-        root.setAttribute('data-mode', theme);
+        root.dataset.mode = theme;
 
         localStorage.setItem('theme', theme);
-
-        setTimeout(() => {
-            const hasClass = root.classList.contains('dark');
-            console.log("🔍 0.5초 후 HTML 클래스:", root.className);
-            console.log("✅ HTML dark 클래스:", hasClass ? "있음" : "없음");
-            console.log("🎨 실제 배경색:", getComputedStyle(root).backgroundColor);
-        }, 500);
     }, [theme, mounted]);
 
     const value = useMemo(

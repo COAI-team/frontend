@@ -12,8 +12,6 @@ export function NavLinks({ mobile = false, navigation, onLinkClick, themeKey }) 
             ? "bg-indigo-600 text-white dark:bg-indigo-500"
             : "dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/5";
 
-        console.log(`🎨 ${item.name} themeClass:`, themeClass);
-
         return (
             <Link
                 key={finalKey} // ← 동적 key
