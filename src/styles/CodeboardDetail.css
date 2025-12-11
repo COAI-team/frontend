@@ -99,15 +99,13 @@
 }
 
 .codeboard-content .code-language {
-  font-family: monospace;
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: #6b7280;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #858585;
 }
 
 .codeboard-content.dark .code-language {
-  color: #9ca3af;
+  color: #858585;
 }
 
 .codeboard-content .code-block-wrapper pre {

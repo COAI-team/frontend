@@ -7,7 +7,7 @@ export const decodeHTML = (html) => {
   return txt.value;
 };
 
-// 코드 블록 처리 및 하이라이팅 (Monaco 및 TipTap 모두 지원)
+// 코드 블록 구조 변환
 export const processCodeBlocks = (container, isDark) => {
   // Monaco 코드 블록 처리
   container.querySelectorAll('pre[data-type="monaco-code-block"]').forEach(block => {
@@ -25,7 +25,12 @@ export const processCodeBlocks = (container, isDark) => {
 
       const header = document.createElement('div');
       header.className = 'code-header';
-      header.innerHTML = `<span class="code-language">${language}</span>`;
+      
+      const languageSpan = document.createElement('span');
+      languageSpan.className = 'code-language';
+      languageSpan.textContent = language; // innerHTML 대신 textContent
+      
+      header.appendChild(languageSpan);
 
       const pre = document.createElement('pre');
       pre.style.margin = '0';
@@ -43,9 +48,6 @@ export const processCodeBlocks = (container, isDark) => {
       pre.appendChild(codeElement);
       block.appendChild(header);
       block.appendChild(pre);
-
-      // DOM 조작 중 바로 하이라이팅 적용 (가장 안전)
-      hljs.highlightElement(codeElement);
     }
   });
 
@@ -54,13 +56,10 @@ export const processCodeBlocks = (container, isDark) => {
     if (!codeElement.className.includes('language-')) {
       codeElement.className = 'language-plaintext';
     }
-    if (!codeElement.dataset.highlighted) {
-      hljs.highlightElement(codeElement);
-    }
   });
 };
 
-// 추가 하이라이팅 적용 (필요시 사용)
+// 하이라이팅 적용
 export const applyHighlighting = (container) => {
   if (!container) return;
 
