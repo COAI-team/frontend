@@ -210,3 +210,7 @@ export const SignUpFormPropTypes = {
     nickname: PropTypes.string.isRequired,
     email: PropTypes.string.isRequired,
 }
+
+export const ThemeContextPropTypes = {
+    children: PropTypes.node.isRequired
+}

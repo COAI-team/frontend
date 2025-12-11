@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* 👇 Tailwind에 light/dark 모드 힌트 주기 */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+}
+
+/* ------------------ */
+/* 색상 변수 (공통)   */
+/* ------------------ */
+
 :root {
   /* 텍스트 */
   --color-text-main: #111827;   /* 본문, 숫자, 합계 */
@@ -11,7 +26,8 @@
   --color-bg-panel: #ffffff;
 }
 
-.dark {
+/* ✅ html.dark 에 걸리도록 : html에 dark 클래스가 붙으므로 */
+html.dark {
   --color-text-main: #e5e7eb;   /* 본문 */
   --color-text-sub: #cbd5e1;    /* 서브 */
   --color-text-muted: #9ca3af;  /* 힌트 */
@@ -19,6 +35,10 @@
   --color-bg-main: #020617;
   --color-bg-panel: #0f172a;
 }
+
+/* ------------------ */
+/* 유틸 클래스        */
+/* ------------------ */
 
 .text-main {
   color: var(--color-text-main);
@@ -65,11 +85,16 @@
   cursor: pointer;
 }
 
-.dark .input-date {
+/* ✅ html.dark 기준으로 수정 */
+html.dark .input-date {
   background-color: var(--billing-panel, var(--color-bg-panel));
   color: var(--color-text-main);
   border-color: var(--billing-border, #1f2937);
 }
+
+/* ------------------ */
+/* 레이아웃 기본값    */
+/* ------------------ */
 
 html, body, #root {
   height: 100%;
@@ -91,10 +116,10 @@ body {
   background-color: #f7f7f7;
 }
 
-body.dark, html.dark body {
+/* ✅ body.dark 는 안 쓰고, html.dark body 만 유지 */
+html.dark body {
   background-color: #000;
 }
-
 
 /* 기본 스크롤바 */
 ::-webkit-scrollbar {
@@ -132,7 +157,6 @@ html.dark ::-webkit-scrollbar-thumb {
   animation-delay: 2s;
 }
 
-
 .animation-delay-4000 {
   animation-delay: 4s;
 }
@@ -169,7 +193,8 @@ html.dark ::-webkit-scrollbar-thumb {
   pointer-events: none;
 }
 
-
+/* ✅ 여기만 그대로 둬도 됨 (html이나 body에 dark 클래스가 있어도 동작) */
+html.dark .animate-scan,
 .dark .animate-scan {
   background: linear-gradient(to right, transparent, #60a5fa, transparent);
   box-shadow: 0 0 15px #60a5fa;

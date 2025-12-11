@@ -1,7 +1,7 @@
 import { FaGithub } from "react-icons/fa";
 import { SiNotion } from "react-icons/si";
 import { Link } from "react-router-dom";
-import { useTheme } from "next-themes";
+import { useTheme } from "../../../context/theme/useTheme";
 
 export default function Footer() {
     const { theme } = useTheme();

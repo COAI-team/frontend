@@ -2,7 +2,7 @@ import {useState, useEffect, useCallback} from "react";
 import AlertModal from "./AlertModal";
 import {requestPasswordReset} from "../../service/user/User";
 import {ResetPasswordModalPropTypes} from "../../utils/propTypes";
-import {useTheme} from "next-themes";
+import { useTheme } from "../../context/theme/useTheme";
 import LoadingButton from "../button/LoadingButton";
 
 export default function ResetPasswordModal({open, onClose}) {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useRef } from "react";
 import { AiOutlineMessage, AiOutlineClose, AiFillRobot, AiOutlineArrowDown } from "react-icons/ai";
-import { LoginContext } from "../../context/LoginContext";
+import { LoginContext } from "../../context/login/LoginContext";
 import { sendChatMessage, getChatMessages } from "../../service/chat/Chatbot.js";
 
 export default function ChatbotButton() {

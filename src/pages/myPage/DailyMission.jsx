@@ -9,7 +9,7 @@ import {
 } from '../../service/algorithm/AlgorithmApi';
 import UsageDisplay from '../../components/algorithm/mission/UsageDisplay';
 import UserLevelBadge from '../../components/algorithm/mission/UserLevelBadge';
-import { useLogin } from '../../context/useLogin';
+import { useLogin } from '../../context/login/useLogin';
 
 const DailyMission = () => {
     // ===== 로그인 상태 확인 =====

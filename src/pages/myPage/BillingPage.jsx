@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { fetchPointInfo } from "../../service/mypage/MyPageApi";
 import { cancelPayment, fetchPaymentHistory } from "../../service/payment/PaymentApi";
 import Pagination from "../../components/common/Pagination";
-import { useLogin } from "../../context/useLogin";
+import { useLogin } from "../../context/login/useLogin";
 import "./css/billing.css";
 
 const statusLabel = {

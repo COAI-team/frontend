@@ -1,4 +1,4 @@
-import { useTheme } from "next-themes";
+import { useTheme } from "../context/theme/useTheme";
 import { useEffect } from "react";
 
 export function useApplyThemeClass() {

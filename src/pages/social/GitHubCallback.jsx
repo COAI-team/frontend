@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loginWithGithub, linkGithubAccount } from "../../service/user/User";
 import { useNavigate } from "react-router-dom";
-import { useLogin } from "../../context/useLogin";
+import { useLogin } from "../../context/login/useLogin";
 import axiosInstance from "../../server/AxiosConfig";
 import { saveAuth } from "../../utils/auth/token";
 import AlertModal from "../../components/modal/AlertModal";

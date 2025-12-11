@@ -11,8 +11,7 @@ import {
     XCircleIcon,
     InformationCircleIcon,
 } from "@heroicons/react/24/outline";
-import { useTheme } from "next-themes";
-import { useEffect } from "react";
+import { useTheme } from "../../context/theme/useTheme";
 
 export default function AlertModal({
                                        open = false,

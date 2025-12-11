@@ -1,0 +1,65 @@
+import { useState, useEffect, useMemo } from 'react';
+import { ThemeContext } from './ThemeContext';
+import { ThemeContextPropTypes } from "../../utils/propTypes"
+
+export function ThemeProvider({ children }) {
+    const [theme, setTheme] = useState('light');
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        console.log("💾 저장된 테마:", savedTheme);
+        setTheme(savedTheme);
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!mounted) return;
+
+        console.log("🏷️ HTML에 테마 적용 중, theme:", theme);
+
+        const root = document.documentElement;
+        const body = document.body;
+
+        // 1) html/body 클래스 정리
+        root.classList.remove('light', 'dark');
+        body.classList.remove('light', 'dark');
+
+        root.classList.add(theme);   // html.className = 'dark' or 'light'
+        body.classList.add(theme);   // body.className = 'dark' or 'light'
+
+        // 2) data-* 속성 추가 (추가 사용 가능)
+        root.dataset.theme = theme;
+        root.setAttribute('data-mode', theme);
+
+        localStorage.setItem('theme', theme);
+
+        setTimeout(() => {
+            const hasClass = root.classList.contains('dark');
+            console.log("🔍 0.5초 후 HTML 클래스:", root.className);
+            console.log("✅ HTML dark 클래스:", hasClass ? "있음" : "없음");
+            console.log("🎨 실제 배경색:", getComputedStyle(root).backgroundColor);
+        }, 500);
+    }, [theme, mounted]);
+
+    const value = useMemo(
+        () => ({ theme, setTheme, mounted }),
+        [theme, mounted]
+    );
+
+    if (!mounted) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+        );
+    }
+
+    return (
+        <ThemeContext.Provider value={value}>
+            {children}
+        </ThemeContext.Provider>
+    );
+}
+
+ThemeProvider.propTypes = ThemeContextPropTypes;

@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { signup, sendEmailCode, verifyEmailCode } from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "next-themes";
+import { useTheme } from "../../context/theme/useTheme";
 
 import ProfileUpload from "../../components/signup/ProfileUpload";
 import SignUpForm from "../../components/signup/SignUpForm";
