@@ -287,6 +287,20 @@ const CodeboardDetail = () => {
       ? Number(currentUserId) === Number(board.userId)
       : false;
 
+  // 날짜 포맷팅 함수
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${year}.${month}.${day}. ${hours}:${minutes}`;
+  };    
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -490,7 +504,7 @@ const CodeboardDetail = () => {
                 <span>{board.userNickname || '익명'}</span>
               </div>
               <span>·</span>
-              <span>{new Date(board.codeboardCreatedAt).toLocaleString()}</span>
+              <span>{formatDate(board.codeboardCreatedAt)}</span>
               <span>·</span>
               <span>조회수 {board.codeboardClick}</span>
             </div>
