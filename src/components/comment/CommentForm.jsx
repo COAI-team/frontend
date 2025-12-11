@@ -16,7 +16,7 @@ export default function CommentForm({
 
   const isReply = parentCommentId !== null;
   const auth = getAuth();
-  const userNickname = auth?.nickname || '사용자';
+  const userNickname = auth?.user?.nickname || '로그인 후';
 
   useEffect(() => {
     if (textareaRef.current) {

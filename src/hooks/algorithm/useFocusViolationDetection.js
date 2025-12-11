@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import devtools from 'devtools-detect';
 import { sendMonitoringViolation } from '../../service/algorithm/algorithmApi';
 
 /**
@@ -8,20 +9,26 @@ import { sendMonitoringViolation } from '../../service/algorithm/algorithmApi';
  * - 전체화면 이탈 감지
  * - 탭/브라우저 전환 감지
  * - 마우스 화면 밖 이동 감지
+ * - 개발자도구 열기 감지 (프로덕션 환경에서만 위반 처리, 기본/집중 모드 모두 적용)
  * - 위반 횟수 카운트
  * - 백엔드 위반 기록 전송
  *
  * @param {Object} options
  * @param {boolean} options.isActive - 감지 활성화 여부
+ * @param {boolean} options.isDevtoolsCheckActive - 개발자도구 감지 활성화 (기본/집중 모드 모두)
  * @param {string} options.monitoringSessionId - 모니터링 세션 ID
  * @returns {Object} 상태 및 액션
  */
-export const useFocusViolationDetection = ({ isActive, monitoringSessionId }) => {
+export const useFocusViolationDetection = ({ isActive, isDevtoolsCheckActive = false, monitoringSessionId }) => {
   // 경고 팝업 상태
   const [showFullscreenWarning, setShowFullscreenWarning] = useState(false);
   const [showTabSwitchWarning, setShowTabSwitchWarning] = useState(false);
   const [showMouseLeaveWarning, setShowMouseLeaveWarning] = useState(false);
+  const [showDevtoolsWarning, setShowDevtoolsWarning] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
+
+  // 프로덕션 환경 여부 (Vite 환경변수)
+  const isProduction = import.meta.env.PROD;
 
   // 전체화면 진입 함수
   const enterFullscreen = useCallback(async () => {
@@ -114,6 +121,37 @@ export const useFocusViolationDetection = ({ isActive, monitoringSessionId }) =>
     };
   }, [isActive, monitoringSessionId]);
 
+  // 개발자도구 열기 감지 (기본/집중 모드 모두 적용)
+  // ※ 위반 기록 없음 - 콘텐츠 차단 경고만 표시
+  useEffect(() => {
+    // isDevtoolsCheckActive: 문제 풀이가 시작되면 활성화 (모드 무관)
+    if (!isDevtoolsCheckActive) return;
+
+    const handleDevtoolsChange = (event) => {
+      // 개발 모드에서도 테스트 가능하도록 오버레이 표시
+      if (!isProduction) {
+        console.log('[DEV MODE] DevTools', event.detail.isOpen ? 'opened' : 'closed');
+      }
+
+      // 개발자도구 상태에 따라 경고 표시/숨김 (위반 기록 없음)
+      setShowDevtoolsWarning(event.detail.isOpen);
+    };
+
+    // 초기 상태 확인 (이미 열려있는 경우)
+    if (devtools.isOpen) {
+      if (!isProduction) {
+        console.log('[DEV MODE] DevTools already open on mount');
+      }
+      setShowDevtoolsWarning(true);
+    }
+
+    window.addEventListener('devtoolschange', handleDevtoolsChange);
+
+    return () => {
+      window.removeEventListener('devtoolschange', handleDevtoolsChange);
+    };
+  }, [isDevtoolsCheckActive, isProduction]);
+
   // 경고 닫기 핸들러
   const dismissFullscreenWarning = useCallback(() => {
     enterFullscreen();
@@ -128,11 +166,16 @@ export const useFocusViolationDetection = ({ isActive, monitoringSessionId }) =>
     setShowMouseLeaveWarning(false);
   }, []);
 
+  const dismissDevtoolsWarning = useCallback(() => {
+    setShowDevtoolsWarning(false);
+  }, []);
+
   // 상태 초기화 (컴포넌트 언마운트 또는 모드 변경 시)
   const resetViolations = useCallback(() => {
     setShowFullscreenWarning(false);
     setShowTabSwitchWarning(false);
     setShowMouseLeaveWarning(false);
+    setShowDevtoolsWarning(false);
     setViolationCount(0);
   }, []);
 
@@ -141,6 +184,7 @@ export const useFocusViolationDetection = ({ isActive, monitoringSessionId }) =>
     showFullscreenWarning,
     showTabSwitchWarning,
     showMouseLeaveWarning,
+    showDevtoolsWarning,
     violationCount,
 
     // 액션
@@ -148,6 +192,7 @@ export const useFocusViolationDetection = ({ isActive, monitoringSessionId }) =>
     dismissFullscreenWarning,
     dismissTabSwitchWarning,
     dismissMouseLeaveWarning,
+    dismissDevtoolsWarning,
     resetViolations
   };
 };

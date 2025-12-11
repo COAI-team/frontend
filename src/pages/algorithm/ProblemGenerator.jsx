@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateProblem, completeMission } from '../../service/algorithm/AlgorithmApi';
+import { generateProblemWithSSE, completeMission } from '../../service/algorithm/AlgorithmApi';
 
 /**
  * AI 문제 생성 페이지
@@ -22,6 +22,10 @@ const ProblemGenerator = () => {
   const [error, setError] = useState(null);
   const [generatedProblem, setGeneratedProblem] = useState(null);
   const [generationStep, setGenerationStep] = useState('');
+
+  // SSE 스트리밍 관련 상태
+  const [completedSteps, setCompletedSteps] = useState([]);
+  const sseCleanupRef = useRef(null);
 
   // 🎯 데일리 미션 완료 상태
   const [missionStatus, setMissionStatus] = useState({
@@ -168,106 +172,137 @@ const ProblemGenerator = () => {
       return;
     }
 
+    // 이전 SSE 연결 정리
+    if (sseCleanupRef.current) {
+      sseCleanupRef.current();
+    }
+
     setLoading(true);
     setError(null);
     setGeneratedProblem(null);
     setDisplayedText('');
     setTypingComplete(false);
-    setGenerationStep('AI가 문제를 생성하고 있습니다...');
+    setCompletedSteps([]);
+    setGenerationStep('서버 연결 중...');
 
-    console.log('AI 문제 생성 요청:', formData);
+    console.log('🚀 [SSE] AI 문제 생성 요청:', formData);
 
-    try {
-      const result = await generateProblem(formData);
+    // SSE 스트리밍 시작
+    const cleanup = generateProblemWithSSE(formData, {
+      // 진행 단계 업데이트 콜백
+      onStep: (message) => {
+        console.log('📍 [SSE] 진행 단계:', message);
+        setCompletedSteps(prev => [...prev, message]);
+        setGenerationStep(message);
+      },
 
-      if (result.error) {
-        setError(result.message || '문제 생성에 실패했습니다.');
-        return;
-      }
+      // 완료 콜백
+      onComplete: async (data) => {
+        console.log('✅ [SSE] 문제 생성 완료:', data);
 
-      console.log('AI 문제 생성 성공:', result.data);
-      setGeneratedProblem(result.data);
-      setGenerationStep('생성 완료!');
+        // 서버 응답 데이터를 컴포넌트 상태에 맞게 변환
+        const problemData = {
+          problemId: data.problemId,
+          title: data.title,
+          description: data.description,
+          difficulty: data.difficulty,
+          testCaseCount: data.testCaseCount,
+          generationTime: data.generationTime,
+          hasValidationCode: data.hasValidationCode
+        };
 
-      // 🎯 데일리 미션 완료 처리 (PROBLEM_GENERATE)
-      // TODO: 실제 로그인 구현 후 user.userId로 변경
-      const testUserId = 3; // 개발용 테스트 userId
-      try {
-        const missionResult = await completeMission('PROBLEM_GENERATE', testUserId);
-        console.log('🎯 미션 완료 API 응답 (전체):', JSON.stringify(missionResult, null, 2));
+        setGeneratedProblem(problemData);
+        setGenerationStep('생성 완료!');
+        setLoading(false);
 
-        const mResult = missionResult.data || missionResult;
+        // 🎯 데일리 미션 완료 처리 (PROBLEM_GENERATE)
+        const testUserId = 3; // TODO: 실제 로그인 구현 후 user.userId로 변경
+        try {
+          const missionResult = await completeMission('PROBLEM_GENERATE', testUserId);
+          console.log('🎯 미션 완료 API 응답:', JSON.stringify(missionResult, null, 2));
 
-        if (mResult.error) {
-          // "이미 완료된 미션" 에러(ALGO_4501)는 정상 케이스로 처리
-          if (mResult.code === 'ALGO_4501') {
+          const mResult = missionResult.data || missionResult;
+
+          if (mResult.error) {
+            if (mResult.code === 'ALGO_4501') {
+              setMissionStatus({
+                completed: true,
+                message: '오늘의 미션은 이미 완료되었습니다',
+                rewardPoints: 0,
+                error: null
+              });
+            } else {
+              console.warn('미션 완료 API 오류:', mResult.message);
+              setMissionStatus(prev => ({ ...prev, error: mResult.message }));
+            }
+          } else if (mResult.success || mResult.completed) {
+            setMissionStatus({
+              completed: true,
+              message: mResult.message || 'AI 문제 생성 미션 완료!',
+              rewardPoints: mResult.rewardPoints || 0,
+              error: null
+            });
+            console.log('✅ 미션 완료:', mResult.message, `+${mResult.rewardPoints || 0}P`);
+          } else if (mResult.alreadyCompleted) {
+            setMissionStatus({
+              completed: true,
+              message: '이미 완료된 미션입니다',
+              rewardPoints: 0,
+              error: null
+            });
+          } else {
+            setMissionStatus({
+              completed: true,
+              message: 'AI 문제 생성 미션 완료!',
+              rewardPoints: 0,
+              error: null
+            });
+          }
+        } catch (missionErr) {
+          const errorCode = missionErr.response?.data?.code;
+          const errorMessage = missionErr.response?.data?.message;
+
+          if (errorCode === 'ALGO_4501') {
             setMissionStatus({
               completed: true,
               message: '오늘의 미션은 이미 완료되었습니다',
               rewardPoints: 0,
               error: null
             });
-            console.log('ℹ️ 오늘 미션은 이미 완료되었습니다.');
           } else {
-            console.warn('미션 완료 API 오류:', mResult.message);
-            setMissionStatus(prev => ({ ...prev, error: mResult.message }));
+            console.warn('미션 완료 처리 실패 (무시됨):', errorMessage || missionErr);
+            setMissionStatus(prev => ({ ...prev, error: errorMessage || '미션 완료 처리 실패' }));
           }
-        } else if (mResult.success || mResult.completed) {
-          setMissionStatus({
-            completed: true,
-            message: mResult.message || 'AI 문제 생성 미션 완료!',
-            rewardPoints: mResult.rewardPoints || 0,
-            error: null
-          });
-          console.log('✅ 미션 완료:', mResult.message, `+${mResult.rewardPoints || 0}P`);
-        } else if (mResult.alreadyCompleted) {
-          setMissionStatus({
-            completed: true,
-            message: '이미 완료된 미션입니다',
-            rewardPoints: 0,
-            error: null
-          });
-          console.log('ℹ️ 이미 완료된 미션');
-        } else {
-          // 에러가 아니면 성공으로 간주
-          console.log('ℹ️ 예상치 못한 응답 구조, 성공으로 처리:', mResult);
-          setMissionStatus({
-            completed: true,
-            message: 'AI 문제 생성 미션 완료!',
-            rewardPoints: 0,
-            error: null
-          });
         }
-      } catch (missionErr) {
-        // "이미 완료된 미션" 에러(ALGO_4501)는 정상 케이스로 처리
-        const errorCode = missionErr.response?.data?.code;
-        const errorMessage = missionErr.response?.data?.message;
+      },
 
-        if (errorCode === 'ALGO_4501') {
-          // 이미 완료된 미션 - 에러가 아닌 정상 상태로 처리
-          setMissionStatus({
-            completed: true,
-            message: '오늘의 미션은 이미 완료되었습니다',
-            rewardPoints: 0,
-            error: null
-          });
-          console.log('ℹ️ 오늘 미션은 이미 완료되었습니다.');
-        } else {
-          // 다른 에러는 경고로 처리 (문제 생성 자체는 성공했으므로)
-          console.warn('미션 완료 처리 실패 (무시됨):', errorMessage || missionErr);
-          setMissionStatus(prev => ({ ...prev, error: errorMessage || '미션 완료 처리 실패' }));
-        }
+      // 에러 콜백
+      onError: (errorMessage) => {
+        console.error('❌ [SSE] 에러:', errorMessage);
+        setError(errorMessage || '문제 생성 중 오류가 발생했습니다.');
+        setLoading(false);
       }
+    });
 
-    } catch (err) {
-      console.error('문제 생성 에러:', err);
-      setError('문제 생성 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
+    // 정리 함수 저장
+    sseCleanupRef.current = cleanup;
   };
 
+  // 컴포넌트 언마운트 시 SSE 연결 정리
+  useEffect(() => {
+    return () => {
+      if (sseCleanupRef.current) {
+        sseCleanupRef.current();
+      }
+    };
+  }, []);
+
   const handleReset = () => {
+    // SSE 연결 정리
+    if (sseCleanupRef.current) {
+      sseCleanupRef.current();
+      sseCleanupRef.current = null;
+    }
     if (typingRef.current) {
       clearInterval(typingRef.current);
     }
@@ -281,6 +316,9 @@ const ProblemGenerator = () => {
     setError(null);
     setDisplayedText('');
     setTypingComplete(false);
+    setCompletedSteps([]);
+    setGenerationStep('');
+    setLoading(false);
     // 미션 상태 초기화
     setMissionStatus({
       completed: false,
@@ -311,12 +349,12 @@ const ProblemGenerator = () => {
   // ===== 난이도 색상 헬퍼 =====
   const getDifficultyColorClass = (difficulty) => {
     const colors = {
-      BRONZE: 'bg-orange-100 text-orange-800 border-orange-200',
-      SILVER: 'bg-gray-100 text-gray-800 border-gray-200',
-      GOLD: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      PLATINUM: 'bg-blue-100 text-blue-800 border-blue-200',
+      BRONZE: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-700',
+      SILVER: 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600',
+      GOLD: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700',
+      PLATINUM: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700',
     };
-    return colors[difficulty] || 'bg-gray-100 text-gray-800 border-gray-200';
+    return colors[difficulty] || 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600';
   };
 
   // 파싱된 문제 섹션
@@ -336,7 +374,7 @@ const ProblemGenerator = () => {
       if (part.startsWith('**') && part.endsWith('**')) {
         const boldText = part.slice(2, -2);
         return (
-          <strong key={index} className="font-bold text-gray-900">
+          <strong key={index} className="font-bold text-main">
             {boldText}
           </strong>
         );
@@ -347,15 +385,15 @@ const ProblemGenerator = () => {
   };
 
   // ===== 섹션 렌더링 컴포넌트 =====
-  const SectionCard = ({ title, icon, content, bgColor = 'bg-gray-50' }) => {
+  const SectionCard = ({ title, icon, content, bgColor = 'bg-panel' }) => {
     if (!content) return null;
     return (
-      <div className={`${bgColor} rounded-lg p-4 border border-gray-200`}>
+      <div className={`${bgColor} rounded-lg p-4 border border-gray-200 dark:border-zinc-700`}>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-lg">{icon}</span>
-          <h4 className="font-semibold text-gray-800">{title}</h4>
+          <h4 className="font-semibold text-main">{title}</h4>
         </div>
-        <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+        <div className="text-sm text-sub whitespace-pre-wrap leading-relaxed">
           {renderFormattedText(content)}
         </div>
       </div>
@@ -379,13 +417,13 @@ const ProblemGenerator = () => {
 
   // ===== 렌더링 =====
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-main py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* 헤더 */}
         <div className="mb-8">
           <button
             onClick={handleGoToProblemList}
-            className="mb-4 px-4 py-2 text-gray-600 hover:text-gray-900 flex items-center gap-2"
+            className="mb-4 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -393,13 +431,22 @@ const ProblemGenerator = () => {
             문제 목록으로
           </button>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">AI 문제 생성</h1>
-          <p className="text-gray-600">원하는 난이도와 주제를 선택하면 AI가 문제를 생성합니다</p>
+          <h1 className="text-3xl font-bold text-main mb-2">AI 문제 생성</h1>
+          <p className="text-muted">원하는 난이도와 주제를 선택하면 AI가 문제를 생성합니다</p>
         </div>
 
         {/* 🎯 데일리 미션 완료 배너 */}
         {missionStatus.completed && (
-          <div className="mb-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-lg p-4 text-white animate-pulse">
+          <div
+            className="mb-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-lg p-4 text-white"
+            style={{ animation: 'subtle-pulse 2.5s ease-in-out infinite' }}
+          >
+            <style>{`
+              @keyframes subtle-pulse {
+                0%, 100% { opacity: 1; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
+                50% { opacity: 0.92; box-shadow: 0 10px 20px -3px rgba(16, 185, 129, 0.5); }
+              }
+            `}</style>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">🎉</span>
@@ -420,15 +467,15 @@ const ProblemGenerator = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           {/* 왼쪽: 문제 생성 폼 */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">문제 생성 설정</h2>
+          <div className="bg-panel rounded-lg shadow-md p-6 h-full">
+            <h2 className="text-xl font-bold text-main mb-6">문제 생성 설정</h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* 난이도 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-sub mb-3">
                   난이도 <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -439,11 +486,11 @@ const ProblemGenerator = () => {
                       onClick={() => handleInputChange('difficulty', option.value)}
                       className={`p-4 rounded-lg border-2 transition-all ${formData.difficulty === option.value
                         ? `${getDifficultyColorClass(option.value)} border-current`
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500'
                         }`}
                     >
-                      <div className="font-semibold">{option.label}</div>
-                      <div className="text-xs text-gray-600 mt-1">{option.description}</div>
+                      <div className="font-semibold text-main">{option.label}</div>
+                      <div className="text-xs text-muted mt-1">{option.description}</div>
                     </button>
                   ))}
                 </div>
@@ -451,7 +498,7 @@ const ProblemGenerator = () => {
 
               {/* 문제 유형 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-sub mb-3">
                   문제 유형 <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -460,31 +507,31 @@ const ProblemGenerator = () => {
                     onClick={() => handleInputChange('problemType', 'ALGORITHM')}
                     className={`p-4 rounded-lg border-2 transition-all ${
                       formData.problemType === 'ALGORITHM'
-                        ? 'bg-blue-50 text-blue-800 border-blue-500'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500'
+                        : 'border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 bg-panel'
                     }`}
                   >
-                    <div className="font-semibold">알고리즘</div>
-                    <div className="text-xs text-gray-600 mt-1">자료구조, 알고리즘 문제</div>
+                    <div className={`font-semibold ${formData.problemType !== 'ALGORITHM' ? 'text-main' : ''}`}>알고리즘</div>
+                    <div className="text-xs text-muted mt-1">자료구조, 알고리즘 문제</div>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleInputChange('problemType', 'SQL')}
                     className={`p-4 rounded-lg border-2 transition-all ${
                       formData.problemType === 'SQL'
-                        ? 'bg-green-50 text-green-800 border-green-500'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                        ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-500'
+                        : 'border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 bg-panel'
                     }`}
                   >
-                    <div className="font-semibold">SQL</div>
-                    <div className="text-xs text-gray-600 mt-1">데이터베이스 쿼리 문제</div>
+                    <div className={`font-semibold ${formData.problemType !== 'SQL' ? 'text-main' : ''}`}>SQL</div>
+                    <div className="text-xs text-muted mt-1">데이터베이스 쿼리 문제</div>
                   </button>
                 </div>
               </div>
 
               {/* 주제 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-sub mb-3">
                   문제 주제 <span className="text-red-500">*</span>
                 </label>
                 {formData.problemType === 'SQL' ? (
@@ -497,8 +544,8 @@ const ProblemGenerator = () => {
                         onClick={() => handleTopicSuggestionClick(topic)}
                         className={`px-4 py-2 text-sm rounded-lg border-2 transition-all ${
                           formData.topic === topic
-                            ? 'bg-blue-50 text-blue-800 border-blue-500 font-semibold'
-                            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
+                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500 font-semibold'
+                            : 'bg-panel border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 text-sub'
                         }`}
                       >
                         {topic}
@@ -510,7 +557,7 @@ const ProblemGenerator = () => {
                   <div className="space-y-3">
                     {Object.entries(TOPIC_CATEGORIES_ALGO).map(([category, topics]) => (
                       <div key={category}>
-                        <div className="text-xs font-semibold text-gray-500 mb-1.5">{category}</div>
+                        <div className="text-xs font-semibold text-muted mb-1.5">{category}</div>
                         <div className="flex flex-wrap gap-2">
                           {topics.map((topic) => (
                             <button
@@ -519,8 +566,8 @@ const ProblemGenerator = () => {
                               onClick={() => handleTopicSuggestionClick(topic)}
                               className={`px-3 py-1.5 text-sm rounded-lg border-2 transition-all ${
                                 formData.topic === topic
-                                  ? 'bg-blue-50 text-blue-800 border-blue-500 font-semibold'
-                                  : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
+                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500 font-semibold'
+                                  : 'bg-panel border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 text-sub'
                               }`}
                             >
                               {topic}
@@ -540,7 +587,7 @@ const ProblemGenerator = () => {
 
               {/* 추가 요구사항 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-sub mb-2">
                   추가 요구사항 (선택)
                 </label>
                 <textarea
@@ -548,13 +595,13 @@ const ProblemGenerator = () => {
                   onChange={(e) => handleInputChange('additionalRequirements', e.target.value)}
                   placeholder="예: 초보자용으로 쉽게, 실무 면접 수준..."
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-panel text-main placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
 
               {/* 에러 메시지 */}
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md">
                   <p className="text-sm">{error}</p>
                 </div>
               )}
@@ -580,7 +627,7 @@ const ProblemGenerator = () => {
                   type="button"
                   onClick={handleReset}
                   disabled={loading}
-                  className="px-6 py-3 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 rounded-md font-semibold transition-colors"
+                  className="px-6 py-3 border border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700 disabled:opacity-50 rounded-md font-semibold transition-colors dark:text-gray-300"
                 >
                   초기화
                 </button>
@@ -589,13 +636,14 @@ const ProblemGenerator = () => {
           </div>
 
           {/* 오른쪽: 생성된 문제 미리보기 */}
-          <div className="bg-white rounded-lg shadow-md p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">생성된 문제 미리보기</h2>
+          <div className="bg-panel rounded-lg shadow-md p-6 h-full flex flex-col overflow-hidden">
+            <h2 className="text-xl font-bold text-main mb-6 flex-shrink-0">생성된 문제 미리보기</h2>
 
+            <div className="flex-1 overflow-y-auto">
             {/* 초기 상태 */}
             {!generatedProblem && !loading && (
-              <div className="text-center py-12 text-gray-500">
-                <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-center py-12 text-muted">
+                <svg className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <p>문제 생성 버튼을 클릭하면</p>
@@ -603,18 +651,64 @@ const ProblemGenerator = () => {
               </div>
             )}
 
-            {/* 로딩 상태 */}
+            {/* 로딩 상태 - SSE 실시간 진행 표시 */}
             {loading && (
-              <div className="py-8">
-                <div className="flex items-center justify-center gap-3 mb-6">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <p className="text-gray-700 font-medium">{generationStep}</p>
+              <div className="py-6">
+                {/* 현재 진행 상태 */}
+                <div className="flex items-center gap-3 mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <p className="text-blue-700 dark:text-blue-300 font-medium">{generationStep}</p>
                 </div>
-                <div className="mt-6">
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-pulse" style={{ width: '100%' }}></div>
+
+                {/* 완료된 단계 목록 */}
+                <div className="space-y-2 mb-6">
+                  <p className="text-sm font-semibold text-sub mb-3">진행 상황</p>
+                  {completedSteps.length === 0 ? (
+                    <div className="flex items-center gap-2 text-sm text-muted">
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-zinc-600 animate-pulse"></div>
+                      <span>서버 연결 대기 중...</span>
+                    </div>
+                  ) : (
+                    completedSteps.map((step, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                          index < completedSteps.length - 1
+                            ? 'bg-green-500 text-white'
+                            : 'bg-blue-500 text-white animate-pulse'
+                        }`}>
+                          {index < completedSteps.length - 1 ? (
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <span className="text-xs">{index + 1}</span>
+                          )}
+                        </div>
+                        <span className={index < completedSteps.length - 1 ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400 font-medium'}>
+                          {step}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* 진행률 바 */}
+                <div>
+                  <div className="flex justify-between text-xs text-muted mb-1">
+                    <span>진행률</span>
+                    <span>{Math.min(completedSteps.length * 14, 100)}%</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2 text-center">약 3-5초 소요됩니다</p>
+                  <div className="h-2 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                      style={{ width: `${Math.min(completedSteps.length * 14, 95)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-muted mt-2 text-center">
+                    {completedSteps.length === 0
+                      ? '서버에 연결 중...'
+                      : 'AI가 문제를 생성하고 있습니다 (약 5-15초 소요)'}
+                  </p>
                 </div>
               </div>
             )}
@@ -628,11 +722,11 @@ const ProblemGenerator = () => {
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getDifficultyColorClass(generatedProblem.difficulty)}`}>
                       {generatedProblem.difficulty}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-muted">
                       문제 ID: #{generatedProblem.problemId}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900">{generatedProblem.title}</h3>
+                  <h3 className="text-2xl font-bold text-main">{generatedProblem.title}</h3>
                 </div>
 
                 {/* 실시간 타이핑 효과 */}
@@ -657,14 +751,14 @@ const ProblemGenerator = () => {
                 </div>
 
                 {/* 진행률 표시 */}
-                <div className="bg-blue-50 rounded-lg p-3">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-blue-700">문제 생성 중...</span>
-                    <span className="text-blue-600 font-medium">
+                    <span className="text-blue-700 dark:text-blue-400">문제 생성 중...</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-medium">
                       {Math.round((displayedText.length / (generatedProblem.description?.length || 1)) * 100)}%
                     </span>
                   </div>
-                  <div className="mt-2 h-2 bg-blue-200 rounded-full overflow-hidden">
+                  <div className="mt-2 h-2 bg-blue-200 dark:bg-blue-900/40 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blue-500 transition-all duration-100"
                       style={{
@@ -680,16 +774,16 @@ const ProblemGenerator = () => {
             {generatedProblem && typingComplete && (
               <div className="space-y-4">
                 {/* 문제 제목 */}
-                <div className="border-b border-gray-200 pb-4">
+                <div className="border-b border-gray-200 dark:border-zinc-700 pb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getDifficultyColorClass(generatedProblem.difficulty)}`}>
                       {generatedProblem.difficulty}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-muted">
                       문제 ID: #{generatedProblem.problemId}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900">{generatedProblem.title}</h3>
+                  <h3 className="text-2xl font-bold text-main">{generatedProblem.title}</h3>
                 </div>
 
                 {/* 구조화된 문제 내용 */}
@@ -700,7 +794,7 @@ const ProblemGenerator = () => {
                       title="문제 설명"
                       icon="📋"
                       content={parsedSections.description}
-                      bgColor="bg-white"
+                      bgColor="bg-panel"
                     />
 
                     {/* 입력/출력 그리드 */}
@@ -709,13 +803,13 @@ const ProblemGenerator = () => {
                         title="입력"
                         icon="📥"
                         content={parsedSections.input}
-                        bgColor="bg-blue-50"
+                        bgColor="bg-blue-50 dark:bg-blue-900/20"
                       />
                       <SectionCard
                         title="출력"
                         icon="📤"
                         content={parsedSections.output}
-                        bgColor="bg-green-50"
+                        bgColor="bg-green-50 dark:bg-green-900/20"
                       />
                     </div>
 
@@ -724,7 +818,7 @@ const ProblemGenerator = () => {
                       title="제한사항"
                       icon="⚠️"
                       content={parsedSections.constraints}
-                      bgColor="bg-yellow-50"
+                      bgColor="bg-yellow-50 dark:bg-yellow-900/20"
                     />
 
                     {/* 예제 입출력 */}
@@ -743,29 +837,29 @@ const ProblemGenerator = () => {
                   </div>
                 ) : (
                   /* 파싱 실패 시 원본 출력 (마크다운 포맷팅 적용) */
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  <div className="bg-panel rounded-lg p-4">
+                    <div className="text-sm text-sub whitespace-pre-wrap leading-relaxed">
                       {renderFormattedText(generatedProblem.description)}
                     </div>
                   </div>
                 )}
 
                 {/* 생성 정보 */}
-                <div className="bg-blue-50 rounded-lg p-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <div className="text-gray-600">테스트케이스</div>
-                      <div className="font-semibold text-gray-900">{generatedProblem.testCaseCount}개</div>
+                      <div className="text-muted">테스트케이스</div>
+                      <div className="font-semibold text-main">{generatedProblem.testCaseCount}개</div>
                     </div>
                     <div>
-                      <div className="text-gray-600">생성 시간</div>
-                      <div className="font-semibold text-gray-900">{generatedProblem.generationTime?.toFixed(2)}초</div>
+                      <div className="text-muted">생성 시간</div>
+                      <div className="font-semibold text-main">{generatedProblem.generationTime?.toFixed(2)}초</div>
                     </div>
                   </div>
                 </div>
 
                 {/* 성공 메시지 */}
-                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-md">
                   <p className="font-medium">문제가 성공적으로 생성되었습니다!</p>
                   <p className="text-sm mt-1">이제 문제 목록에서 확인하거나 바로 풀이를 시작할 수 있습니다.</p>
                 </div>
@@ -788,7 +882,7 @@ const ProblemGenerator = () => {
                     </button>
                     <button
                       onClick={handleGoToProblemList}
-                      className="flex-1 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-md font-semibold transition-colors"
+                      className="flex-1 border border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700 px-4 py-2 rounded-md font-semibold transition-colors dark:text-gray-300"
                     >
                       문제 목록으로
                     </button>
@@ -796,6 +890,7 @@ const ProblemGenerator = () => {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>

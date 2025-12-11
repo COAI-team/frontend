@@ -10,8 +10,9 @@ import CalibrationScreen from './CalibrationScreen';
  * - onSessionStart 콜백 추가 (monitoringSessionId 전달)
  * - monitoringSessionId를 부모 컴포넌트에서 사용할 수 있도록 노출
  * - timeLimitMinutes prop 추가 (사용자 지정 시간)
+ * - [Phase 2] onNoFaceStateChange 콜백 추가 (NO_FACE 상태 전달)
  */
-const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, onReady, onSessionStart, onSessionEnd }, ref) => {
+const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, onReady, onSessionStart, onSessionEnd, onNoFaceStateChange }, ref) => {
     const [showCalibration, setShowCalibration] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(false);
     const [error, setError] = useState(null);
@@ -28,7 +29,14 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, on
         sessionId,
         startCalibration,
         completeCalibration,
-        stopTracking
+        stopTracking,
+        // [Phase 2] NO_FACE 상태
+        showNoFaceWarning,
+        noFaceDuration,
+        noFaceProgress,
+        // [Debug] 디버그 모드
+        debugMode,
+        toggleDebugMode
     } = useEyeTracking(problemId, isEnabled && permissionGranted, timeLimitMinutes);
 
     // Refs를 최신 값으로 유지
@@ -37,6 +45,17 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, on
         sessionIdRef.current = sessionId;
         onSessionEndRef.current = onSessionEnd;
     }, [stopTracking, sessionId, onSessionEnd]);
+
+    // [Phase 2] NO_FACE 상태가 변경될 때 부모에게 알림
+    useEffect(() => {
+        if (onNoFaceStateChange) {
+            onNoFaceStateChange({
+                showNoFaceWarning,
+                noFaceDuration,
+                noFaceProgress
+            });
+        }
+    }, [showNoFaceWarning, noFaceDuration, noFaceProgress, onNoFaceStateChange]);
 
     // 웹캠 권한 요청
     useEffect(() => {
@@ -80,7 +99,16 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, on
         }
     };
 
-    // 부모 컴포넌트에서 stopTracking 호출 가능하도록 노출
+    // Refs for debug mode (stale closure 방지)
+    const toggleDebugModeRef = useRef(null);
+    const debugModeRef = useRef(false);
+
+    useEffect(() => {
+        toggleDebugModeRef.current = toggleDebugMode;
+        debugModeRef.current = debugMode;
+    }, [toggleDebugMode, debugMode]);
+
+    // 부모 컴포넌트에서 stopTracking, toggleDebugMode 호출 가능하도록 노출
     // Ref를 통해 최신 함수 참조 (stale closure 방지)
     useImperativeHandle(ref, () => ({
         stopTracking: async (remainingSeconds = null) => {
@@ -97,7 +125,14 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, on
             if (currentOnSessionEnd && currentSessionId) {
                 currentOnSessionEnd(currentSessionId);
             }
-        }
+        },
+        // [Debug] 디버그 모드 토글
+        toggleDebugMode: () => {
+            if (toggleDebugModeRef.current) {
+                toggleDebugModeRef.current();
+            }
+        },
+        getDebugMode: () => debugModeRef.current
     }), []); // 빈 의존성 - ref를 통해 최신 값 접근
 
     // 컴포넌트 언마운트 시에만 추적 종료 (의존성 변경 시 호출 안 함)
