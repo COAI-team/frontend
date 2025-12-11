@@ -142,7 +142,7 @@ const CodeboardList = () => {
   return (
     <div className="freeboard-list-container">
       <div className="freeboard-header">
-        <h1 className="freeboard-title">코드보드</h1>
+        <h1 className="freeboard-title">코드게시판</h1>
         <p className="freeboard-subtitle">코드 리뷰와 분석을 통해 더 나은 코드를 작성해보세요</p>
       </div>
 
