@@ -1,11 +1,20 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import ChatbotButton from "../../button/ChatbotButton";
 import ScrollToTopButton from "../../button/ScrollToTopButton";
 
 export default function Layout() {
-    // 모든 훅 제거 - ThemeProvider에서 처리
+    const { pathname } = useLocation();
+
+    // 챗봇을 노출할 경로만 true
+    const showChatbot =
+        pathname === "/" ||                    // 메인/온보딩
+        pathname.startsWith("/pricing") ||     // 요금제
+        pathname.startsWith("/buy") ||         // 결제
+        pathname.startsWith("/mypage") ||      // 마이페이지
+        pathname.startsWith("/admin");         // 관리자
+
     return (
         <div className="flex flex-col h-screen overflow-hidden">
             <Navbar />
@@ -19,7 +28,7 @@ export default function Layout() {
                 </div>
             </div>
             <ScrollToTopButton />
-            <ChatbotButton />
+            {showChatbot && <ChatbotButton />}
         </div>
     );
 }
