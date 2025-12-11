@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateProblem, completeMission } from '../../service/algorithm/AlgorithmApi';
+import { generateProblemWithSSE, completeMission } from '../../service/algorithm/AlgorithmApi';
 
 /**
  * AI 문제 생성 페이지
@@ -22,6 +22,10 @@ const ProblemGenerator = () => {
   const [error, setError] = useState(null);
   const [generatedProblem, setGeneratedProblem] = useState(null);
   const [generationStep, setGenerationStep] = useState('');
+
+  // SSE 스트리밍 관련 상태
+  const [completedSteps, setCompletedSteps] = useState([]);
+  const sseCleanupRef = useRef(null);
 
   // 🎯 데일리 미션 완료 상태
   const [missionStatus, setMissionStatus] = useState({
@@ -168,106 +172,137 @@ const ProblemGenerator = () => {
       return;
     }
 
+    // 이전 SSE 연결 정리
+    if (sseCleanupRef.current) {
+      sseCleanupRef.current();
+    }
+
     setLoading(true);
     setError(null);
     setGeneratedProblem(null);
     setDisplayedText('');
     setTypingComplete(false);
-    setGenerationStep('AI가 문제를 생성하고 있습니다...');
+    setCompletedSteps([]);
+    setGenerationStep('서버 연결 중...');
 
-    console.log('AI 문제 생성 요청:', formData);
+    console.log('🚀 [SSE] AI 문제 생성 요청:', formData);
 
-    try {
-      const result = await generateProblem(formData);
+    // SSE 스트리밍 시작
+    const cleanup = generateProblemWithSSE(formData, {
+      // 진행 단계 업데이트 콜백
+      onStep: (message) => {
+        console.log('📍 [SSE] 진행 단계:', message);
+        setCompletedSteps(prev => [...prev, message]);
+        setGenerationStep(message);
+      },
 
-      if (result.error) {
-        setError(result.message || '문제 생성에 실패했습니다.');
-        return;
-      }
+      // 완료 콜백
+      onComplete: async (data) => {
+        console.log('✅ [SSE] 문제 생성 완료:', data);
 
-      console.log('AI 문제 생성 성공:', result.data);
-      setGeneratedProblem(result.data);
-      setGenerationStep('생성 완료!');
+        // 서버 응답 데이터를 컴포넌트 상태에 맞게 변환
+        const problemData = {
+          problemId: data.problemId,
+          title: data.title,
+          description: data.description,
+          difficulty: data.difficulty,
+          testCaseCount: data.testCaseCount,
+          generationTime: data.generationTime,
+          hasValidationCode: data.hasValidationCode
+        };
 
-      // 🎯 데일리 미션 완료 처리 (PROBLEM_GENERATE)
-      // TODO: 실제 로그인 구현 후 user.userId로 변경
-      const testUserId = 3; // 개발용 테스트 userId
-      try {
-        const missionResult = await completeMission('PROBLEM_GENERATE', testUserId);
-        console.log('🎯 미션 완료 API 응답 (전체):', JSON.stringify(missionResult, null, 2));
+        setGeneratedProblem(problemData);
+        setGenerationStep('생성 완료!');
+        setLoading(false);
 
-        const mResult = missionResult.data || missionResult;
+        // 🎯 데일리 미션 완료 처리 (PROBLEM_GENERATE)
+        const testUserId = 3; // TODO: 실제 로그인 구현 후 user.userId로 변경
+        try {
+          const missionResult = await completeMission('PROBLEM_GENERATE', testUserId);
+          console.log('🎯 미션 완료 API 응답:', JSON.stringify(missionResult, null, 2));
 
-        if (mResult.error) {
-          // "이미 완료된 미션" 에러(ALGO_4501)는 정상 케이스로 처리
-          if (mResult.code === 'ALGO_4501') {
+          const mResult = missionResult.data || missionResult;
+
+          if (mResult.error) {
+            if (mResult.code === 'ALGO_4501') {
+              setMissionStatus({
+                completed: true,
+                message: '오늘의 미션은 이미 완료되었습니다',
+                rewardPoints: 0,
+                error: null
+              });
+            } else {
+              console.warn('미션 완료 API 오류:', mResult.message);
+              setMissionStatus(prev => ({ ...prev, error: mResult.message }));
+            }
+          } else if (mResult.success || mResult.completed) {
+            setMissionStatus({
+              completed: true,
+              message: mResult.message || 'AI 문제 생성 미션 완료!',
+              rewardPoints: mResult.rewardPoints || 0,
+              error: null
+            });
+            console.log('✅ 미션 완료:', mResult.message, `+${mResult.rewardPoints || 0}P`);
+          } else if (mResult.alreadyCompleted) {
+            setMissionStatus({
+              completed: true,
+              message: '이미 완료된 미션입니다',
+              rewardPoints: 0,
+              error: null
+            });
+          } else {
+            setMissionStatus({
+              completed: true,
+              message: 'AI 문제 생성 미션 완료!',
+              rewardPoints: 0,
+              error: null
+            });
+          }
+        } catch (missionErr) {
+          const errorCode = missionErr.response?.data?.code;
+          const errorMessage = missionErr.response?.data?.message;
+
+          if (errorCode === 'ALGO_4501') {
             setMissionStatus({
               completed: true,
               message: '오늘의 미션은 이미 완료되었습니다',
               rewardPoints: 0,
               error: null
             });
-            console.log('ℹ️ 오늘 미션은 이미 완료되었습니다.');
           } else {
-            console.warn('미션 완료 API 오류:', mResult.message);
-            setMissionStatus(prev => ({ ...prev, error: mResult.message }));
+            console.warn('미션 완료 처리 실패 (무시됨):', errorMessage || missionErr);
+            setMissionStatus(prev => ({ ...prev, error: errorMessage || '미션 완료 처리 실패' }));
           }
-        } else if (mResult.success || mResult.completed) {
-          setMissionStatus({
-            completed: true,
-            message: mResult.message || 'AI 문제 생성 미션 완료!',
-            rewardPoints: mResult.rewardPoints || 0,
-            error: null
-          });
-          console.log('✅ 미션 완료:', mResult.message, `+${mResult.rewardPoints || 0}P`);
-        } else if (mResult.alreadyCompleted) {
-          setMissionStatus({
-            completed: true,
-            message: '이미 완료된 미션입니다',
-            rewardPoints: 0,
-            error: null
-          });
-          console.log('ℹ️ 이미 완료된 미션');
-        } else {
-          // 에러가 아니면 성공으로 간주
-          console.log('ℹ️ 예상치 못한 응답 구조, 성공으로 처리:', mResult);
-          setMissionStatus({
-            completed: true,
-            message: 'AI 문제 생성 미션 완료!',
-            rewardPoints: 0,
-            error: null
-          });
         }
-      } catch (missionErr) {
-        // "이미 완료된 미션" 에러(ALGO_4501)는 정상 케이스로 처리
-        const errorCode = missionErr.response?.data?.code;
-        const errorMessage = missionErr.response?.data?.message;
+      },
 
-        if (errorCode === 'ALGO_4501') {
-          // 이미 완료된 미션 - 에러가 아닌 정상 상태로 처리
-          setMissionStatus({
-            completed: true,
-            message: '오늘의 미션은 이미 완료되었습니다',
-            rewardPoints: 0,
-            error: null
-          });
-          console.log('ℹ️ 오늘 미션은 이미 완료되었습니다.');
-        } else {
-          // 다른 에러는 경고로 처리 (문제 생성 자체는 성공했으므로)
-          console.warn('미션 완료 처리 실패 (무시됨):', errorMessage || missionErr);
-          setMissionStatus(prev => ({ ...prev, error: errorMessage || '미션 완료 처리 실패' }));
-        }
+      // 에러 콜백
+      onError: (errorMessage) => {
+        console.error('❌ [SSE] 에러:', errorMessage);
+        setError(errorMessage || '문제 생성 중 오류가 발생했습니다.');
+        setLoading(false);
       }
+    });
 
-    } catch (err) {
-      console.error('문제 생성 에러:', err);
-      setError('문제 생성 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
+    // 정리 함수 저장
+    sseCleanupRef.current = cleanup;
   };
 
+  // 컴포넌트 언마운트 시 SSE 연결 정리
+  useEffect(() => {
+    return () => {
+      if (sseCleanupRef.current) {
+        sseCleanupRef.current();
+      }
+    };
+  }, []);
+
   const handleReset = () => {
+    // SSE 연결 정리
+    if (sseCleanupRef.current) {
+      sseCleanupRef.current();
+      sseCleanupRef.current = null;
+    }
     if (typingRef.current) {
       clearInterval(typingRef.current);
     }
@@ -281,6 +316,9 @@ const ProblemGenerator = () => {
     setError(null);
     setDisplayedText('');
     setTypingComplete(false);
+    setCompletedSteps([]);
+    setGenerationStep('');
+    setLoading(false);
     // 미션 상태 초기화
     setMissionStatus({
       completed: false,
@@ -603,18 +641,64 @@ const ProblemGenerator = () => {
               </div>
             )}
 
-            {/* 로딩 상태 */}
+            {/* 로딩 상태 - SSE 실시간 진행 표시 */}
             {loading && (
-              <div className="py-8">
-                <div className="flex items-center justify-center gap-3 mb-6">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <p className="text-sub font-medium">{generationStep}</p>
+              <div className="py-6">
+                {/* 현재 진행 상태 */}
+                <div className="flex items-center gap-3 mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <p className="text-blue-700 dark:text-blue-300 font-medium">{generationStep}</p>
                 </div>
-                <div className="mt-6">
-                  <div className="h-2 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-pulse" style={{ width: '100%' }}></div>
+
+                {/* 완료된 단계 목록 */}
+                <div className="space-y-2 mb-6">
+                  <p className="text-sm font-semibold text-sub mb-3">진행 상황</p>
+                  {completedSteps.length === 0 ? (
+                    <div className="flex items-center gap-2 text-sm text-muted">
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-zinc-600 animate-pulse"></div>
+                      <span>서버 연결 대기 중...</span>
+                    </div>
+                  ) : (
+                    completedSteps.map((step, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                          index < completedSteps.length - 1
+                            ? 'bg-green-500 text-white'
+                            : 'bg-blue-500 text-white animate-pulse'
+                        }`}>
+                          {index < completedSteps.length - 1 ? (
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <span className="text-xs">{index + 1}</span>
+                          )}
+                        </div>
+                        <span className={index < completedSteps.length - 1 ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400 font-medium'}>
+                          {step}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* 진행률 바 */}
+                <div>
+                  <div className="flex justify-between text-xs text-muted mb-1">
+                    <span>진행률</span>
+                    <span>{Math.min(completedSteps.length * 14, 100)}%</span>
                   </div>
-                  <p className="text-xs text-muted mt-2 text-center">약 3-5초 소요됩니다</p>
+                  <div className="h-2 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                      style={{ width: `${Math.min(completedSteps.length * 14, 95)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-muted mt-2 text-center">
+                    {completedSteps.length === 0
+                      ? '서버에 연결 중...'
+                      : 'AI가 문제를 생성하고 있습니다 (약 5-15초 소요)'}
+                  </p>
                 </div>
               </div>
             )}
