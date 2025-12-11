@@ -163,3 +163,82 @@ html:not(.dark) .codeboard-content .code-header {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* 코드 블록 스타일 */
+.codeboard-content pre {
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+}
+
+.codeboard-content pre code {
+  display: block;
+  padding: 1rem;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.codeboard-content.dark pre code {
+  background-color: #1e1e1e;
+}
+
+.codeboard-content.light pre code {
+  background-color: #f6f8fa;
+}
+
+/* 코드 블록 래퍼 */
+.code-block-wrapper {
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.dark .code-block-wrapper {
+  border-color: #374151;
+}
+
+/* 코드 헤더 */
+.code-header {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.dark .code-header {
+  background-color: #1f2937;
+  border-bottom-color: #374151;
+  color: #d1d5db;
+}
+
+.code-language {
+  font-family: monospace;
+  color: #6b7280;
+}
+
+.dark .code-language {
+  color: #9ca3af;
+}
+
+/* 코드 블록 내부 */
+.codeboard-content pre {
+  margin: 0;
+  overflow-x: auto;
+}
+
+.codeboard-content pre code {
+  display: block;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* highlight.js 스타일 보조 */
+.codeboard-content.dark pre code.hljs {
+  background-color: #1e1e1e;
+}
+
+.codeboard-content.light pre code.hljs {
+  background-color: #f6f8fa;
+}
