@@ -18,7 +18,8 @@ export default function AdminUsers() {
 
   const [sortField, setSortField] = useState("USER_ID");
   const [sortOrder, setSortOrder] = useState("desc");
-  const [filter, setFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const [pageGroup, setPageGroup] = useState(1); // ✅ 현재 페이지 그룹 (1~5 / 6~10 등)
 
@@ -27,16 +28,17 @@ export default function AdminUsers() {
     email = "",
     sortField = "USER_ID",
     sortOrder = "desc",
-    filter = "all"
+    role = "all",
+    status = "all"
   ) => {
     try {
       setLoading(true);
       const queryEmail = email ? `&userEmail=${encodeURIComponent(email)}` : "";
       const querySort = `&sortField=${sortField}&sortOrder=${sortOrder}`;
-      const queryStatus =
-        filter !== "all" ? `&filter=${filter}` : "&filter=all";
+      const queryRole = `&roleFilter=${role}`;
+      const queryStatus = `&statusFilter=${status}`;
       const res = await axios.get(
-        `${API_BASE_URL}/users?page=${page}&size=10${queryEmail}${querySort}${queryStatus}`
+        `${API_BASE_URL}/users?page=${page}&size=10${queryEmail}${querySort}${queryRole}${queryStatus}`
       );
 
       if (res.data.message === "success") {
@@ -61,24 +63,45 @@ export default function AdminUsers() {
   };
 
   useEffect(() => {
-    findUser(1, searchEmail, sortField, sortOrder, filter);
-  }, [sortField, sortOrder, filter]);
+    findUser(1, searchEmail, sortField, sortOrder, roleFilter, statusFilter);
+  }, [sortField, sortOrder, roleFilter, statusFilter]);
 
   const handleUserClick = (userId) => setSelectedUser(userId);
   const closeModal = () => setSelectedUser(null);
 
   const handlePrev = () => {
     if (pageInfo.hasPrevious)
-      findUser(pageInfo.page - 1, searchEmail, sortField, sortOrder, filter);
+      findUser(
+        pageInfo.page - 1,
+        searchEmail,
+        sortField,
+        sortOrder,
+        roleFilter,
+        statusFilter
+      );
   };
 
   const handleNext = () => {
     if (pageInfo.hasNext)
-      findUser(pageInfo.page + 1, searchEmail, sortField, sortOrder, filter);
+      findUser(
+        pageInfo.page + 1,
+        searchEmail,
+        sortField,
+        sortOrder,
+        roleFilter,
+        statusFilter
+      );
   };
 
   const handleSearch = () => {
-    findUser(1, searchEmail.trim(), sortField, sortOrder, filter);
+    findUser(
+      1,
+      searchEmail.trim(),
+      sortField,
+      sortOrder,
+      roleFilter,
+      statusFilter
+    );
   };
 
   const handleKeyPress = (e) => {
@@ -91,8 +114,14 @@ export default function AdminUsers() {
     setSortOrder(order);
   };
 
-  const handleStatusChange = (status) => {
-    setFilter(status);
+  const handleRoleFilterChange = (role) => {
+    setRoleFilter(role);
+    setPageGroup(1);
+  };
+
+  const handleStatusFilterChange = (status) => {
+    setStatusFilter(status);
+    setPageGroup(1);
   };
 
   // ✅ 페이지 그룹 계산 (5단위)
@@ -108,7 +137,14 @@ export default function AdminUsers() {
     if (pageGroup > 1) {
       const newStartPage = (pageGroup - 2) * pagesPerGroup + 1;
       setPageGroup(pageGroup - 1);
-      findUser(newStartPage, searchEmail, sortField, sortOrder, filter);
+      findUser(
+        newStartPage,
+        searchEmail,
+        sortField,
+        sortOrder,
+        roleFilter,
+        statusFilter
+      );
     }
   };
 
@@ -116,7 +152,14 @@ export default function AdminUsers() {
     if (endPage < pageInfo.totalPages) {
       const newStartPage = pageGroup * pagesPerGroup + 1;
       setPageGroup(pageGroup + 1);
-      findUser(newStartPage, searchEmail, sortField, sortOrder, filter);
+      findUser(
+        newStartPage,
+        searchEmail,
+        sortField,
+        sortOrder,
+        roleFilter,
+        statusFilter
+      );
     }
   };
 
@@ -125,25 +168,46 @@ export default function AdminUsers() {
       <h2 style={styles.title}>👥 관리자 유저 목록</h2>
 
       {/* ✅ 필터 버튼 */}
-      <div style={styles.filterButtons}>
-        {[
-          { label: "전체보기", value: "all" },
-          { label: "관리자", value: "admin" },
-          { label: "유저", value: "user" },
-          { label: "가입 중", value: "active" },
-          { label: "탈퇴", value: "deleted" },
-        ].map((btn) => (
-          <button
-            key={btn.value}
-            onClick={() => handleStatusChange(btn.value)}
-            style={{
-              ...styles.filterButton,
-              ...(filter === btn.value ? styles.activeFilter : {}),
-            }}
-          >
-            {btn.label}
-          </button>
-        ))}
+      <div style={styles.filterRow}>
+        <div style={styles.filterButtons}>
+          {[
+            { label: "전체보기", value: "all" },
+            { label: "관리자", value: "admin" },
+            { label: "유저", value: "user" },
+          ].map((btn) => (
+            <button
+              key={btn.value}
+              onClick={() => handleRoleFilterChange(btn.value)}
+              style={{
+                ...styles.filterButton,
+                ...(roleFilter === btn.value ? styles.activeFilter : {}),
+              }}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={styles.statusButtons}>
+          {[
+            { label: "가입 상태 전체", value: "all" },
+            { label: "가입 중", value: "active" },
+            { label: "탈퇴", value: "deleted" },
+          ].map((btn) => (
+            <button
+              key={btn.value}
+              onClick={() => handleStatusFilterChange(btn.value)}
+              style={{
+                ...styles.statusButton,
+                ...(statusFilter === btn.value
+                  ? styles.activeStatusFilter
+                  : {}),
+              }}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ✅ 검색 + 정렬 */}
@@ -254,7 +318,14 @@ export default function AdminUsers() {
               <button
                 key={num}
                 onClick={() =>
-                  findUser(num, searchEmail, sortField, sortOrder, filter)
+                  findUser(
+                    num,
+                    searchEmail,
+                    sortField,
+                    sortOrder,
+                    roleFilter,
+                    statusFilter
+                  )
                 }
                 style={{
                   ...styles.pageNumber,
@@ -308,10 +379,18 @@ const styles = {
     gap: "10px",
     marginBottom: "15px",
   },
+  filterRow: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    marginBottom: "15px",
+  },
   filterButton: {
     padding: "6px 12px",
     borderRadius: "6px",
-    border: "1px solid #444",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "#444",
     backgroundColor: "#111",
     color: "#fff",
     cursor: "pointer",
@@ -320,6 +399,28 @@ const styles = {
   activeFilter: {
     backgroundColor: "#1976d2",
     borderColor: "#1976d2",
+  },
+  statusButtons: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "10px",
+    flexWrap: "wrap",
+  },
+  statusButton: {
+    padding: "6px 12px",
+    borderRadius: "6px",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "#444",
+    backgroundColor: "#111",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: "600",
+  },
+  activeStatusFilter: {
+    backgroundColor: "#2dd4bf",
+    borderColor: "#2dd4bf",
+    color: "#0d1117",
   },
   searchBox: {
     display: "flex",
@@ -385,7 +486,9 @@ const styles = {
     cursor: "not-allowed",
   },
   pageNumber: {
-    border: "1px solid #444",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "#444",
     backgroundColor: "#111",
     color: "#fff",
     padding: "6px 10px",

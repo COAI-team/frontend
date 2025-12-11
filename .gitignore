@@ -31,3 +31,6 @@ localhost-cert.pem
 *.njsproj
 *.sln
 *.sw?
+
+# AI / Project instructions (지수 로컬 전용)
+PROJECT_INSTRUCTIONS.*

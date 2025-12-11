@@ -50,8 +50,13 @@ export default function AdminStatsDashboard() {
   const userCountSummary = Array.isArray(data?.userCountSummary)
     ? data.userCountSummary
     : [];
+  const totalUserEntry = userCountSummary.find(
+    (item) => item.year === "TOTAL" && item.month === "-"
+  );
   const latestUserCount =
-    userCountSummary[userCountSummary.length - 1]?.userCount ?? 0;
+    totalUserEntry?.userCount ??
+    userCountSummary[userCountSummary.length - 1]?.userCount ??
+    0;
   const filteredUserSummary = userCountSummary.filter(
     (item) => item.year !== "TOTAL"
   );

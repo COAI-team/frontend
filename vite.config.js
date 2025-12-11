@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => {
 
     return {
         plugins: [react(), tailwindcss()],
+        define: {
+            global: 'window'
+        },
         server: {
             https: {
                 key: fs.readFileSync(path.resolve(import.meta.dirname, "localhost-key.pem")),
