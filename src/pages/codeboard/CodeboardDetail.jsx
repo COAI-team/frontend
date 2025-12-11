@@ -343,8 +343,9 @@ const CodeboardDetail = () => {
 
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: board.analysisId ? '1fr 1fr' : '1fr', 
-          gap: '1.5rem' 
+          gridTemplateColumns: board.analysisId ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr', 
+          gap: '1.5rem',
+          overflow: 'hidden'
         }}>
           
           {/* 좌측 패널 - analysisId가 있으면 항상 영역 확보 */}
@@ -659,7 +660,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0, overflow: 'hidden' }}>
       <div style={{
         border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
@@ -701,7 +702,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
         
         <div style={{ maxHeight: '500px', overflow: 'auto' }}>
           {fileContent.split('\n').map((line, index) => (
-            <div key={index} style={{ display: 'flex' }}>
+            <div key={index} style={{ display: 'flex', minWidth: 'max-content' }}>
               <div style={{
                 width: '3rem',
                 flexShrink: 0,
@@ -715,12 +716,14 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
               }}>
                 {index + 1}
               </div>
-              <div style={{ flex: 1, padding: '0 1rem' }}>
+              <div style={{ flex: 1, padding: '0 1rem', minWidth: 0 }}>
                 <pre style={{
                   fontSize: '0.875rem',
                   margin: 0,
                   fontFamily: 'monospace',
-                  color: isDark ? '#f3f4f6' : '#1f2937'
+                  color: isDark ? '#f3f4f6' : '#1f2937',
+                  whiteSpace: 'pre',
+                  overflowX: 'auto'
                 }}>{line || ' '}</pre>
               </div>
             </div>
