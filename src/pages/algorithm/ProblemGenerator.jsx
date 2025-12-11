@@ -458,9 +458,9 @@ const ProblemGenerator = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           {/* 왼쪽: 문제 생성 폼 */}
-          <div className="bg-panel rounded-lg shadow-md p-6">
+          <div className="bg-panel rounded-lg shadow-md p-6 h-full">
             <h2 className="text-xl font-bold text-main mb-6">문제 생성 설정</h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -627,9 +627,10 @@ const ProblemGenerator = () => {
           </div>
 
           {/* 오른쪽: 생성된 문제 미리보기 */}
-          <div className="bg-panel rounded-lg shadow-md p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-            <h2 className="text-xl font-bold text-main mb-6">생성된 문제 미리보기</h2>
+          <div className="bg-panel rounded-lg shadow-md p-6 h-full flex flex-col overflow-hidden">
+            <h2 className="text-xl font-bold text-main mb-6 flex-shrink-0">생성된 문제 미리보기</h2>
 
+            <div className="flex-1 overflow-y-auto">
             {/* 초기 상태 */}
             {!generatedProblem && !loading && (
               <div className="text-center py-12 text-muted">
@@ -880,6 +881,7 @@ const ProblemGenerator = () => {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>
