@@ -74,6 +74,9 @@ const ProblemSolve = () => {
   const [eyeTrackingReady, setEyeTrackingReady] = useState(false);
   const [monitoringSessionId, setMonitoringSessionId] = useState(null);
 
+  // [Debug] 시선 추적 디버그 모드 상태
+  const [eyeTrackingDebugMode, setEyeTrackingDebugMode] = useState(false);
+
   // [Phase 2] NO_FACE 경고 상태
   const [noFaceState, setNoFaceState] = useState({
     showNoFaceWarning: false,
@@ -722,6 +725,14 @@ const ProblemSolve = () => {
     setMonitoringSessionId(null);
   }, []);
 
+  // [Debug] 시선 추적 디버그 모드 토글 핸들러
+  const handleToggleEyeTrackingDebug = useCallback(() => {
+    if (eyeTrackerRef.current?.toggleDebugMode) {
+      eyeTrackerRef.current.toggleDebugMode();
+      setEyeTrackingDebugMode(prev => !prev);
+    }
+  }, []);
+
   // 로딩 상태
   if (loading) {
     return (
@@ -1002,6 +1013,29 @@ const ProblemSolve = () => {
           </div>
         </div>
       </div>
+
+      {/* 집중 모드 디버그 바 (상단 중앙) */}
+      {selectedMode === 'FOCUS' && eyeTrackingReady && (
+        <div className="bg-zinc-850 border-b border-zinc-700 py-2 flex-shrink-0">
+          <div className="flex justify-center">
+            <button
+              onClick={handleToggleEyeTrackingDebug}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                eyeTrackingDebugMode
+                  ? 'bg-green-600 text-white ring-2 ring-green-400 shadow-lg shadow-green-500/30'
+                  : 'bg-zinc-700 text-gray-300 hover:bg-zinc-600 hover:text-white'
+              }`}
+              title="웹캠 미리보기, 시선 위치 점, 얼굴 가이드 박스 표시"
+            >
+              <span className="text-lg">{eyeTrackingDebugMode ? '📹' : '🔍'}</span>
+              <span>{eyeTrackingDebugMode ? '시선 추적 미리보기 ON' : '시선 추적 미리보기'}</span>
+              {eyeTrackingDebugMode && (
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 메인 컨텐츠 */}
       <div className="flex-1 container mx-auto px-6 py-4 min-h-0" ref={containerRef}>
