@@ -82,14 +82,14 @@ const CodeboardDetail = () => {
     axiosInstance
       .get(`/codeboard/${id}`)
       .then((res) => {
-        const data = res.data.data || res.data;
-        setBoard(data);
-        setIsLiked(data.isLiked || false); 
-        setLikeCount(data.likeCount || 0);
-        setCommentCount(data.commentCount || 0);
+        const responseData = res.data?.data || res.data;
+        setBoard(responseData);
+        setIsLiked(responseData.isLiked || false);
+        setLikeCount(responseData.likeCount || 0);
+        setCommentCount(responseData.commentCount || 0);
 
-        if (data.analysisId) {
-          loadAnalysisData(data.analysisId);
+        if (responseData.analysisId) {
+          loadAnalysisData(responseData.analysisId);
         }
       })
       .catch((err) => console.error("게시글 불러오기 실패:", err));
