@@ -45,19 +45,19 @@ const MySubmissions = () => {
   const getStatusColor = (result) => {
     switch (result) {
       case "AC":
-        return "text-green-600 bg-green-50";
+        return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30";
       case "WA":
-        return "text-red-600 bg-red-50";
+        return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30";
       case "TLE":
-        return "text-orange-600 bg-orange-50";
+        return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/30";
       case "MLE":
-        return "text-purple-600 bg-purple-50";
+        return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/30";
       case "RE":
-        return "text-yellow-600 bg-yellow-50";
+        return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/30";
       case "CE":
-        return "text-blue-600 bg-blue-50";
+        return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30";
       default:
-        return "text-gray-600 bg-gray-50";
+        return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-700/50";
     }
   };
 
@@ -83,61 +83,61 @@ const MySubmissions = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">내 제출 이력</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-main">내 제출 이력</h1>
+        <p className="mt-2 text-sm text-muted">
           지금까지 제출한 알고리즘 문제 풀이 기록입니다.
         </p>
       </div>
 
       {error ? (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center text-red-600">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center text-red-600 dark:text-red-400">
           {error}
         </div>
       ) : (
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div className="bg-panel shadow overflow-hidden sm:rounded-lg">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
+              <thead className="bg-gray-50 dark:bg-zinc-900/50">
                 <tr>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                   >
                     제출 번호
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                   >
                     문제
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                   >
                     결과
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                   >
                     언어
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                   >
                     메모리 / 시간
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                   >
                     제출 일시
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-panel divide-y divide-gray-200 dark:divide-zinc-700">
                 {submissions.map((submission) => (
                   <tr
                     key={submission.submissionId}
@@ -146,13 +146,13 @@ const MySubmissions = () => {
                         `/algorithm/submissions/${submission.submissionId}`
                       )
                     }
-                    className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                    className="hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors duration-150"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       #{submission.submissionId}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-main">
                         {submission.problemTitle}
                       </div>
                     </td>
@@ -165,10 +165,10 @@ const MySubmissions = () => {
                         {getStatusText(submission.judgeResult)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       {submission.language}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       {submission.memoryUsage
                         ? `${Math.round(submission.memoryUsage / 1024)}KB`
                         : "-"}{" "}
@@ -177,7 +177,7 @@ const MySubmissions = () => {
                         ? ` ${submission.executionTime}ms`
                         : " -"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       {format(
                         new Date(submission.submittedAt),
                         "yyyy-MM-dd HH:mm",
@@ -191,17 +191,17 @@ const MySubmissions = () => {
           </div>
 
           {submissions.length === 0 && !loading && (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-muted">
               제출 이력이 없습니다.
             </div>
           )}
 
           {hasMore && (
-            <div className="bg-gray-50 px-4 py-4 sm:px-6 text-center border-t border-gray-200">
+            <div className="bg-gray-50 dark:bg-zinc-900/50 px-4 py-4 sm:px-6 text-center border-t border-gray-200 dark:border-zinc-700">
               <button
                 onClick={() => setPage((prev) => prev + 1)}
                 disabled={loading}
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
+                className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 disabled:opacity-50"
               >
                 {loading ? "로딩 중..." : "더 보기"}
               </button>

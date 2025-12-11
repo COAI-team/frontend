@@ -147,7 +147,10 @@ export const runTestCode = async (data) => {
 };
 
 /**
- * AI 문제 생성 (검증 포함)
+ * AI 문제 생성 (검증 파이프라인 포함) - 일반 HTTP 방식
+ * - 구조 검증, 유사도 검사, 코드 실행 검증, 시간 비율 검증 수행
+ * - Self-Correction을 통한 자동 수정 시도
+ * - LLM API + 검증 시간으로 인해 타임아웃을 120초로 설정
  */
 export const generateProblem = async (data) => {
     try {
@@ -164,6 +167,117 @@ export const generateProblem = async (data) => {
         console.error('❌ [generateProblem] 요청 실패:', err);
         return { error: true, message: err.response?.data?.message || '문제 생성에 실패했습니다.' };
     }
+};
+
+/**
+ * AI 문제 생성 (SSE 스트리밍 방식)
+ * - Server-Sent Events를 통해 실시간 진행 상황 수신
+ * - 각 단계별 진행률을 콜백으로 전달
+ *
+ * @param {Object} data - 문제 생성 요청 데이터
+ * @param {Object} callbacks - 콜백 함수들
+ * @param {Function} callbacks.onStep - 진행 단계 업데이트 시 호출
+ * @param {Function} callbacks.onComplete - 완료 시 호출
+ * @param {Function} callbacks.onError - 에러 발생 시 호출
+ * @returns {Function} SSE 연결 종료 함수
+ */
+export const generateProblemWithSSE = (data, callbacks) => {
+    const { onStep, onComplete, onError } = callbacks;
+
+    // URL 쿼리 파라미터 구성
+    const params = new URLSearchParams({
+        difficulty: data.difficulty,
+        topic: data.topic,
+        problemType: data.problemType || 'ALGORITHM',
+    });
+
+    if (data.additionalRequirements) {
+        params.append('additionalRequirements', data.additionalRequirements);
+    }
+
+    // API 베이스 URL 가져오기
+    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:9443';
+    const sseUrl = `${baseURL}/algo/problems/generate/stream?${params.toString()}`;
+
+    console.log('🔗 [SSE] 연결 시작:', sseUrl);
+
+    // EventSource 생성 (SSE 연결)
+    const eventSource = new EventSource(sseUrl, {
+        withCredentials: true  // 쿠키/인증 정보 포함
+    });
+
+    // 메시지 수신 핸들러
+    eventSource.onmessage = (event) => {
+        try {
+            // 백엔드에서 "data: " prefix가 중복 추가될 수 있으므로 제거
+            let rawData = event.data;
+            if (rawData.startsWith('data: ')) {
+                rawData = rawData.substring(6).trim();
+            }
+
+            const eventData = JSON.parse(rawData);
+            console.log('📨 [SSE] 이벤트 수신:', eventData);
+
+            switch (eventData.type) {
+                case 'STEP':
+                    // 진행 단계 업데이트
+                    if (onStep) {
+                        onStep(eventData.message);
+                    }
+                    break;
+
+                case 'COMPLETE':
+                    // 완료 - 생성된 문제 데이터 전달
+                    console.log('✅ [SSE] 문제 생성 완료:', eventData.data);
+                    if (onComplete) {
+                        onComplete(eventData.data);
+                    }
+                    eventSource.close();
+                    break;
+
+                case 'ERROR':
+                    // 에러 발생
+                    console.error('❌ [SSE] 에러:', eventData.message);
+                    if (onError) {
+                        onError(eventData.message);
+                    }
+                    eventSource.close();
+                    break;
+
+                default:
+                    console.warn('⚠️ [SSE] 알 수 없는 이벤트 타입:', eventData.type);
+            }
+        } catch (parseError) {
+            console.error('❌ [SSE] 이벤트 파싱 실패:', parseError, event.data);
+        }
+    };
+
+    // 연결 열림 핸들러
+    eventSource.onopen = () => {
+        console.log('✅ [SSE] 연결 성공');
+    };
+
+    // 에러 핸들러
+    eventSource.onerror = (error) => {
+        console.error('❌ [SSE] 연결 에러:', error);
+
+        // readyState 체크: 0=CONNECTING, 1=OPEN, 2=CLOSED
+        if (eventSource.readyState === EventSource.CLOSED) {
+            console.log('🔌 [SSE] 연결 종료됨');
+        } else {
+            // 연결 에러 발생 시 콜백 호출
+            if (onError) {
+                onError('서버 연결이 끊어졌습니다. 다시 시도해주세요.');
+            }
+        }
+        eventSource.close();
+    };
+
+    // 연결 종료 함수 반환 (컴포넌트 언마운트 시 정리용)
+    return () => {
+        console.log('🔌 [SSE] 수동 연결 종료');
+        eventSource.close();
+    };
 };
 
 /**

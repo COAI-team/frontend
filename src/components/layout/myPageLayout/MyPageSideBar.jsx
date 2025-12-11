@@ -9,6 +9,7 @@ import {
     PresentationChartLineIcon,
     CalendarDaysIcon,
     CheckCircleIcon,
+    ClipboardDocumentListIcon,
 } from "@heroicons/react/24/outline";
 
 const myMenu = [
@@ -38,6 +39,13 @@ const myMenu = [
         icon: ChartBarIcon,
         children: [
             { name: "코드 분석", href: "/mypage/dashboard", icon: PresentationChartLineIcon },
+        ],
+    },
+    {
+        name: "학습 기록",
+        icon: ClipboardDocumentListIcon,
+        children: [
+            { name: "알고리즘 풀이 기록", href: "/mypage/algo-history", icon: ClipboardDocumentListIcon },
         ],
     },
 ];
