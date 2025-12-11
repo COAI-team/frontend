@@ -550,7 +550,7 @@
 html.dark .floating-write-btn {
   position: fixed;
   right: 13rem;  
-  bottom: 2rem;
+  bottom: 4.3rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -577,7 +577,7 @@ html.dark .floating-write-btn:hover {
 html:not(.dark) .floating-write-btn {
   position: fixed;
   right: 13rem;  
-  bottom: 2rem;
+  bottom: 4.3rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
