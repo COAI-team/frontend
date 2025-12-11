@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import '../../../styles/TopicSelector.css';
 
 // 주제/유형 전체 목록
 export const ALL_TOPICS = [
@@ -66,19 +67,15 @@ const TopicSelector = ({ selectedTopic, onTopicSelect }) => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="topic-selector-container">
       {/* 메인 주제 */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="topic-buttons-wrapper">
         {MAIN_TOPICS.map((topic) => (
           <button
             key={topic.value}
             type="button"
             onClick={() => handleTopicClick(topic.value)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-              selectedTopic === topic.value
-                ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
+            className={`topic-button ${selectedTopic === topic.value ? 'active' : ''}`}
           >
             {topic.label}
           </button>
@@ -88,17 +85,10 @@ const TopicSelector = ({ selectedTopic, onTopicSelect }) => {
         <button
           type="button"
           onClick={() => setShowExtraTopics(!showExtraTopics)}
-          className="px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all
-                   bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 
-                   hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-1"
+          className={`topic-more-button ${showExtraTopics ? 'open' : ''}`}
         >
           <span>더보기</span>
-          <svg 
-            className={`w-4 h-4 transition-transform ${showExtraTopics ? 'rotate-180' : ''}`} 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
@@ -106,17 +96,13 @@ const TopicSelector = ({ selectedTopic, onTopicSelect }) => {
 
       {/* 추가 주제 (펼쳤을 때만 표시) */}
       {showExtraTopics && (
-        <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-gray-200 dark:border-gray-700">
+        <div className="extra-topics-section">
           {EXTRA_TOPICS.map((topic) => (
             <button
               key={topic.value}
               type="button"
               onClick={() => handleTopicClick(topic.value)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                selectedTopic === topic.value
-                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
+              className={`topic-button ${selectedTopic === topic.value ? 'active' : ''}`}
             >
               {topic.label}
             </button>

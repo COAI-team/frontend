@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -36,6 +36,9 @@ const WriteEditor = ({
   const [tags, setTags] = useState(initialTags);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { theme, systemTheme } = useTheme();
+  
+  // 초기 content 설정 여부 추적
+  const isContentInitialized = useRef(false);
 
   const currentTheme = theme === "system" ? systemTheme : theme;
   const isDark = currentTheme === "dark";
@@ -86,7 +89,7 @@ const WriteEditor = ({
       LinkPreview,
     ],
 
-    content: initialContent,
+    content: "", // 초기에는 빈 값으로 시작
 
     editorProps: {
       handleDrop(view, event, _slice, moved) {
@@ -110,16 +113,26 @@ const WriteEditor = ({
     },
   });
 
+  // 제목 초기화
   useEffect(() => {
     if (initialTitle) setTitle(initialTitle);
   }, [initialTitle]);
 
+  // 에디터 content 초기화 - 한 번만 실행
   useEffect(() => {
-    if (editor && initialContent) {
-      editor.commands.setContent(initialContent);
+    if (editor && initialContent && !isContentInitialized.current) {
+      // 에디터가 준비될 때까지 약간 대기
+      const timer = setTimeout(() => {
+        console.log("Setting initial content:", initialContent);
+        editor.commands.setContent(initialContent);
+        isContentInitialized.current = true;
+      }, 50);
+      
+      return () => clearTimeout(timer);
     }
   }, [editor, initialContent]);
 
+  // 태그 초기화
   useEffect(() => {
     if (initialTags.length > 0) setTags(initialTags);
   }, [initialTags]);
