@@ -28,6 +28,7 @@
     "@tiptap/extension-text-style": "^3.13.0",
     "@tiptap/react": "^3.13.0",
     "@tiptap/starter-kit": "^3.13.0",
+    "@stomp/stompjs": "^7.0.0",
     "@tosspayments/tosspayments-sdk": "^2.5.0",
     "axios": "^1.13.2",
     "browser-image-compression": "^2.0.2",
@@ -43,7 +44,8 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-icons": "^5.5.0",
-    "react-router-dom": "^7.10.1"
+    "react-router-dom": "^7.10.1",
+    "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
