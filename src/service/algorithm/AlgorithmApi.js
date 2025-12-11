@@ -1,4 +1,35 @@
-import axiosInstance from "../../server/AxiosConfig";
+﻿import axiosInstance from "../../server/AxiosConfig";
+
+/**
+ * 오늘의 문제 선착순 보너스 상태 조회
+ * GET /api/algo/missions/bonus/status
+ */
+export const getSolveBonusStatus = async (problemId) => {
+    try {
+        const res = await axiosInstance.get('/algo/missions/bonus/status', {
+            params: { problemId },
+            _skipAuthRedirect: true, // 403 시 리다이렉트 방지
+        });
+        return res.data;
+    } catch (err) {
+        console.error('‼️[getSolveBonusStatus] 요청 실패:', err);
+        const status = err.response?.status;
+        // 401/403/404 등은 서버 배포 전/권한 문제로 간주하고 기본 구조 반환
+        if (status) {
+            return {
+                error: true,
+                code: err.response?.data?.code || status,
+                message: err.response?.data?.message || '보너스 상태 조회 실패',
+                data: {
+                    currentCount: null,
+                    limit: 3,
+                    eligible: true,
+                },
+            };
+        }
+        return { error: true, message: '선착순 보너스 상태를 가져오는데 실패했습니다.' };
+    }
+};
 
 // ============== 알고리즘 문제 관리 API ==============
 

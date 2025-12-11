@@ -1,3 +1,9 @@
+if (typeof global === 'undefined') {
+    // Vite + sockjs-client 호환용: sockjs-client가 브라우저에서 global을 기대함
+    // eslint-disable-next-line no-undef
+    window.global = window;
+}
+
 import {createRoot} from "react-dom/client";
 import "./index.css";
 import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";

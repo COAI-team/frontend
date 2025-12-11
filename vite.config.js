@@ -7,6 +7,9 @@ export default defineConfig(({ mode }) => {
 
     return {
         plugins: [react(), tailwindcss()],
+        define: {
+            global: 'window'
+        },
         server: {
             proxy: {
                 "^/(api|analysis|users)": {
