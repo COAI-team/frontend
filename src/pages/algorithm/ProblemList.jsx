@@ -1,9 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getProblems, DIFFICULTY_OPTIONS, SOURCE_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/algorithmApi';
-import DifficultyBadge from '../../components/algorithm/problem/DifficultyBadge';
-import ProblemCard from '../../components/algorithm/problem/ProblemCard';
+import { getProblems, DIFFICULTY_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/algorithmApi';
+import TopicSelector from '../../components/algorithm/common/TopicSelector';
 
+// 정렬 옵션
+const SORT_OPTIONS = [
+  { value: 'latest', label: '최신순' },
+  { value: 'mostSolved', label: '푼 사람 많은 순' },
+  { value: 'highAccuracy', label: '정답률 높은 순' },
+  { value: 'lowAccuracy', label: '정답률 낮은 순' },
+];
+
+// 풀이 상태 옵션
+const SOLVED_OPTIONS = [
+  { value: '', label: '전체' },
+  { value: 'solved', label: '푼 문제' },
+  { value: 'unsolved', label: '안 푼 문제' },
+];
 
 const ProblemList = () => {
   // ===== 상태 관리 =====
@@ -14,9 +27,10 @@ const ProblemList = () => {
   // 필터 및 페이징 상태
   const [filters, setFilters] = useState({
     difficulty: '',
-    source: '',
-    problemType: '', // ALGORITHM, SQL
+    topic: '',
     keyword: '',
+    solved: '',
+    sort: 'latest',
     page: 1,
     size: 10
   });
@@ -45,7 +59,6 @@ const ProblemList = () => {
         return;
       }
 
-      // 백엔드 응답 구조에 맞춰 데이터 설정
       if (result.data) {
         setProblems(result.data.problems || []);
         setPagination({
@@ -62,12 +75,11 @@ const ProblemList = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]); // filters를 의존성으로 추가
+  }, [filters]);
 
-  // 컴포넌트 마운트 시 데이터 로딩
   useEffect(() => {
     loadProblems();
-  }, [loadProblems]); // loadProblems를 의존성으로 추가
+  }, [loadProblems]);
 
   // ===== 이벤트 핸들러 =====
   const handleFilterChange = (key, value) => {
@@ -82,199 +94,216 @@ const ProblemList = () => {
     loadProblems(newFilters);
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const newFilters = { ...filters, page: 1 };
-    loadProblems(newFilters);
-  };
-
   const handleProblemClick = (problemId) => {
     navigate(`/algorithm/problems/${problemId}`);
   };
 
+  // 난이도 색상 반환
+  const getDifficultyColor = (difficulty) => {
+    const colors = {
+      BRONZE: 'text-amber-700 dark:text-amber-600',
+      SILVER: 'text-gray-600 dark:text-gray-400',
+      GOLD: 'text-yellow-600 dark:text-yellow-500',
+      PLATINUM: 'text-cyan-600 dark:text-cyan-500'
+    };
+    return colors[difficulty] || 'text-gray-500 dark:text-gray-400';
+  };
+
   // ===== 렌더링 =====
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-6xl mx-auto px-4">
         {/* 페이지 헤더 */}
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">알고리즘 문제</h1>
-            <p className="text-gray-600">다양한 알고리즘 문제를 풀어보세요</p>
-          </div>
-          <Link
-            to="/mypage/daily-mission"
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg"
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">알고리즘 문제</h1>
+          <p className="text-gray-600 dark:text-gray-400">다양한 알고리즘 문제를 만들고 풀어보세요</p>
+        </div>
+
+        {/* 주제 필터 탭 */}
+        <div className="mb-4">
+          <TopicSelector 
+            selectedTopic={filters.topic}
+            onTopicSelect={(topic) => handleFilterChange('topic', topic)}
+          />
+        </div>
+
+        {/* 검색 및 필터 섹션 */}
+        <div className="mb-6 flex gap-3">
+          <input
+            type="text"
+            placeholder="문제 검색..."
+            value={filters.keyword}
+            onChange={(e) => {
+              const newFilters = { ...filters, keyword: e.target.value, page: 1 };
+              setFilters(newFilters);
+            }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                loadProblems(filters);
+              }
+            }}
+            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <select
+            value={filters.solved}
+            onChange={(e) => handleFilterChange('solved', e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <span className="text-lg">🎯</span>
-            <span className="font-medium">오늘의 미션</span>
+            {SOLVED_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.difficulty}
+            onChange={(e) => handleFilterChange('difficulty', e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {DIFFICULTY_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.sort}
+            onChange={(e) => handleFilterChange('sort', e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {SORT_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.size}
+            onChange={(e) => handleFilterChange('size', parseInt(e.target.value))}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {PAGE_SIZE_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <Link
+            to="/algorithm/problems/generate"
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-md transition-colors flex items-center gap-2 whitespace-nowrap"
+          >
+            🤖 AI 생성
           </Link>
-        </div>
-
-        {/* 필터 및 검색 섹션 */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <form onSubmit={handleSearch} className="space-y-4">
-            {/* 첫 번째 줄: 필터들 */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {/* 문제 유형 필터 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  유형
-                </label>
-                <select
-                  value={filters.problemType}
-                  onChange={(e) => handleFilterChange('problemType', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">전체</option>
-                  <option value="ALGORITHM">알고리즘</option>
-                  <option value="SQL">DATABASE</option>
-                </select>
-              </div>
-
-              {/* 난이도 필터 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  난이도
-                </label>
-                <select
-                  value={filters.difficulty}
-                  onChange={(e) => handleFilterChange('difficulty', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {DIFFICULTY_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 출처 필터 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  출처
-                </label>
-                <select
-                  value={filters.source}
-                  onChange={(e) => handleFilterChange('source', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {SOURCE_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 페이지 크기 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  표시 개수
-                </label>
-                <select
-                  value={filters.size}
-                  onChange={(e) => handleFilterChange('size', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {PAGE_SIZE_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* AI 문제 생성 버튼 */}
-              <div className="flex items-end">
-                <Link
-                  to="/algorithm/problems/generate"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors text-center"
-                >
-                  🤖 AI 문제 생성
-                </Link>
-              </div>
-            </div>
-
-            {/* 두 번째 줄: 검색 */}
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  placeholder="문제 제목이나 내용으로 검색..."
-                  value={filters.keyword}
-                  onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
-              >
-                검색
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* 결과 정보 */}
-        <div className="flex justify-between items-center mb-4">
-          <div className="text-gray-600">
-            총 {pagination.totalCount}개의 문제 (페이지 {pagination.currentPage} / {pagination.totalPages})
-          </div>
         </div>
 
         {/* 로딩 상태 */}
         {loading && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">문제 목록을 불러오는 중...</p>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">문제 목록을 불러오는 중...</p>
           </div>
         )}
 
         {/* 에러 상태 */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md mb-6">
             <p className="font-medium">오류가 발생했습니다</p>
             <p className="text-sm">{error}</p>
           </div>
         )}
 
-        {/* 문제 목록 */}
+        {/* 문제 목록 테이블 */}
         {!loading && !error && (
           <>
-            {problems.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">검색 결과가 없습니다.</p>
-                <p className="text-gray-400 text-sm mt-2">다른 조건으로 검색해보세요.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {problems.map((problem) => (
-                  <ProblemCard
-                    key={problem.algoProblemId}
-                    problem={problem}
-                    onClick={handleProblemClick}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <table className="w-full table-fixed">
+                <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">
+                      상태
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">
+                      번호
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      제목
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">
+                      난이도
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">
+                      유형
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">
+                      제출수
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">
+                      정답률
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {problems.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                        검색 결과가 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    problems.map((problem, index) => (
+                      <tr
+                        key={problem.algoProblemId}
+                        onClick={() => handleProblemClick(problem.algoProblemId)}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                      >
+                        <td className="px-3 py-3 text-center">
+                          {problem.isSolved ? (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30">
+                              <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600"></span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                          {(pagination.currentPage - 1) * filters.size + index + 1}
+                        </td>
+                        <td className="px-6 py-3 text-sm text-gray-900 dark:text-white truncate">
+                          {problem.algoProblemTitle}
+                        </td>
+                        <td className={`px-3 py-3 text-center text-sm font-medium ${getDifficultyColor(problem.algoProblemDifficulty)}`}>
+                          {problem.algoProblemDifficulty}
+                        </td>
+                        <td className="px-3 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                          -
+                        </td>
+                        <td className="px-3 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                          {problem.solveCount || 0}
+                        </td>
+                        <td className="px-3 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                          -
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {/* 페이지네이션 */}
             {pagination.totalPages > 1 && (
-              <div className="mt-8 flex justify-center">
-                <div className="flex gap-2">
-                  {/* 이전 페이지 */}
+              <div className="mt-6 flex justify-center">
+                <div className="flex gap-1">
                   <button
                     onClick={() => handlePageChange(pagination.currentPage - 1)}
                     disabled={!pagination.hasPrevious}
-                    className="px-3 py-2 rounded-md border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     이전
                   </button>
 
-                  {/* 페이지 번호들 */}
                   {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                     const pageNum = Math.max(1, Math.min(
                       pagination.totalPages - 4,
@@ -287,21 +316,21 @@ const ProblemList = () => {
                       <button
                         key={pageNum}
                         onClick={() => handlePageChange(pageNum)}
-                        className={`px-3 py-2 rounded-md border ${pageNum === pagination.currentPage
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'hover:bg-gray-50'
-                          }`}
+                        className={`px-3 py-2 rounded-md border transition-colors ${
+                          pageNum === pagination.currentPage
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
                       >
                         {pageNum}
                       </button>
                     );
                   })}
 
-                  {/* 다음 페이지 */}
                   <button
                     onClick={() => handlePageChange(pagination.currentPage + 1)}
                     disabled={!pagination.hasNext}
-                    className="px-3 py-2 rounded-md border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     다음
                   </button>
