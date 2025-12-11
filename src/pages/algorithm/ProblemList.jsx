@@ -14,7 +14,7 @@ const SORT_OPTIONS = [
 
 // 풀이 상태 옵션
 const SOLVED_OPTIONS = [
-  { value: '', label: '전체' },
+  { value: '', label: '상태' },
   { value: 'solved', label: '푼 문제' },
   { value: 'unsolved', label: '안 푼 문제' },
 ];
