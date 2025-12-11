@@ -8,6 +8,7 @@ import "../../styles/CodeboardDetail.css";
 import CommentSection from '../../components/comment/CommentSection';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
 import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
+import { processCodeBlocks, applyHighlighting } from '../../utils/codeBlockUtils';
 
 const CodeboardDetail = () => {
   const { id } = useParams();
@@ -111,7 +112,7 @@ const CodeboardDetail = () => {
     }
   };
 
-  // 우측 content 처리
+  // 우측 content 처리 (processCodeBlocks만 호출)
   useEffect(() => {
     if (!board || contentProcessed.current) return;
 
@@ -132,46 +133,8 @@ const CodeboardDetail = () => {
       img.style.margin = '0 0.1em';
     });
 
-    // 코드블록 처리
-    container.querySelectorAll('pre[data-type="monaco-code-block"]').forEach(block => {
-      const code = block.getAttribute('data-code');
-      const language = block.getAttribute('data-language') || 'plaintext';
-
-      if (code) {
-        const decodeHTML = (html) => {
-          const txt = document.createElement("textarea");
-          txt.innerHTML = html;
-          return txt.value;
-        };
-
-        const decodedCode = decodeHTML(code);
-
-        block.innerHTML = '';
-        block.className = 'code-block-wrapper';
-        block.removeAttribute('data-type');
-
-        const header = document.createElement('div');
-        header.className = 'code-header';
-        header.innerHTML = `<span class="code-language">${language}</span>`;
-
-        const pre = document.createElement('pre');
-        pre.style.margin = '0';
-        pre.style.backgroundColor = isDark ? '#1e1e1e' : '#f6f8fa';
-        
-        const codeElement = document.createElement('code');
-        codeElement.className = `language-${language}`;
-        codeElement.textContent = decodedCode;
-        codeElement.style.display = 'block';
-        codeElement.style.padding = '1rem';
-        codeElement.style.fontSize = '0.875rem';
-        codeElement.style.lineHeight = '1.5';
-        codeElement.style.fontFamily = 'monospace';
-
-        pre.appendChild(codeElement);
-        block.appendChild(header);
-        block.appendChild(pre);
-      }
-    });
+    // 코드 블록 처리 (utils/codeBlockUtils.js)
+    processCodeBlocks(container, isDark);
 
     setProcessedContent(container.innerHTML);
     contentProcessed.current = true;
@@ -962,22 +925,7 @@ const ContentRenderer = React.memo(({ content, isDark }) => {
   useEffect(() => {
     if (!innerRef.current || !content) return;
 
-    const timer = setTimeout(() => {
-      // 모든 code 요소에 하이라이트 적용
-      innerRef.current.querySelectorAll('code[class*="language-"]').forEach(block => {
-        if (block.dataset.highlighted) return; // 이미 하이라이트된 것은 스킵
-        hljs.highlightElement(block);
-      });
-
-      // language 클래스가 없는 pre > code도 처리
-      innerRef.current.querySelectorAll('pre > code:not([class*="language-"])').forEach(block => {
-        if (block.dataset.highlighted) return;
-        block.className = 'language-plaintext';
-        hljs.highlightElement(block);
-      });
-    }, 100);
-
-    return () => clearTimeout(timer);
+    applyHighlighting(innerRef.current);
   }, [content, isDark]);
 
   return (

@@ -7,7 +7,7 @@ export const decodeHTML = (html) => {
   return txt.value;
 };
 
-// 코드 블록 처리 (Monaco 및 TipTap 모두 지원)
+// 코드 블록 처리 및 하이라이팅 (Monaco 및 TipTap 모두 지원)
 export const processCodeBlocks = (container, isDark) => {
   // Monaco 코드 블록 처리
   container.querySelectorAll('pre[data-type="monaco-code-block"]').forEach(block => {
@@ -20,6 +20,8 @@ export const processCodeBlocks = (container, isDark) => {
       block.innerHTML = '';
       block.className = 'code-block-wrapper';
       block.removeAttribute('data-type');
+      block.removeAttribute('data-code');
+      block.removeAttribute('data-language');
 
       const header = document.createElement('div');
       header.className = 'code-header';
@@ -41,29 +43,28 @@ export const processCodeBlocks = (container, isDark) => {
       pre.appendChild(codeElement);
       block.appendChild(header);
       block.appendChild(pre);
+
+      // DOM 조작 중 바로 하이라이팅 적용 (가장 안전)
+      hljs.highlightElement(codeElement);
     }
   });
 
-  // TipTap 일반 코드 블록 처리 (language 클래스가 없는 경우)
+  // TipTap 일반 코드 블록 처리
   container.querySelectorAll('pre > code:not([class*="language-"])').forEach(codeElement => {
     if (!codeElement.className.includes('language-')) {
       codeElement.className = 'language-plaintext';
     }
+    if (!codeElement.dataset.highlighted) {
+      hljs.highlightElement(codeElement);
+    }
   });
 };
 
-// 하이라이팅 적용
+// 추가 하이라이팅 적용 (필요시 사용)
 export const applyHighlighting = (container) => {
   if (!container) return;
 
-  container.querySelectorAll('code[class*="language-"]').forEach(block => {
-    if (block.dataset.highlighted) return;
-    hljs.highlightElement(block);
-  });
-
-  container.querySelectorAll('pre > code:not([class*="language-"])').forEach(block => {
-    if (block.dataset.highlighted) return;
-    block.className = 'language-plaintext';
+  container.querySelectorAll('code[class*="language-"]:not([data-highlighted])').forEach(block => {
     hljs.highlightElement(block);
   });
 };

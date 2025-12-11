@@ -72,62 +72,57 @@
   font-style: italic;
 }
 
-/* ========== code-block-wrapper 스타일 ========== */
+/* ========== 코드 블록 스타일 (통합) ========== */
 .codeboard-content .code-block-wrapper {
-  border-radius: 0.5rem;
-  overflow: auto;
   margin: 2rem 0;
-  width: 100%;
-  max-width: 100%;
-}
-
-/* highlight.js 색상 보존 */
-html.dark .codeboard-content .code-block-wrapper {
-  background: transparent !important;
-  color: inherit !important;
-}
-
-html:not(.dark) .codeboard-content .code-block-wrapper {
-  background-color: #ffffff;
+  border-radius: 0.5rem;
+  overflow: hidden;
   border: 1px solid #e5e7eb;
+}
+
+.codeboard-content.dark .code-block-wrapper {
+  border-color: #374151;
 }
 
 .codeboard-content .code-header {
   padding: 0.5rem 1rem;
-  display: flex;
-  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
-html.dark .codeboard-content .code-header {
+.codeboard-content.dark .code-header {
   background-color: #1f2937;
-  border-bottom: 1px solid #374151;
+  border-bottom-color: #374151;
   color: #d1d5db;
 }
 
-html:not(.dark) .codeboard-content .code-header {
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-  color: #1f2937;
-}
-
 .codeboard-content .code-language {
-  font-size: 0.75rem;
+  font-family: monospace;
   text-transform: uppercase;
   font-weight: 600;
   letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
+.codeboard-content.dark .code-language {
+  color: #9ca3af;
+}
+
+.codeboard-content .code-block-wrapper pre {
+  margin: 0;
+  overflow-x: auto;
 }
 
 .codeboard-content .code-block-wrapper code {
-  display: block !important;
-  padding: 1rem !important;
-  overflow-x: auto !important;
-  white-space: pre !important;
-  width: 100%;
-  box-sizing: border-box;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
-  font-size: 0.875rem !important;
-  line-height: 1.7 !important;
-  background: transparent !important;
+  display: block;
+  padding: 1rem;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  white-space: pre;
+  overflow-x: auto;
 }
 
 /* 로딩 컨테이너 */
@@ -149,96 +144,8 @@ html:not(.dark) .codeboard-content .code-header {
   color: #1f2937;
 }
 
-/* highlight.js 색상 우선 적용 */
-.codeboard-content .code-block-wrapper code.hljs {
-  background: transparent !important;
-}
-
-.codeboard-content .code-block-wrapper code.hljs * {
-  color: inherit !important;
-}
-
-
+/* 애니메이션 */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-/* 코드 블록 스타일 */
-.codeboard-content pre {
-  margin: 1rem 0;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-}
-
-.codeboard-content pre code {
-  display: block;
-  padding: 1rem;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.codeboard-content.dark pre code {
-  background-color: #1e1e1e;
-}
-
-.codeboard-content.light pre code {
-  background-color: #f6f8fa;
-}
-
-/* 코드 블록 래퍼 */
-.code-block-wrapper {
-  margin: 1rem 0;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-}
-
-.dark .code-block-wrapper {
-  border-color: #374151;
-}
-
-/* 코드 헤더 */
-.code-header {
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  background-color: #f9fafb;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.dark .code-header {
-  background-color: #1f2937;
-  border-bottom-color: #374151;
-  color: #d1d5db;
-}
-
-.code-language {
-  font-family: monospace;
-  color: #6b7280;
-}
-
-.dark .code-language {
-  color: #9ca3af;
-}
-
-/* 코드 블록 내부 */
-.codeboard-content pre {
-  margin: 0;
-  overflow-x: auto;
-}
-
-.codeboard-content pre code {
-  display: block;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-}
-
-/* highlight.js 스타일 보조 */
-.codeboard-content.dark pre code.hljs {
-  background-color: #1e1e1e;
-}
-
-.codeboard-content.light pre code.hljs {
-  background-color: #f6f8fa;
 }
