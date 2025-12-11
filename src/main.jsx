@@ -1,7 +1,7 @@
-import {createRoot} from "react-dom/client";
+import { createRoot } from "react-dom/client";
 import "./index.css";
-import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
-import {ThemeProvider} from "next-themes";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 
 // 레이아웃 및 메인
 import Layout from "./components/layout/mainLayout/Layout";
@@ -48,7 +48,6 @@ import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
 import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
 import CodeboardEdit from "./pages/codeboard/CodeboardEdit";
 
-
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
 import ProfilePage from "./pages/myPage/ProfilePage";
@@ -59,6 +58,7 @@ import DashboardPage from "./pages/myPage/DashboardPage";
 import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
 import AdminStatsDashboard from "./pages/admin/AdminStatsDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminUserBoards from "./pages/admin/AdminUserBoards";
 
 createRoot(document.getElementById("root")).render(
     <LoginProvider>
@@ -106,6 +106,7 @@ createRoot(document.getElementById("root")).render(
                             <Route index element={<Navigate to="stats" replace/>}/>
                             <Route path="stats" element={<AdminStatsDashboard/>}/>
                             <Route path="users" element={<AdminUsers/>}/>
+                            <Route path="userboards" element={<AdminUserBoards />} />
                         </Route>
 
 
