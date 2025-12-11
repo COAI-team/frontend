@@ -8,6 +8,7 @@ import "../../styles/CodeboardDetail.css";
 import CommentSection from '../../components/comment/CommentSection';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
 import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
+import { processCodeBlocks, applyHighlighting } from '../../utils/codeBlockUtils';
 
 const CodeboardDetail = () => {
   const { id } = useParams();
@@ -81,14 +82,14 @@ const CodeboardDetail = () => {
     axiosInstance
       .get(`/codeboard/${id}`)
       .then((res) => {
-        const data = res.data.data || res.data;
-        setBoard(data);
-        setIsLiked(data.isLiked || false); 
-        setLikeCount(data.likeCount || 0);
-        setCommentCount(data.commentCount || 0);
+        const responseData = res.data?.data || res.data;
+        setBoard(responseData);
+        setIsLiked(responseData.isLiked || false);
+        setLikeCount(responseData.likeCount || 0);
+        setCommentCount(responseData.commentCount || 0);
 
-        if (data.analysisId) {
-          loadAnalysisData(data.analysisId);
+        if (responseData.analysisId) {
+          loadAnalysisData(responseData.analysisId);
         }
       })
       .catch((err) => console.error("게시글 불러오기 실패:", err));
@@ -111,7 +112,7 @@ const CodeboardDetail = () => {
     }
   };
 
-  // content 처리 - 한 번만 수행
+  // 우측 content 처리 (processCodeBlocks만 호출)
   useEffect(() => {
     if (!board || contentProcessed.current) return;
 
@@ -132,40 +133,12 @@ const CodeboardDetail = () => {
       img.style.margin = '0 0.1em';
     });
 
-    // 코드블록 처리
-    container.querySelectorAll('pre[data-type="monaco-code-block"]').forEach(block => {
-      const code = block.getAttribute('data-code');
-      const language = block.getAttribute('data-language') || 'plaintext';
-
-      if (code) {
-        const decodeHTML = (html) => {
-          const txt = document.createElement("textarea");
-          txt.innerHTML = html;
-          return txt.value;
-        };
-
-        const decodedCode = decodeHTML(code);
-
-        block.innerHTML = '';
-        block.className = 'code-block-wrapper';
-        block.removeAttribute('data-type');
-
-        const header = document.createElement('div');
-        header.className = 'code-header';
-        header.innerHTML = `<span class="code-language">${language}</span>`;
-
-        const codeElement = document.createElement('code');
-        codeElement.className = `language-${language}`;
-        codeElement.textContent = decodedCode;
-
-        block.appendChild(header);
-        block.appendChild(codeElement);
-      }
-    });
+    // 코드 블록 처리 (utils/codeBlockUtils.js)
+    processCodeBlocks(container, isDark);
 
     setProcessedContent(container.innerHTML);
     contentProcessed.current = true;
-  }, [board]);
+  }, [board, isDark]);
 
   const loadAnalysisData = async (analysisId) => {
     try {
@@ -314,6 +287,20 @@ const CodeboardDetail = () => {
       ? Number(currentUserId) === Number(board.userId)
       : false;
 
+  // 날짜 포맷팅 함수
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${year}.${month}.${day}. ${hours}:${minutes}`;
+  };    
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -343,8 +330,9 @@ const CodeboardDetail = () => {
 
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: board.analysisId ? '1fr 1fr' : '1fr', 
-          gap: '1.5rem' 
+          gridTemplateColumns: board.analysisId ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr', 
+          gap: '1.5rem',
+          overflow: 'hidden'
         }}>
           
           {/* 좌측 패널 - analysisId가 있으면 항상 영역 확보 */}
@@ -516,7 +504,7 @@ const CodeboardDetail = () => {
                 <span>{board.userNickname || '익명'}</span>
               </div>
               <span>·</span>
-              <span>{new Date(board.codeboardCreatedAt).toLocaleString()}</span>
+              <span>{formatDate(board.codeboardCreatedAt)}</span>
               <span>·</span>
               <span>조회수 {board.codeboardClick}</span>
             </div>
@@ -647,6 +635,8 @@ const CodeboardDetail = () => {
 };
 
 const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
+  const codeViewerRef = useRef(null);
+  
   const parseJSON = (data) => {
     if (typeof data === 'string') {
       try {
@@ -658,14 +648,63 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
     return data || [];
   };
 
+  // 파일 확장자로 언어 감지
+  const detectLanguage = (filePath) => {
+    if (!filePath) return 'plaintext';
+    const ext = filePath.split('.').pop().toLowerCase();
+    const langMap = {
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'py': 'python',
+      'java': 'java',
+      'cpp': 'cpp',
+      'c': 'c',
+      'css': 'css',
+      'html': 'html',
+      'json': 'json',
+      'xml': 'xml',
+      'sql': 'sql',
+      'sh': 'bash',
+      'yml': 'yaml',
+      'yaml': 'yaml'
+    };
+    return langMap[ext] || 'plaintext';
+  };
+
+  // 코드 하이라이팅 적용
+  useEffect(() => {
+    if (!codeViewerRef.current || !fileContent) return;
+
+    const timer = setTimeout(() => {
+      codeViewerRef.current.querySelectorAll('pre code').forEach((block) => {
+        block.classList.remove('hljs');
+        block.removeAttribute('data-highlighted');
+        hljs.highlightElement(block);
+      });
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [fileContent, isDark]);
+
+  const language = detectLanguage(analysisResult.filePath);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '1.5rem',
+      minWidth: 0,
+      overflow: 'hidden'
+    }}>
+      {/* 코드 뷰어 */}
       <div style={{
         border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
         overflow: 'hidden',
         backgroundColor: isDark ? '#1f2937' : '#ffffff'
-      }}>
+      }} ref={codeViewerRef}>
         <div style={{
           padding: '0.5rem 1rem',
           borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
@@ -674,9 +713,20 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
           alignItems: 'center',
           backgroundColor: isDark ? '#1f2937' : '#F9FAFB'
         }}>
-          <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
-            {analysisResult.filePath?.split('/').pop()}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
+              {analysisResult.filePath?.split('/').pop()}
+            </span>
+            <span style={{ 
+              fontSize: '0.75rem', 
+              padding: '0.125rem 0.5rem',
+              borderRadius: '0.25rem',
+              backgroundColor: isDark ? '#374151' : '#e5e7eb',
+              color: isDark ? '#9ca3af' : '#6b7280'
+            }}>
+              {language}
+            </span>
+          </div>
           <button
             onClick={() => {
               navigator.clipboard.writeText(fileContent);
@@ -700,34 +750,21 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
         </div>
         
         <div style={{ maxHeight: '500px', overflow: 'auto' }}>
-          {fileContent.split('\n').map((line, index) => (
-            <div key={index} style={{ display: 'flex' }}>
-              <div style={{
-                width: '3rem',
-                flexShrink: 0,
-                padding: '0 0.5rem',
-                textAlign: 'right',
-                fontSize: '0.75rem',
-                userSelect: 'none',
-                borderRight: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                backgroundColor: isDark ? '#111827' : '#f9fafb',
-                color: '#6b7280'
-              }}>
-                {index + 1}
-              </div>
-              <div style={{ flex: 1, padding: '0 1rem' }}>
-                <pre style={{
-                  fontSize: '0.875rem',
-                  margin: 0,
-                  fontFamily: 'monospace',
-                  color: isDark ? '#f3f4f6' : '#1f2937'
-                }}>{line || ' '}</pre>
-              </div>
-            </div>
-          ))}
+          <pre style={{ margin: 0, backgroundColor: isDark ? '#1e1e1e' : '#f6f8fa' }}>
+            <code className={`language-${language}`} style={{
+              display: 'block',
+              padding: '1rem',
+              fontSize: '0.875rem',
+              lineHeight: '1.5',
+              fontFamily: 'monospace'
+            }}>
+              {fileContent}
+            </code>
+          </pre>
         </div>
       </div>
 
+      {/* 분석 결과 */}
       <div style={{
         border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
@@ -902,18 +939,7 @@ const ContentRenderer = React.memo(({ content, isDark }) => {
   useEffect(() => {
     if (!innerRef.current || !content) return;
 
-    const timer = setTimeout(() => {
-      // 코드블록 하이라이트
-      innerRef.current.querySelectorAll('pre.code-block-wrapper code').forEach(block => {
-        block.classList.remove('hljs');
-        block.removeAttribute('data-highlighted');
-        hljs.highlightElement(block);
-      });
-
-      // 링크 프리뷰는 이미 처리됨
-    }, 100);
-
-    return () => clearTimeout(timer);
+    applyHighlighting(innerRef.current);
   }, [content, isDark]);
 
   return (

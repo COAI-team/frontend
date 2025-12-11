@@ -6,8 +6,8 @@ if (typeof global === 'undefined') {
 
 import {createRoot} from "react-dom/client";
 import "./index.css";
-import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
-import {ThemeProvider} from "next-themes";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 
 // 레이아웃 및 메인
 import Layout from "./components/layout/mainLayout/Layout";
@@ -54,7 +54,6 @@ import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
 import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
 import CodeboardEdit from "./pages/codeboard/CodeboardEdit";
 
-
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
 import ProfilePage from "./pages/myPage/ProfilePage";
@@ -65,6 +64,7 @@ import DashboardPage from "./pages/myPage/DashboardPage";
 import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
 import AdminStatsDashboard from "./pages/admin/AdminStatsDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminUserBoards from "./pages/admin/AdminUserBoards";
 
 createRoot(document.getElementById("root")).render(
     <LoginProvider>
@@ -99,18 +99,20 @@ createRoot(document.getElementById("root")).render(
                         <Route path="signup" element={<SignUp/>}/>
 
                         {/* 마이페이지 */}
-                        <Route path="mypage" element={<MyPageLayout/>}>
-                            <Route index element={<Navigate to="profile" replace/>}/>
-                            <Route path="profile" element={<ProfilePage/>}/>
-                            <Route path="billing" element={<BillingPage/>}/>
-                            <Route path="dashboard" element={<DashboardPage/>}/>
-                            <Route path="daily-mission" element={<DailyMission/>}/>
+                        <Route path="mypage" element={<MyPageLayout />}>
+                          <Route index element={<Navigate to="profile" replace />} />
+                          <Route path="profile" element={<ProfilePage />} />
+                          <Route path="billing" element={<BillingPage />} />
+                          <Route path="dashboard" element={<DashboardPage />} />
+                          <Route path="daily-mission" element={<DailyMission />} />
+                          <Route path="algo-history" element={<MySubmissions />} />
                         </Route>
 
                         <Route path="admin" element={<AdminPageLayout/>}>
                             <Route index element={<Navigate to="stats" replace/>}/>
                             <Route path="stats" element={<AdminStatsDashboard/>}/>
                             <Route path="users" element={<AdminUsers/>}/>
+                            <Route path="userboards" element={<AdminUserBoards />} />
                         </Route>
 
 
