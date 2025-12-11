@@ -16,6 +16,7 @@ const ProblemGenerator = () => {
     topic: '',
     additionalRequirements: '',
     problemType: 'ALGORITHM',
+    storyTheme: '',  // 스토리 테마 선택
   });
 
   const [loading, setLoading] = useState(false);
@@ -48,6 +49,15 @@ const ProblemGenerator = () => {
     { value: 'PLATINUM', label: '플래티넘 (고급)', color: 'blue', description: '복잡한 알고리즘, 수학적 사고' },
   ];
 
+  // 🎨 스토리 테마 옵션 (백엔드 STORY_THEMES와 동기화)
+  const STORY_THEMES = [
+    { value: 'SPACE', label: '🚀 우주 탐사대', description: '우주선, 행성, 위성 탐사 미션' },
+    { value: 'GAME', label: '🎮 게임 개발자', description: 'RPG 밸런싱, 아이템 조합, 스킬 시스템' },
+    { value: 'FINANCE', label: '💰 금융 분석가', description: '주식 거래, 투자 포트폴리오 최적화' },
+    { value: 'COOKING', label: '🍳 요리 대회', description: '레시피 최적화, 재료 조합, 요리 점수' },
+    { value: 'FESTIVAL', label: '🎵 음악 페스티벌', description: '공연 스케줄링, 무대 배치, 관객 동선' },
+  ];
+
   // 카테고리별 알고리즘 토픽 (24개)
   const TOPIC_CATEGORIES_ALGO = {
     '기초': ['배열', '구현', '시뮬레이션', '재귀', '수학', '문자열'],
@@ -77,13 +87,13 @@ const ProblemGenerator = () => {
       exampleOutput: '',
     };
 
-    // 섹션 구분자 패턴
+    // 섹션 구분자 패턴 (더 유연하게 - **입력**, 입력:, ## 입력 등 모두 지원)
     const patterns = {
-      input: /(?:^|\n)(?:입력|Input)\s*(?::|：)?\s*\n?/i,
-      output: /(?:^|\n)(?:출력|Output)\s*(?::|：)?\s*\n?/i,
-      constraints: /(?:^|\n)(?:제한사항|제한|조건|Constraints?)\s*(?::|：)?\s*\n?/i,
-      exampleInput: /(?:^|\n)(?:예제 ?입력|입력 ?예제|예시 ?입력|Sample Input|Example Input)\s*(?:\d*)\s*(?::|：)?\s*\n?/i,
-      exampleOutput: /(?:^|\n)(?:예제 ?출력|출력 ?예제|예시 ?출력|Sample Output|Example Output)\s*(?:\d*)\s*(?::|：)?\s*\n?/i,
+      input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+      output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+      constraints: /(?:^|\n)(?:\*\*)?(?:제한\s*사항|제한|조건|제약|Constraints?)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+      exampleInput: /(?:^|\n)(?:\*\*)?(?:예제\s*입력|입력\s*예제|예시\s*입력|Sample\s*Input|Example\s*Input)(?:\*\*)?\s*(?:\d*)\s*(?::|：)?\s*\n?/i,
+      exampleOutput: /(?:^|\n)(?:\*\*)?(?:예제\s*출력|출력\s*예제|예시\s*출력|Sample\s*Output|Example\s*Output)(?:\*\*)?\s*(?:\d*)\s*(?::|：)?\s*\n?/i,
     };
 
     let remaining = description;
@@ -185,10 +195,18 @@ const ProblemGenerator = () => {
     setCompletedSteps([]);
     setGenerationStep('서버 연결 중...');
 
-    console.log('🚀 [SSE] AI 문제 생성 요청:', formData);
+    // storyTheme을 additionalRequirements에 통합하여 백엔드 전송
+    const requestData = {
+      ...formData,
+      additionalRequirements: formData.storyTheme
+        ? formData.storyTheme + (formData.additionalRequirements ? ` ${formData.additionalRequirements}` : '')
+        : formData.additionalRequirements
+    };
+
+    console.log('🚀 [SSE] AI 문제 생성 요청:', requestData);
 
     // SSE 스트리밍 시작
-    const cleanup = generateProblemWithSSE(formData, {
+    const cleanup = generateProblemWithSSE(requestData, {
       // 진행 단계 업데이트 콜백
       onStep: (message) => {
         console.log('📍 [SSE] 진행 단계:', message);
@@ -311,6 +329,7 @@ const ProblemGenerator = () => {
       topic: '',
       additionalRequirements: '',
       problemType: 'ALGORITHM',
+      storyTheme: '',
     });
     setGeneratedProblem(null);
     setError(null);
@@ -362,21 +381,72 @@ const ProblemGenerator = () => {
     ? parseProblemDescription(generatedProblem?.description)
     : null;
 
-  // ===== 마크다운 텍스트 파싱 함수 =====
+  // ===== 마크다운 텍스트 파싱 함수 (개선) =====
   const renderFormattedText = (text) => {
     if (!text) return null;
 
-    // **text** 패턴을 찾아서 <strong>으로 변환
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    // 여러 마크다운 패턴 처리: **bold**, `code`, - list items
+    const lines = text.split('\n');
+
+    return lines.map((line, lineIndex) => {
+      // 빈 줄 처리
+      if (!line.trim()) {
+        return <div key={lineIndex} className="h-2" />;
+      }
+
+      // 리스트 아이템 (- 또는 * 로 시작)
+      const listMatch = line.match(/^(\s*)([-*])\s+(.*)$/);
+      if (listMatch) {
+        const [, indent, , content] = listMatch;
+        const indentLevel = Math.floor(indent.length / 2);
+        return (
+          <div key={lineIndex} className="flex items-start gap-2" style={{ marginLeft: `${indentLevel * 16}px` }}>
+            <span className="text-muted mt-1">•</span>
+            <span>{renderInlineFormatting(content)}</span>
+          </div>
+        );
+      }
+
+      // 숫자 리스트 (1. 2. 3. 등)
+      const numListMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+      if (numListMatch) {
+        const [, indent, num, content] = numListMatch;
+        const indentLevel = Math.floor(indent.length / 2);
+        return (
+          <div key={lineIndex} className="flex items-start gap-2" style={{ marginLeft: `${indentLevel * 16}px` }}>
+            <span className="text-muted font-medium min-w-[20px]">{num}.</span>
+            <span>{renderInlineFormatting(content)}</span>
+          </div>
+        );
+      }
+
+      // 일반 줄
+      return <div key={lineIndex}>{renderInlineFormatting(line)}</div>;
+    });
+  };
+
+  // 인라인 포맷팅 처리 (**bold**, `code`, ≤, ≥)
+  const renderInlineFormatting = (text) => {
+    if (!text) return null;
+
+    // **bold**, `code` 패턴 처리
+    const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
 
     return parts.map((part, index) => {
-      // **text** 패턴인 경우
+      // **bold** 패턴
       if (part.startsWith('**') && part.endsWith('**')) {
-        const boldText = part.slice(2, -2);
         return (
           <strong key={index} className="font-bold text-main">
-            {boldText}
+            {part.slice(2, -2)}
           </strong>
+        );
+      }
+      // `code` 패턴
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return (
+          <code key={index} className="px-1.5 py-0.5 bg-gray-200 dark:bg-zinc-700 rounded text-sm font-mono text-red-600 dark:text-red-400">
+            {part.slice(1, -1)}
+          </code>
         );
       }
       // 일반 텍스트
@@ -585,6 +655,40 @@ const ProblemGenerator = () => {
                 )}
               </div>
 
+              {/* 🎨 스토리 테마 선택 */}
+              <div>
+                <label className="block text-sm font-medium text-sub mb-2">
+                  스토리 테마 (선택)
+                </label>
+                <p className="text-xs text-muted mb-3">
+                  문제에 적용할 스토리 테마를 선택하세요. 모아이가 등장하는 재미있는 문제가 생성됩니다!
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {STORY_THEMES.map((theme) => (
+                    <button
+                      key={theme.value}
+                      type="button"
+                      onClick={() => handleInputChange('storyTheme', formData.storyTheme === theme.value ? '' : theme.value)}
+                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                        formData.storyTheme === theme.value
+                          ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-500'
+                          : 'border-gray-200 dark:border-zinc-600 hover:border-purple-300 dark:hover:border-purple-600 bg-panel'
+                      }`}
+                    >
+                      <div className={`font-semibold text-sm ${formData.storyTheme !== theme.value ? 'text-main' : ''}`}>
+                        {theme.label}
+                      </div>
+                      <div className="text-xs text-muted mt-0.5">{theme.description}</div>
+                    </button>
+                  ))}
+                </div>
+                {formData.storyTheme && (
+                  <div className="mt-2 text-sm text-purple-600 dark:text-purple-400">
+                    선택된 테마: <span className="font-semibold">{STORY_THEMES.find(t => t.value === formData.storyTheme)?.label}</span>
+                  </div>
+                )}
+              </div>
+
               {/* 추가 요구사항 */}
               <div>
                 <label className="block text-sm font-medium text-sub mb-2">
@@ -594,7 +698,7 @@ const ProblemGenerator = () => {
                   value={formData.additionalRequirements}
                   onChange={(e) => handleInputChange('additionalRequirements', e.target.value)}
                   placeholder="예: 초보자용으로 쉽게, 실무 면접 수준..."
-                  rows={3}
+                  rows={2}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-panel text-main placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
