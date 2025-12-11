@@ -437,7 +437,16 @@ const ProblemGenerator = () => {
 
         {/* 🎯 데일리 미션 완료 배너 */}
         {missionStatus.completed && (
-          <div className="mb-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-lg p-4 text-white animate-pulse">
+          <div
+            className="mb-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-lg p-4 text-white"
+            style={{ animation: 'subtle-pulse 2.5s ease-in-out infinite' }}
+          >
+            <style>{`
+              @keyframes subtle-pulse {
+                0%, 100% { opacity: 1; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
+                50% { opacity: 0.92; box-shadow: 0 10px 20px -3px rgba(16, 185, 129, 0.5); }
+              }
+            `}</style>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">🎉</span>
