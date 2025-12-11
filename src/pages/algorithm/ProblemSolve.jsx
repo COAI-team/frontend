@@ -182,8 +182,16 @@ const ProblemSolve = () => {
     setShowModeSelection(false);
 
     if (mode === 'FOCUS') {
-      // 집중 모드: 타이머 설정 화면 표시 (풀이 페이지 내에서)
-      setShowTimerSetup(true);
+      // 집중 모드: 모드 선택 화면에서 타이머 설정 완료 후 바로 시작
+      const timeInSeconds = customTimeMinutes * 60;
+      setTimeLeft(timeInSeconds);
+      setStartTime(new Date());
+      setSolvingStarted(true);
+
+      // 집중 모드: 전체화면 진입 + 시선 추적 자동 활성화
+      // timerEndTime은 eyeTrackingReady 시점에 설정됨
+      enterFullscreen();
+      setEyeTrackingEnabled(true);
     } else {
       // 기본 모드: 바로 풀이 시작 (타이머는 페이지 내에서 수동 설정)
       setSolvingStarted(true);
@@ -191,7 +199,7 @@ const ProblemSolve = () => {
       // 타이머 초기값 설정 (카운트다운용)
       setTimeLeft(customTimeMinutes * 60);
     }
-  }, [customTimeMinutes]);
+  }, [customTimeMinutes, enterFullscreen]);
 
   // 집중 모드 타이머 설정 완료 후 시작
   const handleStartFocusMode = useCallback(() => {
@@ -769,6 +777,8 @@ const ProblemSolve = () => {
         setSelectedMode={setSelectedMode}
         onStartSolving={handleStartSolving}
         onNavigateBack={() => navigate('/algorithm')}
+        customTimeMinutes={customTimeMinutes}
+        setCustomTimeMinutes={setCustomTimeMinutes}
       />
     );
   }

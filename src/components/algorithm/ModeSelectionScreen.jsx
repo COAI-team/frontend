@@ -6,7 +6,7 @@ import React from 'react';
  * 기능:
  * - 기본 모드 / 집중 모드 선택
  * - 모드별 기능 안내
- * - 집중 모드 선택 시 다음 화면에서 시간 설정
+ * - 집중 모드 선택 시 타이머 설정 UI 표시
  */
 const ModeSelectionScreen = ({
   problem,
@@ -14,8 +14,13 @@ const ModeSelectionScreen = ({
   selectedMode,
   setSelectedMode,
   onStartSolving,
-  onNavigateBack
+  onNavigateBack,
+  // 타이머 설정 props (집중 모드용)
+  customTimeMinutes,
+  setCustomTimeMinutes
 }) => {
+  // 타이머 프리셋 옵션
+  const timePresets = [15, 30, 45, 60];
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-100">
       {/* 헤더 */}
@@ -78,6 +83,52 @@ const ModeSelectionScreen = ({
           {/* 집중 모드 주의사항 안내 */}
           {selectedMode === 'FOCUS' && <FocusModeWarning />}
 
+          {/* 집중 모드 타이머 설정 */}
+          {selectedMode === 'FOCUS' && (
+            <div className="mt-6 p-6 bg-zinc-800 border border-zinc-700 rounded-xl">
+              <div className="text-center mb-4">
+                <span className="text-4xl mb-2 block">⏱️</span>
+                <h3 className="text-lg font-bold text-white">풀이 시간 설정</h3>
+                <p className="text-sm text-gray-400 mt-1">집중 모드에서 사용할 타이머 시간을 설정하세요</p>
+              </div>
+
+              {/* 프리셋 버튼 */}
+              <div className="flex items-center justify-center gap-3 mb-4">
+                {timePresets.map(time => (
+                  <button
+                    key={time}
+                    onClick={() => setCustomTimeMinutes(time)}
+                    className={`px-5 py-2 rounded-lg font-semibold transition-all ${
+                      customTimeMinutes === time
+                        ? 'bg-purple-600 text-white ring-2 ring-purple-400'
+                        : 'bg-zinc-700 hover:bg-zinc-600 text-gray-300'
+                    }`}
+                  >
+                    {time}분
+                  </button>
+                ))}
+              </div>
+
+              {/* 커스텀 시간 입력 */}
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-gray-400">직접 입력:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={customTimeMinutes}
+                  onChange={(e) =>
+                    setCustomTimeMinutes(
+                      Math.max(1, Math.min(180, parseInt(e.target.value) || 30))
+                    )
+                  }
+                  className="w-20 px-3 py-2 bg-zinc-700 rounded-lg text-center text-lg font-mono text-white"
+                />
+                <span className="text-gray-400">분</span>
+              </div>
+            </div>
+          )}
+
           {/* 시작 버튼 */}
           <div className="mt-8 text-center">
             <button
@@ -97,7 +148,7 @@ const ModeSelectionScreen = ({
             </button>
             <p className="text-gray-500 text-sm mt-3">
               {selectedMode === 'FOCUS'
-                ? '다음 화면에서 풀이 시간을 설정합니다'
+                ? '전체화면 모드로 전환되며 시선 추적이 활성화됩니다'
                 : selectedMode === 'BASIC'
                   ? '풀이 화면에서 타이머 또는 스톱워치를 설정할 수 있습니다'
                   : '모드를 선택하면 시작할 수 있습니다'}
