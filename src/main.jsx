@@ -93,12 +93,13 @@ createRoot(document.getElementById("root")).render(
                         <Route path="signup" element={<SignUp/>}/>
 
                         {/* 마이페이지 */}
-                        <Route path="mypage" element={<MyPageLayout/>}>
-                            <Route index element={<Navigate to="profile" replace/>}/>
-                            <Route path="profile" element={<ProfilePage/>}/>
-                            <Route path="billing" element={<BillingPage/>}/>
-                            <Route path="dashboard" element={<DashboardPage/>}/>
-                            <Route path="daily-mission" element={<DailyMission/>}/>
+                        <Route path="mypage" element={<MyPageLayout />}>
+                          <Route index element={<Navigate to="profile" replace />} />
+                          <Route path="profile" element={<ProfilePage />} />
+                          <Route path="billing" element={<BillingPage />} />
+                          <Route path="dashboard" element={<DashboardPage />} />
+                          <Route path="daily-mission" element={<DailyMission />} />
+                          <Route path="algo-history" element={<MySubmissions />} />
                         </Route>
 
                         <Route path="admin" element={<AdminPageLayout/>}>

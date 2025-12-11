@@ -32,6 +32,7 @@
     "axios": "^1.13.2",
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
+    "devtools-detect": "^4.0.2",
     "highlight.js": "^11.11.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.556.0",
