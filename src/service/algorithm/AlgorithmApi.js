@@ -170,13 +170,14 @@ export const generateProblem = async (data) => {
 };
 
 /**
- * AI 문제 생성 (SSE 스트리밍 방식)
+ * AI 문제 생성 (SSE 스트리밍 방식 - 검증 파이프라인 포함)
  * - Server-Sent Events를 통해 실시간 진행 상황 수신
+ * - RAG 기반 Few-shot 학습 + 4단계 검증 파이프라인 적용
  * - 각 단계별 진행률을 콜백으로 전달
  *
  * @param {Object} data - 문제 생성 요청 데이터
  * @param {Object} callbacks - 콜백 함수들
- * @param {Function} callbacks.onStep - 진행 단계 업데이트 시 호출
+ * @param {Function} callbacks.onStep - 진행 단계 업데이트 시 호출 (message, percentage)
  * @param {Function} callbacks.onComplete - 완료 시 호출
  * @param {Function} callbacks.onError - 에러 발생 시 호출
  * @returns {Function} SSE 연결 종료 함수
@@ -195,11 +196,11 @@ export const generateProblemWithSSE = (data, callbacks) => {
         params.append('additionalRequirements', data.additionalRequirements);
     }
 
-    // API 베이스 URL 가져오기
+    // API 베이스 URL 가져오기 (검증 포함 스트리밍 엔드포인트 사용)
     const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:9443';
-    const sseUrl = `${baseURL}/algo/problems/generate/stream?${params.toString()}`;
+    const sseUrl = `${baseURL}/algo/problems/generate/validated/stream?${params.toString()}`;
 
-    console.log('🔗 [SSE] 연결 시작:', sseUrl);
+    console.log('🔗 [SSE] 검증 포함 스트리밍 연결 시작:', sseUrl);
 
     // EventSource 생성 (SSE 연결)
     const eventSource = new EventSource(sseUrl, {
@@ -220,17 +221,36 @@ export const generateProblemWithSSE = (data, callbacks) => {
 
             switch (eventData.type) {
                 case 'STEP':
-                    // 진행 단계 업데이트
+                    // 기존 방식 (AIProblemGeneratorService)
                     if (onStep) {
                         onStep(eventData.message);
                     }
                     break;
 
+                case 'PROGRESS':
+                    // 검증 파이프라인 진행률 (ProblemGenerationOrchestrator)
+                    console.log(`📊 [SSE] 진행률: ${eventData.percentage}% - ${eventData.message}`);
+                    if (onStep) {
+                        onStep(eventData.message, eventData.percentage);
+                    }
+                    break;
+
                 case 'COMPLETE':
                     // 완료 - 생성된 문제 데이터 전달
-                    console.log('✅ [SSE] 문제 생성 완료:', eventData.data);
+                    console.log('✅ [SSE] 문제 생성 완료:', eventData);
                     if (onComplete) {
-                        onComplete(eventData.data);
+                        // 검증 파이프라인은 eventData 자체에 데이터가 있음 (data 래핑 없음)
+                        const completeData = eventData.data || eventData;
+                        onComplete({
+                            problemId: completeData.problemId,
+                            title: completeData.title,
+                            description: completeData.description,
+                            difficulty: completeData.difficulty,
+                            testCaseCount: completeData.testCaseCount,
+                            generationTime: completeData.generationTime,
+                            validationResults: completeData.validationResults,
+                            hasValidationCode: completeData.hasValidationCode
+                        });
                     }
                     eventSource.close();
                     break;
