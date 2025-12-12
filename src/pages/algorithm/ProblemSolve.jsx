@@ -9,7 +9,7 @@ import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
 import { useTutorWebSocket } from '../../hooks/algorithm/useTutorWebSocket';
-import { useLogin } from '../../context/useLogin';
+import { useLogin } from '../../context/login/useLogin';
 
 const TUTOR_AUTO_INTERVAL_MS = 8000;
 
