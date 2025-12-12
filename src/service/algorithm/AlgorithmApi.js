@@ -39,7 +39,7 @@ export const getSolveBonusStatus = async (problemId) => {
 export const getProblems = async (params = {}) => {
     try {
         const queryParams = new URLSearchParams();
-        const { page = 1, size = 10, difficulty, source, keyword, topic, problemType } = params;
+        const { page = 1, size = 10, difficulty, source, keyword, topic, problemType, solved } = params;  // solved 추가
 
         queryParams.append('page', page);
         queryParams.append('size', size);
@@ -48,6 +48,7 @@ export const getProblems = async (params = {}) => {
         if (keyword) queryParams.append('keyword', keyword);
         if (topic) queryParams.append('topic', topic);
         if (problemType) queryParams.append('problemType', problemType);
+        if (solved) queryParams.append('solved', solved);  // solved 파라미터 추가
 
         const res = await axiosInstance.get(`/algo/problems?${queryParams}`);
 
