@@ -1,13 +1,5 @@
 import React from 'react';
 
-/**
- * 풀이 모드 선택 화면 컴포넌트
- *
- * 기능:
- * - 기본 모드 / 집중 모드 선택
- * - 풀이 시간 설정
- * - 모드별 기능 안내
- */
 const ModeSelectionScreen = ({
   problem,
   problemId,
@@ -16,13 +8,14 @@ const ModeSelectionScreen = ({
   customTimeMinutes,
   setCustomTimeMinutes,
   onStartSolving,
-  onNavigateBack
+  onNavigateBack,
+  onGoToLearnMode
 }) => {
   const timePresets = [15, 30, 45, 60];
 
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-100">
-      {/* 헤더 */}
+      {/* Header */}
       <div className="bg-zinc-800 border-b border-zinc-700">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -42,14 +35,14 @@ const ModeSelectionScreen = ({
         </div>
       </div>
 
-      {/* 모드 선택 컨테이너 */}
+      {/* Body */}
       <div className="container mx-auto px-6 py-12">
-        <div className="max-w-4xl mx-auto">
-          {/* 시간 설정 */}
+        <div className="max-w-5xl mx-auto">
+          {/* Time presets */}
           <div className="mb-8 text-center">
             <h2 className="text-lg font-semibold mb-4">풀이 시간 설정</h2>
             <div className="flex items-center justify-center gap-4">
-              {timePresets.map(time => (
+              {timePresets.map((time) => (
                 <button
                   key={time}
                   onClick={() => setCustomTimeMinutes(time)}
@@ -70,7 +63,7 @@ const ModeSelectionScreen = ({
                   value={customTimeMinutes}
                   onChange={(e) =>
                     setCustomTimeMinutes(
-                      Math.max(1, Math.min(180, parseInt(e.target.value) || 30))
+                      Math.max(1, Math.min(180, parseInt(e.target.value, 10) || 30))
                     )
                   }
                   className="w-20 px-3 py-2 bg-zinc-700 rounded-lg text-center"
@@ -80,11 +73,25 @@ const ModeSelectionScreen = ({
             </div>
           </div>
 
-          {/* 모드 선택 카드 */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* 기본 모드 */}
+          {/* Mode cards */}
+          <div className="grid grid-cols-3 gap-6">
             <ModeCard
-              icon="📝"
+              icon="🎓"
+              title="학습 모드"
+              description="튜터와 함께 연습해보세요."
+              features={[
+                { text: '힌트 제공 (Pro: 자동, Basic: 질문)', enabled: true },
+                { text: '연습용 페이지 (채점 기록과 별도)', enabled: true },
+                { text: '타이머/시선 추적 없음', enabled: true }
+              ]}
+              isSelected={selectedMode === 'LEARN'}
+              onClick={() => setSelectedMode('LEARN')}
+              selectedBorderClass="border-green-500 bg-green-900/20"
+              note="Basic / Pro 구독에서만 이용 가능합니다."
+            />
+
+            <ModeCard
+              icon="✅"
               title="기본 모드"
               description="자유롭게 문제를 풀어보세요"
               features={[
@@ -97,27 +104,33 @@ const ModeSelectionScreen = ({
               selectedBorderClass="border-blue-500 bg-blue-900/20"
             />
 
-            {/* 집중 모드 */}
             <ModeCard
               icon="👁️"
               title="집중 모드"
               description="시선 추적으로 집중력을 관리하세요"
               features={[
                 { text: '타이머 자동 시작', enabled: true },
-                { text: '시선 추적 (웹캠 필요)', enabled: true },
+                { text: '시선 추적 (캘리브 필요)', enabled: true },
                 { text: '집중도 모니터링', enabled: true }
               ]}
               isSelected={selectedMode === 'FOCUS'}
               onClick={() => setSelectedMode('FOCUS')}
               selectedBorderClass="border-purple-500 bg-purple-900/20"
-              note="* 점수에는 영향 없음 (정보 제공 목적)"
+              note="* 침대/소파는 권장 안함 (정서 집중 목적)"
             />
           </div>
 
-          {/* 시작 버튼 */}
+          {/* Start button */}
           <div className="mt-8 text-center">
             <button
-              onClick={() => onStartSolving(selectedMode)}
+              onClick={() => {
+                if (!selectedMode) return;
+                if (selectedMode === 'LEARN') {
+                  onGoToLearnMode?.();
+                  return;
+                }
+                onStartSolving(selectedMode);
+              }}
               disabled={!selectedMode}
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
                 selectedMode
@@ -129,10 +142,12 @@ const ModeSelectionScreen = ({
                 ? '집중 모드로 시작'
                 : selectedMode === 'BASIC'
                   ? '기본 모드로 시작'
-                  : '모드를 선택해주세요'}
+                  : selectedMode === 'LEARN'
+                    ? '학습 모드로 이동'
+                    : '모드를 선택해주세요'}
             </button>
             <p className="text-gray-500 text-sm mt-3">
-              {customTimeMinutes}분 동안 문제를 풀게 됩니다
+              {customTimeMinutes}분 동안 문제를 풀게 됩니다.
             </p>
           </div>
         </div>
@@ -141,9 +156,6 @@ const ModeSelectionScreen = ({
   );
 };
 
-/**
- * 모드 카드 서브컴포넌트
- */
 const ModeCard = ({
   icon,
   title,

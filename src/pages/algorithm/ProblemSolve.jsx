@@ -8,10 +8,7 @@ import { startProblemSolve, submitCode, runTestCode } from '../../service/algori
 import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
-import { useTutorWebSocket } from '../../hooks/algorithm/useTutorWebSocket';
 import { useLogin } from '../../context/useLogin';
-
-const TUTOR_AUTO_INTERVAL_MS = 8000;
 
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
@@ -49,13 +46,6 @@ const ProblemSolve = () => {
   // 에디터 상태
   const [selectedLanguage, setSelectedLanguage] = useState('Python 3');
   const [code, setCode] = useState('');
-  const [tutorQuestion, setTutorQuestion] = useState('');
-  const [localMessages, setLocalMessages] = useState([]);
-  const [tutorFontSize, setTutorFontSize] = useState('14px');
-  const [tutorTextColor, setTutorTextColor] = useState('#e5e7eb'); // gray-200
-  useEffect(() => {
-    setLocalMessages([]);
-  }, [problemId]);
 
   // 타이머 상태 (풀이 시간 - 기본 30분)
   const [timeLeft, setTimeLeft] = useState(30 * 60);
@@ -76,11 +66,6 @@ const ProblemSolve = () => {
   // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
   const solveMode = selectedMode || 'BASIC';
   const currentUserId = user?.userId ?? user?.id ?? null;
-  const rawTier = user?.subscriptionTier;
-  const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
-  const isFree = subscriptionTier === 'FREE';
-  const isBasic = subscriptionTier === 'BASIC';
-  const isPro = subscriptionTier === 'PRO';
 
   // 집중 모드 위반 감지 훅
   const {
@@ -119,88 +104,14 @@ const ProblemSolve = () => {
     return Math.floor((new Date() - startTime) / 1000);
   }, [startTime]);
 
-  const {
-    status: tutorStatus,
-    messages: tutorMessages,
-    sendUserQuestion
-  } = useTutorWebSocket({
-    problemId: Number(problemId),
-    userId: currentUserId,
-    language: selectedLanguage,
-    code,
-    enableAuto: solvingStarted && solveMode === 'FOCUS' && isPro,
-    autoIntervalMs: TUTOR_AUTO_INTERVAL_MS
-  });
-
-  const mappedTutorMessages = useMemo(
-    () =>
-      tutorMessages.map((msg) => ({
-        role: 'TUTOR',
-        type: msg.type || 'HINT',
-        triggerType: msg.triggerType || 'INFO',
-        content: msg.content || 'No content provided.',
-        createdAt: msg._receivedAt || new Date().toISOString()
-      })),
-    [tutorMessages]
-  );
-
-  const allMessages = useMemo(
-    () =>
-      [...localMessages, ...mappedTutorMessages].sort(
-        (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-      ),
-    [localMessages, mappedTutorMessages]
-  );
-
-  const handleSendTutorQuestion = useCallback(() => {
-    const trimmed = tutorQuestion.trim();
-    if (!trimmed) {
-      return;
-    }
-    setLocalMessages((prev) => [
-      ...prev,
-      {
-        role: 'USER',
-        type: 'QUESTION',
-        triggerType: 'QUESTION',
-        content: trimmed,
-        createdAt: new Date().toISOString()
-      }
-    ]);
-    sendUserQuestion(trimmed);
-    setTutorQuestion('');
-  }, [tutorQuestion, sendUserQuestion]);
-
-  const tutorStatusDotClass = useMemo(() => {
-    switch (tutorStatus) {
-      case 'CONNECTED':
-        return 'bg-green-400';
-      case 'CONNECTING':
-        return 'bg-yellow-400';
-      case 'ERROR':
-        return 'bg-red-400';
-      default:
-        return 'bg-gray-500';
-    }
-  }, [tutorStatus]);
-
-  const tutorStatusText = useMemo(() => {
-    switch (tutorStatus) {
-      case 'CONNECTED':
-        return 'Connected';
-      case 'CONNECTING':
-        return 'Connecting';
-      case 'ERROR':
-        return 'Error';
-      default:
-        return 'Disconnected';
-    }
-  }, [tutorStatus]);
-
   // ========== 모드 선택 및 시작 핸들러 ==========
 
   // 모드 선택 완료 및 풀이 시작
   const handleStartSolving = useCallback((mode) => {
+    if (mode === 'LEARN') {
+      navigate(`/algorithm/problems/${problemId}/learn`);
+      return;
+    }
     setSelectedMode(mode);
     setShowModeSelection(false);
     setSolvingStarted(true);
@@ -629,6 +540,7 @@ const ProblemSolve = () => {
         setCustomTimeMinutes={setCustomTimeMinutes}
         onStartSolving={handleStartSolving}
         onNavigateBack={() => navigate('/algorithm')}
+        onGoToLearnMode={() => navigate(`/algorithm/problems/${problemId}/learn`)}
       />
     );
   }
@@ -913,136 +825,10 @@ const ProblemSolve = () => {
               </div>
             </div>
 
-            {/* result & tutor panel (right) */}
+            {/* result panel (right) */}
             <div style={{ height: `${100 - editorHeight}%` }} className="flex flex-col min-h-0">
-              <div className="p-3 bg-zinc-850 flex-1 flex flex-col gap-3 min-h-0">
-                <div className="bg-zinc-900 rounded p-3 border border-zinc-700 flex-1 min-h-0 flex flex-col">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${tutorStatusDotClass}`}></span>
-                      <span className="text-sm font-semibold">Live Tutor</span>
-                      <span className="text-xs text-gray-500">AUTO hints every {Math.floor(TUTOR_AUTO_INTERVAL_MS / 1000)}s</span>
-                    </div>
-                    <span className="text-xs text-gray-400">{tutorStatusText}</span>
-                  </div>
-
-                  <div className="bg-zinc-950 rounded p-3 flex-1 min-h-[160px] overflow-auto text-sm space-y-2 border border-zinc-800">
-                    <div className="flex items-center gap-2 mb-2 text-xs text-gray-400">
-                      <label className="flex items-center gap-1">
-                        Font
-                        <select
-                          value={tutorFontSize}
-                          onChange={(e) => setTutorFontSize(e.target.value)}
-                          className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs"
-                        >
-                          <option value="12px">12px</option>
-                          <option value="14px">14px</option>
-                          <option value="16px">16px</option>
-                          <option value="18px">18px</option>
-                        </select>
-                      </label>
-                      <label className="flex items-center gap-1">
-                        Color
-                        <input
-                          type="color"
-                          value={tutorTextColor}
-                          onChange={(e) => setTutorTextColor(e.target.value)}
-                          className="w-16 h-7 bg-transparent border border-zinc-700 rounded"
-                        />
-                      </label>
-                    </div>
-                    {allMessages.length === 0 ? (
-                      <p className="text-gray-500 text-xs">No tutor messages yet. Auto hints will appear when your code stays stable.</p>
-                    ) : (
-                      allMessages.map((msg, idx) => {
-                        const isUser = msg.role === 'USER';
-                        const displayType = msg.type || (isUser ? 'QUESTION' : 'HINT');
-                        const displayTrigger =
-                          msg.triggerType && msg.triggerType !== displayType ? msg.triggerType : null;
-                        return (
-                          <div
-                            key={`${msg.role}-${idx}-${msg.createdAt}`}
-                            className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
-                          >
-                            <div
-                              className={`p-2 rounded border max-w-[90%] ${
-                                isUser
-                                  ? 'bg-purple-700 text-white border-purple-500'
-                                  : 'bg-zinc-900 text-gray-200 border-zinc-800'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-                                <span className={`font-semibold ${isUser ? 'text-white' : 'text-purple-300'}`}>
-                                  {displayType}
-                                </span>
-                                {displayTrigger && (
-                                  <span className="text-gray-500">
-                                    {displayTrigger}
-                                  </span>
-                                )}
-                              </div>
-                              <div
-                                className="whitespace-pre-wrap"
-                                style={{ fontSize: tutorFontSize, color: tutorTextColor }}
-                              >
-                                {msg.content || 'No content provided.'}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-
-                  <div className="mt-3 flex gap-2">
-                    <input
-                      type="text"
-                      value={tutorQuestion}
-                      onChange={(e) => setTutorQuestion(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendTutorQuestion();
-                        }
-                      }}
-                      placeholder={
-                        !currentUserId
-                          ? 'Login to send questions.'
-                          : isFree
-                            ? 'Live Tutor는 Basic / Pro 구독에서 이용 가능합니다.'
-                            : 'Ask the tutor a question...'
-                      }
-                      className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-purple-500"
-                      disabled={tutorStatus !== 'CONNECTED' || !currentUserId || isFree}
-                    />
-                    <button
-                      onClick={handleSendTutorQuestion}
-                      disabled={!tutorQuestion.trim() || tutorStatus !== 'CONNECTED' || !currentUserId || isFree}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm font-medium disabled:opacity-50"
-                    >
-                      Send
-                    </button>
-                  </div>
-                  {!currentUserId && (
-                    <p className="text-xs text-yellow-400 mt-2">Login to use the tutor feature.</p>
-                  )}
-                  {currentUserId && isFree && (
-                    <p className="text-xs text-yellow-400 mt-2">
-                      Live Tutor는 Basic / Pro 구독에서 이용할 수 있습니다.
-                    </p>
-                  )}
-                  {currentUserId && isBasic && (
-                    <p className="text-xs text-gray-400 mt-2">
-                      Basic 플랜: 직접 질문은 가능하지만 자동 힌트는 Pro에서만 제공됩니다.
-                    </p>
-                  )}
-                </div>
-
-              </div>
-
-              {/* Execution Result separated from tutor panel */}
-              <div className="p-3 bg-zinc-850 border-t border-zinc-800 flex-shrink-0">
-                <div className="bg-zinc-900 rounded p-3 text-sm" style={{ height: '240px', overflow: 'auto' }}>
+              <div className="p-3 bg-zinc-850 flex-1 overflow-auto space-y-3">
+                <div className="bg-zinc-900 rounded p-3 h-full overflow-auto text-sm">
                   <p className="text-sm text-gray-400 mb-2">Execution Result</p>
 
                   {isRunning && (

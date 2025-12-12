@@ -16,6 +16,7 @@ export function useTutorWebSocket({
 }) {
   const [status, setStatus] = useState('DISCONNECTED');
   const [messages, setMessages] = useState([]);
+  const [isPending, setIsPending] = useState(false);
 
   const clientRef = useRef(null);
   const lastCodeChangeAtRef = useRef(Date.now());
@@ -39,6 +40,7 @@ export function useTutorWebSocket({
     setStatus('DISCONNECTED');
     pendingAutoRef.current = false;
     lastAutoCodeHashRef.current = null;
+    setIsPending(false);
   }, []);
 
   useEffect(() => {
@@ -61,6 +63,7 @@ export function useTutorWebSocket({
               pendingAutoRef.current = false;
             }
             setMessages((prev) => [...prev.slice(-19), enriched]);
+            setIsPending(false);
           } catch (err) {
             console.error('[TutorWS] Failed to parse message', err);
           }
@@ -89,7 +92,7 @@ export function useTutorWebSocket({
   }, [problemId, userId, disconnect]);
 
   const sendMessage = useCallback(
-    ({ triggerType, message: userMessage }) => {
+    ({ triggerType, message: userMessage, judgeMeta }) => {
       if (!problemId || !userId) {
         return;
       }
@@ -99,17 +102,22 @@ export function useTutorWebSocket({
         return;
       }
 
+      setIsPending(true);
+
       const payload = {
         problemId,
         userId: String(userId),
         language,
         code,
         triggerType,
-        message: userMessage || null
+        message: userMessage || null,
+        judgeResult: judgeMeta?.judgeResult ?? null,
+        passedCount: judgeMeta?.passedCount ?? null,
+        totalCount: judgeMeta?.totalCount ?? null
       };
 
       client.publish({
-        destination: '/app/tutor.send',
+        destination: '/app/tutor.ask',
         body: JSON.stringify(payload)
       });
     },
@@ -117,9 +125,9 @@ export function useTutorWebSocket({
   );
 
   const sendUserQuestion = useCallback(
-    (question) => {
+    (question, judgeMeta) => {
       if (!question) return;
-      sendMessage({ triggerType: 'USER', message: question }); // QUESTION -> USER
+      sendMessage({ triggerType: 'USER', message: question, judgeMeta }); // QUESTION -> USER
     },
     [sendMessage]
   );
@@ -180,7 +188,8 @@ export function useTutorWebSocket({
   return {
     status,
     messages,
-    sendUserQuestion
+    sendUserQuestion,
+    isPending
   };
 }
 
