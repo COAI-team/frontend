@@ -9,6 +9,8 @@ import React from 'react';
  * - 마우스 이탈 경고 (토스트)
  * - [Phase 2] NO_FACE 경고 (얼굴 미검출 경고)
  * - [Phase 2] 개발자도구 열기 경고 (프로덕션 환경에서만 활성화)
+ * - [MediaPipe] 졸음 감지 경고
+ * - [MediaPipe] 다중 인물 감지 경고
  */
 const ViolationWarnings = ({
   showFullscreenWarning,
@@ -24,6 +26,12 @@ const ViolationWarnings = ({
   showNoFaceWarning = false,
   noFaceDuration = 0,
   noFaceProgress = 0,
+  // [MediaPipe] 졸음 감지 관련 props
+  showDrowsinessWarning = false,
+  drowsinessPerclos = 0,
+  // [MediaPipe] 다중 인물 감지 관련 props
+  showMultipleFacesWarning = false,
+  multipleFacesCount = 0,
 }) => {
   return (
     <>
@@ -149,6 +157,59 @@ const ViolationWarnings = ({
             <p className="text-xs text-green-400 mt-4">
               ※ 이 경고는 위반으로 기록되지 않습니다.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* [MediaPipe] 졸음 감지 경고 */}
+      {showDrowsinessWarning && (
+        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-[9998]">
+          <div className="bg-gradient-to-r from-amber-900/95 to-orange-900/95 p-4 rounded-xl shadow-2xl border-2 border-amber-500 animate-pulse">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">😴</span>
+              <div>
+                <h3 className="font-bold text-lg text-amber-200">
+                  졸음이 감지되었습니다!
+                </h3>
+                <p className="text-sm text-gray-300">
+                  집중력이 저하되고 있습니다. 잠시 휴식을 취하거나 스트레칭을 해보세요.
+                </p>
+                <div className="mt-2">
+                  <div className="text-xs text-gray-400 mb-1">
+                    눈 감김 비율 (PERCLOS): {(drowsinessPerclos * 100).toFixed(1)}%
+                  </div>
+                  {/* 졸음 레벨 바 */}
+                  <div className="w-48 h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-yellow-500 to-red-500 transition-all duration-300"
+                      style={{ width: `${Math.min(drowsinessPerclos * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* [MediaPipe] 다중 인물 감지 경고 */}
+      {showMultipleFacesWarning && multipleFacesCount > 1 && (
+        <div className="fixed top-4 right-4 z-[9998]">
+          <div className="bg-gradient-to-r from-red-900/95 to-pink-900/95 p-4 rounded-xl shadow-2xl border-2 border-red-500">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">👥</span>
+              <div>
+                <h3 className="font-bold text-red-200">
+                  다중 인물 감지!
+                </h3>
+                <p className="text-sm text-gray-300">
+                  화면에서 {multipleFacesCount}명이 감지되었습니다.
+                </p>
+                <p className="text-xs text-red-300 mt-1">
+                  혼자서 시험을 보고 있는지 확인해주세요.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}

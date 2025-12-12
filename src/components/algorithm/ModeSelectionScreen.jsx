@@ -1,4 +1,5 @@
 import React from 'react';
+import TrackerSelector from './eye-tracking/TrackerSelector';
 
 /**
  * 풀이 모드 선택 화면 컴포넌트
@@ -7,6 +8,7 @@ import React from 'react';
  * - 기본 모드 / 집중 모드 선택
  * - 모드별 기능 안내
  * - 집중 모드 선택 시 타이머 설정 UI 표시
+ * - 집중 모드 선택 시 추적기 선택 UI 표시 (TrackerSelector)
  */
 const ModeSelectionScreen = ({
   problem,
@@ -17,7 +19,10 @@ const ModeSelectionScreen = ({
   onNavigateBack,
   // 타이머 설정 props (집중 모드용)
   customTimeMinutes,
-  setCustomTimeMinutes
+  setCustomTimeMinutes,
+  // 추적기 선택 props (집중 모드용)
+  selectedTrackerType,
+  setSelectedTrackerType
 }) => {
   // 타이머 프리셋 옵션
   const timePresets = [15, 30, 45, 60];
@@ -126,6 +131,21 @@ const ModeSelectionScreen = ({
                 />
                 <span className="text-gray-400">분</span>
               </div>
+            </div>
+          )}
+
+          {/* 집중 모드 추적기 선택 */}
+          {selectedMode === 'FOCUS' && (
+            <div className="mt-6 p-6 bg-zinc-800 border border-zinc-700 rounded-xl">
+              <div className="text-center mb-4">
+                <span className="text-4xl mb-2 block">👁️</span>
+                <h3 className="text-lg font-bold text-white">시선 추적 방식 선택</h3>
+                <p className="text-sm text-gray-400 mt-1">집중 모드에서 사용할 시선 추적 라이브러리를 선택하세요</p>
+              </div>
+              <TrackerSelector
+                selectedTracker={selectedTrackerType}
+                onSelect={setSelectedTrackerType}
+              />
             </div>
           )}
 

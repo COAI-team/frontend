@@ -5,7 +5,7 @@ import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY, ALLOWED_LAN
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
 import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolationDetection';
 import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
-import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
+import EyeTracker, { TRACKER_TYPES } from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
 import PenaltyNotification from '../../components/algorithm/PenaltyNotification';
@@ -61,7 +61,6 @@ const ProblemSolve = () => {
   // ========== 타이머 모드 관련 상태 ==========
   const [timerMode, setTimerMode] = useState('TIMER'); // 'TIMER' (카운트다운) | 'STOPWATCH' (스톱워치)
   const [elapsedTime, setElapsedTime] = useState(0); // 스톱워치용 경과 시간
-  const [showTimerSetup, setShowTimerSetup] = useState(false); // 집중모드 타이머 설정 화면 표시 여부
 
   // 실행 결과 상태
   const [testResult, setTestResult] = useState(null);
@@ -76,6 +75,21 @@ const ProblemSolve = () => {
 
   // [Debug] 시선 추적 디버그 모드 상태
   const [eyeTrackingDebugMode, setEyeTrackingDebugMode] = useState(false);
+
+  // 추적기 타입 선택 (WebGazer / MediaPipe)
+  const [selectedTrackerType, setSelectedTrackerType] = useState(TRACKER_TYPES.MEDIAPIPE);
+
+  // MediaPipe 전용 상태
+  const [drowsinessState, setDrowsinessState] = useState({
+    isDrowsy: false,
+    perclos: 0,
+    consecutiveClosedFrames: 0
+  });
+  const [multipleFacesState, setMultipleFacesState] = useState({
+    faceCount: 0,
+    detectedFaces: []
+  });
+  const drowsyViolationRecordedRef = useRef(false); // 졸음 위반 중복 기록 방지
 
   // [Phase 2] NO_FACE 경고 상태
   const [noFaceState, setNoFaceState] = useState({
@@ -201,19 +215,6 @@ const ProblemSolve = () => {
     }
   }, [customTimeMinutes, enterFullscreen]);
 
-  // 집중 모드 타이머 설정 완료 후 시작
-  const handleStartFocusMode = useCallback(() => {
-    const timeInSeconds = customTimeMinutes * 60;
-    setTimeLeft(timeInSeconds);
-    setStartTime(new Date());
-    setShowTimerSetup(false);
-    setSolvingStarted(true);
-
-    // 집중 모드: 전체화면 진입 + 시선 추적 자동 활성화
-    // timerEndTime은 eyeTrackingReady 시점에 설정됨
-    enterFullscreen();
-    setEyeTrackingEnabled(true);
-  }, [customTimeMinutes, enterFullscreen]);
 
   // 집중 모드에서 시선 추적 준비 완료 시 타이머 자동 시작
   useEffect(() => {
@@ -252,6 +253,19 @@ const ProblemSolve = () => {
       noFaceSustainedRecordedRef.current = false;
     }
   }, [noFaceState.noFaceProgress, selectedMode, recordViolation]);
+
+  // 졸음 감지 위반 (MediaPipe only) - 중복 기록 방지
+  useEffect(() => {
+    if (drowsinessState.isDrowsy && selectedMode === 'FOCUS' && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE) {
+      if (!drowsyViolationRecordedRef.current) {
+        drowsyViolationRecordedRef.current = true;
+        recordViolation('DROWSINESS_DETECTED');
+      }
+    } else if (!drowsinessState.isDrowsy) {
+      // 졸음 상태가 해제되면 플래그 리셋
+      drowsyViolationRecordedRef.current = false;
+    }
+  }, [drowsinessState.isDrowsy, selectedMode, selectedTrackerType, recordViolation]);
 
   // 기본 모드에서 타이머 설정 변경 시 timeLeft 업데이트 (시작 전에만)
   useEffect(() => {
@@ -733,6 +747,22 @@ const ProblemSolve = () => {
     setMonitoringSessionId(null);
   }, []);
 
+  // MediaPipe 전용 콜백: 졸음 상태 변경
+  const handleDrowsinessStateChange = useCallback((state) => {
+    setDrowsinessState(state);
+    if (state.isDrowsy) {
+      console.log('😴 Drowsiness detected - PERCLOS:', (state.perclos * 100).toFixed(1) + '%');
+    }
+  }, []);
+
+  // MediaPipe 전용 콜백: 다중 인물 감지
+  const handleMultipleFacesDetected = useCallback((state) => {
+    setMultipleFacesState(state);
+    if (state.faceCount > 1) {
+      console.log('👥 Multiple faces detected:', state.faceCount);
+    }
+  }, []);
+
   // [Debug] 시선 추적 디버그 모드 토글 핸들러
   const handleToggleEyeTrackingDebug = useCallback(() => {
     if (eyeTrackerRef.current?.toggleDebugMode) {
@@ -779,102 +809,12 @@ const ProblemSolve = () => {
         onNavigateBack={() => navigate('/algorithm')}
         customTimeMinutes={customTimeMinutes}
         setCustomTimeMinutes={setCustomTimeMinutes}
+        selectedTrackerType={selectedTrackerType}
+        setSelectedTrackerType={setSelectedTrackerType}
       />
     );
   }
 
-  // ========== 집중 모드 타이머 설정 화면 ==========
-  const timePresets = [15, 30, 45, 60];
-
-  if (showTimerSetup && selectedMode === 'FOCUS') {
-    return (
-      <div className="min-h-screen bg-zinc-900 text-gray-100">
-        {/* 헤더 */}
-        <div className="bg-zinc-800 border-b border-zinc-700">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold text-white">
-                  #{problem?.problemId || problemId} {problem?.title || '문제'}
-                </h1>
-                <p className="text-sm text-gray-400 mt-1">👁️ 집중 모드 - 타이머 설정</p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowTimerSetup(false);
-                  setShowModeSelection(true);
-                  setSelectedMode(null);
-                }}
-                className="px-4 py-2 bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 rounded text-sm"
-              >
-                모드 다시 선택
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* 타이머 설정 */}
-        <div className="container mx-auto px-6 py-12">
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-zinc-800 rounded-xl p-8 border border-zinc-700">
-              <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block">⏱️</span>
-                <h2 className="text-2xl font-bold text-white mb-2">풀이 시간을 설정하세요</h2>
-                <p className="text-gray-400">집중 모드에서는 설정한 시간 동안 시선 추적이 진행됩니다</p>
-              </div>
-
-              {/* 프리셋 버튼 */}
-              <div className="flex items-center justify-center gap-4 mb-6">
-                {timePresets.map(time => (
-                  <button
-                    key={time}
-                    onClick={() => setCustomTimeMinutes(time)}
-                    className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                      customTimeMinutes === time
-                        ? 'bg-purple-600 text-white ring-2 ring-purple-400'
-                        : 'bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600'
-                    }`}
-                  >
-                    {time}분
-                  </button>
-                ))}
-              </div>
-
-              {/* 커스텀 시간 입력 */}
-              <div className="flex items-center justify-center gap-3 mb-8">
-                <span className="text-gray-400">직접 입력:</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="180"
-                  value={customTimeMinutes}
-                  onChange={(e) =>
-                    setCustomTimeMinutes(
-                      Math.max(1, Math.min(180, parseInt(e.target.value) || 30))
-                    )
-                  }
-                  className="w-24 px-4 py-3 bg-zinc-700 rounded-lg text-center text-xl font-mono text-white"
-                />
-                <span className="text-gray-400">분</span>
-              </div>
-
-              {/* 시작 버튼 */}
-              <button
-                onClick={handleStartFocusMode}
-                className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-lg font-bold text-lg transition-all text-white"
-              >
-                🎯 집중 모드 시작
-              </button>
-
-              <p className="text-center text-gray-400 text-sm mt-4">
-                시작하면 전체화면 모드로 전환되며 시선 추적이 활성화됩니다
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-screen bg-zinc-900 text-gray-100 flex flex-col overflow-hidden">
@@ -1015,9 +955,18 @@ const ProblemSolve = () => {
 
               {/* 집중 모드 상태 표시 */}
               {selectedMode === 'FOCUS' && (
-                <span className={`text-sm ${eyeTrackingReady ? 'text-green-400' : 'text-yellow-400'}`}>
-                  {eyeTrackingReady ? '추적 중' : '캘리브레이션 중...'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    selectedTrackerType === 'mediapipe'
+                      ? 'bg-purple-900/50 text-purple-300'
+                      : 'bg-blue-900/50 text-blue-300'
+                  }`}>
+                    {selectedTrackerType === 'mediapipe' ? 'MediaPipe' : 'WebGazer'}
+                  </span>
+                  <span className={`text-sm ${eyeTrackingReady ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {eyeTrackingReady ? '추적 중' : selectedTrackerType === 'mediapipe' ? '준비 중...' : '캘리브레이션 중...'}
+                  </span>
+                </div>
               )}
             </div>
           </div>
@@ -1342,6 +1291,7 @@ const ProblemSolve = () => {
       {eyeTrackingEnabled && selectedMode === 'FOCUS' && (
         <EyeTracker
           ref={eyeTrackerRef}
+          trackerType={selectedTrackerType}
           problemId={Number(problemId)}
           isEnabled={eyeTrackingEnabled}
           timeLimitMinutes={customTimeMinutes}
@@ -1349,6 +1299,8 @@ const ProblemSolve = () => {
           onSessionStart={handleSessionStart}
           onSessionEnd={handleSessionEnd}
           onNoFaceStateChange={setNoFaceState}
+          onDrowsinessStateChange={handleDrowsinessStateChange}
+          onMultipleFacesDetected={handleMultipleFacesDetected}
         />
       )}
 
@@ -1367,6 +1319,12 @@ const ProblemSolve = () => {
         showNoFaceWarning={noFaceState.showNoFaceWarning}
         noFaceDuration={noFaceState.noFaceDuration}
         noFaceProgress={noFaceState.noFaceProgress}
+        // [MediaPipe] 졸음 감지 경고 props
+        showDrowsinessWarning={drowsinessState.isDrowsy && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE}
+        drowsinessPerclos={drowsinessState.perclos}
+        // [MediaPipe] 다중 인물 감지 경고 props
+        showMultipleFacesWarning={multipleFacesState.faceCount > 1 && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE}
+        multipleFacesCount={multipleFacesState.faceCount}
       />
 
       {/* [Phase 2] 패널티 알림 */}
