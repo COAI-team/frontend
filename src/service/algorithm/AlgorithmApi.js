@@ -158,6 +158,44 @@ export const getMySubmissions = async (params = {}) => {
 };
 
 /**
+ * 문제별 공유된 제출 목록 조회 (다른 사람의 풀이)
+ */
+export const getSharedSubmissions = async (problemId, page = 1, size = 20) => {
+    try {
+        const res = await axiosInstance.get(`/algo/problems/${problemId}/solutions`, {
+            params: { page, size }
+        });
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getSharedSubmissions] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "공유된 풀이를 불러오는데 실패했습니다." };
+    }
+};
+
+/**
+ * 제출 공유 상태 변경
+ */
+export const updateSharingStatus = async (submissionId, isShared) => {
+    try {
+        const res = await axiosInstance.patch(
+            `/algo/submissions/${submissionId}/visibility`,
+            null,
+            { params: { isShared } }
+        );
+        return res.data;
+    } catch (err) {
+        console.error("❌ [updateSharingStatus] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "공유 상태 변경에 실패했습니다." };
+    }
+};
+
+/**
  * 코드 테스트 실행 (샘플 테스트케이스만)
  */
 export const runTestCode = async (data) => {
