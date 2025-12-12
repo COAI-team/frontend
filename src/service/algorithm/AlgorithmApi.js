@@ -39,7 +39,7 @@ export const getSolveBonusStatus = async (problemId) => {
 export const getProblems = async (params = {}) => {
     try {
         const queryParams = new URLSearchParams();
-        const { page = 1, size = 10, difficulty, source, keyword, topic, problemType } = params;
+        const { page = 1, size = 10, difficulty, source, keyword, topic, problemType, solved } = params;  // solved 추가
 
         queryParams.append('page', page);
         queryParams.append('size', size);
@@ -48,6 +48,7 @@ export const getProblems = async (params = {}) => {
         if (keyword) queryParams.append('keyword', keyword);
         if (topic) queryParams.append('topic', topic);
         if (problemType) queryParams.append('problemType', problemType);
+        if (solved) queryParams.append('solved', solved);  // solved 파라미터 추가
 
         const res = await axiosInstance.get(`/algo/problems?${queryParams}`);
 
@@ -154,6 +155,44 @@ export const getMySubmissions = async (params = {}) => {
             return { error: true, code: err.response.data.code, message: err.response.data.message };
         }
         return { error: true, message: "제출 이력을 가져오는데 실패했습니다." };
+    }
+};
+
+/**
+ * 문제별 공유된 제출 목록 조회 (다른 사람의 풀이)
+ */
+export const getSharedSubmissions = async (problemId, page = 1, size = 20) => {
+    try {
+        const res = await axiosInstance.get(`/algo/problems/${problemId}/solutions`, {
+            params: { page, size }
+        });
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getSharedSubmissions] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "공유된 풀이를 불러오는데 실패했습니다." };
+    }
+};
+
+/**
+ * 제출 공유 상태 변경
+ */
+export const updateSharingStatus = async (submissionId, isShared) => {
+    try {
+        const res = await axiosInstance.patch(
+            `/algo/submissions/${submissionId}/visibility`,
+            null,
+            { params: { isShared } }
+        );
+        return res.data;
+    } catch (err) {
+        console.error("❌ [updateSharingStatus] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "공유 상태 변경에 실패했습니다." };
     }
 };
 
