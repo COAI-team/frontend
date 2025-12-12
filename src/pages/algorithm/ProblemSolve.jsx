@@ -4,6 +4,7 @@ import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY, ALLOWED_LANGUAGES } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
 import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolationDetection';
+import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
 import EyeTracker, { TRACKER_TYPES } from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
@@ -598,62 +599,6 @@ const ProblemSolve = () => {
     return styles[diff] || 'bg-gray-700/50 text-gray-400 border-gray-600';
   };
 
-  // ===== 문제 설명 파싱 함수 =====
-  const parseProblemDescription = (description) => {
-    if (!description) return null;
-
-    const sections = {
-      description: '',
-      input: '',
-      output: '',
-      constraints: '',
-      exampleInput: '',
-      exampleOutput: '',
-    };
-
-    // 섹션 구분자 패턴
-    const patterns = {
-      input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-      output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-      constraints: /(?:^|\n)(?:\*\*)?(?:제한사항|제한 ?사항|제한|조건|Constraints?)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-      exampleInput: /(?:^|\n)(?:\*\*)?(?:예제 ?입력|입력 ?예제|예시 ?입력|Sample Input|Example Input)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
-      exampleOutput: /(?:^|\n)(?:\*\*)?(?:예제 ?출력|출력 ?예제|예시 ?출력|Sample Output|Example Output)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
-    };
-
-    let remaining = description;
-    let firstSectionStart = remaining.length;
-
-    // 각 섹션의 시작 위치 찾기
-    const sectionPositions = [];
-    for (const [key, pattern] of Object.entries(patterns)) {
-      const match = remaining.match(pattern);
-      if (match) {
-        const pos = remaining.indexOf(match[0]);
-        sectionPositions.push({ key, pos, matchLength: match[0].length });
-        if (pos < firstSectionStart) {
-          firstSectionStart = pos;
-        }
-      }
-    }
-
-    // 문제 설명 (첫 섹션 이전의 모든 텍스트)
-    sections.description = remaining.substring(0, firstSectionStart).trim();
-
-    // 위치순 정렬
-    sectionPositions.sort((a, b) => a.pos - b.pos);
-
-    // 각 섹션 내용 추출
-    for (let i = 0; i < sectionPositions.length; i++) {
-      const current = sectionPositions[i];
-      const next = sectionPositions[i + 1];
-      const startPos = current.pos + current.matchLength;
-      const endPos = next ? next.pos : remaining.length;
-      sections[current.key] = remaining.substring(startPos, endPos).trim();
-    }
-
-    return sections;
-  };
-
   // ===== 마크다운 텍스트 파싱 함수 =====
   const renderFormattedText = (text) => {
     if (!text) return null;
@@ -705,10 +650,8 @@ const ProblemSolve = () => {
     );
   };
 
-  // 파싱된 문제 섹션
-  const parsedSections = useMemo(() => {
-    return parseProblemDescription(problem?.description);
-  }, [problem?.description]);
+  // 파싱된 문제 섹션 (커스텀 훅으로 메모이제이션)
+  const parsedSections = useParsedProblem(problem?.description);
 
   // 필터링된 언어 목록 (useMemo로 캐싱 - 렌더링 중 반복 계산 방지)
   const filteredLanguages = useMemo(() => {

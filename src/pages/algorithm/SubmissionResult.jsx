@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubmissionResult, completeMission } from '../../service/algorithm/AlgorithmApi';
+import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 
 /**
  * 간단한 마크다운 렌더러 컴포넌트
@@ -99,64 +100,6 @@ const MarkdownRenderer = ({ content }) => {
 
   flushList();
   return <div className="space-y-1">{elements}</div>;
-};
-
-/**
- * 문제 설명 파싱 함수
- */
-const parseProblemDescription = (description) => {
-  if (!description) return null;
-
-  const sections = {
-    description: '',
-    input: '',
-    output: '',
-    constraints: '',
-    exampleInput: '',
-    exampleOutput: '',
-  };
-
-  // 섹션 구분자 패턴
-  const patterns = {
-    input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-    output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-    constraints: /(?:^|\n)(?:\*\*)?(?:제한사항|제한 ?사항|제한|조건|Constraints?)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-    exampleInput: /(?:^|\n)(?:\*\*)?(?:예제 ?입력|입력 ?예제|예시 ?입력|Sample Input|Example Input)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
-    exampleOutput: /(?:^|\n)(?:\*\*)?(?:예제 ?출력|출력 ?예제|예시 ?출력|Sample Output|Example Output)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
-  };
-
-  let remaining = description;
-  let firstSectionStart = remaining.length;
-
-  // 각 섹션의 시작 위치 찾기
-  const sectionPositions = [];
-  for (const [key, pattern] of Object.entries(patterns)) {
-    const match = remaining.match(pattern);
-    if (match) {
-      const pos = remaining.indexOf(match[0]);
-      sectionPositions.push({ key, pos, matchLength: match[0].length });
-      if (pos < firstSectionStart) {
-        firstSectionStart = pos;
-      }
-    }
-  }
-
-  // 문제 설명 (첫 섹션 이전의 모든 텍스트)
-  sections.description = remaining.substring(0, firstSectionStart).trim();
-
-  // 위치순 정렬
-  sectionPositions.sort((a, b) => a.pos - b.pos);
-
-  // 각 섹션 내용 추출
-  for (let i = 0; i < sectionPositions.length; i++) {
-    const current = sectionPositions[i];
-    const next = sectionPositions[i + 1];
-    const startPos = current.pos + current.matchLength;
-    const endPos = next ? next.pos : remaining.length;
-    sections[current.key] = remaining.substring(startPos, endPos).trim();
-  }
-
-  return sections;
 };
 
 /**
@@ -395,10 +338,8 @@ const SubmissionResult = () => {
     }
   };
 
-  // 파싱된 문제 섹션
-  const parsedSections = useMemo(() => {
-    return parseProblemDescription(submission?.problemDescription);
-  }, [submission?.problemDescription]);
+  // 파싱된 문제 섹션 (커스텀 훅으로 메모이제이션)
+  const parsedSections = useParsedProblem(submission?.problemDescription);
 
   // 공유하기
   const handleShare = () => {

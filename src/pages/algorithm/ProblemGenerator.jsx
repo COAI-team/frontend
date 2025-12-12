@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateProblemWithSSE, completeMission } from '../../service/algorithm/AlgorithmApi';
+import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 
 /**
  * AI 문제 생성 페이지
@@ -73,62 +74,6 @@ const ProblemGenerator = () => {
   const TOPIC_SUGGESTIONS_SQL = [
     'SELECT', 'GROUP BY', 'String, Date', 'JOIN', 'SUM, MAX, MIN', 'IS NULL'
   ];
-
-  // ===== 문제 설명 파싱 함수 =====
-  const parseProblemDescription = (description) => {
-    if (!description) return null;
-
-    const sections = {
-      description: '',
-      input: '',
-      output: '',
-      constraints: '',
-      exampleInput: '',
-      exampleOutput: '',
-    };
-
-    // 섹션 구분자 패턴 (더 유연하게 - **입력**, 입력:, ## 입력 등 모두 지원)
-    const patterns = {
-      input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-      output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-      constraints: /(?:^|\n)(?:\*\*)?(?:제한\s*사항|제한|조건|제약|Constraints?)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-      exampleInput: /(?:^|\n)(?:\*\*)?(?:예제\s*입력|입력\s*예제|예시\s*입력|Sample\s*Input|Example\s*Input)(?:\*\*)?\s*(?:\d*)\s*(?::|：)?\s*\n?/i,
-      exampleOutput: /(?:^|\n)(?:\*\*)?(?:예제\s*출력|출력\s*예제|예시\s*출력|Sample\s*Output|Example\s*Output)(?:\*\*)?\s*(?:\d*)\s*(?::|：)?\s*\n?/i,
-    };
-
-    let remaining = description;
-    let firstSectionStart = remaining.length;
-
-    // 각 섹션의 시작 위치 찾기
-    const sectionPositions = [];
-    for (const [key, pattern] of Object.entries(patterns)) {
-      const match = remaining.match(pattern);
-      if (match) {
-        const pos = remaining.indexOf(match[0]);
-        sectionPositions.push({ key, pos, matchLength: match[0].length });
-        if (pos < firstSectionStart) {
-          firstSectionStart = pos;
-        }
-      }
-    }
-
-    // 문제 설명 (첫 섹션 이전의 모든 텍스트)
-    sections.description = remaining.substring(0, firstSectionStart).trim();
-
-    // 위치순 정렬
-    sectionPositions.sort((a, b) => a.pos - b.pos);
-
-    // 각 섹션 내용 추출
-    for (let i = 0; i < sectionPositions.length; i++) {
-      const current = sectionPositions[i];
-      const next = sectionPositions[i + 1];
-      const startPos = current.pos + current.matchLength;
-      const endPos = next ? next.pos : remaining.length;
-      sections[current.key] = remaining.substring(startPos, endPos).trim();
-    }
-
-    return sections;
-  };
 
   // ===== 타이핑 효과 =====
   useEffect(() => {
@@ -376,10 +321,10 @@ const ProblemGenerator = () => {
     return colors[difficulty] || 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600';
   };
 
-  // 파싱된 문제 섹션
-  const parsedSections = typingComplete
-    ? parseProblemDescription(generatedProblem?.description)
-    : null;
+  // 파싱된 문제 섹션 (커스텀 훅으로 메모이제이션)
+  const parsedSections = useParsedProblem(
+    typingComplete ? generatedProblem?.description : null
+  );
 
   // ===== 마크다운 텍스트 파싱 함수 (개선) =====
   const renderFormattedText = (text) => {
