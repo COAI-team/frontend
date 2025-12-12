@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 import { useMediaPipeTracking } from '../../../hooks/algorithm/useMediaPipeTracking';
-import CalibrationScreen from './CalibrationScreen';
+import MediaPipeCalibrationScreen from './MediaPipeCalibrationScreen';
 
 /**
  * MediaPipe 기반 시선/얼굴 추적 래퍼 컴포넌트
@@ -18,7 +18,7 @@ import CalibrationScreen from './CalibrationScreen';
  * - onNoFaceStateChange: NO_FACE 상태 변경 콜백
  * - onDrowsinessStateChange: 졸음 상태 변경 콜백
  * - onMultipleFacesDetected: 다중 인물 감지 콜백
- * - skipCalibration: 캘리브레이션 스킵 여부 (MediaPipe는 기본 true)
+ * - skipCalibration: 캘리브레이션 스킵 여부 (기본 false - 3-point 캘리브레이션 사용)
  */
 const MediaPipeTracker = forwardRef(({
     problemId,
@@ -30,11 +30,12 @@ const MediaPipeTracker = forwardRef(({
     onNoFaceStateChange,
     onDrowsinessStateChange,
     onMultipleFacesDetected,
-    skipCalibration = true // MediaPipe는 캘리브레이션 불필요
+    skipCalibration = false // 기본: 3-point 캘리브레이션 사용
 }, ref) => {
     const [showCalibration, setShowCalibration] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(false);
     const [error, setError] = useState(null);
+    const [calibrationReady, setCalibrationReady] = useState(false); // FaceLandmarker + 웹캠 준비 완료
 
     // Refs for cleanup
     const stopTrackingRef = useRef(null);
@@ -64,7 +65,11 @@ const MediaPipeTracker = forwardRef(({
         gazePosition,
         eyeState,
         irisPosition,
-        drowsinessState
+        drowsinessState,
+        // 3-point 캘리브레이션용 refs
+        faceLandmarkerRef,
+        videoRef,
+        setupWebcam
     } = useMediaPipeTracking(problemId, isEnabled && permissionGranted, timeLimitMinutes);
 
     // Refs를 최신 값으로 유지
@@ -92,9 +97,9 @@ const MediaPipeTracker = forwardRef(({
         }
     }, [drowsinessState, onDrowsinessStateChange]);
 
-    // 다중 인물 감지 시 부모에게 알림
+    // 다중 인물 감지 상태 변경 시 부모에게 알림 (1명으로 줄어도 알림)
     useEffect(() => {
-        if (onMultipleFacesDetected && faceCount > 1) {
+        if (onMultipleFacesDetected) {
             onMultipleFacesDetected({
                 faceCount,
                 detectedFaces
@@ -108,24 +113,13 @@ const MediaPipeTracker = forwardRef(({
 
         const requestPermission = async () => {
             try {
+                // 먼저 권한 확인
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: true
                 });
-
-                // 권한 획득 후 스트림 즉시 종료 (MediaPipe가 자체적으로 관리)
                 stream.getTracks().forEach(track => track.stop());
-
                 setPermissionGranted(true);
-
-                if (skipCalibration) {
-                    // 캘리브레이션 스킵 - 바로 완료 처리
-                    completeCalibration();
-                    if (onReady) {
-                        onReady();
-                    }
-                } else {
-                    setShowCalibration(true);
-                }
+                console.log('✅ Webcam permission granted');
             } catch (err) {
                 console.error('Webcam permission denied:', err);
                 setError('웹캠 권한이 필요합니다. 브라우저 설정에서 권한을 허용해주세요.');
@@ -133,7 +127,87 @@ const MediaPipeTracker = forwardRef(({
         };
 
         requestPermission();
-    }, [isEnabled, skipCalibration, completeCalibration, onReady]);
+    }, [isEnabled]);
+
+    // 캘리브레이션 준비 (권한 획득 후)
+    useEffect(() => {
+        if (!isEnabled || !permissionGranted) return;
+
+        if (skipCalibration) {
+            // 캘리브레이션 스킵 - 바로 완료 처리 (자동 캘리브레이션 사용)
+            completeCalibration(null);
+            if (onReady) {
+                onReady();
+            }
+            return;
+        }
+
+        // 3-point 캘리브레이션을 위해 웹캠 + FaceLandmarker 초기화 대기
+        setShowCalibration(true); // 먼저 로딩 화면 표시
+
+        const initializeCalibration = async () => {
+            console.log('🔄 Starting calibration initialization...');
+
+            // FaceLandmarker 초기화 대기 (최대 15초)
+            let attempts = 0;
+            const maxAttempts = 150; // 15초
+
+            while (!faceLandmarkerRef?.current && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
+            if (!faceLandmarkerRef?.current) {
+                console.warn('⚠️ FaceLandmarker initialization timeout');
+                setShowCalibration(false);
+                completeCalibration(null);
+                if (onReady) {
+                    onReady();
+                }
+                return;
+            }
+            console.log('✅ FaceLandmarker ready');
+
+            // 웹캠 설정
+            if (setupWebcam) {
+                const webcamReady = await setupWebcam();
+                if (!webcamReady) {
+                    console.warn('⚠️ Webcam setup failed');
+                    setShowCalibration(false);
+                    completeCalibration(null);
+                    if (onReady) {
+                        onReady();
+                    }
+                    return;
+                }
+            }
+            console.log('✅ Webcam ready');
+
+            // 비디오 요소 준비 대기
+            attempts = 0;
+            while (!videoRef?.current && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
+            if (faceLandmarkerRef?.current && videoRef?.current) {
+                setCalibrationReady(true);
+                console.log('✅ Calibration ready - FaceLandmarker and webcam initialized');
+            } else {
+                console.warn('⚠️ Video element not ready, using auto calibration');
+                setShowCalibration(false);
+                completeCalibration(null);
+                if (onReady) {
+                    onReady();
+                }
+            }
+        };
+
+        // 약간의 지연 후 초기화 시작 (hook이 먼저 실행되도록)
+        const timer = setTimeout(initializeCalibration, 1000);
+
+        return () => clearTimeout(timer);
+    }, [isEnabled, permissionGranted, skipCalibration, completeCalibration, onReady, setupWebcam, faceLandmarkerRef, videoRef]);
 
     // 세션 시작 시 onSessionStart 콜백 호출
     useEffect(() => {
@@ -143,14 +217,17 @@ const MediaPipeTracker = forwardRef(({
         }
     }, [isTracking, sessionId, onSessionStart]);
 
-    // 캘리브레이션 완료 처리
-    const handleCalibrationComplete = () => {
+    // 캘리브레이션 완료 처리 (3-point 캘리브레이션 데이터 포함)
+    const handleCalibrationComplete = (calibrationData) => {
         setShowCalibration(false);
-        completeCalibration();
+        setCalibrationReady(false);
+        completeCalibration(calibrationData);
 
         if (onReady) {
             onReady();
         }
+
+        console.log('✅ 3-point calibration completed with data:', calibrationData);
     };
 
     // Refs for debug mode
@@ -241,8 +318,51 @@ const MediaPipeTracker = forwardRef(({
     }
 
     // 캘리브레이션 화면 표시
-    if (showCalibration) {
-        return <CalibrationScreen onComplete={handleCalibrationComplete} />;
+    if (showCalibration && calibrationReady) {
+        return (
+            <MediaPipeCalibrationScreen
+                onComplete={handleCalibrationComplete}
+                faceLandmarker={faceLandmarkerRef?.current}
+                videoRef={videoRef}
+            />
+        );
+    }
+
+    // 캘리브레이션 준비 중
+    if (showCalibration && !calibrationReady) {
+        return (
+            <div style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)',
+                zIndex: 10000,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white'
+            }}>
+                <div style={{
+                    width: '60px',
+                    height: '60px',
+                    border: '4px solid rgba(255, 255, 255, 0.2)',
+                    borderTopColor: '#8b5cf6',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                }} />
+                <p style={{ marginTop: '1.5rem', fontSize: '1.2rem' }}>
+                    캘리브레이션 준비 중...
+                </p>
+                <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#a5b4fc' }}>
+                    MediaPipe 초기화 중입니다
+                </p>
+                <style>{`
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                `}</style>
+            </div>
+        );
     }
 
     // 추적 중 상태 표시

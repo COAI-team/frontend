@@ -77,6 +77,203 @@ const calculateEAR = (eyeLandmarks) => {
     return (vertical1 + vertical2) / (2.0 * horizontal);
 };
 
+// ========== Kalman Filter for 2D Gaze Tracking ==========
+// State: [x, y, vx, vy] (position + velocity)
+// Measurement: [x, y] (position only)
+class KalmanFilter2D {
+    constructor() {
+        // 상태 벡터: [x, y, vx, vy]
+        this.state = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+            vx: 0,
+            vy: 0
+        };
+
+        // 오차 공분산 행렬 P (4x4, 대각선만 사용 - 단순화)
+        this.P = {
+            x: 1000,   // 초기 위치 불확실성 (큰 값)
+            y: 1000,
+            vx: 1000,  // 초기 속도 불확실성
+            vy: 1000
+        };
+
+        // 프로세스 노이즈 Q (모델 불확실성)
+        // 값이 클수록 측정값을 더 신뢰
+        this.Q = {
+            x: 0.1,    // 위치 노이즈
+            y: 0.1,
+            vx: 1.0,   // 속도 노이즈 (가속 허용)
+            vy: 1.0
+        };
+
+        // 측정 노이즈 R (측정값 불확실성)
+        // 값이 클수록 예측값을 더 신뢰 (스무딩 효과 증가)
+        // 값이 작을수록 측정값을 더 신뢰 (반응 속도 증가)
+        this.R = {
+            x: 20,     // 시선 측정 노이즈 (픽셀 단위) - 50에서 20으로 감소 (반응성 향상)
+            y: 20
+        };
+
+        this.lastTime = performance.now();
+        this.initialized = false;
+    }
+
+    // 예측 단계 (Predict)
+    predict(dt = null) {
+        const now = performance.now();
+        if (dt === null) {
+            dt = (now - this.lastTime) / 1000; // 초 단위
+        }
+        this.lastTime = now;
+
+        // dt가 너무 크면 (0.5초 이상) 리셋
+        if (dt > 0.5) {
+            dt = 0.033; // 30fps 기준
+        }
+
+        // 상태 전이: x' = x + vx * dt
+        this.state.x += this.state.vx * dt;
+        this.state.y += this.state.vy * dt;
+
+        // 위치 경계 클램핑 (화면 밖으로 너무 멀리 나가지 않도록)
+        const MARGIN = 200;
+        this.state.x = Math.max(-MARGIN, Math.min(this.state.x, window.innerWidth + MARGIN));
+        this.state.y = Math.max(-MARGIN, Math.min(this.state.y, window.innerHeight + MARGIN));
+
+        // 오차 공분산 업데이트: P' = F * P * F^T + Q
+        // 단순화된 버전 (대각 행렬 가정)
+        this.P.x += this.P.vx * dt * dt + this.Q.x;
+        this.P.y += this.P.vy * dt * dt + this.Q.y;
+        this.P.vx += this.Q.vx;
+        this.P.vy += this.Q.vy;
+
+        return { x: this.state.x, y: this.state.y };
+    }
+
+    // 업데이트 단계 (Update/Correct)
+    update(measurementX, measurementY) {
+        if (!this.initialized) {
+            // 첫 측정값으로 초기화
+            this.state.x = measurementX;
+            this.state.y = measurementY;
+            this.state.vx = 0;
+            this.state.vy = 0;
+            this.initialized = true;
+            return { x: measurementX, y: measurementY };
+        }
+
+        // 칼만 이득 계산: K = P * H^T * (H * P * H^T + R)^-1
+        // H = [[1, 0, 0, 0], [0, 1, 0, 0]] (위치만 측정)
+        const Kx = this.P.x / (this.P.x + this.R.x);
+        const Ky = this.P.y / (this.P.y + this.R.y);
+
+        // 속도에 대한 칼만 이득 (위치 잔차에서 속도 추정)
+        const Kvx = this.P.vx / (this.P.x + this.R.x) * 0.5;
+        const Kvy = this.P.vy / (this.P.y + this.R.y) * 0.5;
+
+        // 잔차 (Innovation): y = z - H * x
+        let residualX = measurementX - this.state.x;
+        let residualY = measurementY - this.state.y;
+
+        // 잔차 클램핑 (너무 큰 점프 방지 - 화면 1/2 이상 점프 제한)
+        // 1/3 → 1/2로 변경: 빠른 시선 이동 허용 범위 확대
+        const MAX_RESIDUAL = Math.max(window.innerWidth, window.innerHeight) / 2;
+        residualX = Math.max(-MAX_RESIDUAL, Math.min(MAX_RESIDUAL, residualX));
+        residualY = Math.max(-MAX_RESIDUAL, Math.min(MAX_RESIDUAL, residualY));
+
+        // 상태 업데이트: x = x + K * y
+        this.state.x += Kx * residualX;
+        this.state.y += Ky * residualY;
+
+        // 속도 업데이트 (잔차 기반)
+        this.state.vx += Kvx * residualX;
+        this.state.vy += Kvy * residualY;
+
+        // 속도 클램핑 (폭주 방지 - 1초에 화면 1배 이상 이동 불가)
+        const MAX_VELOCITY = window.innerWidth;
+        this.state.vx = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, this.state.vx));
+        this.state.vy = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, this.state.vy));
+
+        // 속도 감쇠 (서서히 0으로 수렴하도록 - 안정성)
+        // 0.95 → 0.98로 변경: 감쇠를 줄여 빠른 움직임 추적 개선
+        this.state.vx *= 0.98;
+        this.state.vy *= 0.98;
+
+        // 오차 공분산 업데이트: P = (I - K * H) * P
+        this.P.x *= (1 - Kx);
+        this.P.y *= (1 - Ky);
+        this.P.vx *= (1 - Kvx * 0.3);
+        this.P.vy *= (1 - Kvy * 0.3);
+
+        // 공분산 클램핑 (수치 안정성)
+        const MIN_P = 0.01;
+        const MAX_P = 10000;
+        this.P.x = Math.max(MIN_P, Math.min(MAX_P, this.P.x));
+        this.P.y = Math.max(MIN_P, Math.min(MAX_P, this.P.y));
+        this.P.vx = Math.max(MIN_P, Math.min(MAX_P, this.P.vx));
+        this.P.vy = Math.max(MIN_P, Math.min(MAX_P, this.P.vy));
+
+        // 최종 NaN 체크 (방어적 프로그래밍)
+        if (!Number.isFinite(this.state.x) || !Number.isFinite(this.state.y) ||
+            !Number.isFinite(this.state.vx) || !Number.isFinite(this.state.vy) ||
+            !Number.isFinite(this.P.x) || !Number.isFinite(this.P.y)) {
+            console.error('🚨 Kalman state became NaN/Infinity, resetting...');
+            this.reset();
+            return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        }
+
+        return { x: this.state.x, y: this.state.y };
+    }
+
+    // 예측 + 업데이트 한번에 (일반적인 사용)
+    filter(measurementX, measurementY) {
+        // NaN/Infinity 검증 - 잘못된 입력 방지
+        if (!Number.isFinite(measurementX) || !Number.isFinite(measurementY)) {
+            console.warn('⚠️ Kalman filter received invalid input:', { measurementX, measurementY });
+            // 현재 상태 반환 (예측만 수행)
+            this.predict();
+            return { x: this.state.x, y: this.state.y };
+        }
+
+        this.predict();
+        const result = this.update(measurementX, measurementY);
+
+        // 결과 NaN 검증
+        if (!Number.isFinite(result.x) || !Number.isFinite(result.y)) {
+            console.error('🚨 Kalman filter produced NaN, resetting...');
+            this.reset();
+            return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        }
+
+        return result;
+    }
+
+    // 현재 상태 반환
+    getState() {
+        return { ...this.state };
+    }
+
+    // 필터 리셋
+    reset() {
+        this.state = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+            vx: 0,
+            vy: 0
+        };
+        this.P = { x: 1000, y: 1000, vx: 1000, vy: 1000 };
+        this.initialized = false;
+        this.lastTime = performance.now();
+    }
+
+    // 측정 노이즈 조정 (동적 조정용)
+    setMeasurementNoise(rx, ry) {
+        this.R.x = rx;
+        this.R.y = ry;
+    }
+}
+
 export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinutes = 30) => {
     // 기본 상태
     const [isCalibrated, setIsCalibrated] = useState(false);
@@ -120,6 +317,13 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     const earHistoryRef = useRef([]); // PERCLOS 계산용
     const drowsyViolationSentRef = useRef(false);
 
+    // ========== Liveness Detection (사진/영상 감지) ==========
+    // 눈 깜빡임이 일정 시간 동안 없으면 사진/영상으로 판정
+    const LIVENESS_BLINK_TIMEOUT_MS = 30000; // 30초 동안 눈 깜빡임 없으면 경고
+    const lastBlinkTimeRef = useRef(Date.now()); // 마지막 눈 깜빡임 시간
+    const wasBlinkingRef = useRef(false); // 이전 프레임 눈 감김 상태
+    const [livenessWarning, setLivenessWarning] = useState(false); // 사진 감지 경고
+
     // 고빈도 데이터를 위한 refs (setState 호출 최소화 - Maximum update depth 방지)
     const latestDataRef = useRef({
         isFaceDetected: false,
@@ -135,6 +339,48 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     });
     const lastStateUpdateRef = useRef(0);
     const STATE_UPDATE_INTERVAL_MS = 100; // 100ms마다 상태 업데이트 (10fps - UI에 충분)
+
+    // ========== 3-Point 캘리브레이션 데이터 ==========
+    // MediaPipeCalibrationScreen에서 전달받은 캘리브레이션 데이터
+    const calibrationDataRef = useRef(null);
+    const hasManualCalibrationRef = useRef(false); // 수동 캘리브레이션 완료 여부
+
+    // ========== 자동 캘리브레이션 (Baseline) - 수동 캘리브레이션 없을 때 폴백 ==========
+    // 시작 후 처음 몇 프레임의 평균값을 기준점으로 저장
+    const CALIBRATION_FRAMES = 30; // 30프레임 (~1초) 동안 평균 계산
+    const isBaselineCalibratedRef = useRef(false);
+    const baselineRef = useRef({
+        headPose: { pitch: 0, yaw: 0, roll: 0 },
+        irisOffset: { x: 0, y: 0 } // 정면 볼 때 홍채 오프셋
+    });
+    // 캘리브레이션 중 누적값
+    const calibrationAccumulatorRef = useRef({
+        headPose: { pitch: 0, yaw: 0, roll: 0 },
+        irisOffset: { x: 0, y: 0 },
+        count: 0
+    });
+
+    // ========== Kalman Filter 스무딩 (EMA 대체) ==========
+    // 위치 + 속도 기반 예측으로 더 안정적인 시선 추적
+    const kalmanFilterRef = useRef(null);
+
+    // Kalman Filter 초기화 (lazy initialization)
+    const getKalmanFilter = useCallback(() => {
+        if (!kalmanFilterRef.current) {
+            kalmanFilterRef.current = new KalmanFilter2D();
+            console.log('✅ Kalman Filter initialized');
+        }
+        return kalmanFilterRef.current;
+    }, []);
+
+    // ========== 얼굴 감지 안정화 (디바운싱) ==========
+    // 연속 N프레임 동안 같은 상태여야 변경
+    const FACE_DETECTION_DEBOUNCE_FRAMES = 3; // 3프레임 연속 필요
+    const faceDetectionCounterRef = useRef({ detected: 0, notDetected: 0 });
+    const stableFaceDetectedRef = useRef(false);
+
+    // drawDebugOverlay를 ref로 관리 (순환 의존성 방지)
+    const drawDebugOverlayRef = useRef(null);
 
     // MediaPipe FaceLandmarker 초기화
     useEffect(() => {
@@ -232,82 +478,265 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         const leftEye = landmarks[LANDMARK_INDICES.LEFT_EYE_OUTER];
         const rightEye = landmarks[LANDMARK_INDICES.RIGHT_EYE_OUTER];
 
+        // 랜드마크 유효성 검증
+        if (!noseTip || !chin || !leftEye || !rightEye) {
+            return { pitch: 0, yaw: 0, roll: 0 };
+        }
+
         // Yaw (좌우 회전) - 코와 양 눈 중심 비교
         const eyeCenter = {
             x: (leftEye.x + rightEye.x) / 2,
             y: (leftEye.y + rightEye.y) / 2,
             z: ((leftEye.z || 0) + (rightEye.z || 0)) / 2
         };
-        const yaw = Math.atan2(noseTip.x - eyeCenter.x, noseTip.z - eyeCenter.z) * (180 / Math.PI);
 
-        // Pitch (상하 회전) - 코와 턱 비교
-        const pitch = Math.atan2(noseTip.y - chin.y, noseTip.z - chin.z) * (180 / Math.PI);
+        // z 좌표가 너무 작으면 기본값 사용 (0으로 나누기 방지)
+        const noseZ = noseTip.z || 0;
+        const chinZ = chin.z || 0;
+        const eyeCenterZ = eyeCenter.z || 0;
+
+        // z 차이가 너무 작으면 yaw/pitch 계산이 불안정해짐
+        const zDiffYaw = Math.abs(noseZ - eyeCenterZ);
+        const zDiffPitch = Math.abs(noseZ - chinZ);
+
+        let yaw = 0, pitch = 0, roll = 0;
+
+        // Yaw 계산 (z 깊이가 충분히 있을 때만)
+        if (zDiffYaw > 0.001) {
+            yaw = Math.atan2(noseTip.x - eyeCenter.x, noseZ - eyeCenterZ) * (180 / Math.PI);
+        } else {
+            // z가 거의 없으면 x 기반 단순 계산
+            yaw = (noseTip.x - eyeCenter.x) * 100; // 스케일 조정
+        }
+
+        // Pitch 계산 (z 깊이가 충분히 있을 때만)
+        if (zDiffPitch > 0.001) {
+            pitch = Math.atan2(noseTip.y - chin.y, noseZ - chinZ) * (180 / Math.PI);
+        } else {
+            pitch = (noseTip.y - chin.y) * 100;
+        }
 
         // Roll (기울기) - 양 눈의 높이 차이
-        const roll = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x) * (180 / Math.PI);
+        roll = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x) * (180 / Math.PI);
+
+        // NaN 검증 및 범위 클램핑 (실제 머리 회전 범위: 약 ±60도)
+        const MAX_ANGLE = 60;
+        if (!Number.isFinite(pitch)) pitch = 0;
+        if (!Number.isFinite(yaw)) yaw = 0;
+        if (!Number.isFinite(roll)) roll = 0;
+
+        pitch = Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, pitch));
+        yaw = Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, yaw));
+        roll = Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, roll));
 
         return { pitch, yaw, roll };
     }, []);
 
-    // 홍채 기반 시선 추정 (개선된 공식)
-    const estimateGazeFromIris = useCallback((landmarks, videoWidth, videoHeight) => {
+    // ========== 3D 벡터 기반 시선 추정 ==========
+    // MediaPipe의 3D 좌표(x, y, z)를 활용하여 시선 벡터를 계산하고 화면에 투영
+    const estimateGazeFromIris = useCallback((landmarks, videoWidth, videoHeight, headPose = null) => {
         if (!landmarks || landmarks.length < 478) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
-        // 왼쪽 홍채 중심
-        const leftIrisCenter = landmarks[LANDMARK_INDICES.LEFT_IRIS[0]];
-        // 오른쪽 홍채 중심
-        const rightIrisCenter = landmarks[LANDMARK_INDICES.RIGHT_IRIS[0]];
+        // ========== 3D 좌표 추출 ==========
+        // 왼쪽 홍채 중심 (3D)
+        const leftIris3D = landmarks[LANDMARK_INDICES.LEFT_IRIS[0]];
+        // 오른쪽 홍채 중심 (3D)
+        const rightIris3D = landmarks[LANDMARK_INDICES.RIGHT_IRIS[0]];
 
-        // 홍채 중심 평균
-        const irisCenter = {
-            x: (leftIrisCenter.x + rightIrisCenter.x) / 2,
-            y: (leftIrisCenter.y + rightIrisCenter.y) / 2
+        // 왼쪽/오른쪽 눈의 경계 (3D)
+        const leftEyeLeft3D = landmarks[LANDMARK_INDICES.LEFT_EYE.P1];
+        const leftEyeRight3D = landmarks[LANDMARK_INDICES.LEFT_EYE.P4];
+        const rightEyeLeft3D = landmarks[LANDMARK_INDICES.RIGHT_EYE.P1];
+        const rightEyeRight3D = landmarks[LANDMARK_INDICES.RIGHT_EYE.P4];
+
+        // 눈 중심 (3D) - 양쪽 눈의 중간점
+        const eyeCenter3D = {
+            x: (leftEyeLeft3D.x + leftEyeRight3D.x + rightEyeLeft3D.x + rightEyeRight3D.x) / 4,
+            y: (leftEyeLeft3D.y + leftEyeRight3D.y + rightEyeLeft3D.y + rightEyeRight3D.y) / 4,
+            z: ((leftEyeLeft3D.z || 0) + (leftEyeRight3D.z || 0) + (rightEyeLeft3D.z || 0) + (rightEyeRight3D.z || 0)) / 4
         };
 
-        // 왼쪽/오른쪽 눈의 경계
-        const leftEyeLeft = landmarks[LANDMARK_INDICES.LEFT_EYE.P1];
-        const leftEyeRight = landmarks[LANDMARK_INDICES.LEFT_EYE.P4];
-        const rightEyeLeft = landmarks[LANDMARK_INDICES.RIGHT_EYE.P1];
-        const rightEyeRight = landmarks[LANDMARK_INDICES.RIGHT_EYE.P4];
-
-        // 눈 너비 계산 (정규화 기준)
-        const leftEyeWidth = Math.abs(leftEyeRight.x - leftEyeLeft.x);
-        const rightEyeWidth = Math.abs(rightEyeRight.x - rightEyeLeft.x);
-        const avgEyeWidth = (leftEyeWidth + rightEyeWidth) / 2;
-
-        // 눈 영역 중심
-        const eyeRegionCenter = {
-            x: (leftEyeLeft.x + leftEyeRight.x + rightEyeLeft.x + rightEyeRight.x) / 4,
-            y: (leftEyeLeft.y + leftEyeRight.y + rightEyeLeft.y + rightEyeRight.y) / 4
+        // 홍채 중심 (3D)
+        const irisCenter3D = {
+            x: (leftIris3D.x + rightIris3D.x) / 2,
+            y: (leftIris3D.y + rightIris3D.y) / 2,
+            z: ((leftIris3D.z || 0) + (rightIris3D.z || 0)) / 2
         };
 
-        // 홍채 오프셋을 눈 너비 대비 비율로 정규화 (-1 ~ +1 범위)
-        const normalizedOffsetX = avgEyeWidth > 0
-            ? (irisCenter.x - eyeRegionCenter.x) / (avgEyeWidth / 2)
-            : 0;
-        const normalizedOffsetY = avgEyeWidth > 0
-            ? (irisCenter.y - eyeRegionCenter.y) / (avgEyeWidth / 2)
-            : 0;
+        // ========== 3D 시선 벡터 계산 ==========
+        // 시선 방향 = 홍채 위치 - 눈 중심 위치 (정규화된 방향 벡터)
+        const gazeVector = {
+            x: irisCenter3D.x - eyeCenter3D.x,
+            y: irisCenter3D.y - eyeCenter3D.y,
+            z: (irisCenter3D.z - eyeCenter3D.z) || 0.01 // z가 0이면 작은 값 사용
+        };
 
-        // 감도 조절 (화면 범위의 비율)
-        const GAZE_SENSITIVITY_X = 0.5; // 화면 너비의 50%까지 커버
-        const GAZE_SENSITIVITY_Y = 0.4; // 화면 높이의 40%까지 커버
+        // 시선 벡터 정규화
+        const gazeMagnitude = Math.sqrt(gazeVector.x ** 2 + gazeVector.y ** 2 + gazeVector.z ** 2);
+        const normalizedGaze = {
+            x: gazeVector.x / (gazeMagnitude || 1),
+            y: gazeVector.y / (gazeMagnitude || 1),
+            z: gazeVector.z / (gazeMagnitude || 1)
+        };
 
-        // 화면 좌표 변환 (거울 모드: x축 반전 - 사용자 시점에서 자연스럽게)
-        // 웹캠 좌표계에서 오른쪽이 화면 좌측에 매핑되도록 반전
-        const gazeX = window.innerWidth / 2 - normalizedOffsetX * window.innerWidth * GAZE_SENSITIVITY_X;
-        const gazeY = window.innerHeight / 2 + normalizedOffsetY * window.innerHeight * GAZE_SENSITIVITY_Y;
+        // ========== 자동 캘리브레이션 (baseline 저장) ==========
+        if (!isBaselineCalibratedRef.current && headPose) {
+            const acc = calibrationAccumulatorRef.current;
+            acc.headPose.pitch += headPose.pitch;
+            acc.headPose.yaw += headPose.yaw;
+            acc.headPose.roll += headPose.roll;
+            // 3D 벡터 누적
+            acc.irisOffset.x += normalizedGaze.x;
+            acc.irisOffset.y += normalizedGaze.y;
+            acc.count++;
+
+            if (acc.count >= CALIBRATION_FRAMES) {
+                baselineRef.current = {
+                    headPose: {
+                        pitch: acc.headPose.pitch / acc.count,
+                        yaw: acc.headPose.yaw / acc.count,
+                        roll: acc.headPose.roll / acc.count
+                    },
+                    irisOffset: {
+                        x: acc.irisOffset.x / acc.count,
+                        y: acc.irisOffset.y / acc.count
+                    }
+                };
+                isBaselineCalibratedRef.current = true;
+                console.log('✅ 3D Gaze baseline calibration complete:', baselineRef.current);
+            }
+
+            return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        }
+
+        // ========== 3-Point 캘리브레이션 사용 (수동 캘리브레이션 완료 시) ==========
+        if (hasManualCalibrationRef.current && calibrationDataRef.current) {
+            const calibData = calibrationDataRef.current;
+            const baseline = calibData.baseline;
+            const sensitivity = calibData.sensitivity;
+
+            // 3D 벡터 기반 상대값
+            const deltaGazeX = normalizedGaze.x - baseline.irisOffset.x;
+            const deltaGazeY = normalizedGaze.y - baseline.irisOffset.y;
+
+            let deltaYaw = 0;
+            let deltaPitch = 0;
+            if (headPose) {
+                deltaYaw = headPose.yaw - baseline.headPose.yaw;
+                deltaPitch = headPose.pitch - baseline.headPose.pitch;
+                // Delta 클램핑 (머리가 갑자기 120도 돌아가지 않음)
+                const MAX_DELTA = 30;
+                deltaYaw = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, deltaYaw));
+                deltaPitch = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, deltaPitch));
+            }
+
+            // 3D 벡터를 화면 좌표로 변환
+            // sensitivity는 캘리브레이션에서 (deltaScreen / deltaIris)로 계산됨
+            // 따라서 deltaIris * sensitivity = deltaScreen 관계가 성립
+            let rawGazeX = baseline.screenX
+                + deltaGazeX * sensitivity.irisX * 1.5  // ✅ 더하기로 수정 (sensitivity가 음수이므로)
+                + deltaYaw * sensitivity.headX;
+
+            let rawGazeY = baseline.screenY
+                + deltaGazeY * sensitivity.irisY * 1.5
+                - deltaPitch * sensitivity.headY;
+
+            // Raw gaze 클램핑 (화면 밖으로 너무 멀리 나가지 않도록 - Kalman 안정성)
+            const SCREEN_MARGIN = 500; // 화면 밖 500px까지만 허용
+            rawGazeX = Math.max(-SCREEN_MARGIN, Math.min(rawGazeX, window.innerWidth + SCREEN_MARGIN));
+            rawGazeY = Math.max(-SCREEN_MARGIN, Math.min(rawGazeY, window.innerHeight + SCREEN_MARGIN));
+
+            // Kalman Filter 스무딩 (EMA 대체)
+            const kalman = getKalmanFilter();
+            const filtered = kalman.filter(rawGazeX, rawGazeY);
+
+            // 디버그: 수동 캘리브레이션 경로 값 확인 (10% 확률로 출력)
+            if (Math.random() < 0.10) {
+                console.log('🔍 [Manual Calib] Gaze Debug:', {
+                    normalizedGaze: { x: normalizedGaze.x.toFixed(4), y: normalizedGaze.y.toFixed(4) },
+                    baselineIris: { x: baseline.irisOffset.x.toFixed(4), y: baseline.irisOffset.y.toFixed(4) },
+                    delta: { x: deltaGazeX.toFixed(4), y: deltaGazeY.toFixed(4) },
+                    sensitivity: { iX: sensitivity.irisX.toFixed(1), iY: sensitivity.irisY.toFixed(1), hX: sensitivity.headX.toFixed(1), hY: sensitivity.headY.toFixed(1) },
+                    baselineScreen: { x: Math.round(baseline.screenX), y: Math.round(baseline.screenY) },
+                    headDelta: { yaw: deltaYaw.toFixed(2), pitch: deltaPitch.toFixed(2) },
+                    raw: { x: Math.round(rawGazeX), y: Math.round(rawGazeY) },
+                    filtered: { x: Math.round(filtered.x), y: Math.round(filtered.y) },
+                    kalmanVel: { vx: kalman.state.vx.toFixed(2), vy: kalman.state.vy.toFixed(2) }
+                });
+            }
+
+            return {
+                x: Math.max(0, Math.min(filtered.x, window.innerWidth)),
+                y: Math.max(0, Math.min(filtered.y, window.innerHeight))
+            };
+        }
+
+        // ========== 자동 캘리브레이션 모드: baseline 기준 상대값 ==========
+        const baseline = baselineRef.current;
+
+        // 3D 시선 벡터의 상대적 변화
+        const relativeGazeX = normalizedGaze.x - baseline.irisOffset.x;
+        const relativeGazeY = normalizedGaze.y - baseline.irisOffset.y;
+
+        // 머리 회전 보정
+        let headCompensationX = 0;
+        let headCompensationY = 0;
+
+        if (headPose) {
+            const relativeYaw = headPose.yaw - baseline.headPose.yaw;
+            const relativePitch = headPose.pitch - baseline.headPose.pitch;
+
+            // 머리 회전을 시선 벡터에 통합
+            // 머리가 돌아간 방향으로 시선도 이동 (감도 조절)
+            const HEAD_WEIGHT = 0.025; // 머리 회전 1도당 화면 2.5% 이동
+            headCompensationX = -relativeYaw * HEAD_WEIGHT;
+            headCompensationY = -relativePitch * HEAD_WEIGHT;
+        }
+
+        // ========== 3D 벡터를 화면 좌표로 투영 ==========
+        // 시선 벡터를 화면에 투영 (고정 감도 방식)
+        // Note: Ray-casting 투영은 제거됨 (고정 감도가 더 안정적)
+
+        // 시선 감도 (3D 벡터 → 화면 픽셀)
+        const GAZE_SENSITIVITY_X = 2.5; // 시선 벡터 변화에 대한 화면 이동 배율
+        const GAZE_SENSITIVITY_Y = 2.0;
+
+        // 최종 시선 위치 계산
+        const rawGazeX = window.innerWidth / 2
+            - relativeGazeX * window.innerWidth * GAZE_SENSITIVITY_X  // 3D 벡터 기여 (거울 모드)
+            + headCompensationX * window.innerWidth;                   // 머리 회전 기여
+
+        const rawGazeY = window.innerHeight / 2
+            + relativeGazeY * window.innerHeight * GAZE_SENSITIVITY_Y  // 3D 벡터 기여
+            + headCompensationY * window.innerHeight;                  // 머리 회전 기여
+
+        // ========== Kalman Filter 스무딩 적용 (EMA 대체) ==========
+        const kalman = getKalmanFilter();
+        const filtered = kalman.filter(rawGazeX, rawGazeY);
+
+        // 디버그: 값 확인
+        if (Math.random() < 0.02) { // 2% 샘플링
+            console.log('🔍 Gaze Debug:', {
+                normalizedGaze: { x: normalizedGaze.x.toFixed(4), y: normalizedGaze.y.toFixed(4), z: normalizedGaze.z.toFixed(4) },
+                baseline: { x: baseline.irisOffset.x.toFixed(4), y: baseline.irisOffset.y.toFixed(4) },
+                relative: { x: relativeGazeX.toFixed(4), y: relativeGazeY.toFixed(4) },
+                raw: { x: Math.round(rawGazeX), y: Math.round(rawGazeY) },
+                filtered: { x: Math.round(filtered.x), y: Math.round(filtered.y) },
+                screen: { w: window.innerWidth, h: window.innerHeight }
+            });
+        }
 
         // 경계 클램핑
         return {
-            x: Math.max(0, Math.min(gazeX, window.innerWidth)),
-            y: Math.max(0, Math.min(gazeY, window.innerHeight))
+            x: Math.max(0, Math.min(filtered.x, window.innerWidth)),
+            y: Math.max(0, Math.min(filtered.y, window.innerHeight))
         };
-    }, []);
+    }, [getKalmanFilter]);
 
     // EAR 기반 눈 상태 분석
     const analyzeEyeState = useCallback((landmarks) => {
         if (!landmarks || landmarks.length < 478) {
+            
             // 얼굴 미검출 시 null 반환 (졸음 감지에서 구분하기 위함)
             return { leftEAR: null, rightEAR: null, avgEAR: null, isBlinking: false, faceDetected: false };
         }
@@ -369,7 +798,11 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
 
         // PERCLOS 계산 (눈 감은 비율)
         const totalFrames = earHistoryRef.current.length;
-        if (totalFrames === 0) return { isDrowsy: false, perclos: 0, consecutiveClosedFrames: 0 };
+        // 최소 30프레임 (약 1초) 이상 수집되어야 의미있는 PERCLOS 계산
+        const MIN_FRAMES_FOR_PERCLOS = 30;
+        if (totalFrames < MIN_FRAMES_FOR_PERCLOS) {
+            return { isDrowsy: false, perclos: 0, consecutiveClosedFrames: closedFrameCountRef.current };
+        }
 
         const closedFrames = earHistoryRef.current.filter(
             entry => entry.ear < EAR_THRESHOLD
@@ -441,7 +874,37 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         try {
             const results = faceLandmarkerRef.current.detectForVideo(video, now);
 
-            if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+            // ========== 얼굴 감지 디바운싱 적용 ==========
+            const rawFaceDetected = results.faceLandmarks && results.faceLandmarks.length > 0;
+
+            if (rawFaceDetected) {
+                faceDetectionCounterRef.current.detected++;
+                faceDetectionCounterRef.current.notDetected = 0;
+
+                // 연속 3프레임 감지 시 안정적 감지로 판정
+                if (faceDetectionCounterRef.current.detected >= FACE_DETECTION_DEBOUNCE_FRAMES) {
+                    if (!stableFaceDetectedRef.current) {
+                        console.log('✅ Face stably detected (debounced)');
+                    }
+                    stableFaceDetectedRef.current = true;
+                }
+            } else {
+                faceDetectionCounterRef.current.notDetected++;
+                faceDetectionCounterRef.current.detected = 0;
+
+                // 연속 3프레임 미감지 시 안정적 미감지로 판정
+                if (faceDetectionCounterRef.current.notDetected >= FACE_DETECTION_DEBOUNCE_FRAMES) {
+                    if (stableFaceDetectedRef.current) {
+                        console.log('⚠️ Face stably not detected (debounced)');
+                    }
+                    stableFaceDetectedRef.current = false;
+                }
+            }
+
+            // 안정화된 얼굴 감지 상태 사용
+            const isFaceStablyDetected = stableFaceDetectedRef.current;
+
+            if (isFaceStablyDetected && rawFaceDetected) {
                 // 얼굴 감지됨 - ref에 저장 (리렌더링 없음)
                 latestDataRef.current.isFaceDetected = true;
                 latestDataRef.current.faceCount = results.faceLandmarks.length;
@@ -450,11 +913,12 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                 // 첫 번째 얼굴 기준 분석
                 const primaryLandmarks = results.faceLandmarks[0];
 
-                // 3D 얼굴 방향
-                latestDataRef.current.headPose = calculateHeadPose(primaryLandmarks);
+                // 3D 얼굴 방향 (먼저 계산 - 시선 추정에 사용)
+                const headPose = calculateHeadPose(primaryLandmarks);
+                latestDataRef.current.headPose = headPose;
 
-                // 시선 추정
-                latestDataRef.current.gazePosition = estimateGazeFromIris(primaryLandmarks, video.videoWidth, video.videoHeight);
+                // 시선 추정 (홍채 + 머리 방향 통합)
+                latestDataRef.current.gazePosition = estimateGazeFromIris(primaryLandmarks, video.videoWidth, video.videoHeight, headPose);
 
                 // 눈 상태 분석
                 const eye = analyzeEyeState(primaryLandmarks);
@@ -466,6 +930,26 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                 // 졸음 감지
                 const drowsiness = detectDrowsiness(eye.avgEAR);
                 latestDataRef.current.drowsinessState = drowsiness;
+
+                // ========== Liveness Detection (사진/영상 감지) ==========
+                // 눈 깜빡임 감지: 눈이 감겼다가 떠지는 순간을 감지
+                const isCurrentlyBlinking = eye.isBlinking;
+                if (wasBlinkingRef.current && !isCurrentlyBlinking) {
+                    // 눈을 감았다가 뜸 = 깜빡임 완료
+                    lastBlinkTimeRef.current = Date.now();
+                    if (livenessWarning) {
+                        setLivenessWarning(false);
+                        console.log('✅ Blink detected - liveness confirmed');
+                    }
+                }
+                wasBlinkingRef.current = isCurrentlyBlinking;
+
+                // 일정 시간 동안 눈 깜빡임 없으면 사진/영상 의심
+                const timeSinceLastBlink = Date.now() - lastBlinkTimeRef.current;
+                if (timeSinceLastBlink >= LIVENESS_BLINK_TIMEOUT_MS && !livenessWarning) {
+                    setLivenessWarning(true);
+                    console.warn('⚠️ Liveness warning: No blink detected for', Math.round(timeSinceLastBlink / 1000), 'seconds');
+                }
 
                 // NO_FACE 리셋 (이전에 얼굴이 없었다가 감지된 경우만 로그)
                 if (noFaceStartTimeRef.current !== null) {
@@ -503,17 +987,17 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                     drowsyViolationSentRef.current = false;
                 }
 
-            } else {
-                // 얼굴 미검출 - ref에 저장
+            } else if (!isFaceStablyDetected) {
+                // 얼굴 안정적 미검출 (디바운싱 적용됨) - ref에 저장
                 latestDataRef.current.isFaceDetected = false;
                 latestDataRef.current.faceCount = 0;
                 latestDataRef.current.detectedFaces = [];
 
-                // NO_FACE 지속 시간 추적
+                // NO_FACE 지속 시간 추적 (디바운싱된 상태 기준)
                 const currentTime = Date.now();
                 if (noFaceStartTimeRef.current === null) {
                     noFaceStartTimeRef.current = currentTime;
-                    console.log('⚠️ Face not detected - starting NO_FACE tracking');
+                    // 디바운싱으로 인해 이 로그는 훨씬 적게 나타남
                 }
 
                 const duration = currentTime - noFaceStartTimeRef.current;
@@ -547,6 +1031,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                     });
                 }
             }
+            // else: 상태 전환 중 (디바운싱 대기) - 아무것도 하지 않음
 
             // Throttled 상태 업데이트 (100ms마다 = 10fps)
             if (now - lastStateUpdateRef.current >= STATE_UPDATE_INTERVAL_MS) {
@@ -554,9 +1039,9 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                 updateReactState();
             }
 
-            // 디버그 오버레이 그리기 (ref 사용으로 최신 상태 반영)
-            if (debugModeRef.current && canvasRef.current) {
-                drawDebugOverlay(results);
+            // 디버그 오버레이 그리기 (ref 사용으로 순환 의존성 방지)
+            if (debugModeRef.current && canvasRef.current && drawDebugOverlayRef.current) {
+                drawDebugOverlayRef.current(results);
             }
 
         } catch (error) {
@@ -574,7 +1059,9 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         analyzeEyeState,
         extractIrisPosition,
         detectDrowsiness,
-        updateReactState
+        updateReactState,
+        livenessWarning
+        // drawDebugOverlay는 trackingLoop 이후에 정의되어 ref 패턴으로 접근
     ]);
 
     // 디버그 오버레이 그리기
@@ -656,7 +1143,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         // 정보 오버레이 (ref에서 최신 데이터 읽기 - 리렌더링 의존성 제거)
         const data = latestDataRef.current;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(10, 10, 260, 180);
+        ctx.fillRect(10, 10, 280, 200);
         ctx.fillStyle = '#ffffff';
         ctx.font = '12px monospace';
 
@@ -675,7 +1162,8 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             `PERCLOS: ${(data.drowsinessState?.perclos * 100 || 0).toFixed(1)}%`,
             `Drowsy: ${data.drowsinessState?.isDrowsy ? '⚠️ YES' : 'NO'}`,
             `Head: P=${data.headPose?.pitch?.toFixed(1) || 0}° Y=${data.headPose?.yaw?.toFixed(1) || 0}° R=${data.headPose?.roll?.toFixed(1) || 0}°`,
-            `Gaze: (${Math.round(data.gazePosition?.x || 0)}, ${Math.round(data.gazePosition?.y || 0)})`
+            `Gaze: (${Math.round(data.gazePosition?.x || 0)}, ${Math.round(data.gazePosition?.y || 0)})`,
+            `Filter: Kalman (vel: ${kalmanFilterRef.current ? Math.round(kalmanFilterRef.current.state.vx) : 0}, ${kalmanFilterRef.current ? Math.round(kalmanFilterRef.current.state.vy) : 0})`
         ];
 
         lines.forEach((line, i) => {
@@ -684,13 +1172,72 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
 
     }, []); // 의존성 제거 - ref 사용으로 항상 최신 데이터
 
-    // 캘리브레이션 시작 (MediaPipe는 캘리브레이션 불필요)
+    // drawDebugOverlay를 ref에 할당 (순환 의존성 방지)
+    useEffect(() => {
+        drawDebugOverlayRef.current = drawDebugOverlay;
+    }, [drawDebugOverlay]);
+
+    // 캘리브레이션 시작 (3-point 캘리브레이션 준비)
     const startCalibration = useCallback(() => {
-        console.log('MediaPipe calibration ready (no calibration needed)');
+        console.log('MediaPipe 3-point calibration starting...');
+        // 캘리브레이션 상태 리셋
+        calibrationDataRef.current = null;
+        hasManualCalibrationRef.current = false;
+        isBaselineCalibratedRef.current = false;
+        calibrationAccumulatorRef.current = {
+            headPose: { pitch: 0, yaw: 0, roll: 0 },
+            irisOffset: { x: 0, y: 0 },
+            count: 0
+        };
     }, []);
 
-    // 캘리브레이션 완료
-    const completeCalibration = useCallback(() => {
+    // 캘리브레이션 완료 (3-point 캘리브레이션 데이터 저장)
+    const completeCalibration = useCallback((calibrationData = null) => {
+        if (calibrationData) {
+            // 3-point 캘리브레이션 데이터가 있으면 저장
+            calibrationDataRef.current = calibrationData;
+            hasManualCalibrationRef.current = true;
+
+            // 상세 디버그 로그
+            console.log('✅ 3-point calibration complete');
+            console.log('📐 Baseline:', {
+                screenX: Math.round(calibrationData.baseline?.screenX || 0),
+                screenY: Math.round(calibrationData.baseline?.screenY || 0),
+                irisOffset: calibrationData.baseline?.irisOffset,
+                headPose: calibrationData.baseline?.headPose
+            });
+            console.log('📏 Sensitivity:', calibrationData.sensitivity);
+            console.log('⚖️ Weights:', {
+                irisRatio: calibrationData.irisRatio,
+                headRatio: calibrationData.headRatio
+            });
+
+            // 감도가 0이면 경고
+            if (calibrationData.sensitivity) {
+                const sens = calibrationData.sensitivity;
+                if (Math.abs(sens.irisX) < 1 && Math.abs(sens.headX) < 1) {
+                    console.warn('⚠️ X-axis sensitivity is very low! Gaze X movement will be minimal');
+                }
+                if (Math.abs(sens.irisY) < 1 && Math.abs(sens.headY) < 1) {
+                    console.warn('⚠️ Y-axis sensitivity is very low! Gaze Y movement will be minimal');
+                }
+            }
+
+            // Kalman Filter 리셋 (새 캘리브레이션에 맞게)
+            if (kalmanFilterRef.current) {
+                kalmanFilterRef.current.reset();
+                console.log('🔄 Kalman filter reset for new calibration');
+            }
+        } else {
+            // 캘리브레이션 데이터 없이 완료 (자동 캘리브레이션 사용)
+            hasManualCalibrationRef.current = false;
+            console.log('✅ Calibration complete (will use auto baseline)');
+
+            // Kalman Filter 리셋
+            if (kalmanFilterRef.current) {
+                kalmanFilterRef.current.reset();
+            }
+        }
         setIsCalibrated(true);
     }, []);
 
@@ -699,6 +1246,20 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         if (!isCalibrated || !problemId) return;
 
         isCleaningUpRef.current = false;
+
+        // ========== 추적 시작 시 상태 초기화 ==========
+        // EAR 히스토리 리셋 (PERCLOS 100% 즉시 감지 방지)
+        earHistoryRef.current = [];
+        closedFrameCountRef.current = 0;
+        drowsyViolationSentRef.current = false;
+        // Liveness 리셋
+        lastBlinkTimeRef.current = Date.now();
+        wasBlinkingRef.current = false;
+        setLivenessWarning(false);
+        // 얼굴 감지 상태 리셋
+        faceDetectionCounterRef.current = { detected: 0, notDetected: 0 };
+        stableFaceDetectedRef.current = false;
+        console.log('🔄 Tracking state reset for new session');
 
         // 웹캠 설정
         const webcamReady = await setupWebcam();
@@ -784,6 +1345,19 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             drowsyViolationSentRef.current = false;
             earHistoryRef.current = [];
             closedFrameCountRef.current = 0;
+
+            // 캘리브레이션 상태 리셋 (다음 세션을 위해)
+            isBaselineCalibratedRef.current = false;
+            calibrationAccumulatorRef.current = {
+                headPose: { pitch: 0, yaw: 0, roll: 0 },
+                irisOffset: { x: 0, y: 0 },
+                count: 0
+            };
+
+            // Kalman Filter 리셋
+            if (kalmanFilterRef.current) {
+                kalmanFilterRef.current.reset();
+            }
 
         } catch (error) {
             console.error('Error during stopTracking:', error);
@@ -960,6 +1534,12 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         gazePosition,           // 추정된 시선 위치 { x, y }
         eyeState,               // 눈 상태 { leftEAR, rightEAR, avgEAR, isBlinking }
         irisPosition,           // 홍채 위치 { left, right }
-        drowsinessState         // 졸음 상태 { isDrowsy, perclos, consecutiveClosedFrames }
+        drowsinessState,        // 졸음 상태 { isDrowsy, perclos, consecutiveClosedFrames }
+        livenessWarning,        // 사진/영상 감지 경고 (30초 동안 눈 깜빡임 없음)
+
+        // 3-point 캘리브레이션용 refs (MediaPipeCalibrationScreen에서 사용)
+        faceLandmarkerRef,      // FaceLandmarker 인스턴스 ref
+        videoRef,               // 웹캠 비디오 요소 ref
+        setupWebcam             // 웹캠 설정 함수
     };
 };

@@ -54,7 +54,7 @@ const EyeTracker = forwardRef(({
                 onNoFaceStateChange={onNoFaceStateChange}
                 onDrowsinessStateChange={onDrowsinessStateChange}
                 onMultipleFacesDetected={onMultipleFacesDetected}
-                skipCalibration={skipCalibration !== false} // 기본 true
+                skipCalibration={skipCalibration === true} // 명시적으로 true일 때만 스킵
             />
         );
     }
