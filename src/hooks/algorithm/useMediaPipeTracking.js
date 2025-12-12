@@ -23,8 +23,8 @@ const NO_FACE_THRESHOLD_MS = 15000; // 15초 이상 NO_FACE 시 심각한 위반
 const NO_FACE_WARNING_THRESHOLD_MS = 5000; // 5초 이상 시 경고 표시 시작
 
 // 졸음 감지 상수
-const EAR_THRESHOLD = 0.25; // Eye Aspect Ratio 임계값 (눈 감김 판단)
-const DROWSY_FRAME_THRESHOLD = 30; // 연속 프레임 수 (30프레임 ≈ 1초)
+const EAR_THRESHOLD = 0.20; // Eye Aspect Ratio 임계값 (눈 감김 판단) - 0.25에서 하향 (더 확실한 눈 감김만 감지)
+const DROWSY_FRAME_THRESHOLD = 90; // 연속 프레임 수 (90프레임 ≈ 3초) - 30에서 상향 (오탐 감소)
 const PERCLOS_THRESHOLD = 0.8; // PERCLOS 임계값 (80% 이상 시 졸음)
 const PERCLOS_WINDOW_SECONDS = 60; // PERCLOS 계산 윈도우 (60초)
 
@@ -129,7 +129,9 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         gazePosition: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
         eyeState: { leftEAR: null, rightEAR: null, avgEAR: null, isBlinking: false, faceDetected: false },
         irisPosition: { left: null, right: null },
-        drowsinessState: { isDrowsy: false, perclos: 0, consecutiveClosedFrames: 0 }
+        drowsinessState: { isDrowsy: false, perclos: 0, consecutiveClosedFrames: 0 },
+        noFaceDuration: 0,
+        showNoFaceWarning: false
     });
     const lastStateUpdateRef = useRef(0);
     const STATE_UPDATE_INTERVAL_MS = 100; // 100ms마다 상태 업데이트 (10fps - UI에 충분)
@@ -423,6 +425,8 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         setEyeState(data.eyeState);
         setIrisPosition(data.irisPosition);
         setDrowsinessState(data.drowsinessState);
+        setNoFaceDuration(data.noFaceDuration);
+        setShowNoFaceWarning(data.showNoFaceWarning);
     }, []);
 
     // 메인 추적 루프 (ref 기반 - setState 최소화)
@@ -467,8 +471,8 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                 if (noFaceStartTimeRef.current !== null) {
                     console.log('✅ Face detected - resetting NO_FACE tracking');
                     noFaceStartTimeRef.current = null;
-                    setNoFaceDuration(0);
-                    setShowNoFaceWarning(false);
+                    latestDataRef.current.noFaceDuration = 0;
+                    latestDataRef.current.showNoFaceWarning = false;
                     warningShownRef.current = false;
                     sustainedViolationSentRef.current = false;
                 }
@@ -513,12 +517,13 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                 }
 
                 const duration = currentTime - noFaceStartTimeRef.current;
-                setNoFaceDuration(duration);
+                // ref에 저장 (throttled 업데이트에서 React 상태로 반영됨)
+                latestDataRef.current.noFaceDuration = duration;
 
                 // 5초 이상: 경고 표시
                 if (duration >= NO_FACE_WARNING_THRESHOLD_MS && !warningShownRef.current) {
                     warningShownRef.current = true;
-                    setShowNoFaceWarning(true);
+                    latestDataRef.current.showNoFaceWarning = true;
                     console.log('⚠️ NO_FACE warning shown (5+ seconds)');
 
                     if (sessionId) {
@@ -770,6 +775,8 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
 
             // 상태 리셋
             noFaceStartTimeRef.current = null;
+            latestDataRef.current.noFaceDuration = 0;
+            latestDataRef.current.showNoFaceWarning = false;
             setNoFaceDuration(0);
             setShowNoFaceWarning(false);
             warningShownRef.current = false;
