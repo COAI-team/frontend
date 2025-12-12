@@ -246,8 +246,8 @@ const SharedSolutions = ({ problemId }) => {
   );
 };
 
-// 펼쳐진 상세 컴포넌트
 const SolutionDetail = ({ solution }) => {
+  const [activeTab, setActiveTab] = useState('code'); // 'code', 'feedback', 'comments'
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
 
@@ -270,9 +270,15 @@ const SolutionDetail = ({ solution }) => {
     setNewComment('');
   };
 
+  const tabs = [
+    { id: 'code', label: '제출 코드', icon: '💻' },
+    { id: 'feedback', label: 'AI 피드백', icon: '🤖' },
+    { id: 'comments', label: `댓글 (${comments.length})`, icon: '💬' }
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* 점수 정보 */}
+    <div className="space-y-4">
+      {/* 점수 정보 - 항상 표시 */}
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">최종 점수</div>
@@ -300,76 +306,101 @@ const SolutionDetail = ({ solution }) => {
         </div>
       </div>
 
-      {/* 코드 영역 */}
-      <div>
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-          제출 코드
-        </h4>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
-          <code>{solution.sourceCode}</code>
-        </pre>
+      {/* 탭 메뉴 */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <div className="flex space-x-8">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`
+                py-3 px-1 border-b-2 font-medium text-sm transition-colors
+                ${activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }
+              `}
+            >
+              <span className="mr-2">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* AI 피드백 */}
-      {solution.aiFeedback && (
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-            AI 피드백
-          </h4>
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            {renderAIFeedback()}
+      {/* 탭 컨텐츠 */}
+      <div className="py-4">
+        {/* 코드 탭 */}
+        {activeTab === 'code' && (
+          <div>
+            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+              <code>{solution.sourceCode}</code>
+            </pre>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 댓글 영역 */}
-      <div>
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-          댓글 ({comments.length})
-        </h4>
-
-        {/* 댓글 목록 */}
-        <div className="space-y-3 mb-4">
-          {comments.length === 0 ? (
-            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-              첫 댓글을 작성해보세요!
-            </div>
-          ) : (
-            comments.map((comment, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {comment.userName}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {comment.createdAt}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  {comment.content}
-                </p>
+        {/* AI 피드백 탭 */}
+        {activeTab === 'feedback' && (
+          <div>
+            {solution.aiFeedback ? (
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                {renderAIFeedback()}
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                AI 피드백이 아직 생성되지 않았습니다.
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* 댓글 작성 폼 */}
-        <form onSubmit={handleCommentSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="댓글을 입력하세요..."
-            className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-          />
-          <button
-            type="submit"
-            disabled={!newComment.trim()}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            등록
-          </button>
-        </form>
+        {/* 댓글 탭 */}
+        {activeTab === 'comments' && (
+          <div>
+            {/* 댓글 목록 */}
+            <div className="space-y-3 mb-4">
+              {comments.length === 0 ? (
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  첫 댓글을 작성해보세요!
+                </div>
+              ) : (
+                comments.map((comment, index) => (
+                  <div key={index} className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {comment.userName}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {comment.createdAt}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {comment.content}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* 댓글 작성 폼 */}
+            <form onSubmit={handleCommentSubmit} className="flex gap-2">
+              <input
+                type="text"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="댓글을 입력하세요..."
+                className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+              />
+              <button
+                type="submit"
+                disabled={!newComment.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                등록
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );
