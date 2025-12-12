@@ -291,8 +291,9 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         const GAZE_SENSITIVITY_X = 0.5; // 화면 너비의 50%까지 커버
         const GAZE_SENSITIVITY_Y = 0.4; // 화면 높이의 40%까지 커버
 
-        // 화면 좌표 변환 (웹캠이 미러링되므로 x는 반전하지 않음)
-        const gazeX = window.innerWidth / 2 + normalizedOffsetX * window.innerWidth * GAZE_SENSITIVITY_X;
+        // 화면 좌표 변환 (거울 모드: x축 반전 - 사용자 시점에서 자연스럽게)
+        // 웹캠 좌표계에서 오른쪽이 화면 좌측에 매핑되도록 반전
+        const gazeX = window.innerWidth / 2 - normalizedOffsetX * window.innerWidth * GAZE_SENSITIVITY_X;
         const gazeY = window.innerHeight / 2 + normalizedOffsetY * window.innerHeight * GAZE_SENSITIVITY_Y;
 
         // 경계 클램핑
