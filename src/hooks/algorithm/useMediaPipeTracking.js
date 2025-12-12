@@ -102,12 +102,12 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     const animationFrameRef = useRef(null);
     const isCleaningUpRef = useRef(false);
 
-    // 추가 기능 상태
+    // 추가 기능 상태 - UI 표시용 (throttled update)
     const [detectedFaces, setDetectedFaces] = useState([]); // 다중 인물
     const [faceCount, setFaceCount] = useState(0);
     const [headPose, setHeadPose] = useState({ pitch: 0, yaw: 0, roll: 0 }); // 3D 얼굴 방향
-    const [gazePosition, setGazePosition] = useState({ x: 0, y: 0 }); // 시선 위치
-    const [eyeState, setEyeState] = useState({ leftEAR: 0, rightEAR: 0, avgEAR: 0, isBlinking: false });
+    const [gazePosition, setGazePosition] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 }); // 시선 위치
+    const [eyeState, setEyeState] = useState({ leftEAR: null, rightEAR: null, avgEAR: null, isBlinking: false, faceDetected: false });
     const [irisPosition, setIrisPosition] = useState({ left: null, right: null });
 
     // 졸음 감지 상태
@@ -119,6 +119,20 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     const closedFrameCountRef = useRef(0);
     const earHistoryRef = useRef([]); // PERCLOS 계산용
     const drowsyViolationSentRef = useRef(false);
+
+    // 고빈도 데이터를 위한 refs (setState 호출 최소화 - Maximum update depth 방지)
+    const latestDataRef = useRef({
+        isFaceDetected: false,
+        faceCount: 0,
+        detectedFaces: [],
+        headPose: { pitch: 0, yaw: 0, roll: 0 },
+        gazePosition: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+        eyeState: { leftEAR: null, rightEAR: null, avgEAR: null, isBlinking: false, faceDetected: false },
+        irisPosition: { left: null, right: null },
+        drowsinessState: { isDrowsy: false, perclos: 0, consecutiveClosedFrames: 0 }
+    });
+    const lastStateUpdateRef = useRef(0);
+    const STATE_UPDATE_INTERVAL_MS = 100; // 100ms마다 상태 업데이트 (10fps - UI에 충분)
 
     // MediaPipe FaceLandmarker 초기화
     useEffect(() => {
@@ -233,7 +247,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         return { pitch, yaw, roll };
     }, []);
 
-    // 홍채 기반 시선 추정
+    // 홍채 기반 시선 추정 (개선된 공식)
     const estimateGazeFromIris = useCallback((landmarks, videoWidth, videoHeight) => {
         if (!landmarks || landmarks.length < 478) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
@@ -254,19 +268,32 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         const rightEyeLeft = landmarks[LANDMARK_INDICES.RIGHT_EYE.P1];
         const rightEyeRight = landmarks[LANDMARK_INDICES.RIGHT_EYE.P4];
 
+        // 눈 너비 계산 (정규화 기준)
+        const leftEyeWidth = Math.abs(leftEyeRight.x - leftEyeLeft.x);
+        const rightEyeWidth = Math.abs(rightEyeRight.x - rightEyeLeft.x);
+        const avgEyeWidth = (leftEyeWidth + rightEyeWidth) / 2;
+
         // 눈 영역 중심
         const eyeRegionCenter = {
             x: (leftEyeLeft.x + leftEyeRight.x + rightEyeLeft.x + rightEyeRight.x) / 4,
             y: (leftEyeLeft.y + leftEyeRight.y + rightEyeLeft.y + rightEyeRight.y) / 4
         };
 
-        // 홍채 오프셋 (눈 중심 대비)
-        const offsetX = (irisCenter.x - eyeRegionCenter.x) * 5; // 감도 조절
-        const offsetY = (irisCenter.y - eyeRegionCenter.y) * 5;
+        // 홍채 오프셋을 눈 너비 대비 비율로 정규화 (-1 ~ +1 범위)
+        const normalizedOffsetX = avgEyeWidth > 0
+            ? (irisCenter.x - eyeRegionCenter.x) / (avgEyeWidth / 2)
+            : 0;
+        const normalizedOffsetY = avgEyeWidth > 0
+            ? (irisCenter.y - eyeRegionCenter.y) / (avgEyeWidth / 2)
+            : 0;
 
-        // 화면 좌표로 변환 (거울 모드 고려)
-        const gazeX = window.innerWidth / 2 - offsetX * window.innerWidth;
-        const gazeY = window.innerHeight / 2 + offsetY * window.innerHeight;
+        // 감도 조절 (화면 범위의 비율)
+        const GAZE_SENSITIVITY_X = 0.5; // 화면 너비의 50%까지 커버
+        const GAZE_SENSITIVITY_Y = 0.4; // 화면 높이의 40%까지 커버
+
+        // 화면 좌표 변환 (웹캠이 미러링되므로 x는 반전하지 않음)
+        const gazeX = window.innerWidth / 2 + normalizedOffsetX * window.innerWidth * GAZE_SENSITIVITY_X;
+        const gazeY = window.innerHeight / 2 + normalizedOffsetY * window.innerHeight * GAZE_SENSITIVITY_Y;
 
         // 경계 클램핑
         return {
@@ -278,7 +305,8 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     // EAR 기반 눈 상태 분석
     const analyzeEyeState = useCallback((landmarks) => {
         if (!landmarks || landmarks.length < 478) {
-            return { leftEAR: 0, rightEAR: 0, avgEAR: 0, isBlinking: false };
+            // 얼굴 미검출 시 null 반환 (졸음 감지에서 구분하기 위함)
+            return { leftEAR: null, rightEAR: null, avgEAR: null, isBlinking: false, faceDetected: false };
         }
 
         // 왼쪽 눈 랜드마크 추출
@@ -306,11 +334,25 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         const avgEAR = (leftEAR + rightEAR) / 2;
         const isBlinking = avgEAR < EAR_THRESHOLD;
 
-        return { leftEAR, rightEAR, avgEAR, isBlinking };
+        return { leftEAR, rightEAR, avgEAR, isBlinking, faceDetected: true };
     }, []);
 
-    // 졸음 감지 (PERCLOS 기반)
+    // 졸음 감지 (PERCLOS 기반) - 얼굴이 감지된 경우만 기록
     const detectDrowsiness = useCallback((avgEAR) => {
+        // 얼굴 미검출 시 (avgEAR === null) 졸음 감지 스킵
+        // 중요: 얼굴 미검출은 눈 감음으로 처리하지 않음!
+        if (avgEAR === null) {
+            // 연속 눈 감김 카운터 리셋 (얼굴 미검출은 눈 감김이 아님)
+            closedFrameCountRef.current = 0;
+            return {
+                isDrowsy: false,
+                perclos: earHistoryRef.current.length > 0
+                    ? earHistoryRef.current.filter(e => e.ear < EAR_THRESHOLD).length / earHistoryRef.current.length
+                    : 0,
+                consecutiveClosedFrames: 0
+            };
+        }
+
         const now = Date.now();
 
         // EAR 기록 추가
@@ -369,48 +411,58 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         };
     }, []);
 
-    // 메인 추적 루프
+    // Throttled 상태 업데이트 함수 (Maximum update depth 방지)
+    const updateReactState = useCallback(() => {
+        const data = latestDataRef.current;
+        setIsFaceDetected(data.isFaceDetected);
+        setFaceCount(data.faceCount);
+        setDetectedFaces(data.detectedFaces);
+        setHeadPose(data.headPose);
+        setGazePosition(data.gazePosition);
+        setEyeState(data.eyeState);
+        setIrisPosition(data.irisPosition);
+        setDrowsinessState(data.drowsinessState);
+    }, []);
+
+    // 메인 추적 루프 (ref 기반 - setState 최소화)
     const trackingLoop = useCallback(async () => {
         if (!faceLandmarkerRef.current || !videoRef.current || isCleaningUpRef.current) {
             return;
         }
 
         const video = videoRef.current;
-        const startTimeMs = performance.now();
+        const now = performance.now();
 
         try {
-            const results = faceLandmarkerRef.current.detectForVideo(video, startTimeMs);
+            const results = faceLandmarkerRef.current.detectForVideo(video, now);
 
             if (results.faceLandmarks && results.faceLandmarks.length > 0) {
-                // 얼굴 감지됨
-                setIsFaceDetected(true);
-                setFaceCount(results.faceLandmarks.length);
-                setDetectedFaces(results.faceLandmarks);
+                // 얼굴 감지됨 - ref에 저장 (리렌더링 없음)
+                latestDataRef.current.isFaceDetected = true;
+                latestDataRef.current.faceCount = results.faceLandmarks.length;
+                latestDataRef.current.detectedFaces = results.faceLandmarks;
 
                 // 첫 번째 얼굴 기준 분석
                 const primaryLandmarks = results.faceLandmarks[0];
 
                 // 3D 얼굴 방향
-                const pose = calculateHeadPose(primaryLandmarks);
-                setHeadPose(pose);
+                latestDataRef.current.headPose = calculateHeadPose(primaryLandmarks);
 
                 // 시선 추정
-                const gaze = estimateGazeFromIris(primaryLandmarks, video.videoWidth, video.videoHeight);
-                setGazePosition(gaze);
+                latestDataRef.current.gazePosition = estimateGazeFromIris(primaryLandmarks, video.videoWidth, video.videoHeight);
 
                 // 눈 상태 분석
                 const eye = analyzeEyeState(primaryLandmarks);
-                setEyeState(eye);
+                latestDataRef.current.eyeState = eye;
 
                 // 홍채 위치
-                const iris = extractIrisPosition(primaryLandmarks);
-                setIrisPosition(iris);
+                latestDataRef.current.irisPosition = extractIrisPosition(primaryLandmarks);
 
                 // 졸음 감지
                 const drowsiness = detectDrowsiness(eye.avgEAR);
-                setDrowsinessState(drowsiness);
+                latestDataRef.current.drowsinessState = drowsiness;
 
-                // NO_FACE 리셋
+                // NO_FACE 리셋 (이전에 얼굴이 없었다가 감지된 경우만 로그)
                 if (noFaceStartTimeRef.current !== null) {
                     console.log('✅ Face detected - resetting NO_FACE tracking');
                     noFaceStartTimeRef.current = null;
@@ -447,19 +499,19 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                 }
 
             } else {
-                // 얼굴 미검출
-                setIsFaceDetected(false);
-                setFaceCount(0);
-                setDetectedFaces([]);
+                // 얼굴 미검출 - ref에 저장
+                latestDataRef.current.isFaceDetected = false;
+                latestDataRef.current.faceCount = 0;
+                latestDataRef.current.detectedFaces = [];
 
                 // NO_FACE 지속 시간 추적
-                const now = Date.now();
+                const currentTime = Date.now();
                 if (noFaceStartTimeRef.current === null) {
-                    noFaceStartTimeRef.current = now;
+                    noFaceStartTimeRef.current = currentTime;
                     console.log('⚠️ Face not detected - starting NO_FACE tracking');
                 }
 
-                const duration = now - noFaceStartTimeRef.current;
+                const duration = currentTime - noFaceStartTimeRef.current;
                 setNoFaceDuration(duration);
 
                 // 5초 이상: 경고 표시
@@ -490,6 +542,12 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                 }
             }
 
+            // Throttled 상태 업데이트 (100ms마다 = 10fps)
+            if (now - lastStateUpdateRef.current >= STATE_UPDATE_INTERVAL_MS) {
+                lastStateUpdateRef.current = now;
+                updateReactState();
+            }
+
             // 디버그 오버레이 그리기 (ref 사용으로 최신 상태 반영)
             if (debugModeRef.current && canvasRef.current) {
                 drawDebugOverlay(results);
@@ -509,7 +567,8 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         estimateGazeFromIris,
         analyzeEyeState,
         extractIrisPosition,
-        detectDrowsiness
+        detectDrowsiness,
+        updateReactState
     ]);
 
     // 디버그 오버레이 그리기
@@ -588,26 +647,36 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             });
         }
 
-        // 정보 오버레이
+        // 정보 오버레이 (ref에서 최신 데이터 읽기 - 리렌더링 의존성 제거)
+        const data = latestDataRef.current;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(10, 10, 250, 140);
+        ctx.fillRect(10, 10, 260, 180);
         ctx.fillStyle = '#ffffff';
         ctx.font = '12px monospace';
 
+        // null 안전 처리
+        const leftEAR = data.eyeState?.leftEAR;
+        const rightEAR = data.eyeState?.rightEAR;
+        const earText = leftEAR !== null && leftEAR !== undefined
+            ? `L=${leftEAR.toFixed(3)} R=${rightEAR.toFixed(3)}`
+            : 'N/A (no face)';
+
         const lines = [
-            `Faces: ${faceCount}`,
-            `EAR: L=${eyeState.leftEAR.toFixed(3)} R=${eyeState.rightEAR.toFixed(3)}`,
-            `Blink: ${eyeState.isBlinking ? 'YES' : 'NO'}`,
-            `PERCLOS: ${(drowsinessState.perclos * 100).toFixed(1)}%`,
-            `Drowsy: ${drowsinessState.isDrowsy ? '⚠️ YES' : 'NO'}`,
-            `Head: P=${headPose.pitch.toFixed(1)}° Y=${headPose.yaw.toFixed(1)}° R=${headPose.roll.toFixed(1)}°`
+            `Faces: ${data.faceCount}`,
+            `Face Detected: ${data.isFaceDetected ? '✅ YES' : '❌ NO'}`,
+            `EAR: ${earText}`,
+            `Blink: ${data.eyeState?.isBlinking ? 'YES' : 'NO'}`,
+            `PERCLOS: ${(data.drowsinessState?.perclos * 100 || 0).toFixed(1)}%`,
+            `Drowsy: ${data.drowsinessState?.isDrowsy ? '⚠️ YES' : 'NO'}`,
+            `Head: P=${data.headPose?.pitch?.toFixed(1) || 0}° Y=${data.headPose?.yaw?.toFixed(1) || 0}° R=${data.headPose?.roll?.toFixed(1) || 0}°`,
+            `Gaze: (${Math.round(data.gazePosition?.x || 0)}, ${Math.round(data.gazePosition?.y || 0)})`
         ];
 
         lines.forEach((line, i) => {
-            ctx.fillText(line, 20, 30 + i * 20);
+            ctx.fillText(line, 20, 30 + i * 18);
         });
 
-    }, [faceCount, eyeState, drowsinessState, headPose]);
+    }, []); // 의존성 제거 - ref 사용으로 항상 최신 데이터
 
     // 캘리브레이션 시작 (MediaPipe는 캘리브레이션 불필요)
     const startCalibration = useCallback(() => {
