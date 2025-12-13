@@ -567,7 +567,7 @@ const SubmissionResult = () => {
               </button>
 
               {/* GitHub 커밋 버튼 - 항상 표시 */}
-              {submission.githubCommitUrl ? (
+              {submission.githubCommitUrl && submission.githubCommitUrl.length > 0 ? (
                 // 이미 커밋된 경우: 커밋 보기 링크
                 <a
                   href={submission.githubCommitUrl}
