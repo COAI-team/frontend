@@ -628,7 +628,7 @@ const SubmissionResult = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted">사용 언어:</span>
-                    <span className="font-medium text-main">{submission.language}</span>
+                    <span className="font-medium text-main">{submission.languageName}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted">제출 시간:</span>
@@ -852,7 +852,7 @@ const SubmissionResult = () => {
               </div>
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-muted text-sm">
-                  언어: {submission.language} |
+                  언어: {submission.languageName} |
                   문자 수: {submission.sourceCode?.length || 0}
                 </span>
                 <button

@@ -50,8 +50,8 @@ const ProblemSolve = () => {
   const [solvingStarted, setSolvingStarted] = useState(false); // 풀이 시작 여부
 
   // 에디터 상태
-  // 변경사항 (2025-12-13): selectedLanguageId 추가 (API 호출용)
-  const [selectedLanguage, setSelectedLanguage] = useState('Python 3');  // 표시용 languageName
+  // 변경사항 (2025-12-13): selectedLanguageId 추가 (API 호출용), Python 3 → Python
+  const [selectedLanguage, setSelectedLanguage] = useState('Python');  // 표시용 languageName
   const [selectedLanguageId, setSelectedLanguageId] = useState(null);    // API 호출용 languageId
   const [code, setCode] = useState('');
 
@@ -402,17 +402,15 @@ const ProblemSolve = () => {
         setProblem(problemData);
 
         // 기본 언어 설정 (languageId와 languageName 모두 설정)
-        // 변경사항 (2025-12-13): languageId 지원 추가
+        // 변경사항 (2025-12-13): languageId 지원 추가, Python 3 → Python
         if (problemData.problemType === 'SQL') {
           setSelectedLanguage('SQL');
-          // SQL 언어의 languageId 찾기
           const sqlLang = problemData.availableLanguages?.find(l => l.languageName === 'SQL');
           setSelectedLanguageId(sqlLang?.languageId || null);
         } else {
-          // 기본 언어 설정 (Python 3)
-          setSelectedLanguage('Python 3');
-          // Python 3의 languageId 찾기
-          const pythonLang = problemData.availableLanguages?.find(l => l.languageName === 'Python 3');
+          // 기본 언어 설정 (Python)
+          setSelectedLanguage('Python');
+          const pythonLang = problemData.availableLanguages?.find(l => l.languageName === 'Python');
           setSelectedLanguageId(pythonLang?.languageId || null);
         }
 

@@ -166,7 +166,7 @@ const MySubmissions = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
-                      {submission.language}
+                      {submission.languageName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       {submission.memoryUsage
