@@ -66,12 +66,13 @@ export const startProblemSolve = async (problemId) => {
 
 /**
  * 코드 제출
+ * 변경사항 (2025-12-13): language (String) → languageId (Integer)
  */
 export const submitCode = async (data) => {
     try {
         const res = await axiosInstance.post('/algo/submissions', {
             problemId: data.problemId,
-            language: data.language,
+            languageId: data.languageId,  // LANGUAGES.LANGUAGE_ID (Judge0 API ID)
             sourceCode: data.sourceCode,
             elapsedTime: data.elapsedTime,
             solveMode: data.solveMode || 'BASIC',
@@ -128,12 +129,13 @@ export const getMySubmissions = async (params = {}) => {
 
 /**
  * 코드 테스트 실행 (샘플 테스트케이스만)
+ * 변경사항 (2025-12-13): language (String) → languageId (Integer)
  */
 export const runTestCode = async (data) => {
     try {
         const res = await axiosInstance.post('/algo/submissions/test', {
             problemId: data.problemId,
-            language: data.language,
+            languageId: data.languageId,  // LANGUAGES.LANGUAGE_ID (Judge0 API ID)
             sourceCode: data.sourceCode
         });
         return res.data;
@@ -511,6 +513,17 @@ export const PROBLEM_TYPE_OPTIONS = [
     { value: 'SQL', label: 'DATABASE' },
 ];
 
+/**
+ * 언어 옵션 목록 (필터용)
+ *
+ * @deprecated 문제 풀이 시 사용 가능한 언어는 백엔드에서 동적으로 제공됩니다.
+ * startProblemSolve API 응답의 availableLanguages 필드를 사용하세요.
+ * 각 언어는 { languageId, languageName, timeLimit, memoryLimit } 형태입니다.
+ *
+ * 변경사항 (2025-12-13):
+ * - 백엔드에서 availableLanguages를 languageId (Integer) 기반으로 제공
+ * - 이 상수는 필터링/검색 용도로만 유지
+ */
 export const LANGUAGE_OPTIONS = [
     { value: 'ALL', label: '모든 언어' },
     { value: 'C (Clang)', label: 'C (Clang)' },

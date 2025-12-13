@@ -50,7 +50,9 @@ const ProblemSolve = () => {
   const [solvingStarted, setSolvingStarted] = useState(false); // 풀이 시작 여부
 
   // 에디터 상태
-  const [selectedLanguage, setSelectedLanguage] = useState('Python 3');
+  // 변경사항 (2025-12-13): selectedLanguageId 추가 (API 호출용)
+  const [selectedLanguage, setSelectedLanguage] = useState('Python 3');  // 표시용 languageName
+  const [selectedLanguageId, setSelectedLanguageId] = useState(null);    // API 호출용 languageId
   const [code, setCode] = useState('');
 
   // 타이머 상태 (풀이 시간 - 기본 30분)
@@ -349,9 +351,10 @@ const ProblemSolve = () => {
     setIsTimerRunning(false);
 
     try {
+      // 변경사항 (2025-12-13): language (String) → languageId (Integer)
       const res = await submitCode({
         problemId: Number(problemId),
-        language: selectedLanguage, // DB expects exact language name (e.g., "Python 3", "Java 17")
+        languageId: selectedLanguageId, // LANGUAGES.LANGUAGE_ID (Judge0 API ID)
         sourceCode: code,
         elapsedTime: getElapsedTime(),
         solveMode: currentSolveMode,
@@ -370,7 +373,7 @@ const ProblemSolve = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [code, problemId, selectedLanguage, navigate, getElapsedTime, eyeTrackingEnabled, solveMode, monitoringSessionId, timeLeft]);
+  }, [code, problemId, selectedLanguageId, navigate, getElapsedTime, eyeTrackingEnabled, solveMode, monitoringSessionId, timeLeft]);
 
   // [Phase 2] handleSubmit ref 업데이트 (자동 제출용)
   useEffect(() => {
@@ -398,12 +401,19 @@ const ProblemSolve = () => {
 
         setProblem(problemData);
 
-        // SQL 문제인 경우 기본 언어를 SQL로 설정
+        // 기본 언어 설정 (languageId와 languageName 모두 설정)
+        // 변경사항 (2025-12-13): languageId 지원 추가
         if (problemData.problemType === 'SQL') {
           setSelectedLanguage('SQL');
+          // SQL 언어의 languageId 찾기
+          const sqlLang = problemData.availableLanguages?.find(l => l.languageName === 'SQL');
+          setSelectedLanguageId(sqlLang?.languageId || null);
         } else {
           // 기본 언어 설정 (Python 3)
           setSelectedLanguage('Python 3');
+          // Python 3의 languageId 찾기
+          const pythonLang = problemData.availableLanguages?.find(l => l.languageName === 'Python 3');
+          setSelectedLanguageId(pythonLang?.languageId || null);
         }
 
         setTimeLeft(30 * 60);
@@ -502,17 +512,22 @@ const ProblemSolve = () => {
   };
 
   // 언어 변경 (커스텀 모달 사용 - 전체화면 유지)
-  const handleLanguageChange = (lang) => {
+  // 변경사항 (2025-12-13): languageId도 함께 업데이트
+  const handleLanguageChange = (langName) => {
     // 현재 언어와 같으면 무시
-    if (lang === selectedLanguage) return;
+    if (langName === selectedLanguage) return;
 
     setConfirmModal({
       isOpen: true,
       title: '언어 변경',
-      message: `언어를 ${lang}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`,
+      message: `언어를 ${langName}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`,
       onConfirm: () => {
-        setSelectedLanguage(lang);
-        const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[lang] || lang;
+        setSelectedLanguage(langName);
+        // languageId 찾아서 설정
+        const langInfo = problem?.availableLanguages?.find(l => l.languageName === langName);
+        setSelectedLanguageId(langInfo?.languageId || null);
+
+        const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[langName] || langName;
         setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
       }
@@ -541,9 +556,10 @@ const ProblemSolve = () => {
     }, 300);
 
     try {
+      // 변경사항 (2025-12-13): language (String) → languageId (Integer)
       const res = await runTestCode({
         problemId: Number(problemId),
-        language: selectedLanguage, // DB expects exact language name (e.g., "Python 3", "Java 17")
+        languageId: selectedLanguageId, // LANGUAGES.LANGUAGE_ID (Judge0 API ID)
         sourceCode: code
       });
 
