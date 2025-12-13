@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubmissionResult, completeMission } from '../../service/algorithm/AlgorithmApi';
 import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
+import { commitToGithub, getGithubSettings } from '../../service/github/GithubApi';
+import { AiFillGithub } from 'react-icons/ai';
 
 /**
  * 간단한 마크다운 렌더러 컴포넌트
@@ -188,6 +190,11 @@ const SubmissionResult = () => {
   const [showProblemDescription, setShowProblemDescription] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
+  // GitHub 커밋 상태
+  const [githubSettings, setGithubSettings] = useState(null);
+  const [isCommitting, setIsCommitting] = useState(false);
+  const [commitStatus, setCommitStatus] = useState({ success: null, message: '', url: '' });
+
   // 🎯 데일리 미션 완료 상태
   const [missionStatus, setMissionStatus] = useState({
     completed: false,
@@ -324,6 +331,58 @@ const SubmissionResult = () => {
     return () => stopPolling();
   }, [submissionId]);
 
+  // GitHub 설정 로드
+  useEffect(() => {
+    const loadGithubSettings = async () => {
+      const res = await getGithubSettings();
+      if (!res.error) {
+        setGithubSettings(res);
+      }
+    };
+    loadGithubSettings();
+  }, []);
+
+  // GitHub 커밋 핸들러
+  const handleGithubCommit = async () => {
+    if (!submissionId) return;
+
+    setIsCommitting(true);
+    setCommitStatus({ success: null, message: '', url: '' });
+
+    const res = await commitToGithub(submissionId);
+
+    setIsCommitting(false);
+
+    if (res.error) {
+      setCommitStatus({
+        success: false,
+        message: res.message || '커밋에 실패했습니다.',
+        url: ''
+      });
+    } else {
+      setCommitStatus({
+        success: true,
+        message: '커밋이 완료되었습니다!',
+        url: res.commitUrl || ''
+      });
+      // submission 상태 업데이트 (커밋 URL 반영)
+      setSubmission(prev => ({ ...prev, githubCommitUrl: res.commitUrl }));
+    }
+
+    // 3초 후 메시지 숨기기
+    setTimeout(() => {
+      setCommitStatus(prev => ({ ...prev, success: null }));
+    }, 5000);
+  };
+
+  // GitHub 커밋 버튼 활성화 조건
+  const canCommitToGithub = () => {
+    if (!submission) return false;
+    if (!githubSettings?.githubRepoName) return false; // 저장소 미설정
+    if (submission.githubCommitUrl) return false; // 이미 커밋됨
+    if (submission.judgeResult !== 'AC') return false; // 정답이 아님
+    return true;
+  };
 
   // 결과 색상 및 아이콘
   const getResultInfo = (result) => {
@@ -415,6 +474,42 @@ const SubmissionResult = () => {
               >
                 🔄 다시 풀기
               </button>
+
+              {/* GitHub 커밋 버튼 */}
+              {submission.githubCommitUrl ? (
+                <a
+                  href={submission.githubCommitUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors flex items-center gap-2"
+                >
+                  <AiFillGithub className="w-5 h-5" />
+                  커밋 보기
+                </a>
+              ) : canCommitToGithub() ? (
+                <button
+                  onClick={handleGithubCommit}
+                  disabled={isCommitting}
+                  className={`px-4 py-2 rounded transition-colors flex items-center gap-2 ${
+                    isCommitting
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-800 text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <AiFillGithub className="w-5 h-5" />
+                  {isCommitting ? '커밋 중...' : 'GitHub 커밋'}
+                </button>
+              ) : submission.judgeResult === 'AC' && !githubSettings?.githubRepoName ? (
+                <button
+                  onClick={() => navigate('/mypage/profile')}
+                  className="px-4 py-2 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors flex items-center gap-2"
+                  title="프로필에서 GitHub 저장소를 설정해주세요"
+                >
+                  <AiFillGithub className="w-5 h-5" />
+                  저장소 설정
+                </button>
+              ) : null}
+
               <button
                 onClick={handleShare}
                 disabled={isSharing}
@@ -453,6 +548,35 @@ const SubmissionResult = () => {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* GitHub 커밋 상태 배너 */}
+          {commitStatus.success !== null && (
+            <div className={`rounded-lg shadow-lg p-4 flex items-center justify-between ${
+              commitStatus.success
+                ? 'bg-gradient-to-r from-gray-700 to-gray-800 text-white'
+                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+            }`}>
+              <div className="flex items-center gap-3">
+                <AiFillGithub className="w-8 h-8" />
+                <div>
+                  <h3 className="font-bold">{commitStatus.success ? 'GitHub 커밋 완료!' : '커밋 실패'}</h3>
+                  <p className={`text-sm ${commitStatus.success ? 'text-gray-300' : ''}`}>
+                    {commitStatus.message}
+                  </p>
+                </div>
+              </div>
+              {commitStatus.success && commitStatus.url && (
+                <a
+                  href={commitStatus.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-white text-gray-800 rounded hover:bg-gray-100 transition-colors font-medium"
+                >
+                  커밋 보기 →
+                </a>
+              )}
             </div>
           )}
 

@@ -14,6 +14,7 @@ import {useNavigate} from "react-router-dom";
 import AlertModal from "../../components/modal/AlertModal";
 import ViewModeCard from "../../components/card/ViewModeCard";
 import EditModeCard from "../../components/card/EditModeCard";
+import GitHubAutoCommitSettings from "../../components/github/GitHubAutoCommitSettings";
 
 export default function ProfilePage() {
     const navigate = useNavigate();
@@ -295,6 +296,9 @@ export default function ProfilePage() {
                         </div>
                     </div>
                 </div>
+
+                {/* GitHub 자동커밋 설정 */}
+                <GitHubAutoCommitSettings githubConnected={githubConnected} />
 
                 <div className="border rounded-2xl shadow-sm p-6 flex flex-col gap-4 mt-4">
                     <div className="flex justify-between items-center">
