@@ -1,25 +1,26 @@
 import React from 'react';
 
-<<<<<<< HEAD
-=======
 /**
  * 풀이 모드 선택 화면 컴포넌트
  *
  * 기능:
- * - 기본 모드 / 집중 모드 선택
- * - 모드별 기능 안내
- * - 집중 모드 선택 시 다음 화면에서 시간 설정
+ * - 학습 모드 / 기본 모드 / 집중 모드 선택
+ * - 풀이 시간 프리셋 + 커스텀 시간 설정
+ * - 집중 모드 선택 시 주의사항 안내
  */
->>>>>>> upstream/develop
 const ModeSelectionScreen = ({
   problem,
   problemId,
   selectedMode,
   setSelectedMode,
+  customTimeMinutes,
+  setCustomTimeMinutes,
   onStartSolving,
   onNavigateBack,
   onGoToLearnMode
 }) => {
+  const timePresets = [15, 30, 45, 60];
+
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-100">
       {/* Header */}
@@ -44,12 +45,12 @@ const ModeSelectionScreen = ({
 
       {/* Body */}
       <div className="container mx-auto px-6 py-12">
-<<<<<<< HEAD
         <div className="max-w-5xl mx-auto">
           {/* Time presets */}
           <div className="mb-8 text-center">
             <h2 className="text-lg font-semibold mb-4">풀이 시간 설정</h2>
-            <div className="flex items-center justify-center gap-4">
+
+            <div className="flex items-center justify-center gap-4 flex-wrap">
               {timePresets.map((time) => (
                 <button
                   key={time}
@@ -63,7 +64,8 @@ const ModeSelectionScreen = ({
                   {time}분
                 </button>
               ))}
-              <div className="flex items-center gap-2 ml-4">
+
+              <div className="flex items-center gap-2 ml-0 md:ml-4">
                 <input
                   type="number"
                   min="1"
@@ -82,13 +84,7 @@ const ModeSelectionScreen = ({
           </div>
 
           {/* Mode cards */}
-          <div className="grid grid-cols-3 gap-6">
-=======
-        <div className="max-w-4xl mx-auto">
-          {/* 모드 선택 카드 */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* 기본 모드 */}
->>>>>>> upstream/develop
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <ModeCard
               icon="🎓"
               title="학습 모드"
@@ -109,8 +105,8 @@ const ModeSelectionScreen = ({
               title="기본 모드"
               description="자유롭게 문제를 풀어보세요"
               features={[
-                { text: '타이머 / 스톱워치 선택', enabled: true },
-                { text: '자유로운 시간 설정', enabled: true },
+                { text: '타이머 기능 (수동 시작)', enabled: true },
+                { text: '시간 설정 가능', enabled: true },
                 { text: '시선 추적 없음', enabled: false }
               ]}
               isSelected={selectedMode === 'BASIC'}
@@ -123,7 +119,7 @@ const ModeSelectionScreen = ({
               title="집중 모드"
               description="시선 추적으로 집중력을 관리하세요"
               features={[
-                { text: '타이머 자동 시작', enabled: true },
+                { text: '타이머 자동 시작 (추적 준비 후)', enabled: true },
                 { text: '시선 추적 (캘리브 필요)', enabled: true },
                 { text: '집중도 모니터링', enabled: true }
               ]}
@@ -134,14 +130,10 @@ const ModeSelectionScreen = ({
             />
           </div>
 
-<<<<<<< HEAD
-          {/* Start button */}
-=======
-          {/* 집중 모드 주의사항 안내 */}
+          {/* 집중 모드 주의사항 */}
           {selectedMode === 'FOCUS' && <FocusModeWarning />}
 
-          {/* 시작 버튼 */}
->>>>>>> upstream/develop
+          {/* Start button */}
           <div className="mt-8 text-center">
             <button
               onClick={() => {
@@ -167,16 +159,11 @@ const ModeSelectionScreen = ({
                     ? '학습 모드로 이동'
                     : '모드를 선택해주세요'}
             </button>
+
             <p className="text-gray-500 text-sm mt-3">
-<<<<<<< HEAD
-              {customTimeMinutes}분 동안 문제를 풀게 됩니다.
-=======
-              {selectedMode === 'FOCUS'
-                ? '다음 화면에서 풀이 시간을 설정합니다'
-                : selectedMode === 'BASIC'
-                  ? '풀이 화면에서 타이머 또는 스톱워치를 설정할 수 있습니다'
-                  : '모드를 선택하면 시작할 수 있습니다'}
->>>>>>> upstream/develop
+              {selectedMode === 'LEARN'
+                ? '학습 모드로 이동합니다.'
+                : `${customTimeMinutes}분 동안 문제를 풀게 됩니다.`}
             </p>
           </div>
         </div>
@@ -185,13 +172,8 @@ const ModeSelectionScreen = ({
   );
 };
 
-<<<<<<< HEAD
-=======
 /**
  * 집중 모드 주의사항 안내 컴포넌트
- *
- * 패널티 시스템과 위반 유형을 사전에 안내하여
- * 사용자가 예기치 않은 불이익을 받지 않도록 함
  */
 const FocusModeWarning = () => (
   <div className="mt-6 p-5 bg-amber-900/30 border border-amber-600/50 rounded-xl">
@@ -199,10 +181,9 @@ const FocusModeWarning = () => (
       <span>&#9888;&#65039;</span> 집중 모드 주의사항
     </h3>
 
-    {/* 위반 유형 안내 */}
     <div className="mb-4">
       <h4 className="text-gray-300 font-semibold mb-2">위반으로 기록되는 행위:</h4>
-      <div className="grid grid-cols-2 gap-2 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
         <div className="flex items-center gap-2 text-gray-400">
           <span className="text-red-400">&#8226;</span>
           <span>전체화면 이탈</span>
@@ -226,7 +207,6 @@ const FocusModeWarning = () => (
       </div>
     </div>
 
-    {/* 패널티 단계 안내 */}
     <div className="bg-zinc-800/50 rounded-lg p-3">
       <h4 className="text-gray-300 font-semibold mb-3">패널티 시스템:</h4>
       <div className="space-y-2 text-sm">
@@ -257,10 +237,6 @@ const FocusModeWarning = () => (
   </div>
 );
 
-/**
- * 모드 카드 서브컴포넌트
- */
->>>>>>> upstream/develop
 const ModeCard = ({
   icon,
   title,
