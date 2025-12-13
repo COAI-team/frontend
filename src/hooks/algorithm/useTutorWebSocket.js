@@ -11,6 +11,7 @@ export function useTutorWebSocket({
   userId,
   language,
   code,
+  accessToken,
   enableAuto = false,
   autoIntervalMs = 8000
 }) {
@@ -19,11 +20,13 @@ export function useTutorWebSocket({
   const [isPending, setIsPending] = useState(false);
 
   const clientRef = useRef(null);
+  const subscriptionRef = useRef(null);
   const lastCodeChangeAtRef = useRef(Date.now());
   const pendingAutoRef = useRef(false);
   const lastAutoCodeHashRef = useRef(null);
   const pendingAutoTimeoutRef = useRef(null);
 
+  // 코드 바뀌는 시점 기록
   useEffect(() => {
     lastCodeChangeAtRef.current = Date.now();
   }, [code]);
@@ -43,31 +46,60 @@ export function useTutorWebSocket({
     setIsPending(false);
   }, []);
 
+  // ✅ WebSocket 연결 생성 / 재생성
   useEffect(() => {
-    if (!API_URL || !problemId || !userId) {
+    // 토큰이 아예 없으면 연결 안 함 (익명 차단)
+    if (!API_URL || !problemId || !userId || !accessToken) {
       setStatus('DISCONNECTED');
       return undefined;
     }
 
+    console.log('[TutorWS] init', {
+      API_URL,
+      problemId,
+      userId,
+      hasToken: !!accessToken,
+      tokenPreview: accessToken ? accessToken.slice(0, 15) + '...' : null
+    });
+
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${API_URL}/ws/tutor`),
+      webSocketFactory: () =>
+        new SockJS(`${API_URL}/ws/tutor`, null, { withCredentials: true }),
       reconnectDelay: 5000,
+      // ✅ 여기서 Authorization 헤더에 Bearer 토큰 세팅
+      connectHeaders: {
+        Authorization: `Bearer ${accessToken}`
+      },
       onConnect: () => {
+         console.log('[TutorWS] CONNECTED', {
+           problemId,
+           userId
+         });
         setStatus('CONNECTED');
 
-        client.subscribe(`/topic/tutor.${problemId}`, (frame) => {
-          try {
-            const payload = JSON.parse(frame.body);
-            const enriched = { ...payload, _receivedAt: new Date().toISOString() };
-            if (typeof payload.triggerType === 'string' && payload.triggerType.toUpperCase() === 'AUTO') {
-              pendingAutoRef.current = false;
-            }
-            setMessages((prev) => [...prev.slice(-19), enriched]);
-            setIsPending(false);
-          } catch (err) {
-            console.error('[TutorWS] Failed to parse message', err);
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe();
+        }
+
+      subscriptionRef.current = client.subscribe(`/topic/tutor.${problemId}`, (frame) => {
+        // 🔍 서버가 보낸 원본 메시지 그대로 찍기
+        console.log('[TutorWS] RECEIVED RAW', frame.body);
+
+        try {
+          const payload = JSON.parse(frame.body);
+          const enriched = { ...payload, _receivedAt: new Date().toISOString() };
+
+          if (typeof payload.triggerType === 'string' && payload.triggerType.toUpperCase() === 'AUTO') {
+            pendingAutoRef.current = false;
           }
-        });
+
+          setMessages((prev) => [...prev.slice(-19), enriched]);
+          setIsPending(false);
+        } catch (err) {
+          console.error('[TutorWS] Failed to parse message', err);
+        }
+      });
+
       },
       onStompError: (frame) => {
         console.error('[TutorWS] STOMP error', frame?.headers, frame?.body);
@@ -78,6 +110,7 @@ export function useTutorWebSocket({
         setStatus('ERROR');
       },
       onWebSocketClose: () => {
+        console.log('[TutorWS] closed');
         setStatus('DISCONNECTED');
       }
     });
@@ -86,21 +119,23 @@ export function useTutorWebSocket({
     client.activate();
     clientRef.current = client;
 
-      return () => {
-        disconnect();
-      };
-  }, [problemId, userId, disconnect]);
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+      disconnect();
+    };
+    // ✅ accessToken / API_URL까지 의존성에 추가
+  }, [problemId, userId, accessToken, disconnect]);
 
   const sendMessage = useCallback(
     ({ triggerType, message: userMessage, judgeMeta }) => {
-      if (!problemId || !userId) {
-        return;
-      }
+      if (status !== 'CONNECTED') return;
+      if (!problemId || !userId) return;
 
       const client = clientRef.current;
-      if (!client || !client.connected) {
-        return;
-      }
+      if (!client || !client.connected) return;
 
       setIsPending(true);
 
@@ -121,18 +156,18 @@ export function useTutorWebSocket({
         body: JSON.stringify(payload)
       });
     },
-    [problemId, userId, language, code]
+    [problemId, userId, language, code, status]
   );
 
   const sendUserQuestion = useCallback(
     (question, judgeMeta) => {
       if (!question) return;
-      sendMessage({ triggerType: 'USER', message: question, judgeMeta }); // QUESTION -> USER
+      sendMessage({ triggerType: 'USER', message: question, judgeMeta });
     },
     [sendMessage]
   );
 
-
+  // AUTO 모드
   useEffect(() => {
     const AUTO_DEBOUNCE_MS = 3000;
 
@@ -147,27 +182,28 @@ export function useTutorWebSocket({
 
     const interval = setInterval(() => {
       const now = Date.now();
-      if (!userId) {
-        return;
-      }
-      if (pendingAutoRef.current) {
-        return;
-      }
-      if (!code || !code.trim()) {
-        return;
-      }
+      if (!userId) return;
+      if (pendingAutoRef.current) return;
+      if (!code || !code.trim()) return;
+
+      // 코드 바뀐지 얼마 안 됐으면 대기
       if (now - lastCodeChangeAtRef.current < AUTO_DEBOUNCE_MS) {
         return;
       }
 
       const currentHash = computeHash(code);
-      if (lastAutoCodeHashRef.current && lastAutoCodeHashRef.current === currentHash) {
+      if (
+        lastAutoCodeHashRef.current &&
+        lastAutoCodeHashRef.current === currentHash
+      ) {
         return;
       }
 
       pendingAutoRef.current = true;
       lastAutoCodeHashRef.current = currentHash;
+
       sendMessage({ triggerType: 'AUTO' });
+
       if (pendingAutoTimeoutRef.current) {
         clearTimeout(pendingAutoTimeoutRef.current);
       }
