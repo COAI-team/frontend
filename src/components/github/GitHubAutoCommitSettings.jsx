@@ -79,12 +79,14 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
 
     // 저장소 선택
     const handleSelectRepo = async (repo) => {
-        const res = await selectGithubRepository(repo.name, repo.htmlUrl);
+        // GitHub API는 snake_case (html_url)로 반환
+        const repoUrl = repo.html_url || repo.htmlUrl;
+        const res = await selectGithubRepository(repo.name, repoUrl);
         if (!res.error) {
             setSettings(prev => ({
                 ...prev,
                 githubRepoName: repo.name,
-                githubRepoUrl: repo.htmlUrl
+                githubRepoUrl: repoUrl
             }));
             setShowRepoModal(false);
             showMessage("success", `${repo.name} 저장소가 선택되었습니다.`);
@@ -105,10 +107,12 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
         setCreating(false);
 
         if (!res.error && res.repository) {
+            // GitHub API는 snake_case (html_url)로 반환
+            const repoUrl = res.repository.html_url || res.repository.htmlUrl;
             setSettings(prev => ({
                 ...prev,
                 githubRepoName: res.repository.name,
-                githubRepoUrl: res.repository.htmlUrl
+                githubRepoUrl: repoUrl
             }));
             setShowRepoModal(false);
             setNewRepoName("");
@@ -307,7 +311,7 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
                                             <div className="flex items-center justify-between">
                                                 <div>
                                                     <span className="font-medium">{repo.name}</span>
-                                                    {repo.isPrivate && (
+                                                    {(repo.private || repo.isPrivate) && (
                                                         <span className="ml-2 text-xs px-2 py-0.5 bg-gray-200 dark:bg-zinc-600 rounded">
                                                             Private
                                                         </span>

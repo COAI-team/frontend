@@ -207,6 +207,12 @@ const SubmissionResult = () => {
   const pollingInterval = useRef(null);
   // 미션 완료 중복 호출 방지
   const missionCompletedRef = useRef(false);
+  // 자동 커밋 중복 호출 방지
+  const autoCommitTriggeredRef = useRef(false);
+  // 이전 AI 피드백 상태 추적 (자동 커밋 윈도우 판단용)
+  const prevAiFeedbackStatusRef = useRef(null);
+  // 자동 커밋 윈도우 활성화 여부 (AI 완료 후 3초 이내만 true)
+  const [autoCommitWindowActive, setAutoCommitWindowActive] = useState(false);
 
   // 데이터 조회 함수
   const fetchResult = async () => {
@@ -298,6 +304,29 @@ const SubmissionResult = () => {
         }
       }
 
+      // 🚀 AI 피드백이 방금 완료된 경우 자동 커밋 윈도우 활성화 (3초)
+      const prevAiStatus = prevAiFeedbackStatusRef.current;
+      if (
+        data.aiFeedbackStatus === 'COMPLETED' &&
+        prevAiStatus !== null &&
+        prevAiStatus !== 'COMPLETED' &&
+        data.judgeResult === 'AC' &&
+        !data.githubCommitUrl &&
+        !autoCommitTriggeredRef.current
+      ) {
+        console.log('🚀 자동 커밋 윈도우 활성화 (3초)');
+        setAutoCommitWindowActive(true);
+
+        // 3초 후 윈도우 비활성화
+        setTimeout(() => {
+          console.log('⏰ 자동 커밋 윈도우 만료');
+          setAutoCommitWindowActive(false);
+        }, 3000);
+      }
+
+      // 이전 AI 상태 업데이트
+      prevAiFeedbackStatusRef.current = data.aiFeedbackStatus;
+
       // 둘 다 완료되면 폴링 중지
       if (isJudgeComplete && isAiComplete) {
         stopPolling();
@@ -342,7 +371,58 @@ const SubmissionResult = () => {
     loadGithubSettings();
   }, []);
 
-  // GitHub 커밋 핸들러
+  // 🚀 자동 커밋 처리 (AC + AI 완료 + 자동커밋 활성화 + 윈도우 활성화 시)
+  useEffect(() => {
+    const performAutoCommit = async () => {
+      // 자동 커밋 조건 체크
+      if (!submission) return;
+      if (!githubSettings?.autoCommitEnabled) return; // 자동 커밋 비활성화
+      if (!githubSettings?.githubRepoName) return; // 저장소 미설정
+      if (submission.githubCommitUrl) return; // 이미 커밋됨
+      if (submission.judgeResult !== 'AC') return; // 정답이 아님
+      if (submission.aiFeedbackStatus !== 'COMPLETED') return; // AI 피드백 미완료
+      if (autoCommitTriggeredRef.current) return; // 이미 자동 커밋 시도함
+      if (isCommitting) return; // 커밋 진행 중
+      if (!autoCommitWindowActive) return; // ⏰ 자동 커밋 윈도우 비활성화 (이전 제출 방지)
+
+      // 자동 커밋 실행
+      autoCommitTriggeredRef.current = true;
+      console.log('🚀 자동 커밋 시작...');
+
+      setIsCommitting(true);
+      setCommitStatus({ success: null, message: '자동 커밋 중...', url: '' });
+
+      const res = await commitToGithub(submissionId);
+
+      setIsCommitting(false);
+
+      if (res.error) {
+        setCommitStatus({
+          success: false,
+          message: res.message || '자동 커밋에 실패했습니다.',
+          url: ''
+        });
+        console.error('❌ 자동 커밋 실패:', res.message);
+      } else {
+        setCommitStatus({
+          success: true,
+          message: '자동 커밋이 완료되었습니다!',
+          url: res.commitUrl || ''
+        });
+        setSubmission(prev => ({ ...prev, githubCommitUrl: res.commitUrl }));
+        console.log('✅ 자동 커밋 완료:', res.commitUrl);
+      }
+
+      // 5초 후 메시지 숨기기
+      setTimeout(() => {
+        setCommitStatus(prev => ({ ...prev, success: null }));
+      }, 5000);
+    };
+
+    performAutoCommit();
+  }, [submission?.judgeResult, submission?.aiFeedbackStatus, submission?.githubCommitUrl, githubSettings?.autoCommitEnabled, githubSettings?.githubRepoName, autoCommitWindowActive]);
+
+  // GitHub 커밋 핸들러 (수동)
   const handleGithubCommit = async () => {
     if (!submissionId) return;
 
@@ -381,7 +461,18 @@ const SubmissionResult = () => {
     if (!githubSettings?.githubRepoName) return false; // 저장소 미설정
     if (submission.githubCommitUrl) return false; // 이미 커밋됨
     if (submission.judgeResult !== 'AC') return false; // 정답이 아님
+    if (submission.aiFeedbackStatus !== 'COMPLETED') return false; // AI 피드백 미완료
     return true;
+  };
+
+  // GitHub 커밋 버튼 비활성화 이유
+  const getGithubButtonDisabledReason = () => {
+    if (!submission) return '';
+    if (submission.githubCommitUrl) return ''; // 이미 커밋됨 (링크로 표시)
+    if (!githubSettings?.githubRepoName) return '저장소 미설정';
+    if (submission.judgeResult !== 'AC') return '정답만 커밋 가능';
+    if (submission.aiFeedbackStatus !== 'COMPLETED') return 'AI 분석 대기 중...';
+    return '';
   };
 
   // 결과 색상 및 아이콘
@@ -475,8 +566,9 @@ const SubmissionResult = () => {
                 🔄 다시 풀기
               </button>
 
-              {/* GitHub 커밋 버튼 */}
+              {/* GitHub 커밋 버튼 - 항상 표시 */}
               {submission.githubCommitUrl ? (
+                // 이미 커밋된 경우: 커밋 보기 링크
                 <a
                   href={submission.githubCommitUrl}
                   target="_blank"
@@ -486,7 +578,62 @@ const SubmissionResult = () => {
                   <AiFillGithub className="w-5 h-5" />
                   커밋 보기
                 </a>
+              ) : !githubSettings?.githubRepoName ? (
+                // 저장소 미설정: 설정 페이지로 이동
+                <button
+                  onClick={() => navigate('/mypage/profile')}
+                  className="px-4 py-2 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors flex items-center gap-2"
+                  title="프로필에서 GitHub 저장소를 설정해주세요"
+                >
+                  <AiFillGithub className="w-5 h-5" />
+                  저장소 설정
+                </button>
+              ) : githubSettings?.autoCommitEnabled && (isCommitting || submission.judgeResult !== 'AC' || submission.aiFeedbackStatus !== 'COMPLETED' || autoCommitWindowActive) ? (
+                // 자동 커밋 활성화 상태 (자동 커밋 진행 중이거나 윈도우 활성화 중)
+                isCommitting ? (
+                  // 자동 커밋 진행 중
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-800 text-white rounded cursor-wait flex items-center gap-2 animate-pulse"
+                  >
+                    <AiFillGithub className="w-5 h-5 animate-spin" />
+                    자동 커밋 중...
+                  </button>
+                ) : submission.judgeResult !== 'AC' ? (
+                  // 정답이 아님
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed flex items-center gap-2"
+                    title="정답(AC)일 때만 자동 커밋됩니다"
+                  >
+                    <AiFillGithub className="w-5 h-5" />
+                    정답만 커밋 가능
+                  </button>
+                ) : submission.aiFeedbackStatus !== 'COMPLETED' ? (
+                  // AI 피드백 대기 중
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-600 text-gray-300 rounded cursor-wait flex items-center gap-2"
+                    title="AI 분석 완료 후 자동으로 커밋됩니다"
+                  >
+                    <AiFillGithub className="w-5 h-5" />
+                    <span className="flex items-center gap-1">
+                      <span className="animate-spin text-xs">⏳</span>
+                      자동 커밋 대기 중
+                    </span>
+                  </button>
+                ) : (
+                  // 자동 커밋 조건 충족 (곧 커밋됨)
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-green-600 text-white rounded cursor-wait flex items-center gap-2"
+                  >
+                    <AiFillGithub className="w-5 h-5" />
+                    자동 커밋 준비 중...
+                  </button>
+                )
               ) : canCommitToGithub() ? (
+                // 수동 커밋 가능: 활성화된 버튼
                 <button
                   onClick={handleGithubCommit}
                   disabled={isCommitting}
@@ -499,16 +646,17 @@ const SubmissionResult = () => {
                   <AiFillGithub className="w-5 h-5" />
                   {isCommitting ? '커밋 중...' : 'GitHub 커밋'}
                 </button>
-              ) : submission.judgeResult === 'AC' && !githubSettings?.githubRepoName ? (
+              ) : (
+                // 수동 커밋 불가: 비활성화된 버튼 (항상 표시)
                 <button
-                  onClick={() => navigate('/mypage/profile')}
-                  className="px-4 py-2 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors flex items-center gap-2"
-                  title="프로필에서 GitHub 저장소를 설정해주세요"
+                  disabled
+                  className="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed flex items-center gap-2"
+                  title={getGithubButtonDisabledReason()}
                 >
                   <AiFillGithub className="w-5 h-5" />
-                  저장소 설정
+                  <span>{getGithubButtonDisabledReason() || 'GitHub 커밋'}</span>
                 </button>
-              ) : null}
+              )}
 
               <button
                 onClick={handleShare}
