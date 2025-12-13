@@ -163,19 +163,6 @@ const CodeBlock = ({ title, icon, content }) => {
 };
 
 /**
- * 난이도 배지 스타일 (라이트 테마)
- */
-const getDifficultyBadge = (diff) => {
-  const styles = {
-    'BRONZE': 'bg-orange-100 text-orange-800 border-orange-300',
-    'SILVER': 'bg-gray-100 text-gray-800 border-gray-300',
-    'GOLD': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    'PLATINUM': 'bg-cyan-100 text-cyan-800 border-cyan-300'
-  };
-  return styles[diff] || 'bg-gray-100 text-gray-700 border-gray-300';
-};
-
-/**
  * 제출 결과 페이지 - 실시간 업데이트 버전
  */
 const SubmissionResult = () => {
@@ -358,6 +345,7 @@ const SubmissionResult = () => {
       startPolling();
     }
     return () => stopPolling();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId]);
 
   // GitHub 설정 로드
@@ -420,6 +408,7 @@ const SubmissionResult = () => {
     };
 
     performAutoCommit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submission?.judgeResult, submission?.aiFeedbackStatus, submission?.githubCommitUrl, githubSettings?.autoCommitEnabled, githubSettings?.githubRepoName, autoCommitWindowActive]);
 
   // GitHub 커밋 핸들러 (수동)
@@ -734,7 +723,9 @@ const SubmissionResult = () => {
               {/* 문제 정보 */}
               <div>
                 <h3 className="text-sm font-medium text-muted mb-2">📝 문제</h3>
-                <p className="text-lg font-semibold text-main">{submission.problemTitle}</p>
+                <p className="text-lg font-semibold text-main">
+                  <span className="text-blue-600 dark:text-blue-400">#{submission.problemId}</span> {submission.problemTitle}
+                </p>
                 <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-zinc-700 text-sub`}>
                   {submission.difficulty || 'N/A'}
                 </span>
@@ -796,9 +787,6 @@ const SubmissionResult = () => {
                 <div className="flex items-center gap-3">
                   <span className="text-xl">📋</span>
                   <h3 className="text-lg font-semibold text-main">문제 설명</h3>
-                  <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(submission.difficulty)}`}>
-                    {submission.difficulty || 'N/A'}
-                  </span>
                 </div>
                 <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm flex items-center gap-1">
                   <span>{showProblemDescription ? '접기' : '펼치기'}</span>
@@ -884,110 +872,137 @@ const SubmissionResult = () => {
 
           {/* 상세 결과 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 실행 결과 */}
-            <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-main mb-4">📈 실행 결과</h3>
+            {/* 왼쪽 열: 실행 결과 + 제출된 코드 */}
+            <div className="space-y-6">
+              {/* 실행 결과 */}
+              <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-main mb-4">📈 실행 결과</h3>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted">실행 시간:</span>
-                    <span className="font-mono text-main">{submission.executionTime ? `${submission.executionTime}s` : '-'}</span>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted">실행 시간:</span>
+                      <span className="font-mono text-main">{submission.executionTime ? `${submission.executionTime}s` : '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted">메모리 사용량:</span>
+                      <span className="font-mono text-main">{submission.memoryUsage ? `${submission.memoryUsage}KB` : '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted">사용 언어:</span>
+                      <span className="font-medium text-main">{submission.languageName}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted">제출 시간:</span>
+                      <span className="font-mono text-main">{new Date(submission.submittedAt).toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted">메모리 사용량:</span>
-                    <span className="font-mono text-main">{submission.memoryUsage ? `${submission.memoryUsage}KB` : '-'}</span>
+
+                  {/* 테스트케이스 상세 결과 */}
+                  {submission.testCaseResults && submission.testCaseResults.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-sm font-semibold text-main mb-3">📋 테스트케이스 결과</h4>
+                      <div className="space-y-3">
+                        {submission.testCaseResults.map((tc, idx) => (
+                          <div key={idx} className="border dark:border-zinc-600 rounded-lg p-3 bg-gray-50 dark:bg-zinc-700">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-sub">
+                                Test Case #{tc.testCaseNumber || idx + 1}
+                              </span>
+                              {tc.result === 'PASS' && (
+                                <span className="text-green-600 text-sm flex items-center gap-1">
+                                  <span>✅</span>
+                                  <span>통과</span>
+                                </span>
+                              )}
+                              {tc.result === 'FAIL' && (
+                                <span className="text-red-600 text-sm flex items-center gap-1">
+                                  <span>❌</span>
+                                  <span>실패</span>
+                                </span>
+                              )}
+                              {tc.result === 'ERROR' && (
+                                <span className="text-orange-600 text-sm flex items-center gap-1">
+                                  <span>⚠️</span>
+                                  <span>에러</span>
+                                </span>
+                              )}
+                              {!tc.result && (
+                                <span className="text-muted text-sm flex items-center gap-1">
+                                  <span className="animate-spin">⏳</span>
+                                  <span>채점 중...</span>
+                                </span>
+                              )}
+                            </div>
+                            {/* Progress bar */}
+                            <div className="w-full bg-gray-200 dark:bg-zinc-600 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full transition-all duration-300 ${tc.result === 'PASS'
+                                  ? 'bg-green-500'
+                                  : tc.result === 'FAIL'
+                                    ? 'bg-red-500'
+                                    : tc.result === 'ERROR'
+                                      ? 'bg-orange-500'
+                                      : 'bg-blue-500 animate-pulse'
+                                  }`}
+                                style={{ width: tc.result ? '100%' : '60%' }}
+                              ></div>
+                            </div>
+                            {tc.executionTime && (
+                              <div className="text-xs text-muted mt-1">
+                                실행시간: {tc.executionTime}ms
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 채점 진행 중일 때 전체 프로그레스 바 */}
+                  {submission.judgeStatus === 'JUDGING' && (
+                    <div className="mt-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-sub">전체 채점 진행률</span>
+                        <span className="text-sm text-muted">
+                          {submission.passedTestCount || 0}/{submission.totalTestCount || 0}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-500 animate-pulse"
+                          style={{
+                            width: `${submission.totalTestCount ? ((submission.passedTestCount || 0) / submission.totalTestCount) * 100 : 0}%`
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 제출된 코드 */}
+              <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-main mb-4">💻 제출된 코드</h3>
+                  <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                    <pre className="text-gray-100 text-sm font-mono">
+                      <code>{submission.sourceCode}</code>
+                    </pre>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted">사용 언어:</span>
-                    <span className="font-medium text-main">{submission.languageName}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted">제출 시간:</span>
-                    <span className="font-mono text-main">{new Date(submission.submittedAt).toLocaleString()}</span>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-muted text-sm">
+                      언어: {submission.languageName} |
+                      문자 수: {submission.sourceCode?.length || 0}
+                    </span>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(submission.sourceCode)}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
+                    >
+                      📋 코드 복사
+                    </button>
                   </div>
                 </div>
-
-                {/* 테스트케이스 상세 결과 */}
-                {submission.testCaseResults && submission.testCaseResults.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="text-sm font-semibold text-main mb-3">📋 테스트케이스 결과</h4>
-                    <div className="space-y-3">
-                      {submission.testCaseResults.map((tc, idx) => (
-                        <div key={idx} className="border dark:border-zinc-600 rounded-lg p-3 bg-gray-50 dark:bg-zinc-700">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-sub">
-                              Test Case #{tc.testCaseNumber || idx + 1}
-                            </span>
-                            {tc.result === 'PASS' && (
-                              <span className="text-green-600 text-sm flex items-center gap-1">
-                                <span>✅</span>
-                                <span>통과</span>
-                              </span>
-                            )}
-                            {tc.result === 'FAIL' && (
-                              <span className="text-red-600 text-sm flex items-center gap-1">
-                                <span>❌</span>
-                                <span>실패</span>
-                              </span>
-                            )}
-                            {tc.result === 'ERROR' && (
-                              <span className="text-orange-600 text-sm flex items-center gap-1">
-                                <span>⚠️</span>
-                                <span>에러</span>
-                              </span>
-                            )}
-                            {!tc.result && (
-                              <span className="text-muted text-sm flex items-center gap-1">
-                                <span className="animate-spin">⏳</span>
-                                <span>채점 중...</span>
-                              </span>
-                            )}
-                          </div>
-                          {/* Progress bar */}
-                          <div className="w-full bg-gray-200 dark:bg-zinc-600 rounded-full h-1.5">
-                            <div
-                              className={`h-1.5 rounded-full transition-all duration-300 ${tc.result === 'PASS'
-                                ? 'bg-green-500'
-                                : tc.result === 'FAIL'
-                                  ? 'bg-red-500'
-                                  : tc.result === 'ERROR'
-                                    ? 'bg-orange-500'
-                                    : 'bg-blue-500 animate-pulse'
-                                }`}
-                              style={{ width: tc.result ? '100%' : '60%' }}
-                            ></div>
-                          </div>
-                          {tc.executionTime && (
-                            <div className="text-xs text-muted mt-1">
-                              실행시간: {tc.executionTime}ms
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 채점 진행 중일 때 전체 프로그레스 바 */}
-                {submission.judgeStatus === 'JUDGING' && (
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-sub">전체 채점 진행률</span>
-                      <span className="text-sm text-muted">
-                        {submission.passedTestCount || 0}/{submission.totalTestCount || 0}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-500 animate-pulse"
-                        style={{
-                          width: `${submission.totalTestCount ? ((submission.passedTestCount || 0) / submission.totalTestCount) * 100 : 0}%`
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -1112,30 +1127,6 @@ const SubmissionResult = () => {
               </div>
             </div>
           )}
-
-          {/* 제출된 코드 */}
-          <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-main mb-4">💻 제출된 코드</h3>
-              <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-                <pre className="text-gray-100 text-sm font-mono">
-                  <code>{submission.sourceCode}</code>
-                </pre>
-              </div>
-              <div className="mt-4 flex items-center justify-between">
-                <span className="text-muted text-sm">
-                  언어: {submission.languageName} |
-                  문자 수: {submission.sourceCode?.length || 0}
-                </span>
-                <button
-                  onClick={() => navigator.clipboard.writeText(submission.sourceCode)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
-                >
-                  📋 코드 복사
-                </button>
-              </div>
-            </div>
-          </div>
 
         </div>
       </div>
