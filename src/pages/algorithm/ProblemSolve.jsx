@@ -195,6 +195,12 @@ const ProblemSolve = () => {
 
   // 모드 선택 완료 및 풀이 시작
   const handleStartSolving = useCallback((mode) => {
+    // 학습 모드: 별도 페이지로 이동
+    if (mode === 'LEARN') {
+      navigate(`/algorithm/problems/${problemId}/learn`);
+      return;
+    }
+
     setSelectedMode(mode);
     setShowModeSelection(false);
 
@@ -216,7 +222,7 @@ const ProblemSolve = () => {
       // 타이머 초기값 설정 (카운트다운용)
       setTimeLeft(customTimeMinutes * 60);
     }
-  }, [customTimeMinutes, enterFullscreen]);
+  }, [customTimeMinutes, enterFullscreen, navigate, problemId]);
 
 
   // 집중 모드에서 시선 추적 준비 완료 시 타이머 자동 시작

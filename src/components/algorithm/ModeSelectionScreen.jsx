@@ -28,7 +28,7 @@ const ModeSelectionScreen = ({
   const timePresets = [15, 30, 45, 60];
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-100">
-      {/* 헤더 */}
+      {/* Header */}
       <div className="bg-zinc-800 border-b border-zinc-700">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -48,19 +48,33 @@ const ModeSelectionScreen = ({
         </div>
       </div>
 
-      {/* 모드 선택 컨테이너 */}
+      {/* Body */}
       <div className="container mx-auto px-6 py-12">
-        <div className="max-w-4xl mx-auto">
-          {/* 모드 선택 카드 */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* 기본 모드 */}
+        <div className="max-w-5xl mx-auto">
+          {/* Mode cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <ModeCard
-              icon="📝"
+              icon="🎓"
+              title="학습 모드"
+              description="튜터와 함께 연습해보세요."
+              features={[
+                { text: '힌트 제공 (Pro: 자동, Basic: 질문)', enabled: true },
+                { text: '연습용 페이지 (채점 기록과 별도)', enabled: true },
+                { text: '타이머/시선 추적 없음', enabled: true }
+              ]}
+              isSelected={selectedMode === 'LEARN'}
+              onClick={() => setSelectedMode('LEARN')}
+              selectedBorderClass="border-green-500 bg-green-900/20"
+              note="Basic / Pro 구독에서만 이용 가능합니다."
+            />
+
+            <ModeCard
+              icon="✅"
               title="기본 모드"
               description="자유롭게 문제를 풀어보세요"
               features={[
-                { text: '타이머 / 스톱워치 선택', enabled: true },
-                { text: '자유로운 시간 설정', enabled: true },
+                { text: '타이머 기능 (수동 시작)', enabled: true },
+                { text: '시간 설정 가능', enabled: true },
                 { text: '시선 추적 없음', enabled: false }
               ]}
               isSelected={selectedMode === 'BASIC'}
@@ -68,24 +82,23 @@ const ModeSelectionScreen = ({
               selectedBorderClass="border-blue-500 bg-blue-900/20"
             />
 
-            {/* 집중 모드 */}
             <ModeCard
               icon="👁️"
               title="집중 모드"
               description="시선 추적으로 집중력을 관리하세요"
               features={[
-                { text: '타이머 자동 시작', enabled: true },
-                { text: '시선 추적 (웹캠 필요)', enabled: true },
+                { text: '타이머 자동 시작 (추적 준비 후)', enabled: true },
+                { text: '시선 추적 (캘리브 필요)', enabled: true },
                 { text: '집중도 모니터링', enabled: true }
               ]}
               isSelected={selectedMode === 'FOCUS'}
               onClick={() => setSelectedMode('FOCUS')}
               selectedBorderClass="border-purple-500 bg-purple-900/20"
-              note="* 점수에는 영향 없음 (정보 제공 목적)"
+              note="* 침대/소파는 권장 안함 (정서 집중 목적)"
             />
           </div>
 
-          {/* 집중 모드 주의사항 안내 */}
+          {/* 집중 모드 주의사항 */}
           {selectedMode === 'FOCUS' && <FocusModeWarning />}
 
           {/* 집중 모드 타이머 설정 */}
@@ -152,7 +165,10 @@ const ModeSelectionScreen = ({
           {/* 시작 버튼 */}
           <div className="mt-8 text-center">
             <button
-              onClick={() => onStartSolving(selectedMode)}
+              onClick={() => {
+                if (!selectedMode) return;
+                onStartSolving(selectedMode);
+              }}
               disabled={!selectedMode}
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
                 selectedMode
@@ -164,14 +180,19 @@ const ModeSelectionScreen = ({
                 ? '집중 모드로 시작'
                 : selectedMode === 'BASIC'
                   ? '기본 모드로 시작'
-                  : '모드를 선택해주세요'}
+                  : selectedMode === 'LEARN'
+                    ? '학습 모드로 이동'
+                    : '모드를 선택해주세요'}
             </button>
+
             <p className="text-gray-500 text-sm mt-3">
               {selectedMode === 'FOCUS'
-                ? '전체화면 모드로 전환되며 시선 추적이 활성화됩니다'
+                ? `전체화면 모드로 전환되며 시선 추적이 활성화됩니다 (${customTimeMinutes}분)`
                 : selectedMode === 'BASIC'
                   ? '풀이 화면에서 타이머 또는 스톱워치를 설정할 수 있습니다'
-                  : '모드를 선택하면 시작할 수 있습니다'}
+                  : selectedMode === 'LEARN'
+                    ? '튜터와 함께 문제를 연습할 수 있습니다'
+                    : '모드를 선택하면 시작할 수 있습니다'}
             </p>
           </div>
         </div>
@@ -182,9 +203,6 @@ const ModeSelectionScreen = ({
 
 /**
  * 집중 모드 주의사항 안내 컴포넌트
- *
- * 패널티 시스템과 위반 유형을 사전에 안내하여
- * 사용자가 예기치 않은 불이익을 받지 않도록 함
  */
 const FocusModeWarning = () => (
   <div className="mt-6 p-5 bg-amber-900/30 border border-amber-600/50 rounded-xl">
@@ -192,10 +210,9 @@ const FocusModeWarning = () => (
       <span>&#9888;&#65039;</span> 집중 모드 주의사항
     </h3>
 
-    {/* 위반 유형 안내 */}
     <div className="mb-4">
       <h4 className="text-gray-300 font-semibold mb-2">위반으로 기록되는 행위:</h4>
-      <div className="grid grid-cols-2 gap-2 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
         <div className="flex items-center gap-2 text-gray-400">
           <span className="text-red-400">&#8226;</span>
           <span>전체화면 이탈</span>
@@ -219,7 +236,6 @@ const FocusModeWarning = () => (
       </div>
     </div>
 
-    {/* 패널티 단계 안내 */}
     <div className="bg-zinc-800/50 rounded-lg p-3">
       <h4 className="text-gray-300 font-semibold mb-3">패널티 시스템:</h4>
       <div className="space-y-2 text-sm">
@@ -250,9 +266,6 @@ const FocusModeWarning = () => (
   </div>
 );
 
-/**
- * 모드 카드 서브컴포넌트
- */
 const ModeCard = ({
   icon,
   title,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getSubmissionResult, completeMission } from '../../service/algorithm/AlgorithmApi';
+import { getSubmissionResult, completeMission, updateSharingStatus } from '../../service/algorithm/AlgorithmApi';
 import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 import { commitToGithub, getGithubSettings } from '../../service/github/GithubApi';
 import { AiFillGithub } from 'react-icons/ai';
@@ -481,12 +481,27 @@ const SubmissionResult = () => {
   const parsedSections = useParsedProblem(submission?.problemDescription);
 
   // 공유하기
-  const handleShare = () => {
+  const handleShare = async () => {
+    if (!submission) return;
+    
     setIsSharing(true);
-    setTimeout(() => {
+    
+    try {
+      const response = await updateSharingStatus(submission.submissionId, true);
+      
+      if (response.error) {
+        alert(response.message || '공유 설정에 실패했습니다.');
+      } else {
+        // 성공 시 submission 상태 업데이트
+        setSubmission(prev => ({ ...prev, isShared: true }));
+        alert('✅ 제출 결과를 공유했습니다!');
+      }
+    } catch (error) {
+      console.error('공유하기 실패:', error);
+      alert('공유 설정 중 오류가 발생했습니다.');
+    } finally {
       setIsSharing(false);
-      alert('개발 중입니다! 공유 기능이 곧 구현됩니다.');
-    }, 1500);
+    }
   };
 
   // 다시 풀기

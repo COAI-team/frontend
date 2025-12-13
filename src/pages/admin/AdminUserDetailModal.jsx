@@ -39,6 +39,26 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
 
   const isSubscribed = user.subscriptionStatus === "ACTIVE" ? true : false;
 
+  const handleBanUser = async (userId) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/banuser/${userId}`);
+      if (res.data.message === "success") {
+        console.log("✅ 추방 성공:", res.data.data); // 2025-12-11T17:46:29
+
+        // ✅ user 상태에 deletedAt 바로 반영
+        setUser((prev) => ({
+          ...prev,
+          userDeleteAt: res.data.data, // 서버에서 받은 시간값
+        }));
+
+        setStatusMessage("🚫 유저가 성공적으로 추방되었습니다.");
+      }
+    } catch (err) {
+      console.error("❌ 유저 추방 오류:", err);
+      setStatusMessage("❌ 추방 중 오류가 발생했습니다.");
+    }
+  };
+
   // 구독 결제가 이루어졌는지 확인
   const handleCheckSubscription = async () => {
     try {
@@ -71,9 +91,19 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
         <h3 style={styles.title}>👤 유저 상세정보</h3>
 
         <div style={styles.infoBox}>
-          <p>
-            <strong>ID:</strong> {user.userId}
-          </p>
+          <div style={styles.idRow}>
+            <p style={styles.idText}>
+              <strong>ID:</strong> {user.userId}
+            </p>
+            {!user.userDeleteAt && (
+              <button
+                style={styles.banButton}
+                onClick={() => handleBanUser(user.userId)} // ✅ 클릭 시 실행
+              >
+                🚫 추방
+              </button>
+            )}
+          </div>
           <p>
             <strong>이메일:</strong> {user.userEmail}
           </p>
@@ -92,7 +122,6 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
           <p>
             <strong>포인트:</strong> {user.userPoint.toLocaleString()}P
           </p>
-
           <hr style={styles.divider} />
           <p>
             <strong>가입일:</strong> {user.userCreateAt}
@@ -104,47 +133,56 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
 
           <hr style={styles.divider} />
 
-          {/* ✅ 구독 상태 섹션 */}
-          <div style={styles.subscriptionRow}>
-            <div style={{ flex: 1 }}>
-              {isSubscribed ? (
-                <>
-                  <p>
-                    <strong>구독 시작일:</strong> {user.userSubscribeStart}
-                  </p>
-                  <p>
-                    <strong>구독 종료일:</strong> {user.userSubscribeEnd}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p>
-                    <strong>구독 상태:</strong> 구독중이지 않습니다.
-                  </p>
-                </>
+          {user.userRole !== "ROLE_ADMIN" && (
+            <>
+              {/* ✅ 구독 상태 섹션 */}
+              <div style={styles.subscriptionRow}>
+                <div style={{ flex: 1 }}>
+                  {isSubscribed ? (
+                    <>
+                      <p>
+                        <strong>구독 시작일:</strong> {user.userSubscribeStart}
+                      </p>
+                      <p>
+                        <strong>구독 종료일:</strong> {user.userSubscribeEnd}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p>
+                        <strong>구독 상태:</strong> 구독중이지 않습니다.
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                {isSubscribed ? (
+                  <button
+                    style={{
+                      ...styles.checkBtn,
+                      backgroundColor: "#555",
+                      cursor: "not-allowed",
+                      opacity: 0.6,
+                    }}
+                    disabled
+                  >
+                    구독 중
+                  </button>
+                ) : (
+                  <button
+                    style={styles.checkBtn}
+                    onClick={handleCheckSubscription}
+                  >
+                    🔍 구독 상태 체크
+                  </button>
+                )}
+              </div>
+
+              {statusMessage && (
+                <p style={styles.statusText}>{statusMessage}</p>
               )}
-            </div>
-
-            {isSubscribed ? (
-              <button
-                style={{
-                  ...styles.checkBtn,
-                  backgroundColor: "#555",
-                  cursor: "not-allowed",
-                  opacity: 0.6,
-                }}
-                disabled
-              >
-                구독 중
-              </button>
-            ) : (
-              <button style={styles.checkBtn} onClick={handleCheckSubscription}>
-                🔍 구독 상태 체크
-              </button>
-            )}
-          </div>
-
-          {statusMessage && <p style={styles.statusText}>{statusMessage}</p>}
+            </>
+          )}
         </div>
 
         <button style={styles.closeBtn} onClick={onClose}>
@@ -190,6 +228,26 @@ const styles = {
     padding: "15px",
     lineHeight: "1.6",
     fontSize: "14px",
+  },
+  idRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+    flexWrap: "wrap",
+  },
+  idText: {
+    margin: 0,
+  },
+  banButton: {
+    backgroundColor: "#ff7043",
+    border: "none",
+    color: "#fff",
+    padding: "6px 10px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "12px",
+    fontWeight: "bold",
   },
   divider: {
     border: "0.5px solid rgba(255,255,255,0.1)",

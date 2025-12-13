@@ -4,6 +4,7 @@ import {
     getTodayMissions,
     getUsageInfo,
     getUserLevel,
+    getSolveBonusStatus,
     MISSION_TYPE_INFO,
     DIFFICULTY_OPTIONS
 } from '../../service/algorithm/AlgorithmApi';
@@ -33,8 +34,42 @@ const DailyMission = () => {
     const [error, setError] = useState(null);
     const [lastUpdated, setLastUpdated] = useState(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [bonusStatusMap, setBonusStatusMap] = useState({});
 
     const navigate = useNavigate();
+
+    const fetchBonusStatuses = useCallback(async (missionList) => {
+        const targets = missionList.filter(
+            (m) => m.missionType === 'PROBLEM_SOLVE' && m.problemId
+        );
+        if (targets.length === 0) {
+            setBonusStatusMap({});
+            return;
+        }
+
+        try {
+            const results = await Promise.all(
+                targets.map(async (m) => {
+                    const res = await getSolveBonusStatus(m.problemId);
+                    if (res?.error && !res.data) return null;
+                    return {
+                        key: m.missionId || m.problemId,
+                        data: res.data || res
+                    };
+                })
+            );
+
+            const map = {};
+            results.forEach((item) => {
+                if (item?.key && item.data) {
+                    map[item.key] = item.data;
+                }
+            });
+            setBonusStatusMap(map);
+        } catch (e) {
+            console.error('보너스 상태 조회 실패:', e);
+        }
+    }, []);
 
     // ===== 데이터 로딩 =====
     const loadData = useCallback(async (showRefreshing = false) => {
@@ -73,7 +108,9 @@ const DailyMission = () => {
             if (missionsResult.error) {
                 console.warn('미션 로딩 실패:', missionsResult.message);
             } else {
-                setMissions(missionsResult.data || []);
+                const missionData = missionsResult.data || [];
+                setMissions(missionData);
+                fetchBonusStatuses(missionData);
             }
 
             // 사용량 데이터 설정
@@ -101,7 +138,7 @@ const DailyMission = () => {
             setLoading(false);
             setIsRefreshing(false);
         }
-    }, [isLoggedIn, user]);
+    }, [isLoggedIn, user, fetchBonusStatuses]);
 
     // 수동 새로고침 핸들러
     const handleRefresh = () => {
@@ -343,6 +380,48 @@ const DailyMission = () => {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* 선착순 보너스 상태 (문제 풀이 미션 전용) */}
+                                            {mission.missionType === 'PROBLEM_SOLVE' && (
+                                                <div className="mt-3 text-sm">
+                                                    {(() => {
+                                                        const bonusKey = mission.missionId || mission.problemId;
+                                                        const bonusStatus = bonusStatusMap[bonusKey];
+                                                        const current = bonusStatus?.currentCount ?? 0;
+                                                        const limit = bonusStatus?.limit ?? 3;
+
+                                                        if (!bonusStatus) {
+                                                            return (
+                                                                <span className="text-gray-500 dark:text-gray-400">
+                                                                    선착순 보너스 상태 확인 중...
+                                                                </span>
+                                                            );
+                                                        }
+
+                                                        if (isCompleted) {
+                                                            return (
+                                                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                                                    오늘 {current}번째로 보너스 지급 완료 ({current}/{limit}명)
+                                                                </span>
+                                                            );
+                                                        }
+
+                                                        if (bonusStatus.eligible) {
+                                                            return (
+                                                                <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                                                    선착순 보너스 가능 ({current}/{limit}명)
+                                                                </span>
+                                                            );
+                                                        }
+
+                                                        return (
+                                                            <span className="text-gray-500 dark:text-gray-400 font-medium">
+                                                                보너스 마감 ({current}/{limit}명)
+                                                            </span>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
 
                                             {/* 완료 시간 */}
                                             {isCompleted && mission.completedAt && (
