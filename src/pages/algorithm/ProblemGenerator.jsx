@@ -516,10 +516,10 @@ const ProblemGenerator = () => {
                 </div>
               </div>
 
-              {/* 문제 유형 선택 */}
+              {/* 출제 분야 선택(기존의 문제 유형) */}
               <div>
                 <label className="block text-sm font-medium text-sub mb-3">
-                  문제 유형 <span className="text-red-500">*</span>
+                  출제 분야 <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -551,7 +551,7 @@ const ProblemGenerator = () => {
               {/* 주제 선택 */}
               <div>
                 <label className="block text-sm font-medium text-sub mb-3">
-                  문제 주제 <span className="text-red-500">*</span>
+                  알고리즘 유형 <span className="text-red-500">*</span>
                 </label>
                 {formData.problemType === 'SQL' ? (
                   // SQL 토픽 (기존 방식)
@@ -607,10 +607,11 @@ const ProblemGenerator = () => {
               {/* 🎨 스토리 테마 선택 */}
               <div>
                 <label className="block text-sm font-medium text-sub mb-2">
-                  스토리 테마 (선택)
+                  스토리 테마 <span className="text-red-500">*</span>
                 </label>
                 <p className="text-xs text-muted mb-3">
-                문제에 적용할 스토리 테마를 선택하세요. 계절마다 새로운 테마가 제공되며, 지금은 코아이가 등장하는 겨울/연말 시즌 테마를 만나볼 수 있습니다! 🎄
+                문제에 적용할 스토리 테마를 선택하세요. <br />
+                계절마다 새로운 테마가 제공되며, 지금은 코아이가 등장하는 겨울/연말 시즌 테마를 만나볼 수 있습니다! 🎄
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {STORY_THEMES.map((theme) => (
@@ -638,8 +639,8 @@ const ProblemGenerator = () => {
                 )}
               </div>
 
-              {/* 추가 요구사항 */}
-              <div>
+              {/* 추가 요구사항 (일단 제외, 추후 추가 가능) */}
+              {/* <div>
                 <label className="block text-sm font-medium text-sub mb-2">
                   추가 요구사항 (선택)
                 </label>
@@ -650,7 +651,7 @@ const ProblemGenerator = () => {
                   rows={2}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-panel text-main placeholder-gray-400 dark:placeholder-gray-500"
                 />
-              </div>
+              </div> */}
 
               {/* 에러 메시지 */}
               {error && (
