@@ -32,6 +32,7 @@ import ProblemList from "./pages/algorithm/ProblemList";
 import ProblemDetail from "./pages/algorithm/ProblemDetail";
 import ProblemGenerator from "./pages/algorithm/ProblemGenerator";
 import ProblemSolve from "./pages/algorithm/ProblemSolve";
+import ProblemLearn from "./pages/algorithm/ProblemLearn";
 import SubmissionResult from "./pages/algorithm/SubmissionResult";
 import MySubmissions from "./pages/algorithm/MySubmissions";
 import DailyMission from "./pages/myPage/DailyMission";
@@ -71,7 +72,10 @@ createRoot(document.getElementById("root")).render(
                     <Route path="/payments/*" element={<Navigate to="/pricing" replace/>}/>
 
                     {/* 비밀번호 재설정 페이지 */}
-                    <Route path="/reset-password" element={<ResetPasswordPage/>}/>
+                    <Route path="reset-password" element={<ResetPasswordPage/>}/>
+                    {/* 알고리즘 문제풀이 페이지 */}
+                    <Route path="algorithm/problems/:problemId/solve" element={<ProblemSolve/>}/>
+                    <Route path="algorithm/problems/:problemId/learn" element={<ProblemLearn/>}/>
 
                     {/* 기본 레이아웃 */}
                     <Route path="/" element={<Layout/>}>
