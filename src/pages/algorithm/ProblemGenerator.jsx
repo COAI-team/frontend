@@ -50,22 +50,21 @@ const ProblemGenerator = () => {
     { value: 'PLATINUM', label: '플래티넘 (고급)', color: 'blue', description: '복잡한 알고리즘, 수학적 사고' },
   ];
 
-  // 🎨 스토리 테마 옵션 (백엔드 STORY_THEMES와 동기화)
+  // 🎄 스토리 테마 옵션 - 겨울/연말 시즌 (백엔드 STORY_THEMES와 동기화)
   const STORY_THEMES = [
-    { value: 'SPACE', label: '🚀 우주 탐사대', description: '우주선, 행성, 위성 탐사 미션' },
-    { value: 'GAME', label: '🎮 게임 개발자', description: 'RPG 밸런싱, 아이템 조합, 스킬 시스템' },
-    { value: 'FINANCE', label: '💰 금융 분석가', description: '주식 거래, 투자 포트폴리오 최적화' },
-    { value: 'COOKING', label: '🍳 요리 대회', description: '레시피 최적화, 재료 조합, 요리 점수' },
-    { value: 'FESTIVAL', label: '🎵 음악 페스티벌', description: '공연 스케줄링, 무대 배치, 관객 동선' },
+    { value: 'SANTA_DELIVERY', label: '🎅 산타의 선물 배달', description: '선물 배달 경로 최적화, 굴뚝 탐색' },
+    { value: 'SNOWBALL_FIGHT', label: '⛄ 눈싸움 대작전', description: '눈덩이 전략, 진영 구축, 승리 조건' },
+    { value: 'CHRISTMAS_TREE', label: '🎄 크리스마스 트리 장식', description: '장식 배치, 전구 연결, 트리 꾸미기' },
+    { value: 'NEW_YEAR_FIREWORKS', label: '🎆 새해 불꽃놀이', description: '불꽃 타이밍, 하늘 배치, 쇼 연출' },
+    { value: 'SKI_RESORT', label: '⛷️ 스키장', description: '슬로프 경로, 리프트 최적화, 스키 대회' },
   ];
 
-  // 카테고리별 알고리즘 토픽 (24개)
+  // 카테고리별 알고리즘 토픽 (15개 - 코딩테스트 빈출순 정리)
   const TOPIC_CATEGORIES_ALGO = {
-    '기초': ['배열', '구현', '시뮬레이션', '재귀', '수학', '문자열'],
-    '탐색': ['탐색', 'BFS', 'DFS', '이분탐색', '백트래킹'],
-    '알고리즘': ['DP', '그리디', '정렬', '분할정복', '투포인터'],
-    '그래프': ['그래프', '최단경로', 'MST', '위상정렬'],
-    '자료구조': ['스택/큐', '트리', '힙', '유니온파인드'],
+    '자료구조': ['해시', '스택/큐', '힙/우선순위 큐', '트리'],
+    '탐색': ['DFS/BFS', '완전탐색', '백트래킹', '이분탐색', '그래프/최단경로'],
+    '최적화': ['그리디', '동적 프로그래밍(DP)'],
+    '구현': ['구현/시뮬레이션', '정렬', '문자열 처리', '투포인터/슬라이딩 윈도우'],
   };
 
   // 평면화된 토픽 배열 (기존 호환성 유지)
@@ -121,6 +120,12 @@ const ProblemGenerator = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // SQL 문제는 현재 지원하지 않음
+    if (formData.problemType === 'SQL') {
+      setError('SQL 문제는 현재 준비 중입니다. 향후 지원 예정입니다.');
+      return;
+    }
 
     if (!formData.topic.trim()) {
       setError('문제 주제를 선택해주세요.');
@@ -531,15 +536,14 @@ const ProblemGenerator = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleInputChange('problemType', 'SQL')}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      formData.problemType === 'SQL'
-                        ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-500'
-                        : 'border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 bg-panel'
-                    }`}
+                    disabled
+                    className="p-4 rounded-lg border-2 border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 opacity-60 cursor-not-allowed relative"
                   >
-                    <div className={`font-semibold ${formData.problemType !== 'SQL' ? 'text-main' : ''}`}>SQL</div>
-                    <div className="text-xs text-muted mt-1">데이터베이스 쿼리 문제</div>
+                    <div className="font-semibold text-gray-400 dark:text-gray-500">SQL</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">데이터베이스 쿼리 문제</div>
+                    <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-medium rounded">
+                      향후 지원 예정
+                    </span>
                   </button>
                 </div>
               </div>
@@ -606,7 +610,7 @@ const ProblemGenerator = () => {
                   스토리 테마 (선택)
                 </label>
                 <p className="text-xs text-muted mb-3">
-                  문제에 적용할 스토리 테마를 선택하세요. 모아이가 등장하는 재미있는 문제가 생성됩니다!
+                문제에 적용할 스토리 테마를 선택하세요. 계절마다 새로운 테마가 제공되며, 지금은 코아이가 등장하는 겨울/연말 시즌 테마를 만나볼 수 있습니다! 🎄
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {STORY_THEMES.map((theme) => (
