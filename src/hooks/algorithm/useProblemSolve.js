@@ -23,8 +23,9 @@ export const useProblemSolve = (problemId, options = {}) => {
   const [error, setError] = useState(null);
 
   // 에디터 상태
-  const [language, setLanguage] = useState('javascript');
-  const [code, setCode] = useState(codeTemplates.javascript);
+  const [language, setLanguage] = useState('python');
+  // 집중모드에서는 빈 코드, 기본모드에서는 템플릿 제공
+  const [code, setCode] = useState(solveMode === 'FOCUS' ? '' : codeTemplates.python);
 
   // 타이머 상태
   const [timeLimit, setTimeLimit] = useState(1800);
@@ -91,10 +92,14 @@ export const useProblemSolve = (problemId, options = {}) => {
     return () => clearInterval(interval);
   }, [isTimerRunning]);
 
-  // 언어 변경 시 코드 템플릿 업데이트
+  // 언어 변경 시 코드 템플릿 업데이트 (집중모드에서는 빈 코드)
   useEffect(() => {
-    setCode(codeTemplates[language] || '');
-  }, [language]);
+    if (solveMode === 'FOCUS') {
+      setCode('');
+    } else {
+      setCode(codeTemplates[language] || '');
+    }
+  }, [language, solveMode]);
 
   // 경과 시간 계산
   const getElapsedTime = useCallback(() => {
@@ -106,21 +111,23 @@ export const useProblemSolve = (problemId, options = {}) => {
   const changeLanguage = useCallback((newLang, skipConfirm = false) => {
     if (skipConfirm || window.confirm(`언어를 ${newLang.toUpperCase()}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`)) {
       setLanguage(newLang);
-      setCode(codeTemplates[newLang] || '');
+      // 집중모드에서는 빈 코드, 기본모드에서는 템플릿 제공
+      setCode(solveMode === 'FOCUS' ? '' : (codeTemplates[newLang] || ''));
       return true;
     }
     return false;
-  }, []);
+  }, [solveMode]);
 
   // 코드 초기화
   const resetCode = useCallback((skipConfirm = false) => {
     if (skipConfirm || window.confirm('코드를 초기화하시겠습니까?')) {
-      setCode(codeTemplates[language] || '');
+      // 집중모드에서는 빈 코드, 기본모드에서는 템플릿 제공
+      setCode(solveMode === 'FOCUS' ? '' : (codeTemplates[language] || ''));
       setTestResult(null);
       return true;
     }
     return false;
-  }, [language]);
+  }, [language, solveMode]);
 
   // 타이머 토글
   const toggleTimer = useCallback(() => {

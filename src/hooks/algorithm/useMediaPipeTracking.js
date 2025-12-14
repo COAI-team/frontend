@@ -295,6 +295,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     // MediaPipe 관련 상태
     const faceLandmarkerRef = useRef(null);
     const videoRef = useRef(null);
+    const streamRef = useRef(null); // MediaStream 직접 참조 (cleanup용)
     const canvasRef = useRef(null);
     const animationFrameRef = useRef(null);
     const isCleaningUpRef = useRef(false);
@@ -429,6 +430,21 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     // 웹캠 스트림 설정
     const setupWebcam = useCallback(async () => {
         try {
+            // 기존 스트림이 있으면 먼저 정리 (중복 스트림 방지)
+            if (streamRef.current) {
+                console.log('⚠️ Cleaning up existing stream before creating new one');
+                const oldTracks = streamRef.current.getTracks();
+                oldTracks.forEach(track => track.stop());
+                streamRef.current = null;
+            }
+            if (videoRef.current) {
+                videoRef.current.pause();
+                if (videoRef.current.srcObject) {
+                    videoRef.current.srcObject = null;
+                }
+                videoRef.current = null;
+            }
+
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     width: { ideal: 640 },
@@ -436,6 +452,9 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                     facingMode: 'user'
                 }
             });
+
+            // 스트림 직접 참조 저장 (cleanup용)
+            streamRef.current = stream;
 
             // 비디오 엘리먼트 생성
             const video = document.createElement('video');
@@ -1261,11 +1280,15 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         stableFaceDetectedRef.current = false;
         console.log('🔄 Tracking state reset for new session');
 
-        // 웹캠 설정
-        const webcamReady = await setupWebcam();
-        if (!webcamReady) {
-            console.error('Failed to setup webcam');
-            return;
+        // 웹캠 설정 (캘리브레이션에서 이미 설정되었으면 재사용)
+        if (videoRef.current && streamRef.current) {
+            console.log('✅ Webcam already set up from calibration, reusing existing stream');
+        } else {
+            const webcamReady = await setupWebcam();
+            if (!webcamReady) {
+                console.error('Failed to setup webcam');
+                return;
+            }
         }
 
         try {
@@ -1310,12 +1333,52 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                 }
             }
 
-            // 웹캠 스트림 정리
-            if (videoRef.current?.srcObject) {
-                const tracks = videoRef.current.srcObject.getTracks();
-                tracks.forEach(track => track.stop());
-                videoRef.current.srcObject = null;
+            // FaceLandmarker 먼저 닫기 (비디오 스트림 참조 해제)
+            if (faceLandmarkerRef.current) {
+                console.log('🔒 Closing FaceLandmarker before stream cleanup...');
+                faceLandmarkerRef.current.close();
+                faceLandmarkerRef.current = null;
+                console.log('✅ FaceLandmarker closed');
             }
+
+            // 웹캠 스트림 정리 (streamRef 우선 사용)
+            console.log('🎥 Cleaning up webcam stream:', {
+                hasStreamRef: !!streamRef.current,
+                hasVideoRef: !!videoRef.current,
+                hasVideoSrcObject: !!videoRef.current?.srcObject
+            });
+
+            // 1. streamRef에서 직접 종료 (가장 확실한 방법)
+            if (streamRef.current) {
+                const tracks = streamRef.current.getTracks();
+                console.log('🛑 Stopping tracks from streamRef:', tracks.map(t => ({
+                    kind: t.kind,
+                    label: t.label,
+                    readyState: t.readyState
+                })));
+                tracks.forEach(track => {
+                    track.stop();
+                    console.log('✅ Track stopped:', track.kind, track.readyState);
+                });
+                streamRef.current = null;
+            }
+
+            // 2. videoRef 정리 (비디오 재생 중지 → 스트림 해제 → 리셋)
+            if (videoRef.current) {
+                // 비디오 재생 중지 (브라우저가 카메라 리소스 해제하도록)
+                videoRef.current.pause();
+
+                if (videoRef.current.srcObject) {
+                    const tracks = videoRef.current.srcObject.getTracks();
+                    tracks.forEach(track => track.stop());
+                    videoRef.current.srcObject = null;
+                }
+
+                // 비디오 엘리먼트 리셋 (Safari/Chrome에서 확실한 해제)
+                videoRef.current.load();
+                console.log('✅ Video element reset');
+            }
+            videoRef.current = null;
 
             // DOM 요소 정리
             const debugContainer = document.getElementById('mediapipeDebugContainer');
@@ -1361,6 +1424,9 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
 
         } catch (error) {
             console.error('Error during stopTracking:', error);
+        } finally {
+            // 정리 플래그 리셋 (다음 세션에서 stopTracking 호출 가능하도록)
+            isCleaningUpRef.current = false;
         }
     }, [sessionId]);
 
@@ -1497,13 +1563,27 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     // 컴포넌트 언마운트 시 정리
     useEffect(() => {
         return () => {
+            console.log('🧹 useMediaPipeTracking unmount cleanup');
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
-            if (videoRef.current?.srcObject) {
-                const tracks = videoRef.current.srcObject.getTracks();
+            // streamRef 우선 정리
+            if (streamRef.current) {
+                const tracks = streamRef.current.getTracks();
                 tracks.forEach(track => track.stop());
+                streamRef.current = null;
             }
+            // videoRef 정리 (pause → srcObject 해제 → load 리셋)
+            if (videoRef.current) {
+                videoRef.current.pause();
+                if (videoRef.current.srcObject) {
+                    const tracks = videoRef.current.srcObject.getTracks();
+                    tracks.forEach(track => track.stop());
+                    videoRef.current.srcObject = null;
+                }
+                videoRef.current.load();
+            }
+            videoRef.current = null;
         };
     }, []);
 

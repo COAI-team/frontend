@@ -242,12 +242,17 @@ const MediaPipeTracker = forwardRef(({
     // 부모 컴포넌트에서 호출 가능한 메서드 노출
     useImperativeHandle(ref, () => ({
         stopTracking: async (remainingSeconds = null) => {
-            if (cleanupCalledRef.current) return;
-            cleanupCalledRef.current = true;
-
+            // cleanupCalledRef 체크 제거 - 항상 정리 실행 보장
+            // (이전에는 체크 후 바로 return하여 웹캠이 종료되지 않는 문제 발생)
             const currentStopTracking = stopTrackingRef.current;
             const currentSessionId = sessionIdRef.current;
             const currentOnSessionEnd = onSessionEndRef.current;
+
+            console.log('🔴 [MediaPipeTracker] stopTracking called', {
+                hasStopTracking: !!currentStopTracking,
+                sessionId: currentSessionId,
+                cleanupCalled: cleanupCalledRef.current
+            });
 
             if (currentStopTracking) {
                 await currentStopTracking(remainingSeconds);
@@ -255,6 +260,9 @@ const MediaPipeTracker = forwardRef(({
             if (currentOnSessionEnd && currentSessionId) {
                 currentOnSessionEnd(currentSessionId);
             }
+
+            // 정리 완료 후 플래그 설정 (언마운트 시 중복 정리 방지)
+            cleanupCalledRef.current = true;
         },
         toggleDebugMode: () => {
             if (toggleDebugModeRef.current) {

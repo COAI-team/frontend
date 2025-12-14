@@ -212,6 +212,15 @@ const ProblemSolve = () => {
       setStartTime(new Date());
       setSolvingStarted(true);
 
+      // 디버그 모드 초기화 (캘리브레이션 후 미리보기 OFF 상태로 시작)
+      setEyeTrackingDebugMode(false);
+      setEyeTrackingReady(false);
+      // 이전 세션의 디버그 UI 요소 정리
+      const oldDebugContainer = document.getElementById('mediapipeDebugContainer');
+      if (oldDebugContainer) oldDebugContainer.remove();
+      const oldGazeDot = document.getElementById('mediapipeGazeDot');
+      if (oldGazeDot) oldGazeDot.remove();
+
       // 집중 모드: 전체화면 진입 + 시선 추적 자동 활성화
       // timerEndTime은 eyeTrackingReady 시점에 설정됨
       enterFullscreen();
@@ -343,14 +352,29 @@ const ProblemSolve = () => {
       message: '이 페이지에서 나가면 기존에 작성한 코드는 사라집니다.\n그래도 나가겠습니까?',
       confirmText: '나가기',
       cancelText: '취소',
-      onConfirm: () => {
+      onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
+
+        // 시선 추적 세션 종료 (handleSubmit과 동일한 패턴)
+        if (eyeTrackingEnabled && eyeTrackerRef.current) {
+          await eyeTrackerRef.current.stopTracking(timeLeft);
+          setEyeTrackingEnabled(false);
+          setMonitoringSessionId(null);
+        }
+
+        // 디버그 모드 UI 요소 정리 (document.body에 직접 추가된 요소들)
+        const debugContainer = document.getElementById('mediapipeDebugContainer');
+        if (debugContainer) debugContainer.remove();
+        const gazeDot = document.getElementById('mediapipeGazeDot');
+        if (gazeDot) gazeDot.remove();
+
         // 상태 초기화
         setShowModeSelection(true);
         setSelectedMode(null);
         setSolvingStarted(false);
         setIsTimerRunning(false);
-        setEyeTrackingEnabled(false);
+        setEyeTrackingDebugMode(false); // 디버그 모드 초기화
+        setEyeTrackingReady(false); // 추적 준비 상태 초기화
         setCode('');
         setTestResult(null);
       },
@@ -358,7 +382,7 @@ const ProblemSolve = () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
       }
     });
-  }, []);
+  }, [timeLeft, eyeTrackingEnabled]);
 
   // 브라우저 뒤로가기 처리
   useEffect(() => {
@@ -554,18 +578,24 @@ const ProblemSolve = () => {
     }
   }, [isTimerRunning, timerEndTime, handleSubmit, selectedMode, timerMode, startTime]);
 
-  // 초기 코드 설정
+  // 초기 코드 설정 (집중모드에서는 빈 코드, 기본모드에서는 템플릿)
   useEffect(() => {
-    // 백엔드 languageName을 template key로 변환
-    const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || selectedLanguage;
-    const template = codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요';
-    console.log(`[ProblemSolve] Loading template for language: ${selectedLanguage}`, {
-      templateKey,
-      hasTemplate: !!codeTemplates[templateKey],
-      templateLength: template.length
-    });
-    setCode(template);
-  }, [selectedLanguage]);
+    if (selectedMode === 'FOCUS') {
+      // 집중모드: 빈 코드
+      setCode('');
+      console.log(`[ProblemSolve] FOCUS mode - empty code`);
+    } else {
+      // 기본모드: 템플릿 제공
+      const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || selectedLanguage;
+      const template = codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요';
+      console.log(`[ProblemSolve] Loading template for language: ${selectedLanguage}`, {
+        templateKey,
+        hasTemplate: !!codeTemplates[templateKey],
+        templateLength: template.length
+      });
+      setCode(template);
+    }
+  }, [selectedLanguage, selectedMode]);
 
   // 시간 포맷팅 (HH:MM:SS)
   const formatTime = (seconds) => {
@@ -591,8 +621,13 @@ const ProblemSolve = () => {
         const langInfo = problem?.availableLanguages?.find(l => l.languageName === langName);
         setSelectedLanguageId(langInfo?.languageId || null);
 
-        const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[langName] || langName;
-        setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
+        // 집중모드에서는 빈 코드, 기본모드에서는 템플릿 제공
+        if (selectedMode === 'FOCUS') {
+          setCode('');
+        } else {
+          const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[langName] || langName;
+          setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
+        }
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
       }
     });
@@ -661,8 +696,13 @@ const ProblemSolve = () => {
       title: '코드 초기화',
       message: '코드를 초기화하시겠습니까?\n현재 작성한 코드가 삭제됩니다.',
       onConfirm: () => {
-        const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || selectedLanguage;
-        setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
+        // 집중모드에서는 빈 코드, 기본모드에서는 템플릿 제공
+        if (selectedMode === 'FOCUS') {
+          setCode('');
+        } else {
+          const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || selectedLanguage;
+          setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
+        }
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
       }
     });
