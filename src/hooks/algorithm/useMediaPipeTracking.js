@@ -689,7 +689,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             // 머리 회전을 시선 벡터에 통합
             // 머리가 돌아간 방향으로 시선도 이동 (감도 조절)
             const HEAD_WEIGHT = 0.025; // 머리 회전 1도당 화면 2.5% 이동
-            headCompensationX = -relativeYaw * HEAD_WEIGHT;
+            headCompensationX = relativeYaw * HEAD_WEIGHT;  // 좌우 반전 수정: - 제거
             headCompensationY = -relativePitch * HEAD_WEIGHT;
         }
 
@@ -703,7 +703,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
 
         // 최종 시선 위치 계산
         const rawGazeX = window.innerWidth / 2
-            - relativeGazeX * window.innerWidth * GAZE_SENSITIVITY_X  // 3D 벡터 기여 (거울 모드)
+            + relativeGazeX * window.innerWidth * GAZE_SENSITIVITY_X  // 3D 벡터 기여 (좌우 반전 수정)
             + headCompensationX * window.innerWidth;                   // 머리 회전 기여
 
         const rawGazeY = window.innerHeight / 2
