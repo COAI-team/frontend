@@ -601,6 +601,141 @@ export const getUserLevel = async (userId) => {
     }
 };
 
+// ============== 문제 풀 (Pre-generation Pool) API ==============
+
+/**
+ * 풀에서 문제 꺼내기 (SSE 스트리밍)
+ * - 풀에 문제가 있으면 즉시 반환 (< 1초)
+ * - 풀이 비어있으면 실시간 생성으로 자동 전환 (진행률 표시)
+ * - 문제 반환 후 비동기로 풀 자동 보충
+ *
+ * @param {Object} data - 요청 데이터
+ * @param {string} data.difficulty - 난이도 (BRONZE, SILVER, GOLD, PLATINUM)
+ * @param {string} data.topic - 알고리즘 주제 (displayName)
+ * @param {string} data.theme - 스토리 테마 (SANTA_DELIVERY 등)
+ * @param {Object} callbacks - 콜백 함수들
+ * @param {Function} callbacks.onStep - 진행 단계 업데이트 시 호출 (message, percentage)
+ * @param {Function} callbacks.onComplete - 완료 시 호출
+ * @param {Function} callbacks.onError - 에러 발생 시 호출
+ * @returns {Function} SSE 연결 종료 함수
+ */
+export const drawProblemFromPool = (data, callbacks) => {
+    const { onStep, onComplete, onError } = callbacks;
+
+    // URL 쿼리 파라미터 구성
+    const params = new URLSearchParams({
+        difficulty: data.difficulty,
+        topic: data.topic,
+        theme: data.theme || data.storyTheme,  // storyTheme도 지원
+    });
+
+    // API 베이스 URL 가져오기
+    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:9443';
+    const sseUrl = `${baseURL}/algo/pool/draw/stream?${params.toString()}`;
+
+    console.log('🔗 [Pool SSE] 풀에서 문제 꺼내기 연결:', sseUrl);
+
+    // EventSource 생성 (SSE 연결)
+    const eventSource = new EventSource(sseUrl, {
+        withCredentials: true
+    });
+
+    // 메시지 수신 핸들러
+    eventSource.onmessage = (event) => {
+        try {
+            let rawData = event.data;
+            if (rawData.startsWith('data: ')) {
+                rawData = rawData.substring(6).trim();
+            }
+
+            const eventData = JSON.parse(rawData);
+            console.log('📨 [Pool SSE] 이벤트 수신:', eventData);
+
+            switch (eventData.type) {
+                case 'PROGRESS':
+                    // 실시간 생성 시 진행률 (풀이 비어있을 때만)
+                    console.log(`📊 [Pool SSE] 진행률: ${eventData.percentage}% - ${eventData.message}`);
+                    if (onStep) {
+                        onStep(eventData.message, eventData.percentage);
+                    }
+                    break;
+
+                case 'COMPLETE': {
+                    // 완료 - 풀에서 즉시 반환 또는 실시간 생성 완료
+                    const fromPool = eventData.fromPool;
+                    console.log(`✅ [Pool SSE] 문제 전달 완료 - ${fromPool ? '풀에서 즉시 반환' : '실시간 생성'}`);
+
+                    if (onComplete) {
+                        onComplete({
+                            problemId: eventData.problemId,
+                            title: eventData.title,
+                            description: eventData.description,
+                            difficulty: eventData.difficulty,
+                            testCaseCount: eventData.testCaseCount,
+                            generationTime: eventData.generationTime,
+                            fromPool: fromPool  // 풀에서 온 문제인지 여부
+                        });
+                    }
+                    eventSource.close();
+                    break;
+                }
+
+                case 'ERROR':
+                    console.error('❌ [Pool SSE] 에러:', eventData.message);
+                    if (onError) {
+                        onError(eventData.message);
+                    }
+                    eventSource.close();
+                    break;
+
+                default:
+                    console.warn('⚠️ [Pool SSE] 알 수 없는 이벤트 타입:', eventData.type);
+            }
+        } catch (parseError) {
+            console.error('❌ [Pool SSE] 이벤트 파싱 실패:', parseError, event.data);
+        }
+    };
+
+    eventSource.onopen = () => {
+        console.log('✅ [Pool SSE] 연결 성공');
+    };
+
+    eventSource.onerror = (error) => {
+        console.error('❌ [Pool SSE] 연결 에러:', error);
+        if (eventSource.readyState === EventSource.CLOSED) {
+            console.log('🔌 [Pool SSE] 연결 종료됨');
+        } else {
+            if (onError) {
+                onError('서버 연결이 끊어졌습니다. 다시 시도해주세요.');
+            }
+        }
+        eventSource.close();
+    };
+
+    return () => {
+        console.log('🔌 [Pool SSE] 수동 연결 종료');
+        eventSource.close();
+    };
+};
+
+/**
+ * 풀 상태 조회
+ * GET /api/algo/pool/status
+ */
+export const getPoolStatus = async () => {
+    try {
+        const res = await axiosInstance.get('/algo/pool/status');
+        console.log('✅ [getPoolStatus] 응답:', res.data);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getPoolStatus] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "풀 상태를 가져오는데 실패했습니다." };
+    }
+};
+
 // ============== 상수 정의 ==============
 
 export const DIFFICULTY_OPTIONS = [

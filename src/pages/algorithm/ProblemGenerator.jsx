@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateProblemWithSSE, completeMission, getTopics } from '../../service/algorithm/AlgorithmApi';
+import { drawProblemFromPool, completeMission, getTopics } from '../../service/algorithm/AlgorithmApi';
 import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 
 /**
@@ -160,6 +160,12 @@ const ProblemGenerator = () => {
       return;
     }
 
+    // 스토리 테마 필수 체크 (풀 시스템 사용)
+    if (!formData.storyTheme) {
+      setError('스토리 테마를 선택해주세요.');
+      return;
+    }
+
     // 이전 SSE 연결 정리
     if (sseCleanupRef.current) {
       sseCleanupRef.current();
@@ -171,30 +177,29 @@ const ProblemGenerator = () => {
     setDisplayedText('');
     setTypingComplete(false);
     setCompletedSteps([]);
-    setGenerationStep('서버 연결 중...');
+    setGenerationStep('풀에서 문제 가져오는 중...');
 
-    // storyTheme을 additionalRequirements에 통합하여 백엔드 전송
+    // 풀 API용 요청 데이터
     const requestData = {
-      ...formData,
-      additionalRequirements: formData.storyTheme
-        ? formData.storyTheme + (formData.additionalRequirements ? ` ${formData.additionalRequirements}` : '')
-        : formData.additionalRequirements
+      difficulty: formData.difficulty,
+      topic: formData.topic,
+      theme: formData.storyTheme,
     };
 
-    console.log('🚀 [SSE] AI 문제 생성 요청:', requestData);
+    console.log('🚀 [Pool SSE] 풀에서 문제 요청:', requestData);
 
-    // SSE 스트리밍 시작
-    const cleanup = generateProblemWithSSE(requestData, {
-      // 진행 단계 업데이트 콜백
+    // SSE 스트리밍 시작 (풀 API)
+    const cleanup = drawProblemFromPool(requestData, {
+      // 진행 단계 업데이트 콜백 (풀이 비어있을 때 실시간 생성 시에만 호출됨)
       onStep: (message) => {
-        console.log('📍 [SSE] 진행 단계:', message);
+        console.log('📍 [Pool SSE] 진행 단계:', message);
         setCompletedSteps(prev => [...prev, message]);
         setGenerationStep(message);
       },
 
       // 완료 콜백
       onComplete: async (data) => {
-        console.log('✅ [SSE] 문제 생성 완료:', data);
+        console.log('✅ [Pool SSE] 문제 전달 완료:', data);
 
         // 서버 응답 데이터를 컴포넌트 상태에 맞게 변환
         const problemData = {
@@ -204,11 +209,11 @@ const ProblemGenerator = () => {
           difficulty: data.difficulty,
           testCaseCount: data.testCaseCount,
           generationTime: data.generationTime,
-          hasValidationCode: data.hasValidationCode
+          fromPool: data.fromPool  // 풀에서 즉시 반환 여부
         };
 
         setGeneratedProblem(problemData);
-        setGenerationStep('생성 완료!');
+        setGenerationStep(data.fromPool ? '풀에서 즉시 반환!' : '생성 완료!');
         setLoading(false);
 
         // 🎯 데일리 미션 완료 처리 (PROBLEM_GENERATE)
@@ -274,8 +279,8 @@ const ProblemGenerator = () => {
 
       // 에러 콜백
       onError: (errorMessage) => {
-        console.error('❌ [SSE] 에러:', errorMessage);
-        setError(errorMessage || '문제 생성 중 오류가 발생했습니다.');
+        console.error('❌ [Pool SSE] 에러:', errorMessage);
+        setError(errorMessage || '문제를 가져오는 중 오류가 발생했습니다.');
         setLoading(false);
       }
     });
@@ -794,8 +799,8 @@ const ProblemGenerator = () => {
                   </div>
                   <p className="text-xs text-muted mt-2 text-center">
                     {completedSteps.length === 0
-                      ? '서버에 연결 중...'
-                      : 'AI가 문제를 생성하고 있습니다 (약 5-15초 소요)'}
+                      ? '풀에서 문제를 가져오는 중...'
+                      : '풀이 비어 있어 AI가 문제를 생성하고 있습니다 (약 5-15초 소요)'}
                   </p>
                 </div>
               </div>
@@ -933,22 +938,30 @@ const ProblemGenerator = () => {
                 )}
 
                 {/* 생성 정보 */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className={`rounded-lg p-4 ${generatedProblem.fromPool ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-blue-50 dark:bg-blue-900/20'}`}>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <div className="text-muted">테스트케이스</div>
                       <div className="font-semibold text-main">{generatedProblem.testCaseCount}개</div>
                     </div>
                     <div>
-                      <div className="text-muted">생성 시간</div>
+                      <div className="text-muted">응답 시간</div>
                       <div className="font-semibold text-main">{generatedProblem.generationTime?.toFixed(2)}초</div>
+                    </div>
+                    <div>
+                      <div className="text-muted">제공 방식</div>
+                      <div className={`font-semibold ${generatedProblem.fromPool ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                        {generatedProblem.fromPool ? '⚡ 즉시 제공' : '🤖 실시간 생성'}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* 성공 메시지 */}
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-md">
-                  <p className="font-medium">문제가 성공적으로 생성되었습니다!</p>
+                  <p className="font-medium">
+                    {generatedProblem.fromPool ? '문제가 즉시 제공되었습니다!' : '문제가 성공적으로 생성되었습니다!'}
+                  </p>
                   <p className="text-sm mt-1">이제 문제 목록에서 확인하거나 바로 풀이를 시작할 수 있습니다.</p>
                 </div>
 
