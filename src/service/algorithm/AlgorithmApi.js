@@ -198,6 +198,27 @@ export const getLanguages = async () => {
 };
 
 /**
+ * 알고리즘 토픽 목록 조회
+ * GET /api/algo/problems/topics
+ *
+ * 카테고리별로 그룹화된 토픽 목록을 반환
+ * 응답 형식: [{ category: "자료구조", topics: [{ value: "HASH", displayName: "해시" }, ...] }, ...]
+ */
+export const getTopics = async () => {
+    try {
+        const res = await axiosInstance.get('/algo/problems/topics');
+        console.log('✅ [getTopics] 응답:', res.data);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getTopics] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "토픽 목록을 가져오는데 실패했습니다." };
+    }
+};
+
+/**
  * 제출 공유 상태 변경
  */
 export const updateSharingStatus = async (submissionId, isShared) => {

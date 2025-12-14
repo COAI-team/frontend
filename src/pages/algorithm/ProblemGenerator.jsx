@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateProblemWithSSE, completeMission } from '../../service/algorithm/AlgorithmApi';
+import { generateProblemWithSSE, completeMission, getTopics } from '../../service/algorithm/AlgorithmApi';
 import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 
 /**
@@ -42,6 +42,10 @@ const ProblemGenerator = () => {
   const [typingComplete, setTypingComplete] = useState(false);
   const typingRef = useRef(null);
 
+  // 토픽 목록 상태 (백엔드에서 가져옴)
+  const [topicCategories, setTopicCategories] = useState([]);
+  const [topicsLoading, setTopicsLoading] = useState(true);
+
   // ===== 상수 정의 =====
   const DIFFICULTY_OPTIONS = [
     { value: 'BRONZE', label: '브론즈 (초급)', color: 'orange', description: '기본 문법, 간단한 구현' },
@@ -59,20 +63,44 @@ const ProblemGenerator = () => {
     { value: 'SKI_RESORT', label: '⛷️ 스키장', description: '슬로프 경로, 리프트 최적화, 스키 대회' },
   ];
 
-  // 카테고리별 알고리즘 토픽 (15개 - 코딩테스트 빈출순 정리)
-  const TOPIC_CATEGORIES_ALGO = {
-    '자료구조': ['해시', '스택/큐', '힙/우선순위 큐', '트리'],
-    '탐색': ['DFS/BFS', '완전탐색', '백트래킹', '이분탐색', '그래프/최단경로'],
-    '최적화': ['그리디', '동적 프로그래밍(DP)'],
-    '구현': ['구현/시뮬레이션', '정렬', '문자열 처리', '투포인터/슬라이딩 윈도우'],
-  };
-
-  // 평면화된 토픽 배열 (기존 호환성 유지)
-  const TOPIC_SUGGESTIONS_ALGO = Object.values(TOPIC_CATEGORIES_ALGO).flat();
-
+  // SQL 토픽 (하드코딩 유지 - SQL은 아직 미지원)
   const TOPIC_SUGGESTIONS_SQL = [
     'SELECT', 'GROUP BY', 'String, Date', 'JOIN', 'SUM, MAX, MIN', 'IS NULL'
   ];
+
+  // ===== 토픽 목록 조회 =====
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        const response = await getTopics();
+        if (response.data && Array.isArray(response.data)) {
+          setTopicCategories(response.data);
+        } else {
+          console.warn('토픽 API 응답 형식 오류, 기본값 사용');
+          // 폴백: 백엔드 enum과 동일한 기본값 사용
+          setTopicCategories([
+            { category: '자료구조', topics: [{ value: 'HASH', displayName: '해시' }, { value: 'STACK_QUEUE', displayName: '스택/큐' }, { value: 'HEAP', displayName: '힙/우선순위 큐' }, { value: 'TREE', displayName: '트리' }] },
+            { category: '탐색', topics: [{ value: 'DFS_BFS', displayName: 'DFS/BFS' }, { value: 'BRUTE_FORCE', displayName: '완전탐색' }, { value: 'BACKTRACKING', displayName: '백트래킹' }, { value: 'BINARY_SEARCH', displayName: '이분탐색' }, { value: 'GRAPH_SHORTEST_PATH', displayName: '그래프/최단경로' }] },
+            { category: '최적화', topics: [{ value: 'GREEDY', displayName: '그리디' }, { value: 'DP', displayName: '동적 프로그래밍(DP)' }] },
+            { category: '구현', topics: [{ value: 'IMPLEMENTATION', displayName: '구현/시뮬레이션' }, { value: 'SORTING', displayName: '정렬' }, { value: 'STRING', displayName: '문자열 처리' }, { value: 'TWO_POINTER', displayName: '투포인터/슬라이딩 윈도우' }] },
+          ]);
+        }
+      } catch (err) {
+        console.error('토픽 목록 조회 실패:', err);
+        // 폴백: 백엔드 enum과 동일한 기본값 사용
+        setTopicCategories([
+          { category: '자료구조', topics: [{ value: 'HASH', displayName: '해시' }, { value: 'STACK_QUEUE', displayName: '스택/큐' }, { value: 'HEAP', displayName: '힙/우선순위 큐' }, { value: 'TREE', displayName: '트리' }] },
+          { category: '탐색', topics: [{ value: 'DFS_BFS', displayName: 'DFS/BFS' }, { value: 'BRUTE_FORCE', displayName: '완전탐색' }, { value: 'BACKTRACKING', displayName: '백트래킹' }, { value: 'BINARY_SEARCH', displayName: '이분탐색' }, { value: 'GRAPH_SHORTEST_PATH', displayName: '그래프/최단경로' }] },
+          { category: '최적화', topics: [{ value: 'GREEDY', displayName: '그리디' }, { value: 'DP', displayName: '동적 프로그래밍(DP)' }] },
+          { category: '구현', topics: [{ value: 'IMPLEMENTATION', displayName: '구현/시뮬레이션' }, { value: 'SORTING', displayName: '정렬' }, { value: 'STRING', displayName: '문자열 처리' }, { value: 'TWO_POINTER', displayName: '투포인터/슬라이딩 윈도우' }] },
+        ]);
+      } finally {
+        setTopicsLoading(false);
+      }
+    };
+
+    fetchTopics();
+  }, []);
 
   // ===== 타이핑 효과 =====
   useEffect(() => {
@@ -571,25 +599,31 @@ const ProblemGenerator = () => {
                       </button>
                     ))}
                   </div>
+                ) : topicsLoading ? (
+                  // 토픽 로딩 중
+                  <div className="flex items-center gap-2 text-muted">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-sm">토픽 목록 로딩 중...</span>
+                  </div>
                 ) : (
-                  // 알고리즘 토픽 (카테고리별)
+                  // 알고리즘 토픽 (카테고리별 - API에서 가져온 데이터)
                   <div className="space-y-3">
-                    {Object.entries(TOPIC_CATEGORIES_ALGO).map(([category, topics]) => (
-                      <div key={category}>
-                        <div className="text-xs font-semibold text-muted mb-1.5">{category}</div>
+                    {topicCategories.map((categoryData) => (
+                      <div key={categoryData.category}>
+                        <div className="text-xs font-semibold text-muted mb-1.5">{categoryData.category}</div>
                         <div className="flex flex-wrap gap-2">
-                          {topics.map((topic) => (
+                          {categoryData.topics.map((topic) => (
                             <button
-                              key={topic}
+                              key={topic.value}
                               type="button"
-                              onClick={() => handleTopicSuggestionClick(topic)}
+                              onClick={() => handleTopicSuggestionClick(topic.displayName)}
                               className={`px-3 py-1.5 text-sm rounded-lg border-2 transition-all ${
-                                formData.topic === topic
+                                formData.topic === topic.displayName
                                   ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500 font-semibold'
                                   : 'bg-panel border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 text-sub'
                               }`}
                             >
-                              {topic}
+                              {topic.displayName}
                             </button>
                           ))}
                         </div>
