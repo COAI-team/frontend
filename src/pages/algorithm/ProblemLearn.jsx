@@ -4,8 +4,7 @@ import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import {
   codeTemplates,
   LANGUAGE_MAP,
-  LANGUAGE_NAME_TO_TEMPLATE_KEY,
-  ALLOWED_LANGUAGES
+  LANGUAGE_NAME_TO_TEMPLATE_KEY
 } from '../../components/algorithm/editor/editorUtils';
 import { startProblemSolve, runTestCode } from '../../service/algorithm/AlgorithmApi';
 import { useTutorWebSocket } from '../../hooks/algorithm/useTutorWebSocket';
@@ -218,11 +217,7 @@ const ProblemLearn = () => {
   }, [problemId]);
 
   const filteredLanguages = useMemo(() => {
-    const allowedSet =
-      ALLOWED_LANGUAGES instanceof Set
-        ? ALLOWED_LANGUAGES
-        : new Set(Array.isArray(ALLOWED_LANGUAGES) ? ALLOWED_LANGUAGES : []);
-
+    // 백엔드에서 제공하는 언어 목록을 신뢰 (ALLOWED_LANGUAGES 하드코딩 제거)
     if (problem?.availableLanguages?.length) {
       const seen = new Set();
       return problem.availableLanguages
@@ -230,12 +225,11 @@ const ProblemLearn = () => {
         .filter((langName) => {
           if (!langName || seen.has(langName)) return false;
           seen.add(langName);
-          if (!allowedSet.has(langName)) return false;
           const monacoLang = LANGUAGE_MAP[langName];
           return monacoLang && monacoLang !== 'plaintext';
         });
     }
-    return Array.from(allowedSet);
+    return [];
   }, [problem]);
 
   const canRunJudgeNow = useCallback(() => {

@@ -178,6 +178,26 @@ export const getSharedSubmissions = async (problemId, page = 1, size = 20) => {
 };
 
 /**
+ * 지원 언어 목록 조회
+ * GET /api/algo/languages
+ *
+ * 프론트엔드에서 언어 드롭다운을 동적으로 구성하기 위해 사용
+ */
+export const getLanguages = async () => {
+    try {
+        const res = await axiosInstance.get('/algo/languages');
+        console.log('✅ [getLanguages] 응답:', res.data);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getLanguages] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "언어 목록을 가져오는데 실패했습니다." };
+    }
+};
+
+/**
  * 제출 공유 상태 변경
  */
 export const updateSharingStatus = async (submissionId, isShared) => {

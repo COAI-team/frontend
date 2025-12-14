@@ -41,26 +41,9 @@ export const LANGUAGE_NAME_TO_TEMPLATE_KEY = {
   'SQL': 'SQL',
 };
 
-/**
- * 알고리즘 문제에서 허용되는 언어 목록 (화이트리스트)
- * 백엔드 LANGUAGES 테이블과 동기화된 11개 언어만 지원
- * 변경사항 (2025-12-13): 단순화된 언어명 사용
- */
-export const ALLOWED_LANGUAGES = new Set([
-  'C#',
-  'C++',
-  'Go',
-  'Java',
-  'JavaScript',
-  'Kotlin',
-  'Python',
-  'Rust',
-  'Swift',
-  'TypeScript',
-  'SQL',
-]);
-
 // 에디터 유틸리티 함수들
+// Note: ALLOWED_LANGUAGES 삭제됨 (2025-12-14)
+// 언어 목록은 백엔드 API에서 동적으로 제공 (GET /api/algo/languages)
 export const editorUtils = {
   // 커서 위치에 텍스트 삽입
   insertTextAtCursor: (editor, monaco, text) => {

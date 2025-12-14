@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
-import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY, ALLOWED_LANGUAGES } from '../../components/algorithm/editor/editorUtils';
+import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
 import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolationDetection';
 import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
@@ -781,7 +781,7 @@ const ProblemSolve = () => {
     const filtered = problem.availableLanguages.filter(lang => {
       if (seen.has(lang.languageName)) return false;
       seen.add(lang.languageName);
-      if (!ALLOWED_LANGUAGES.has(lang.languageName)) return false;
+      // 백엔드에서 제공하는 언어 목록을 신뢰 (ALLOWED_LANGUAGES 하드코딩 제거)
       const monacoLang = LANGUAGE_MAP[lang.languageName];
       return monacoLang && monacoLang !== 'plaintext';
     });
