@@ -1010,45 +1010,48 @@ const ProblemSolve = () => {
                 </div>
               )}
 
-              {/* 집중 모드 상태 표시 */}
-              {selectedMode === 'FOCUS' && (
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    selectedTrackerType === 'mediapipe'
-                      ? 'bg-purple-900/50 text-purple-300'
-                      : 'bg-blue-900/50 text-blue-300'
-                  }`}>
-                    {selectedTrackerType === 'mediapipe' ? 'MediaPipe' : 'WebGazer'}
-                  </span>
-                  <span className={`text-sm ${eyeTrackingReady ? 'text-green-400' : 'text-yellow-400'}`}>
-                    {eyeTrackingReady ? '추적 중' : selectedTrackerType === 'mediapipe' ? '준비 중...' : '캘리브레이션 중...'}
-                  </span>
-                </div>
-              )}
+              {/* 집중 모드 상태 표시는 상단 중앙 바로 이동됨 */}
             </div>
           </div>
         </div>
       </div>
 
-      {/* 집중 모드 디버그 바 (상단 중앙) */}
-      {selectedMode === 'FOCUS' && eyeTrackingReady && (
+      {/* 집중 모드 상태 바 (상단 중앙) */}
+      {selectedMode === 'FOCUS' && (
         <div className="bg-zinc-850 border-b border-zinc-700 py-2 flex-shrink-0">
-          <div className="flex justify-center">
-            <button
-              onClick={handleToggleEyeTrackingDebug}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                eyeTrackingDebugMode
-                  ? 'bg-green-600 text-white ring-2 ring-green-400 shadow-lg shadow-green-500/30'
-                  : 'bg-zinc-700 text-gray-300 hover:bg-zinc-600 hover:text-white'
-              }`}
-              title="웹캠 미리보기, 시선 위치 점, 얼굴 가이드 박스 표시"
-            >
-              <span className="text-lg">{eyeTrackingDebugMode ? '📹' : '🔍'}</span>
-              <span>{eyeTrackingDebugMode ? '시선 추적 미리보기 ON' : '시선 추적 미리보기'}</span>
-              {eyeTrackingDebugMode && (
-                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              )}
-            </button>
+          <div className="flex justify-center items-center gap-4">
+            {/* 추적기 상태 표시 */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 rounded-lg">
+              <span className={`text-xs px-2 py-0.5 rounded ${
+                selectedTrackerType === 'mediapipe'
+                  ? 'bg-purple-900/50 text-purple-300'
+                  : 'bg-blue-900/50 text-blue-300'
+              }`}>
+                {selectedTrackerType === 'mediapipe' ? 'MediaPipe' : 'WebGazer'}
+              </span>
+              <span className={`flex items-center gap-1.5 text-sm font-medium ${eyeTrackingReady ? 'text-green-400' : 'text-yellow-400'}`}>
+                {eyeTrackingReady && (
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                )}
+                {eyeTrackingReady ? '추적 중' : selectedTrackerType === 'mediapipe' ? '준비 중...' : '캘리브레이션 중...'}
+              </span>
+            </div>
+
+            {/* 디버그 버튼 (추적 준비 완료 시에만) */}
+            {eyeTrackingReady && (
+              <button
+                onClick={handleToggleEyeTrackingDebug}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  eyeTrackingDebugMode
+                    ? 'bg-green-600 text-white ring-2 ring-green-400 shadow-lg shadow-green-500/30'
+                    : 'bg-zinc-700 text-gray-300 hover:bg-zinc-600 hover:text-white'
+                }`}
+                title="웹캠 미리보기, 시선 위치 점, 얼굴 가이드 박스 표시"
+              >
+                <span className="text-lg">{eyeTrackingDebugMode ? '📹' : '🔍'}</span>
+                <span>{eyeTrackingDebugMode ? '미리보기 ON' : '미리보기'}</span>
+              </button>
+            )}
           </div>
         </div>
       )}

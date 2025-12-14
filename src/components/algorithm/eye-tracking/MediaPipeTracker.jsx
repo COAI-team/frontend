@@ -365,86 +365,8 @@ const MediaPipeTracker = forwardRef(({
         );
     }
 
-    // 추적 중 상태 표시
-    if (isTracking) {
-        return (
-            <>
-                {/* 기본 상태 표시 */}
-                <div style={{
-                    position: 'fixed',
-                    top: '20px',
-                    right: '20px',
-                    background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                    color: 'white',
-                    padding: '0.75rem 1.25rem',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
-                    zIndex: 1000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '600'
-                }}>
-                    <span style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: faceCount > 0 ? '#43e97b' : '#ef4444',
-                        animation: 'blink 1.5s infinite'
-                    }}></span>
-                    🎯 MediaPipe 추적 중
-                    {faceCount > 1 && (
-                        <span style={{
-                            background: '#f59e0b',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            fontSize: '0.8rem',
-                            marginLeft: '4px'
-                        }}>
-                            {faceCount}명 감지
-                        </span>
-                    )}
-                    <style>{`
-                        @keyframes blink {
-                            0%, 100% { opacity: 1; }
-                            50% { opacity: 0.3; }
-                        }
-                    `}</style>
-                </div>
-
-                {/* 졸음 경고 */}
-                {drowsinessState.isDrowsy && (
-                    <div style={{
-                        position: 'fixed',
-                        top: '70px',
-                        right: '20px',
-                        background: 'linear-gradient(135deg, #f97316 0%, #ef4444 100%)',
-                        color: 'white',
-                        padding: '0.75rem 1.25rem',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
-                        zIndex: 1000,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        animation: 'pulse 1s infinite'
-                    }}>
-                        😴 졸음이 감지되었습니다!
-                        <style>{`
-                            @keyframes pulse {
-                                0%, 100% { transform: scale(1); }
-                                50% { transform: scale(1.02); }
-                            }
-                        `}</style>
-                    </div>
-                )}
-            </>
-        );
-    }
-
+    // 추적 중 상태 표시는 ProblemSolve.jsx의 상단 중앙 바에서 처리
+    // 졸음/다중인물 경고는 ViolationWarnings.jsx에서 처리
     return null;
 });
 
