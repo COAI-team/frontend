@@ -94,9 +94,19 @@ function PricingPage() {
   const [isAuthed, setIsAuthed] = useState(!!getAuth()?.accessToken);
   const [showLoginAlert, setShowLoginAlert] = useState(false);
 
+  // PricingPage 함수 맨 위
+  console.log("[PricingPage render]", {
+    isAuthed,
+    token: getAuth()?.accessToken,
+  });
+
   // 구독 상태 조회
   useEffect(() => {
     const fetchSubs = async () => {
+      console.log("[fetchSubs start]", {
+        isAuthed,
+        token: getAuth()?.accessToken,
+      });
       try {
         if (!isAuthed) {
           setErrorMsg("로그인이 필요합니다.");
@@ -117,10 +127,15 @@ function PricingPage() {
         }
       } catch (e) {
         console.error("구독 상태 조회 실패:", e);
+        console.log("[fetchSubs error]", {
+          status: e.response?.status,
+          tokenBefore: getAuth()?.accessToken,
+        });
+
         if (e.response?.status === 401) {
+          console.log("🚨 [fetchSubs] REMOVE AUTH 실행됨");
           removeAuth();
           setIsAuthed(false);
-          setErrorMsg("세션이 만료되었습니다. 다시 로그인해 주세요.");
           setShowLoginAlert(true);
         } else {
           setCurrentPlan("FREE");
@@ -177,7 +192,7 @@ function PricingPage() {
       return;
     }
     if (!selectedPlan) return;
-    navigate(`/pages/payment/buy?plan=${selectedPlan}`);
+    navigate(`/buy?plan=${selectedPlan}`);
   };
 
   const cardClass = (key, options = {}) => {

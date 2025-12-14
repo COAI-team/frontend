@@ -304,8 +304,7 @@ export default function BillingPage() {
 
   const filteredPointHistory = useMemo(() => {
     const filtered = filteredPointHistoryAsc.filter((row) => {
-      if (pointOrderFilter && (row.paymentOrderId || "") !== pointOrderFilter) return false;
-      return true;
+      return !(pointOrderFilter && (row.paymentOrderId || "") !== pointOrderFilter);
     });
     if (pointSortOrder === "asc") return filtered;
     return [...filtered].reverse();
@@ -400,7 +399,7 @@ export default function BillingPage() {
             현재 요금제: <span className="font-bold text-main">{currentPlan}</span>
           </div>
           <Link
-            to="/pages/payment/pricing"
+            to="/pricing"
             className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-500"
           >
             요금제 보러가기
