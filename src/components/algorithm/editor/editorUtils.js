@@ -150,44 +150,19 @@ export const codeTemplates = {
   'C#': `using System;
 
 class Program {
-    static int Solution(int n) {
-        // TODO: 풀이 로직 구현
-        return n;
-    }
-
-    static void Main() {
-        string line = Console.ReadLine();
-        if (!string.IsNullOrEmpty(line)) {
-            int n = int.Parse(line.Trim());
-            int result = Solution(n);
-            Console.WriteLine(result);
-        }
+    static void Main(string[] args) {
+        // 코드 작성
     }
 }
 `,
 
-  'C++': `#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <string>
+  'C++': `#include <bits/stdc++.h>
 using namespace std;
 
-int solution(int n) {
-    // TODO: 풀이 로직 구현
-    return n;
-}
-
 int main() {
-    ios_base::sync_with_stdio(false);
+    ios::sync_with_stdio(false);
     cin.tie(NULL);
-    cout.tie(NULL);
-
-    int n;
-    if (cin >> n) {
-        int result = solution(n);
-        cout << result << "\\n";
-    }
-
+    // 코드 작성
     return 0;
 }
 `,
@@ -195,92 +170,47 @@ int main() {
   'Go': `package main
 
 import (
-	"bufio"
-	"fmt"
-	"os"
-	"strconv"
-	"strings"
+    "bufio"
+    "fmt"
+    "os"
 )
 
-func solution(n int) int {
-	// TODO: 풀이 로직 구현
-	return n
-}
-
 func main() {
-	reader := bufio.NewReader(os.Stdin)
-	line, _ := reader.ReadString('\\n')
-	line = strings.TrimSpace(line)
-
-	if line != "" {
-		n, _ := strconv.Atoi(line)
-		result := solution(n)
-		fmt.Println(result)
-	}
+    reader := bufio.NewReader(os.Stdin)
+    // 코드 작성
 }
 `,
 
-  'Java': `import java.io.*;
-import java.util.*;
+  'Java': `import java.util.*;
+import java.io.*;
 
 public class Main {
     public static void main(String[] args) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
-
-        String line = br.readLine();
-        if (line != null) {
-            int n = Integer.parseInt(line.trim());
-            int result = solution(n);
-            bw.write(String.valueOf(result));
-            bw.newLine();
-        }
-
-        bw.flush();
-        bw.close();
-        br.close();
-    }
-
-    static int solution(int n) {
-        // TODO: 풀이 로직 구현
-        return n;
+        // 코드 작성
     }
 }
 `,
 
   'JavaScript': `const readline = require('readline');
-
 const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
+    input: process.stdin,
+    output: process.stdout
 });
 
+let input = [];
 rl.on('line', (line) => {
-  const input = line.trim();
-  const result = solution(input);
-  console.log(result);
-  rl.close();
+    input.push(line);
+}).on('close', () => {
+    // 코드 작성
 });
-
-function solution(input) {
-  // TODO: 풀이 로직 구현
-  return input;
-}
 `,
 
-  'Kotlin': `import java.util.Scanner
-
-fun solution(n: Int): Int {
-    // TODO: 풀이 로직 구현
-    return n
-}
+  'Kotlin': `import java.util.*
 
 fun main() {
-    val sc = Scanner(System.\`in\`)
-    if (sc.hasNextInt()) {
-        val n = sc.nextInt()
-        println(solution(n))
-    }
+    val br = System.\`in\`.bufferedReader()
+    // 코드 작성
 }
 `,
 
@@ -288,18 +218,8 @@ fun main() {
 input = sys.stdin.readline
 
 def solution():
-    try:
-        line = input().strip()
-        if not line:
-            return
-        n = int(line)
-
-        # TODO: 풀이 로직 구현
-        result = n
-
-        print(result)
-    except ValueError:
-        pass
+    # 코드 작성
+    pass
 
 if __name__ == "__main__":
     solution()
@@ -307,55 +227,34 @@ if __name__ == "__main__":
 
   'Rust': `use std::io::{self, BufRead};
 
-fn solution(n: i32) -> i32 {
-    // TODO: 풀이 로직 구현
-    n
-}
-
 fn main() {
     let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
-
-    if let Some(Ok(line)) = lines.next() {
-        if let Ok(n) = line.trim().parse::<i32>() {
-            let result = solution(n);
-            println!("{}", result);
-        }
-    }
+    // 코드 작성
 }
 `,
 
   'Swift': `import Foundation
 
-func solution(_ n: Int) -> Int {
-    // TODO: 풀이 로직 구현
-    return n
+func solution() {
+    // 코드 작성
 }
 
-if let line = readLine(), let n = Int(line.trimmingCharacters(in: .whitespaces)) {
-    let result = solution(n)
-    print(result)
-}
+solution()
 `,
 
-  'TypeScript': `const readline = require('readline');
+  'TypeScript': `import * as readline from 'readline';
 
 const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
+    input: process.stdin,
+    output: process.stdout
 });
 
+let input: string[] = [];
 rl.on('line', (line: string) => {
-  const input = line.trim();
-  const result = solution(input);
-  console.log(result);
-  rl.close();
+    input.push(line);
+}).on('close', () => {
+    // 코드 작성
 });
-
-function solution(input: string): string | number {
-  // TODO: 풀이 로직 구현
-  return input;
-}
 `,
 
   'SQL': `-- SQL 쿼리를 작성하세요
