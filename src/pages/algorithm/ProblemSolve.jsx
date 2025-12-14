@@ -64,6 +64,7 @@ const ProblemSolve = () => {
   // ========== 타이머 모드 관련 상태 ==========
   const [timerMode, setTimerMode] = useState('TIMER'); // 'TIMER' (카운트다운) | 'STOPWATCH' (스톱워치)
   const [elapsedTime, setElapsedTime] = useState(0); // 스톱워치용 경과 시간
+  const [isTimerHovered, setIsTimerHovered] = useState(false); // 타이머 hover 상태 (시간 편집용)
 
   // 실행 결과 상태
   const [testResult, setTestResult] = useState(null);
@@ -334,6 +335,64 @@ const ProblemSolve = () => {
     }
   }, [timerMode, customTimeMinutes]);
 
+  // 모드 선택 페이지로 돌아가기 (확인창 포함)
+  const handleBackToModeSelection = useCallback(() => {
+    setConfirmModal({
+      isOpen: true,
+      title: '모드 선택으로 돌아가기',
+      message: '이 페이지에서 나가면 기존에 작성한 코드는 사라집니다.\n그래도 나가겠습니까?',
+      confirmText: '나가기',
+      cancelText: '취소',
+      onConfirm: () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        // 상태 초기화
+        setShowModeSelection(true);
+        setSelectedMode(null);
+        setSolvingStarted(false);
+        setIsTimerRunning(false);
+        setEyeTrackingEnabled(false);
+        setCode('');
+        setTestResult(null);
+      },
+      onCancel: () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  }, []);
+
+  // 브라우저 뒤로가기 처리
+  useEffect(() => {
+    if (!showModeSelection && solvingStarted) {
+      // popstate 이벤트 (브라우저 뒤로가기 버튼)
+      const handlePopState = (e) => {
+        e.preventDefault();
+        // 히스토리에 다시 추가하여 페이지 이탈 방지
+        window.history.pushState(null, '', window.location.href);
+        handleBackToModeSelection();
+      };
+
+      // 키보드 뒤로가기 (Cmd+[ 또는 Ctrl+[)
+      const handleKeyDown = (e) => {
+        // Mac: Cmd+[, Windows/Linux: Ctrl+[
+        if (e.key === '[' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          handleBackToModeSelection();
+        }
+      };
+
+      // 히스토리에 현재 상태 추가 (뒤로가기 시 popstate 트리거용)
+      window.history.pushState(null, '', window.location.href);
+
+      window.addEventListener('popstate', handlePopState);
+      window.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showModeSelection, solvingStarted, handleBackToModeSelection]);
+
   // 코드 제출
   // 변경: solveMode, monitoringSessionId 추가
   const handleSubmit = useCallback(async () => {
@@ -508,11 +567,12 @@ const ProblemSolve = () => {
     setCode(template);
   }, [selectedLanguage]);
 
-  // 시간 포맷팅
+  // 시간 포맷팅 (HH:MM:SS)
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   // 언어 변경 (커스텀 모달 사용 - 전체화면 유지)
@@ -785,11 +845,20 @@ const ProblemSolve = () => {
       <div className="bg-zinc-800 border-b border-zinc-700 flex-shrink-0">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-white">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
-              <p className="text-sm text-gray-400 mt-1">
-                맞힌사람 {problem?.successCount || 0} • 제출 {problem?.totalAttempts || 0}
-              </p>
+            <div className="flex items-center gap-4">
+              {/* 모드 선택으로 돌아가기 버튼 */}
+              <button
+                onClick={handleBackToModeSelection}
+                className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-1"
+              >
+                ← 모드 선택
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-white">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
+                <p className="text-sm text-gray-400 mt-1">
+                  맞힌사람 {problem?.successCount || 0} • 제출 {problem?.totalAttempts || 0}
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-6">
@@ -814,16 +883,72 @@ const ProblemSolve = () => {
                 <span className="text-sm">
                   {selectedMode === 'BASIC' ? (timerMode === 'TIMER' ? '타이머' : '스톱워치') : '남은 시간'}
                 </span>
-                <span className={`font-mono text-lg ${
-                  selectedMode === 'FOCUS' || timerMode === 'TIMER'
-                    ? (timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400')
-                    : 'text-cyan-400'
-                }`}>
-                  {selectedMode === 'FOCUS' || timerMode === 'TIMER'
-                    ? formatTime(timeLeft)
-                    : formatTime(elapsedTime)
-                  }
-                </span>
+
+                {/* 기본 모드 + 타이머 + 실행 전: hover 시 시간 직접 편집 */}
+                {selectedMode === 'BASIC' && timerMode === 'TIMER' && !isTimerRunning ? (
+                  <div
+                    className="relative"
+                    onMouseEnter={() => setIsTimerHovered(true)}
+                    onMouseLeave={() => setIsTimerHovered(false)}
+                  >
+                    {/* 고정 너비 컨테이너로 떨림 방지 */}
+                    <div className={`w-28 text-center font-mono text-lg px-2 py-1 rounded transition-all ${
+                      isTimerHovered
+                        ? 'bg-zinc-600 ring-2 ring-yellow-500/50'
+                        : 'bg-zinc-700/50 hover:bg-zinc-700'
+                    }`}>
+                      {isTimerHovered ? (
+                        <input
+                          type="text"
+                          value={formatTime(timeLeft)}
+                          onChange={(e) => {
+                            // HH:MM:SS 형식에서 총 초로 변환
+                            const parts = e.target.value.split(':').map(p => parseInt(p) || 0);
+                            let totalSeconds = 0;
+                            if (parts.length === 3) {
+                              totalSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                            } else if (parts.length === 2) {
+                              totalSeconds = parts[0] * 60 + parts[1];
+                            } else {
+                              totalSeconds = parts[0] * 60;
+                            }
+                            // 최대 3시간 (10800초) 제한
+                            totalSeconds = Math.max(60, Math.min(10800, totalSeconds));
+                            setCustomTimeMinutes(Math.ceil(totalSeconds / 60));
+                            setTimeLeft(totalSeconds);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              setIsTimerHovered(false);
+                            }
+                          }}
+                          className="w-full bg-transparent text-yellow-400 text-center outline-none font-mono text-lg"
+                          autoFocus
+                        />
+                      ) : (
+                        <span className="text-yellow-400 cursor-pointer" title="클릭하여 시간 수정">
+                          {formatTime(timeLeft)}
+                        </span>
+                      )}
+                    </div>
+                    {isTimerHovered && (
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-xs text-gray-500 whitespace-nowrap">
+                        최대 3시간 (03:00:00)
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className={`font-mono text-lg w-28 text-center inline-block ${
+                    selectedMode === 'FOCUS' || timerMode === 'TIMER'
+                      ? (timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400')
+                      : 'text-cyan-400'
+                  }`}>
+                    {selectedMode === 'FOCUS' || timerMode === 'TIMER'
+                      ? formatTime(timeLeft)
+                      : formatTime(elapsedTime)
+                    }
+                  </span>
+                )}
               </div>
 
               {/* 타이머 컨트롤 - 기본 모드에서만 수동 제어 가능 */}
@@ -831,13 +956,13 @@ const ProblemSolve = () => {
                 <div className="flex items-center gap-2">
                   {/* 타이머/스톱워치 모드 토글 */}
                   {!isTimerRunning && (
-                    <div className="flex items-center bg-gray-200 dark:bg-zinc-700 rounded-lg p-0.5">
+                    <div className="flex items-center bg-zinc-700 rounded-lg p-0.5">
                       <button
                         onClick={() => setTimerMode('TIMER')}
                         className={`px-2 py-1 rounded text-xs transition-all ${
                           timerMode === 'TIMER'
                             ? 'bg-yellow-600 text-white'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                            : 'text-gray-400 hover:text-white'
                         }`}
                       >
                         ⏱️ 타이머
@@ -847,43 +972,12 @@ const ProblemSolve = () => {
                         className={`px-2 py-1 rounded text-xs transition-all ${
                           timerMode === 'STOPWATCH'
                             ? 'bg-cyan-600 text-white'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                            : 'text-gray-400 hover:text-white'
                         }`}
                       >
                         ⏱️ 스톱워치
                       </button>
                     </div>
-                  )}
-
-                  {/* 타이머 모드: 시간 설정 */}
-                  {!isTimerRunning && timerMode === 'TIMER' && (
-                    <>
-                      {/* 프리셋 버튼 */}
-                      <div className="flex items-center gap-1">
-                        {[15, 30, 45, 60].map(time => (
-                          <button
-                            key={time}
-                            onClick={() => setCustomTimeMinutes(time)}
-                            className={`px-2 py-1 rounded text-xs transition-all ${
-                              customTimeMinutes === time
-                                ? 'bg-purple-600 text-white'
-                                : 'bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-zinc-600'
-                            }`}
-                          >
-                            {time}분
-                          </button>
-                        ))}
-                      </div>
-                      <input
-                        type="number"
-                        min="1"
-                        max="180"
-                        value={customTimeMinutes}
-                        onChange={(e) => setCustomTimeMinutes(Math.max(1, Math.min(180, parseInt(e.target.value) || 30)))}
-                        className="w-14 px-2 py-1 bg-gray-100 dark:bg-zinc-700 rounded text-center text-xs"
-                      />
-                      <span className="text-gray-500 dark:text-gray-400 text-xs">분</span>
-                    </>
                   )}
 
                   {/* 시작/일시정지/재개 버튼 */}
