@@ -98,15 +98,15 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
     }).replace(/\. /g, '.').replace(/\.$/, '');
   };
 
-  const authorBadgeStyle = {
-    marginLeft: '0.375rem',
-    padding: '0.125rem 0.375rem',
-    fontSize: '0.625rem',
-    fontWeight: '500',
-    borderRadius: '0.25rem',
-    backgroundColor: isDark ? 'rgba(74, 222, 128, 0.2)' : '#dcfce7',
-    color: isDark ? '#4ade80' : '#16a34a'
-  };
+const authorBadgeStyle = {
+  marginLeft: '0.375rem',
+  padding: '0.125rem 0.375rem',
+  fontSize: '0.625rem',
+  fontWeight: '500',
+  borderRadius: '0.25rem',
+  backgroundColor: isDark ? 'rgba(96, 165, 250, 0.2)' : '#dbeafe',
+  color: isDark ? '#60a5fa' : '#2563eb'
+};
 
   const actionButtonStyle = {
     fontSize: '0.75rem',
