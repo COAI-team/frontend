@@ -2,10 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { axiosInstance } from "../../server/AxiosConfig";
 import { getAuth } from "../../utils/auth/token";
-import hljs from "highlight.js";
-import { Heart, MessageCircle, Share2, AlertCircle } from "lucide-react";
+import { MessageCircle, Share2, AlertCircle } from "lucide-react";
 import "../../styles/FreeboardDetail.css";
 import CommentSection from "../../components/comment/CommentSection";
+import LikeButton from '../../components/common/LikeButton';
 import { processCodeBlocks, applyHighlighting } from '../../utils/codeBlockUtils';
 
 const FreeboardDetail = () => {
@@ -18,11 +18,8 @@ const FreeboardDetail = () => {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
-
-  // 로그인 유저 정보
   const [currentUser, setCurrentUser] = useState(null);
 
-  // 로그인 유저 정보 가져오기
   useEffect(() => {
     const auth = getAuth();
     if (auth) {
@@ -30,7 +27,6 @@ const FreeboardDetail = () => {
     }
   }, []);
 
-  // 다크 모드 감지
   useEffect(() => {
     const checkDarkMode = () => {
       const darkMode = document.documentElement.classList.contains("dark");
@@ -88,32 +84,6 @@ const FreeboardDetail = () => {
     fetchBoard();
   }, [id]);
 
-  const handleLike = async () => {
-    // 로그인 체크
-    if (!currentUser) {
-      const goLogin = window.confirm(
-        "로그인 후 좋아요를 누를 수 있습니다. 로그인 하시겠습니까?"
-      );
-      if (goLogin) {
-        const redirect = encodeURIComponent(`/freeboard/${id}`);
-        navigate(`/signin?redirect=${redirect}`);
-      }
-      return;
-    }
-
-    try {
-      const response = await axiosInstance.post(`/like/freeboard/${id}`);
-      const { isLiked } = response.data;
-
-      setIsLiked(isLiked);
-      setLikeCount((prev) => (isLiked ? prev + 1 : prev - 1));
-    } catch (error) {
-      console.error("좋아요 처리 실패:", error);
-      alert("좋아요 처리에 실패했습니다.");
-    }
-  };
-
-  // 태그 클릭 핸들러
   const handleTagClick = (tag) => {
     navigate(`/freeboard?keyword=${encodeURIComponent(tag)}`);
   };
@@ -127,130 +97,130 @@ const FreeboardDetail = () => {
     console.log("신고 클릭");
   };
 
-// 콘텐츠(스티커/코드블록/링크프리뷰) 렌더링
-useEffect(() => {
-  if (!contentRef.current || !board) return;
+  const handleLikeChange = (newIsLiked, newLikeCount) => {
+    setIsLiked(newIsLiked);
+    setLikeCount(newLikeCount);
+  };
 
-  // 스티커 처리
-  const stickerImages = contentRef.current.querySelectorAll(
-    'img[data-sticker], img[src*="openmoji"]'
-  );
-  stickerImages.forEach((img) => {
-    img.style.width = "1.5em";
-    img.style.height = "1.5em";
-    img.style.verticalAlign = "-0.3em";
-    img.style.display = "inline-block";
-    img.style.margin = "0 0.1em";
-  });
+  useEffect(() => {
+    if (!contentRef.current || !board) return;
 
-  // 코드 블록 처리 (공통 유틸리티)
-  processCodeBlocks(contentRef.current, isDark);
+    const stickerImages = contentRef.current.querySelectorAll(
+      'img[data-sticker], img[src*="openmoji"]'
+    );
+    stickerImages.forEach((img) => {
+      img.style.width = "1.5em";
+      img.style.height = "1.5em";
+      img.style.verticalAlign = "-0.3em";
+      img.style.display = "inline-block";
+      img.style.margin = "0 0.1em";
+    });
 
-  // 링크 프리뷰 처리
-  const linkPreviews = contentRef.current.querySelectorAll(
-    'div[data-type="link-preview"]'
-  );
+    processCodeBlocks(contentRef.current, isDark);
 
-  linkPreviews.forEach((preview) => {
-    const title = preview.getAttribute("data-title");
-    const description = preview.getAttribute("data-description");
-    const image = preview.getAttribute("data-image");
-    const site = preview.getAttribute("data-site");
-    const url = preview.getAttribute("data-url");
+    const linkPreviews = contentRef.current.querySelectorAll(
+      'div[data-type="link-preview"]'
+    );
 
-    if (url) {
-      preview.innerHTML = "";
-      preview.className = `link-preview-card ${isDark ? "dark" : "light"}`;
-      preview.style.cssText = `
-        border: 1px solid ${isDark ? "#374151" : "#e5e7eb"};
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin: 1rem 0;
-        display: flex;
-        gap: 1rem;
-        background: ${isDark ? "#1f2937" : "#ffffff"};
-        cursor: pointer;
-        transition: all 0.2s;
-      `;
+    linkPreviews.forEach((preview) => {
+      const title = preview.getAttribute("data-title");
+      const description = preview.getAttribute("data-description");
+      const image = preview.getAttribute("data-image");
+      const site = preview.getAttribute("data-site");
+      const url = preview.getAttribute("data-url");
 
-      preview.addEventListener("mouseenter", () => {
-        preview.style.borderColor = isDark ? "#60a5fa" : "#3b82f6";
-      });
-
-      preview.addEventListener("mouseleave", () => {
-        preview.style.borderColor = isDark ? "#374151" : "#e5e7eb";
-      });
-
-      preview.addEventListener("click", () => {
-        window.open(url, "_blank");
-      });
-
-      if (image) {
-        const imgContainer = document.createElement("div");
-        imgContainer.style.cssText =
-          "flex-shrink: 0; width: 120px; height: 120px; overflow: hidden; border-radius: 0.375rem;";
-
-        const img = document.createElement("img");
-        img.src = image;
-        img.alt = title || "Link preview";
-        img.style.cssText =
-          "width: 100%; height: 100%; object-fit: cover;";
-
-        imgContainer.appendChild(img);
-        preview.appendChild(imgContainer);
-      }
-
-      const textContainer = document.createElement("div");
-      textContainer.style.cssText = "flex: 1; min-width: 0;";
-
-      if (site) {
-        const siteSpan = document.createElement("div");
-        siteSpan.textContent = site;
-        siteSpan.style.cssText = `
-          font-size: 0.875rem;
-          color: ${isDark ? "#9ca3af" : "#6b7280"};
-          margin-bottom: 0.25rem;
+      if (url) {
+        preview.innerHTML = "";
+        preview.className = `link-preview-card ${isDark ? "dark" : "light"}`;
+        preview.style.cssText = `
+          border: 1px solid ${isDark ? "#374151" : "#e5e7eb"};
+          border-radius: 0.5rem;
+          padding: 1rem;
+          margin: 1rem 0;
+          display: flex;
+          gap: 1rem;
+          background: ${isDark ? "#1f2937" : "#ffffff"};
+          cursor: pointer;
+          transition: all 0.2s;
         `;
-        textContainer.appendChild(siteSpan);
+
+        preview.addEventListener("mouseenter", () => {
+          preview.style.borderColor = isDark ? "#60a5fa" : "#3b82f6";
+        });
+
+        preview.addEventListener("mouseleave", () => {
+          preview.style.borderColor = isDark ? "#374151" : "#e5e7eb";
+        });
+
+        preview.addEventListener("click", () => {
+          window.open(url, "_blank");
+        });
+
+        if (image) {
+          const imgContainer = document.createElement("div");
+          imgContainer.style.cssText =
+            "flex-shrink: 0; width: 120px; height: 120px; overflow: hidden; border-radius: 0.375rem;";
+
+          const img = document.createElement("img");
+          img.src = image;
+          img.alt = title || "Link preview";
+          img.style.cssText =
+            "width: 100%; height: 100%; object-fit: cover;";
+
+          imgContainer.appendChild(img);
+          preview.appendChild(imgContainer);
+        }
+
+        const textContainer = document.createElement("div");
+        textContainer.style.cssText = "flex: 1; min-width: 0;";
+
+        if (site) {
+          const siteSpan = document.createElement("div");
+          siteSpan.textContent = site;
+          siteSpan.style.cssText = `
+            font-size: 0.875rem;
+            color: ${isDark ? "#9ca3af" : "#6b7280"};
+            margin-bottom: 0.25rem;
+          `;
+          textContainer.appendChild(siteSpan);
+        }
+
+        if (title) {
+          const titleDiv = document.createElement("div");
+          titleDiv.textContent = title;
+          titleDiv.style.cssText = `
+            font-weight: 600;
+            font-size: 1rem;
+            color: ${isDark ? "#f3f4f6" : "#111827"};
+            margin-bottom: 0.25rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          `;
+          textContainer.appendChild(titleDiv);
+        }
+
+        if (description) {
+          const descDiv = document.createElement("div");
+          descDiv.textContent = description;
+          descDiv.style.cssText = `
+            font-size: 0.875rem;
+            color: ${isDark ? "#d1d5db" : "#4b5563"};
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+          `;
+          textContainer.appendChild(descDiv);
+        }
+
+        preview.appendChild(textContainer);
       }
+    });
 
-      if (title) {
-        const titleDiv = document.createElement("div");
-        titleDiv.textContent = title;
-        titleDiv.style.cssText = `
-          font-weight: 600;
-          font-size: 1rem;
-          color: ${isDark ? "#f3f4f6" : "#111827"};
-          margin-bottom: 0.25rem;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        `;
-        textContainer.appendChild(titleDiv);
-      }
+    applyHighlighting(contentRef.current);
 
-      if (description) {
-        const descDiv = document.createElement("div");
-        descDiv.textContent = description;
-        descDiv.style.cssText = `
-          font-size: 0.875rem;
-          color: ${isDark ? "#d1d5db" : "#4b5563"};
-          overflow: hidden;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-        `;
-        textContainer.appendChild(descDiv);
-      }
-
-      preview.appendChild(textContainer);
-    }
-  });
-
-  // 하이라이팅 적용
-  applyHighlighting(contentRef.current);
-
-}, [board, isDark]);
+  }, [board, isDark]);
 
   const getRenderedContent = (content) => {
     if (!content) {
@@ -289,30 +259,20 @@ useEffect(() => {
     );
   }
 
-  // 현재 로그인 유저가 게시글 작성자인지 여부
-  const currentUserId = currentUser?.userId ?? currentUser?.userId ?? currentUser?.id ?? null;
+  const currentUserId = currentUser?.userId ?? currentUser?.id ?? null;
   const currentUserNickname = currentUser?.userNickname ?? currentUser?.nickname ?? "";
   const isAuthor =
     currentUserId != null && board.userId != null
       ? Number(currentUserId) === Number(board.userId)
       : false;
 
-  console.log('현재 유저:', currentUser);
-  console.log('currentUserId:', currentUserId);
-  console.log('board.userId:', board.userId);
-  console.log('isAuthor:', isAuthor);    
-
-  // 날짜 포맷팅 함수
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-
     return `${year}.${month}.${day}. ${hours}:${minutes}`;
   };
 
@@ -350,7 +310,6 @@ useEffect(() => {
           ← 목록으로
         </button>
 
-        {/* 제목 및 버튼 */}
         <div
           style={{
             display: "flex",
@@ -444,9 +403,7 @@ useEffect(() => {
             color: isDark ? "#9ca3af" : "#4b5563",
           }}
         >
-          <div
-            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <div
               style={{
                 width: "2rem",
@@ -524,32 +481,17 @@ useEffect(() => {
             borderTop: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
           }}
         >
-          <div
-            style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}
-          >
-            <button
-              onClick={handleLike}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: isLiked ? "#ef4444" : (isDark ? "#9ca3af" : "#4b5563"),
-                transition: "color 0.2s",
-              }}
-              onMouseEnter={(e) =>
-                !isLiked && (e.currentTarget.style.color = isDark ? "#fca5a5" : "#dc2626")
-              }
-              onMouseLeave={(e) =>
-                !isLiked && (e.currentTarget.style.color = isDark ? "#9ca3af" : "#4b5563")
-              }
-            >
-              <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
-              <span style={{ fontSize: "0.875rem" }}>좋아요</span>
-              <span style={{ fontWeight: "500" }}>{likeCount}</span>
-            </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+            <LikeButton
+              referenceType="freeboard"
+              referenceId={Number(id)}
+              initialIsLiked={isLiked}
+              initialLikeCount={likeCount}
+              showCount={true}
+              showUsers={true}
+              size="md"
+              onChange={handleLikeChange}
+            />
 
             <div
               style={{
@@ -565,9 +507,7 @@ useEffect(() => {
             </div>
           </div>
 
-          <div
-            style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
             <button
               onClick={handleShare}
               style={{
