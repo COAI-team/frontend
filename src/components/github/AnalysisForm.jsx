@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTheme } from 'next-themes';
+import { useTheme } from "../../context/theme/useTheme";
 import { Info } from 'lucide-react';
 
 const analysisOptions = [

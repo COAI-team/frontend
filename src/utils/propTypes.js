@@ -210,3 +210,31 @@ export const SignUpFormPropTypes = {
     nickname: PropTypes.string.isRequired,
     email: PropTypes.string.isRequired,
 }
+
+export const ThemeContextPropTypes = {
+    children: PropTypes.node.isRequired
+}
+
+export const ParagraphPropTypes = {
+    children: PropTypes.node.isRequired,
+}
+
+export const StrongPropTypes = {
+  children: PropTypes.node.isRequired,
+}
+
+export const TopicSelectorPropTypes = {
+  selectedTopic: PropTypes.string,
+  onTopicSelect: PropTypes.func.isRequired,
+}
+
+export const CodeEditorPropTypes = {
+  language: PropTypes.oneOf(['javascript', 'python', 'cpp', 'java']).isRequired,
+  value: PropTypes.string,
+  onChange: PropTypes.func,
+  onMount: PropTypes.func,
+  height: PropTypes.string,
+  theme: PropTypes.oneOf(['vs-dark', 'light']),
+  readOnly: PropTypes.bool,
+  className: PropTypes.string,
+};

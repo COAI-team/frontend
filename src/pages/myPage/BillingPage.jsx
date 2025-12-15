@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { fetchPointInfo } from "../../service/mypage/MyPageApi";
 import { cancelPayment, fetchPaymentHistory } from "../../service/payment/PaymentApi";
 import Pagination from "../../components/common/Pagination";
-import { useLogin } from "../../context/useLogin";
+import { useLogin } from "../../context/login/useLogin";
 import "./css/billing.css";
 
 const statusLabel = {
@@ -198,7 +198,6 @@ export default function BillingPage() {
             setPointHistory([]);
             setPointBalance(0);
             setLoading(false);
-            return;
           }
         } else {
           const res = await fetchPaymentHistory({ from: startDate, to: endDate });
@@ -304,8 +303,7 @@ export default function BillingPage() {
 
   const filteredPointHistory = useMemo(() => {
     const filtered = filteredPointHistoryAsc.filter((row) => {
-      if (pointOrderFilter && (row.paymentOrderId || "") !== pointOrderFilter) return false;
-      return true;
+      return !(pointOrderFilter && (row.paymentOrderId || "") !== pointOrderFilter);
     });
     if (pointSortOrder === "asc") return filtered;
     return [...filtered].reverse();
@@ -400,7 +398,7 @@ export default function BillingPage() {
             현재 요금제: <span className="font-bold text-main">{currentPlan}</span>
           </div>
           <Link
-            to="/pages/payment/pricing"
+            to="/pricing"
             className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-500"
           >
             요금제 보러가기

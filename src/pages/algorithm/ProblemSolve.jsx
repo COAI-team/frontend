@@ -8,7 +8,7 @@ import { startProblemSolve, submitCode, runTestCode } from '../../service/algori
 import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
-import { useLogin } from '../../context/useLogin';
+import { useLogin } from '../../context/login/useLogin';
 
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마

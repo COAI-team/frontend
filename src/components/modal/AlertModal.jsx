@@ -1,4 +1,5 @@
 import { AlertModalPropTypes } from "../../utils/propTypes";
+import { useEffect, useRef } from "react";
 import {
     Dialog,
     DialogBackdrop,
@@ -11,8 +12,7 @@ import {
     XCircleIcon,
     InformationCircleIcon,
 } from "@heroicons/react/24/outline";
-import { useTheme } from "next-themes";
-import { useEffect } from "react";
+import { useTheme } from "../../context/theme/useTheme";
 
 export default function AlertModal({
                                        open = false,
@@ -26,6 +26,35 @@ export default function AlertModal({
                                        cancelText = "취소",
                                    }) {
     const { theme } = useTheme();
+    const confirmButtonRef = useRef(null);
+
+    // Enter/Escape 키 이벤트 처리
+    useEffect(() => {
+        if (!open) return;
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (onConfirm) {
+                    onConfirm();
+                }
+                onClose();
+            }
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+
+        // 확인 버튼에 포커스
+        setTimeout(() => {
+            if (confirmButtonRef.current) {
+                confirmButtonRef.current.focus();
+            }
+        }, 100);
+
+        globalThis.addEventListener('keydown', handleKeyDown);
+        return () => globalThis.removeEventListener('keydown', handleKeyDown);
+    }, [open, onConfirm, onClose]);
 
     // HEX 색상 매핑
     const COLOR_MAP = {
@@ -104,6 +133,8 @@ export default function AlertModal({
                         {/* 버튼 영역: 🟣 취소 + 확인 */}
                         <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
                             <button
+                                ref={confirmButtonRef}
+                                autoFocus
                                 onClick={() => {
                                     if (onConfirm) onConfirm();
                                     onClose();

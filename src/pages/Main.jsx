@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from "react";
 import {Link, useNavigate} from "react-router-dom";
-import {useLogin} from "../context/useLogin";
+import {useLogin} from "../context/login/useLogin";
 import axiosInstance from "../server/AxiosConfig";
-import {useTheme} from "next-themes";
+import { useTheme } from "../context/theme/useTheme";
 
 export default function Main() {
     const {theme} = useTheme();

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../server/AxiosConfig';
 import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
-import { useLogin } from '../../context/useLogin';
+import { useLogin } from '../../context/login/useLogin';
 import "./css/dashboard.css";
 
 const DashboardPage = () => {

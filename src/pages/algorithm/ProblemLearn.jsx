@@ -9,7 +9,7 @@ import {
 } from '../../components/algorithm/editor/editorUtils';
 import { startProblemSolve, runTestCode } from '../../service/algorithm/AlgorithmApi';
 import { useTutorWebSocket } from '../../hooks/algorithm/useTutorWebSocket';
-import { useLogin } from '../../context/useLogin';
+import { useLogin } from '../../context/login/useLogin';
 import { getAuth } from '../../utils/auth/token';
 import { useLoginRequiredModal } from '../../hooks/common/useLoginRequiredModal.jsx';
 
@@ -155,7 +155,7 @@ const ProblemLearn = () => {
   const [tutorFontSize, setTutorFontSize] = useState('14px');
   const [tutorTextColor, setTutorTextColor] = useState('#e5e7eb');
 
-  const [hasRunOnce, setHasRunOnce] = useState(false);
+  const [setHasRunOnce] = useState(false);
   const [lastJudgeResult, setLastJudgeResult] = useState(null);
   const [lastJudgeSource, setLastJudgeSource] = useState('');
   const [lastCodeUpdatedAt, setLastCodeUpdatedAt] = useState(Date.now());

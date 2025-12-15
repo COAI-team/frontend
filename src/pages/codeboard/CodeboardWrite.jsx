@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTheme } from 'next-themes';
+import { useTheme } from "../../context/theme/useTheme";
 import axiosInstance from '../../server/AxiosConfig'; 
 import WriteEditor from '../../components/editor/WriteEditor';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
-import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
+import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
 
 const CodeboardWrite = () => {
     const { analysisId } = useParams();

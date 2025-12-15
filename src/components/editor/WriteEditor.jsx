@@ -22,7 +22,7 @@ import CustomTableCell from "./extensions/CustomTableCell";
 import CustomTableHeader from "./extensions/CustomTableHeader";
 
 import TagInput from "../../components/tag/TagInput";
-import { useTheme } from "next-themes";
+import { useTheme } from "../../context/theme/useTheme";
 import "../../styles/tiptap.css";
 
 const WriteEditor = ({

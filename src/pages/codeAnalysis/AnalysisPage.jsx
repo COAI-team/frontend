@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useLogin } from '../../context/useLogin'; // Add Import
+import { useLogin } from '../../context/login/useLogin'; // Add Import
 
 import RepositorySelector from '../../components/github/RepositorySelector';
 import BranchSelector from '../../components/github/BranchSelector';
@@ -11,7 +11,7 @@ import AnalysisLoading from '../../components/codeAnalysis/AnalysisLoading';
 import axiosInstance from '../../server/AxiosConfig';
 import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
 
-import { getAuth, removeAuth } from "../../utils/auth/token";
+import { getAuth } from "../../utils/auth/token";
 import AlertModal from "../../components/modal/AlertModal";
 
 

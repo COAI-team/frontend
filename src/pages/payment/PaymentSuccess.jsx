@@ -1,4 +1,3 @@
-// src/pages/payment/PaymentSuccess.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { confirmPayment } from "../../service/payment/PaymentApi";

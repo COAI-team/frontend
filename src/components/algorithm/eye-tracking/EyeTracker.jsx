@@ -24,11 +24,9 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, on
     const cleanupCalledRef = useRef(false);
 
     const {
-        isCalibrated,
-        isTracking,
+      isTracking,
         sessionId,
-        startCalibration,
-        completeCalibration,
+      completeCalibration,
         stopTracking,
         // [Phase 2] NO_FACE 상태
         showNoFaceWarning,
@@ -131,8 +129,7 @@ const EyeTracker = forwardRef(({ problemId, isEnabled, timeLimitMinutes = 30, on
             if (toggleDebugModeRef.current) {
                 toggleDebugModeRef.current();
             }
-        },
-        getDebugMode: () => debugModeRef.current
+        }
     }), []); // 빈 의존성 - ref를 통해 최신 값 접근
 
     // 컴포넌트 언마운트 시에만 추적 종료 (의존성 변경 시 호출 안 함)
