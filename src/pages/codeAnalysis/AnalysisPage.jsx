@@ -64,27 +64,19 @@ const AnalysisPage = () => {
     }, [useRag]);
 
     // Smart Suggestion Logic
-    useEffect(() => {
-        if (selectedRepo && user) {
-            // 사용자의 Git ID와 Repo Owner 비교 (user 객체 구조에 따라 수정 필요, 일단 githubId가 있다고 가정하거나 nickname 사용)
-            // user object in useLogin usually has userId, maybe not gitId directly visible without check.
-            // Assumption: selectedRepo.owner matches user.nickname or we assume default behavior.
-            // Requirement: "Git user를 검색할 때, 사용자가 자신의 git ID를 검색할 시, RAG를 추천하게"
-            
-            // Let's assume user.nickname holds the git username for now, or check typical OAuth mapping.
-            // If explicit Git ID isn't available, we might need to rely on what field holds it.
-            // But usually OAuth username is mapped to name or nickname.
-            // Let's compare case-insensitively.
-            
-            const isMyRepo = selectedRepo.owner.toLowerCase() === (user.nickname || user.name || "").toLowerCase();
-            
-            if (isMyRepo) {
-                setUseRag(true);
-            } else {
-                setUseRag(false);
-            }
+    // Smart Suggestion Logic (Move to onSearch handler)
+    const handleOwnerSearch = (owner) => {
+        if (!owner || !user) return;
+        
+        // Assumption: owner matches user.nickname or name
+        const isMyRepo = owner.toLowerCase() === (user.nickname || user.name || user.githubId || "").toLowerCase();
+        
+        if (isMyRepo) {
+            setUseRag(true);
+        } else {
+            setUseRag(false);
         }
-    }, [selectedRepo, user]);
+    };
 
 
     // Load existing analysis if ID is present
@@ -130,7 +122,6 @@ const AnalysisPage = () => {
 
         const fetchContent = async () => {
             try {
-                // TODO: GithubService API 사용
                 const response = await axiosInstance.get(`/api/github/repos/${selectedRepo.owner}/${selectedRepo.name}/content`, {
                     params: { path: selectedFile.path }
                 });
@@ -210,22 +201,10 @@ const AnalysisPage = () => {
                     customRequirements: formState.customRequirements,
                     userId: user?.userId
                 });
-                // No Rag API returns wrapped response { data: { ...actualResult } } 
-                // We need to match the structure for parsing step. 
-                // The original code in AnalysisPageWithoutRag used response.data.data
+
                 response = { data: noRagResponse.data.data }; 
             }
-            const accumulated = response.data; // API returns success(data) or just data depending on ApiResponse wrapping. 
-            // The controller returns ApiResponse.success(result), so response.data should be the ApiResponse object.
-            // Let's check AnalysisController.java: return ResponseEntity.ok(ApiResponse.success(result));
-            // And analysisApi.js: return res.data;
-            // So 'response' here is 'res.data' from axios, which is the ApiResponse JSON. 
-            // The actual content is in response.data (if ApiResponse has 'data' field).
-            // Wait, analyzeStoredFile in analysisApi.js returns res.data.
-            // So 'response' variable here holds the body of the HTTP response.
-            // The body is ApiResponse<String>. So response.data is the string content (the analysis result).
-            // Let's verify ApiResponse structure. Usually it has 'status', 'message', 'data'.
-            // So accumulated = response.data;
+            const accumulated = response.data; 
 
 
             // 3. 결과 파싱
@@ -280,7 +259,7 @@ const AnalysisPage = () => {
                             <div className="rounded-lg shadow-sm border p-6">
                                 <h2 className="text-lg font-semibold mb-4">📂 파일 선택</h2>
                                 <div className="space-y-4">
-                                    <RepositorySelector onSelect={handleRepoSelect} />
+                                    <RepositorySelector onSelect={handleRepoSelect} onSearch={handleOwnerSearch} />
                                     {selectedRepo && <BranchSelector repository={selectedRepo} onSelect={handleBranchSelect} />}
                                     {selectedBranch && <FileTree repository={selectedRepo} branch={selectedBranch} onSelect={setSelectedFile} />}
                                 </div>

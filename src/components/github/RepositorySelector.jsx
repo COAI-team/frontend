@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../server/AxiosConfig';
 import { useLogin } from '../../context/useLogin';
 
-const RepositorySelector = ({ onSelect }) => {
+const RepositorySelector = ({ onSelect, onSearch }) => {
     const { user } = useLogin();
     const [repositories, setRepositories] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -57,17 +57,15 @@ const RepositorySelector = ({ onSelect }) => {
         }
     };
 
+    const handleManualSearch = () => {
+        if (onSearch) onSearch(owner);
+        fetchRepositories();
+    };
+
     useEffect(() => {
         fetchRepositories();
-    }, []); // Mount 시 한 번 실행, owner 변경 시에는 버튼으로 실행하도록 변경 가능하지만 편의상 자동 로딩은 유지? 아니면 버튼?
-    // 여기서 user가 로드되면 자동 실행되도록 owner를 dependency로 넣는게 좋음 owner 초기값이 있으므로.
+    }, []); 
 
-
-    // user 변경 시 owner 업데이트 되므로 아래 useEffect로 fetch 트리거
-    // user 변경 시 owner 업데이트 되므로 아래 useEffect로 fetch 트리거 -> REMOVE
-    // useEffect(() => {
-    //      fetchRepositories();
-    // }, [owner]);
 
     if (loading) {
         return <p>Loading repositories...</p>;
@@ -87,9 +85,12 @@ const RepositorySelector = ({ onSelect }) => {
                     onChange={(e) => setOwner(e.target.value)} 
                     className="border p-2 rounded w-full"
                     placeholder="GitHub Username"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleManualSearch();
+                    }}
                 />
                 <button 
-                    onClick={fetchRepositories}
+                    onClick={handleManualSearch}
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500"
                 >
                     Search
