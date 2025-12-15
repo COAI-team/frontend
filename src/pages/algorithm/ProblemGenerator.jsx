@@ -68,6 +68,11 @@ const ProblemGenerator = () => {
     { value: 'SKI_RESORT', label: '⛷️ 스키장', description: '슬로프 경로, 리프트 최적화, 스키 대회' },
   ];
 
+  // SQL 토픽 (하드코딩 유지 - SQL은 아직 미지원)
+  const TOPIC_SUGGESTIONS_SQL = [
+    'SELECT', 'GROUP BY', 'String, Date', 'JOIN', 'SUM, MAX, MIN', 'IS NULL'
+  ];
+  
   // ===== 토픽 목록 조회 =====
   useEffect(() => {
     const fetchTopics = async () => {
