@@ -1,4 +1,5 @@
 ﻿import axiosInstance from "../../server/AxiosConfig";
+import { getAuth } from "../../utils/auth/token";
 
 /**
  * 오늘의 문제 선착순 보너스 상태 조회
@@ -622,12 +623,21 @@ export const getUserLevel = async (userId) => {
 export const drawProblemFromPool = (data, callbacks) => {
     const { onStep, onComplete, onError } = callbacks;
 
+    // 로그인된 사용자 ID 가져오기 (ALGO_CREATER 저장용)
+    const auth = getAuth();
+    const userId = auth?.user?.userId;
+
     // URL 쿼리 파라미터 구성
     const params = new URLSearchParams({
         difficulty: data.difficulty,
         topic: data.topic,
         theme: data.theme || data.storyTheme,  // storyTheme도 지원
     });
+
+    // userId가 있으면 파라미터에 추가
+    if (userId) {
+        params.append('userId', userId);
+    }
 
     // API 베이스 URL 가져오기
     const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:9443';
