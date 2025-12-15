@@ -127,7 +127,69 @@ const AnalysisPage = () => {
         return trimmed;
     };
 
-    const handleAnalysisSubmit = async (formState) => {
+    // const handleAnalysisSubmit = async (formState) => {
+    //     if (!selectedFile || !selectedRepo) return;
+
+    //     setIsLoading(true);
+    //     setError(null);
+    //     setAnalysisResult(null);
+    //     setStreamedContent('');
+
+    //     try {
+    //         // 1. 파일 저장
+    //         const saveResponse = await saveFile({
+    //             repositoryUrl: selectedRepo.url,
+    //             owner: selectedRepo.owner,
+    //             repo: selectedRepo.name,
+    //             filePath: selectedFile.path,
+    //             userId: user?.userId 
+    //         });
+
+    //         // 2. 분석 요청 (동기 -> 결과 한 번에 수신)
+    //         const response = await analyzeStoredFile({
+    //             analysisId: saveResponse.data.fileId,
+    //             repositoryUrl: selectedRepo.url,
+    //             filePath: selectedFile.path,
+    //             analysisTypes: formState.analysisTypes,
+    //             toneLevel: formState.toneLevel,
+    //             customRequirements: formState.customRequirements,
+    //             userId: user?.userId 
+    //         });
+
+    //         const accumulated = response.data; // API returns success(data) or just data depending on ApiResponse wrapping. 
+    //         // The controller returns ApiResponse.success(result), so response.data should be the ApiResponse object.
+    //         // Let's check AnalysisController.java: return ResponseEntity.ok(ApiResponse.success(result));
+    //         // And analysisApi.js: return res.data;
+    //         // So 'response' here is 'res.data' from axios, which is the ApiResponse JSON. 
+    //         // The actual content is in response.data (if ApiResponse has 'data' field).
+    //         // Wait, analyzeStoredFile in analysisApi.js returns res.data.
+    //         // So 'response' variable here holds the body of the HTTP response.
+    //         // The body is ApiResponse<String>. So response.data is the string content (the analysis result).
+    //         // Let's verify ApiResponse structure. Usually it has 'status', 'message', 'data'.
+    //         // So accumulated = response.data;
+
+
+    //         // 3. 결과 파싱
+    //         try {
+    //             const jsonStr = cleanMarkdownCodeBlock(accumulated);
+    //             const result = JSON.parse(jsonStr);
+    //             setAnalysisResult(result);
+    //         } catch (parseErr) {
+    //             console.error("JSON Parse Error:", parseErr);
+    //             console.log("Raw Content:", accumulated);
+    //             // 파싱 실패 시 원본 텍스트라도 보여주기 위해 더미 객체에 넣거나 에러 처리
+    //             setError("분석 결과를 처리하는 중 오류가 발생했습니다. (JSON 파싱 실패)");
+    //         }
+            
+    //     } catch (err) {
+    //         console.error(err);
+    //         setError("분석 중 오류가 발생했습니다.");
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
+
+        const handleAnalysisSubmit = async (formState) => {
         if (!selectedFile || !selectedRepo) return;
 
         setIsLoading(true);
@@ -156,28 +218,29 @@ const AnalysisPage = () => {
                 userId: user?.userId 
             });
 
-            const accumulated = response.data; // API returns success(data) or just data depending on ApiResponse wrapping. 
-            // The controller returns ApiResponse.success(result), so response.data should be the ApiResponse object.
-            // Let's check AnalysisController.java: return ResponseEntity.ok(ApiResponse.success(result));
-            // And analysisApi.js: return res.data;
-            // So 'response' here is 'res.data' from axios, which is the ApiResponse JSON. 
-            // The actual content is in response.data (if ApiResponse has 'data' field).
-            // Wait, analyzeStoredFile in analysisApi.js returns res.data.
-            // So 'response' variable here holds the body of the HTTP response.
-            // The body is ApiResponse<String>. So response.data is the string content (the analysis result).
-            // Let's verify ApiResponse structure. Usually it has 'status', 'message', 'data'.
-            // So accumulated = response.data;
-
+            const accumulated = response.data;
 
             // 3. 결과 파싱
             try {
                 const jsonStr = cleanMarkdownCodeBlock(accumulated);
                 const result = JSON.parse(jsonStr);
-                setAnalysisResult(result);
+                
+                // 분석 결과 저장 API 호출
+                const saveAnalysisResponse = await axiosInstance.post('/analysis/save', {
+                    fileId: saveResponse.data.fileId,  // 1단계에서 받은 fileId
+                    repositoryUrl: selectedRepo.url,
+                    filePath: selectedFile.path,
+                    analysisResult: result  // 파싱된 결과 객체
+                });
+                
+                const savedAnalysisId = saveAnalysisResponse.data.data.analysisId;  // ApiResponse 구조 고려
+                
+                // URL 업데이트
+                navigate(`/codeAnalysis/${savedAnalysisId}`);
+                
             } catch (parseErr) {
                 console.error("JSON Parse Error:", parseErr);
                 console.log("Raw Content:", accumulated);
-                // 파싱 실패 시 원본 텍스트라도 보여주기 위해 더미 객체에 넣거나 에러 처리
                 setError("분석 결과를 처리하는 중 오류가 발생했습니다. (JSON 파싱 실패)");
             }
             

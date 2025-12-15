@@ -103,7 +103,7 @@ export const submitCode = async (data) => {
     try {
         const res = await axiosInstance.post('/algo/submissions', {
             problemId: data.problemId,
-            language: data.language,
+            languageId: data.languageId,
             sourceCode: data.sourceCode,
             elapsedTime: data.elapsedTime,
             solveMode: data.solveMode || 'BASIC',
@@ -562,26 +562,17 @@ export const PROBLEM_TYPE_OPTIONS = [
 ];
 
 export const LANGUAGE_OPTIONS = [
-    { value: 'ALL', label: '모든 언어' },
-    { value: 'C (Clang)', label: 'C (Clang)' },
-    { value: 'C11', label: 'C11 (GCC)' },
-    { value: 'C++17', label: 'C++17 (GCC)' },
-    { value: 'C++20', label: 'C++20 (GCC)' },
-    { value: 'Java 17', label: 'Java 17' },
-    { value: 'Java 11', label: 'Java 11' },
-    { value: 'Python 3', label: 'Python 3' },
-    { value: 'PyPy3', label: 'PyPy3' },
-    { value: 'node.js', label: 'Node.js' },
-    { value: 'TypeScript', label: 'TypeScript' },
-    { value: 'Go', label: 'Go' },
-    { value: 'Rust', label: 'Rust' },
-    { value: 'Kotlin (JVM)', label: 'Kotlin' },
-    { value: 'Swift', label: 'Swift' },
-    { value: 'C#', label: 'C# (Mono)' },
-    { value: 'PHP', label: 'PHP' },
-    { value: 'Ruby', label: 'Ruby' },
-    { value: 'SQL', label: 'SQL (SQLite)' },
-    { value: 'Bash', label: 'Bash' },
+    { id: 51, label: 'C#', piston: 'csharp.net' },
+    { id: 82, label: 'SQLite', piston: 'sqlite3' },
+    { id: 83, label: 'Swift', piston: 'swift' },
+    { id: 91, label: 'Java', piston: 'java' },
+    { id: 93, label: 'JavaScript', piston: 'javascript' },
+    { id: 94, label: 'TypeScript', piston: 'typescript' },
+    { id: 100, label: 'Python', piston: 'python' },
+    { id: 105, label: 'C++', piston: 'c++' },
+    { id: 106, label: 'Go', piston: 'go' },
+    { id: 108, label: 'Rust', piston: 'rust' },
+    { id: 111, label: 'Kotlin', piston: 'kotlin' },
 ];
 
 export const TOPIC_OPTIONS = [
