@@ -28,10 +28,12 @@
     "@tiptap/extension-text-style": "^3.13.0",
     "@tiptap/react": "^3.13.0",
     "@tiptap/starter-kit": "^3.13.0",
+    "@stomp/stompjs": "^7.0.0",
     "@tosspayments/tosspayments-sdk": "^2.5.0",
     "axios": "^1.13.2",
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
+    "devtools-detect": "^4.0.2",
     "highlight.js": "^11.11.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.556.0",
@@ -43,7 +45,8 @@
     "react-dom": "^19.2.1",
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.10.1"
+    "react-router-dom": "^7.10.1",
+    "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

@@ -4,6 +4,7 @@ import {
     getTodayMissions,
     getUsageInfo,
     getUserLevel,
+    getSolveBonusStatus,
     MISSION_TYPE_INFO,
     DIFFICULTY_OPTIONS
 } from '../../service/algorithm/AlgorithmApi';
@@ -33,8 +34,42 @@ const DailyMission = () => {
     const [error, setError] = useState(null);
     const [lastUpdated, setLastUpdated] = useState(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [bonusStatusMap, setBonusStatusMap] = useState({});
 
     const navigate = useNavigate();
+
+    const fetchBonusStatuses = useCallback(async (missionList) => {
+        const targets = missionList.filter(
+            (m) => m.missionType === 'PROBLEM_SOLVE' && m.problemId
+        );
+        if (targets.length === 0) {
+            setBonusStatusMap({});
+            return;
+        }
+
+        try {
+            const results = await Promise.all(
+                targets.map(async (m) => {
+                    const res = await getSolveBonusStatus(m.problemId);
+                    if (res?.error && !res.data) return null;
+                    return {
+                        key: m.missionId || m.problemId,
+                        data: res.data || res
+                    };
+                })
+            );
+
+            const map = {};
+            results.forEach((item) => {
+                if (item?.key && item.data) {
+                    map[item.key] = item.data;
+                }
+            });
+            setBonusStatusMap(map);
+        } catch (e) {
+            console.error('보너스 상태 조회 실패:', e);
+        }
+    }, []);
 
     // ===== 데이터 로딩 =====
     const loadData = useCallback(async (showRefreshing = false) => {
@@ -73,7 +108,9 @@ const DailyMission = () => {
             if (missionsResult.error) {
                 console.warn('미션 로딩 실패:', missionsResult.message);
             } else {
-                setMissions(missionsResult.data || []);
+                const missionData = missionsResult.data || [];
+                setMissions(missionData);
+                fetchBonusStatuses(missionData);
             }
 
             // 사용량 데이터 설정
@@ -101,7 +138,7 @@ const DailyMission = () => {
             setLoading(false);
             setIsRefreshing(false);
         }
-    }, [isLoggedIn, user]);
+    }, [isLoggedIn, user, fetchBonusStatuses]);
 
     // 수동 새로고침 핸들러
     const handleRefresh = () => {
@@ -169,21 +206,21 @@ const DailyMission = () => {
         return (
             <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">데이터를 불러오는 중...</p>
+                <p className="mt-2 text-muted">데이터를 불러오는 중...</p>
             </div>
         );
     }
 
     return (
-        <div className="max-w-4xl">
+        <div className="max-w-4xl mx-auto">
                 {/* 페이지 헤더 */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                            <h1 className="text-3xl font-bold text-main mb-2">
                                 오늘의 미션
                             </h1>
-                            <p className="text-gray-600 dark:text-gray-400">
+                            <p className="text-muted">
                                 매일 미션을 완료하고 포인트를 획득하세요!
                             </p>
                         </div>
@@ -201,7 +238,7 @@ const DailyMission = () => {
                                 {isRefreshing ? '새로고침 중...' : '새로고침'}
                             </button>
                             {lastUpdated && (
-                                <span className="text-xs text-gray-400 dark:text-gray-500">
+                                <span className="text-xs text-muted">
                                     마지막 업데이트: {lastUpdated.toLocaleTimeString('ko-KR')}
                                 </span>
                             )}
@@ -235,12 +272,12 @@ const DailyMission = () => {
                         </div>
 
                         {/* 미션 진행 상황 */}
-                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6 mb-6">
+                        <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 mb-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                <h2 className="text-lg font-semibold text-main">
                                     미션 진행률
                                 </h2>
-                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                <span className="text-sm text-muted">
                                     {completedCount} / {totalMissions} 완료
                                 </span>
                             </div>
@@ -263,13 +300,13 @@ const DailyMission = () => {
 
                         {/* 미션 목록 */}
                         <div className="space-y-4">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            <h2 className="text-lg font-semibold text-main">
                                 오늘의 미션 목록
                             </h2>
 
                             {missions.length === 0 ? (
-                                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-8 text-center">
-                                    <p className="text-gray-500 dark:text-gray-400">
+                                <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-8 text-center">
+                                    <p className="text-muted">
                                         오늘의 미션이 없습니다.
                                     </p>
                                 </div>
@@ -282,7 +319,7 @@ const DailyMission = () => {
                                         <div
                                             key={mission.missionId || index}
                                             onClick={() => handleMissionClick(mission)}
-                                            className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6 transition-all ${
+                                            className={`bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 transition-all ${
                                                 isCompleted
                                                     ? 'opacity-70 cursor-default'
                                                     : 'hover:shadow-md cursor-pointer hover:border-blue-300 dark:hover:border-blue-500'
@@ -303,23 +340,23 @@ const DailyMission = () => {
                                                     <div>
                                                         <h3 className={`font-semibold text-lg ${
                                                             isCompleted
-                                                                ? 'text-gray-500 dark:text-gray-400 line-through'
-                                                                : 'text-gray-900 dark:text-white'
+                                                                ? 'text-muted line-through'
+                                                                : 'text-main'
                                                         }`}>
                                                             {typeInfo.name || mission.missionType}
                                                         </h3>
-                                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                                                        <p className="text-muted text-sm mt-1">
                                                             {typeInfo.description}
                                                         </p>
 
                                                         {/* 문제 정보 (PROBLEM_SOLVE인 경우) */}
                                                         {mission.missionType === 'PROBLEM_SOLVE' && mission.problemTitle && (
                                                             <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
-                                                                <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                                <p className="text-sm text-sub">
                                                                     <span className="font-medium">문제:</span> {mission.problemTitle}
                                                                 </p>
                                                                 {mission.problemDifficulty && (
-                                                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                                    <p className="text-sm text-muted">
                                                                         <span className="font-medium">난이도:</span>{' '}
                                                                         {getDifficultyLabel(mission.problemDifficulty)}
                                                                     </p>
@@ -338,15 +375,57 @@ const DailyMission = () => {
                                                     }`}>
                                                         +{mission.rewardPoints}P
                                                     </div>
-                                                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                                    <div className="text-xs text-muted mt-1">
                                                         {isCompleted ? '획득 완료' : '보상'}
                                                     </div>
                                                 </div>
                                             </div>
 
+                                            {/* 선착순 보너스 상태 (문제 풀이 미션 전용) */}
+                                            {mission.missionType === 'PROBLEM_SOLVE' && (
+                                                <div className="mt-3 text-sm">
+                                                    {(() => {
+                                                        const bonusKey = mission.missionId || mission.problemId;
+                                                        const bonusStatus = bonusStatusMap[bonusKey];
+                                                        const current = bonusStatus?.currentCount ?? 0;
+                                                        const limit = bonusStatus?.limit ?? 3;
+
+                                                        if (!bonusStatus) {
+                                                            return (
+                                                                <span className="text-gray-500 dark:text-gray-400">
+                                                                    선착순 보너스 상태 확인 중...
+                                                                </span>
+                                                            );
+                                                        }
+
+                                                        if (isCompleted) {
+                                                            return (
+                                                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                                                    오늘 {current}번째로 보너스 지급 완료 ({current}/{limit}명)
+                                                                </span>
+                                                            );
+                                                        }
+
+                                                        if (bonusStatus.eligible) {
+                                                            return (
+                                                                <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                                                    선착순 보너스 가능 ({current}/{limit}명)
+                                                                </span>
+                                                            );
+                                                        }
+
+                                                        return (
+                                                            <span className="text-gray-500 dark:text-gray-400 font-medium">
+                                                                보너스 마감 ({current}/{limit}명)
+                                                            </span>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
+
                                             {/* 완료 시간 */}
                                             {isCompleted && mission.completedAt && (
-                                                <div className="mt-3 pt-3 border-t dark:border-gray-700 text-sm text-gray-400 dark:text-gray-500">
+                                                <div className="mt-3 pt-3 border-t dark:border-gray-700 text-sm text-muted">
                                                     완료 시간: {new Date(mission.completedAt).toLocaleTimeString('ko-KR')}
                                                 </div>
                                             )}

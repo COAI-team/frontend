@@ -294,11 +294,11 @@ const AnalysisPage = () => {
                                 </h3>
                                 <span className="text-xs">ReadOnly</span>
                             </div>
-                            <div className="p-0">
+                            <div className="p-0 overflow-hidden">
                                 <textarea
                                     value={fileContent}
                                     readOnly
-                                    className="w-full h-[600px] p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] resize-none focus:outline-none"
+                                    className="w-full h-[600px] p-4 font-mono text-sm bg-[#1e1e1e] text-[#d4d4d4] resize-none focus:outline-none overflow-auto"
                                     placeholder={isNew ? "파일을 선택하면 코드가 여기에 표시됩니다." : "코드를 불러오는 중..."}
                                 />
                             </div>

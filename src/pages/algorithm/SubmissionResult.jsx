@@ -1,6 +1,234 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getSubmissionResult, completeMission } from '../../service/algorithm/AlgorithmApi';
+import { getSubmissionResult, completeMission, updateSharingStatus } from '../../service/algorithm/AlgorithmApi';
+
+/**
+ * 간단한 마크다운 렌더러 컴포넌트
+ * - ## 헤딩, **볼드**, - 리스트 지원
+ */
+const MarkdownRenderer = ({ content }) => {
+  if (!content) return null;
+
+  const lines = content.split('\n');
+  const elements = [];
+  let currentList = [];
+  let listKey = 0;
+
+  const flushList = () => {
+    if (currentList.length > 0) {
+      elements.push(
+        <ul key={`list-${listKey++}`} className="list-disc list-inside space-y-1 ml-2 text-gray-700 dark:text-gray-300">
+          {currentList.map((item, idx) => (
+            <li key={idx}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ul>
+      );
+      currentList = [];
+    }
+  };
+
+  // 인라인 마크다운 처리 (**볼드**, `코드`)
+  const renderInlineMarkdown = (text) => {
+    if (!text) return text;
+
+    // **볼드** 처리
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={idx} className="font-semibold text-gray-900 dark:text-gray-100">{part.slice(2, -2)}</strong>;
+      }
+      // `코드` 처리
+      const codeParts = part.split(/(`[^`]+`)/g);
+      return codeParts.map((codePart, codeIdx) => {
+        if (codePart.startsWith('`') && codePart.endsWith('`')) {
+          return <code key={`${idx}-${codeIdx}`} className="bg-gray-100 dark:bg-zinc-700 px-1 rounded text-sm font-mono text-blue-600 dark:text-blue-400">{codePart.slice(1, -1)}</code>;
+        }
+        return codePart;
+      });
+    });
+  };
+
+  lines.forEach((line, index) => {
+    const trimmedLine = line.trim();
+
+    // 빈 줄
+    if (!trimmedLine) {
+      flushList();
+      elements.push(<div key={`br-${index}`} className="h-2" />);
+      return;
+    }
+
+    // ## 헤딩 (h2)
+    if (trimmedLine.startsWith('## ')) {
+      flushList();
+      const headingText = trimmedLine.slice(3);
+      elements.push(
+        <h3 key={`h2-${index}`} className="text-lg font-bold text-gray-900 dark:text-white mt-4 mb-2 flex items-center gap-2">
+          {headingText}
+        </h3>
+      );
+      return;
+    }
+
+    // ### 헤딩 (h3)
+    if (trimmedLine.startsWith('### ')) {
+      flushList();
+      const headingText = trimmedLine.slice(4);
+      elements.push(
+        <h4 key={`h3-${index}`} className="text-md font-semibold text-gray-800 dark:text-gray-200 mt-3 mb-1">
+          {headingText}
+        </h4>
+      );
+      return;
+    }
+
+    // - 리스트 아이템
+    if (trimmedLine.startsWith('- ')) {
+      currentList.push(trimmedLine.slice(2));
+      return;
+    }
+
+    // 일반 텍스트
+    flushList();
+    elements.push(
+      <p key={`p-${index}`} className="text-gray-700 dark:text-gray-300 leading-relaxed">
+        {renderInlineMarkdown(trimmedLine)}
+      </p>
+    );
+  });
+
+  flushList();
+  return <div className="space-y-1">{elements}</div>;
+};
+
+/**
+ * 문제 설명 파싱 함수
+ */
+const parseProblemDescription = (description) => {
+  if (!description) return null;
+
+  const sections = {
+    description: '',
+    input: '',
+    output: '',
+    constraints: '',
+    exampleInput: '',
+    exampleOutput: '',
+  };
+
+  // 섹션 구분자 패턴
+  const patterns = {
+    input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+    output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+    constraints: /(?:^|\n)(?:\*\*)?(?:제한사항|제한 ?사항|제한|조건|Constraints?)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
+    exampleInput: /(?:^|\n)(?:\*\*)?(?:예제 ?입력|입력 ?예제|예시 ?입력|Sample Input|Example Input)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
+    exampleOutput: /(?:^|\n)(?:\*\*)?(?:예제 ?출력|출력 ?예제|예시 ?출력|Sample Output|Example Output)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
+  };
+
+  let remaining = description;
+  let firstSectionStart = remaining.length;
+
+  // 각 섹션의 시작 위치 찾기
+  const sectionPositions = [];
+  for (const [key, pattern] of Object.entries(patterns)) {
+    const match = remaining.match(pattern);
+    if (match) {
+      const pos = remaining.indexOf(match[0]);
+      sectionPositions.push({ key, pos, matchLength: match[0].length });
+      if (pos < firstSectionStart) {
+        firstSectionStart = pos;
+      }
+    }
+  }
+
+  // 문제 설명 (첫 섹션 이전의 모든 텍스트)
+  sections.description = remaining.substring(0, firstSectionStart).trim();
+
+  // 위치순 정렬
+  sectionPositions.sort((a, b) => a.pos - b.pos);
+
+  // 각 섹션 내용 추출
+  for (let i = 0; i < sectionPositions.length; i++) {
+    const current = sectionPositions[i];
+    const next = sectionPositions[i + 1];
+    const startPos = current.pos + current.matchLength;
+    const endPos = next ? next.pos : remaining.length;
+    sections[current.key] = remaining.substring(startPos, endPos).trim();
+  }
+
+  return sections;
+};
+
+/**
+ * 마크다운 텍스트 파싱 함수 (라이트/다크 테마 지원)
+ */
+const renderFormattedText = (text) => {
+  if (!text) return null;
+
+  // **text** 패턴을 찾아서 <strong>으로 변환
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      const boldText = part.slice(2, -2);
+      return (
+        <strong key={index} className="font-bold text-main">
+          {boldText}
+        </strong>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+};
+
+/**
+ * 섹션 카드 컴포넌트 (라이트/다크 테마 지원)
+ */
+const SectionCard = ({ title, icon, content, bgColor = 'bg-panel' }) => {
+  if (!content) return null;
+  return (
+    <div className={`${bgColor} rounded-lg p-4 border border-gray-200 dark:border-zinc-700`}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-lg">{icon}</span>
+        <h4 className="font-semibold text-main">{title}</h4>
+      </div>
+      <div className="text-sm text-sub whitespace-pre-wrap leading-relaxed">
+        {renderFormattedText(content)}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * 코드 블록 컴포넌트 (라이트 테마)
+ */
+const CodeBlock = ({ title, icon, content }) => {
+  if (!content) return null;
+  return (
+    <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700">
+      <div className="flex items-center gap-2 px-4 py-2 bg-gray-800 border-b border-gray-700">
+        <span>{icon}</span>
+        <span className="text-sm font-medium text-gray-300">{title}</span>
+      </div>
+      <pre className="p-4 text-sm text-green-400 font-mono overflow-x-auto">
+        {content}
+      </pre>
+    </div>
+  );
+};
+
+/**
+ * 난이도 배지 스타일 (라이트 테마)
+ */
+const getDifficultyBadge = (diff) => {
+  const styles = {
+    'BRONZE': 'bg-orange-100 text-orange-800 border-orange-300',
+    'SILVER': 'bg-gray-100 text-gray-800 border-gray-300',
+    'GOLD': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    'PLATINUM': 'bg-cyan-100 text-cyan-800 border-cyan-300'
+  };
+  return styles[diff] || 'bg-gray-100 text-gray-700 border-gray-300';
+};
 
 /**
  * 제출 결과 페이지 - 실시간 업데이트 버전
@@ -14,6 +242,7 @@ const SubmissionResult = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAIFeedback, setShowAIFeedback] = useState(true);
+  const [showProblemDescription, setShowProblemDescription] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
   // 🎯 데일리 미션 완료 상태
@@ -166,13 +395,33 @@ const SubmissionResult = () => {
     }
   };
 
+  // 파싱된 문제 섹션
+  const parsedSections = useMemo(() => {
+    return parseProblemDescription(submission?.problemDescription);
+  }, [submission?.problemDescription]);
+
   // 공유하기
-  const handleShare = () => {
+  const handleShare = async () => {
+    if (!submission) return;
+    
     setIsSharing(true);
-    setTimeout(() => {
+    
+    try {
+      const response = await updateSharingStatus(submission.submissionId, true);
+      
+      if (response.error) {
+        alert(response.message || '공유 설정에 실패했습니다.');
+      } else {
+        // 성공 시 submission 상태 업데이트
+        setSubmission(prev => ({ ...prev, isShared: true }));
+        alert('✅ 제출 결과를 공유했습니다!');
+      }
+    } catch (error) {
+      console.error('공유하기 실패:', error);
+      alert('공유 설정 중 오류가 발생했습니다.');
+    } finally {
       setIsSharing(false);
-      alert('개발 중입니다! 공유 기능이 곧 구현됩니다.');
-    }, 1500);
+    }
   };
 
   // 다시 풀기
@@ -184,11 +433,11 @@ const SubmissionResult = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-main flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">채점 결과를 불러오는 중...</p>
-          <p className="text-gray-500 text-sm mt-2">잠시만 기다려주세요.</p>
+          <p className="text-sub text-lg">채점 결과를 불러오는 중...</p>
+          <p className="text-muted text-sm mt-2">잠시만 기다려주세요.</p>
         </div>
       </div>
     );
@@ -196,9 +445,9 @@ const SubmissionResult = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-main flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 text-xl mb-4">⚠️ {error}</p>
+          <p className="text-red-600 dark:text-red-400 text-xl mb-4">⚠️ {error}</p>
           <button onClick={() => navigate('/algorithm')} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
             문제 목록으로
           </button>
@@ -212,24 +461,24 @@ const SubmissionResult = () => {
   const resultInfo = getResultInfo(submission.judgeResult);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-main">
       {/* 상단 헤더 */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-panel shadow-sm border-b dark:border-zinc-700">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* 네비게이션 */}
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/algorithm')}
-                className="text-blue-600 hover:text-blue-800 transition-colors"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
               >
                 ← 문제 목록
               </button>
-              <span className="text-gray-300">|</span>
-              <h1 className="text-lg font-semibold text-gray-900">
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <h1 className="text-lg font-semibold text-main">
                 📊 제출 결과
               </h1>
-              <span className="text-gray-500">제출 #{submissionId}</span>
+              <span className="text-muted">제출 #{submissionId}</span>
             </div>
 
             {/* 액션 버튼들 */}
@@ -282,20 +531,20 @@ const SubmissionResult = () => {
           )}
 
           {/* 결과 요약 카드 */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700 p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* 문제 정보 */}
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">📝 문제</h3>
-                <p className="text-lg font-semibold text-gray-900">{submission.problemTitle}</p>
-                <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800`}>
+                <h3 className="text-sm font-medium text-muted mb-2">📝 문제</h3>
+                <p className="text-lg font-semibold text-main">{submission.problemTitle}</p>
+                <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-zinc-700 text-sub`}>
                   {submission.difficulty || 'N/A'}
                 </span>
               </div>
 
               {/* 판정 결과 */}
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">⚖️ 판정</h3>
+                <h3 className="text-sm font-medium text-muted mb-2">⚖️ 판정</h3>
                 <div className={`inline-flex items-center px-3 py-2 rounded-lg ${resultInfo.bg}`}>
                   <span className="text-xl mr-2">{resultInfo.icon}</span>
                   <span className={`font-semibold ${resultInfo.color}`}>{resultInfo.text}</span>
@@ -304,11 +553,11 @@ const SubmissionResult = () => {
 
               {/* 테스트 통과율 */}
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">🧪 테스트</h3>
-                <p className="text-lg font-semibold text-gray-900">
+                <h3 className="text-sm font-medium text-muted mb-2">🧪 테스트</h3>
+                <p className="text-lg font-semibold text-main">
                   {submission.passedTestCount || 0}/{submission.totalTestCount || 0}
                 </p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 mt-1">
                   <div
                     className={`h-2 rounded-full ${submission.judgeResult === 'AC' ? 'bg-green-500' : 'bg-red-500'}`}
                     style={{ width: `${submission.totalTestCount ? (submission.passedTestCount / submission.totalTestCount) * 100 : 0}%` }}
@@ -318,11 +567,11 @@ const SubmissionResult = () => {
 
               {/* AI 점수 */}
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">🤖 AI 점수</h3>
+                <h3 className="text-sm font-medium text-muted mb-2">🤖 AI 점수</h3>
                 {submission.aiFeedbackStatus === 'COMPLETED' ? (
                   <>
-                    <p className="text-lg font-semibold text-gray-900">{submission.aiScore || 0}/100</p>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                    <p className="text-lg font-semibold text-main">{submission.aiScore || 0}/100</p>
+                    <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 mt-1">
                       <div
                         className="bg-blue-500 h-2 rounded-full"
                         style={{ width: `${submission.aiScore || 0}%` }}
@@ -330,7 +579,7 @@ const SubmissionResult = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center gap-2 text-gray-500">
+                  <div className="flex items-center gap-2 text-muted">
                     <span className="animate-spin">⚙️</span>
                     <span>분석 중...</span>
                   </div>
@@ -339,41 +588,137 @@ const SubmissionResult = () => {
             </div>
           </div>
 
+          {/* 문제 설명 (접이식) */}
+          {submission.problemDescription && (
+            <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
+              <div
+                className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
+                onClick={() => setShowProblemDescription(!showProblemDescription)}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">📋</span>
+                  <h3 className="text-lg font-semibold text-main">문제 설명</h3>
+                  <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(submission.difficulty)}`}>
+                    {submission.difficulty || 'N/A'}
+                  </span>
+                </div>
+                <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm flex items-center gap-1">
+                  <span>{showProblemDescription ? '접기' : '펼치기'}</span>
+                  <span className={`transform transition-transform ${showProblemDescription ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+              </div>
+
+              {showProblemDescription && (
+                <div className="p-6 pt-0 border-t border-gray-100 dark:border-zinc-700">
+                  {/* 제한 정보 표시 */}
+                  <div className="flex flex-wrap gap-3 mb-4 mt-4">
+                    <span className="px-3 py-1 rounded-full text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                      ⏱ 시간제한: {submission.timeLimit || 1000}ms
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
+                      💾 메모리제한: {submission.memoryLimit || 256}MB
+                    </span>
+                  </div>
+
+                  {/* 구조화된 문제 내용 */}
+                  {parsedSections && (parsedSections.description || parsedSections.input || parsedSections.output) ? (
+                    <div className="space-y-4">
+                      {/* 문제 설명 */}
+                      <SectionCard
+                        title="문제 설명"
+                        icon="📝"
+                        content={parsedSections.description}
+                        bgColor="bg-gray-50"
+                      />
+
+                      {/* 입력/출력 */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <SectionCard
+                          title="입력"
+                          icon="📥"
+                          content={parsedSections.input}
+                          bgColor="bg-blue-50 dark:bg-blue-900/20"
+                        />
+                        <SectionCard
+                          title="출력"
+                          icon="📤"
+                          content={parsedSections.output}
+                          bgColor="bg-green-50 dark:bg-green-900/20"
+                        />
+                      </div>
+
+                      {/* 제한사항 */}
+                      <SectionCard
+                        title="제한사항"
+                        icon="⚠️"
+                        content={parsedSections.constraints}
+                        bgColor="bg-yellow-50 dark:bg-yellow-900/20"
+                      />
+
+                      {/* 예제 입출력 */}
+                      {(parsedSections.exampleInput || parsedSections.exampleOutput) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <CodeBlock
+                            title="예제 입력"
+                            icon="📝"
+                            content={parsedSections.exampleInput}
+                          />
+                          <CodeBlock
+                            title="예제 출력"
+                            icon="✅"
+                            content={parsedSections.exampleOutput}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* 파싱 실패 시 원본 출력 */
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <div className="text-sub whitespace-pre-wrap leading-relaxed bg-panel p-4 rounded-lg">
+                        {renderFormattedText(submission.problemDescription)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 상세 결과 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 실행 결과 */}
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">📈 실행 결과</h3>
+                <h3 className="text-lg font-semibold text-main mb-4">📈 실행 결과</h3>
 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">실행 시간:</span>
-                    <span className="font-mono text-gray-900">{submission.executionTime ? `${submission.executionTime}s` : '-'}</span>
+                    <span className="text-muted">실행 시간:</span>
+                    <span className="font-mono text-main">{submission.executionTime ? `${submission.executionTime}s` : '-'}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">메모리 사용량:</span>
-                    <span className="font-mono text-gray-900">{submission.memoryUsage ? `${submission.memoryUsage}KB` : '-'}</span>
+                    <span className="text-muted">메모리 사용량:</span>
+                    <span className="font-mono text-main">{submission.memoryUsage ? `${submission.memoryUsage}KB` : '-'}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">사용 언어:</span>
-                    <span className="font-medium text-gray-900">{submission.language}</span>
+                    <span className="text-muted">사용 언어:</span>
+                    <span className="font-medium text-main">{submission.language}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">제출 시간:</span>
-                    <span className="font-mono text-gray-900">{new Date(submission.submittedAt).toLocaleString()}</span>
+                    <span className="text-muted">제출 시간:</span>
+                    <span className="font-mono text-main">{new Date(submission.submittedAt).toLocaleString()}</span>
                   </div>
                 </div>
 
                 {/* 테스트케이스 상세 결과 */}
                 {submission.testCaseResults && submission.testCaseResults.length > 0 && (
                   <div className="mt-6">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3">📋 테스트케이스 결과</h4>
+                    <h4 className="text-sm font-semibold text-main mb-3">📋 테스트케이스 결과</h4>
                     <div className="space-y-3">
                       {submission.testCaseResults.map((tc, idx) => (
-                        <div key={idx} className="border rounded-lg p-3 bg-gray-50">
+                        <div key={idx} className="border dark:border-zinc-600 rounded-lg p-3 bg-gray-50 dark:bg-zinc-700">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-gray-700">
+                            <span className="text-sm font-medium text-sub">
                               Test Case #{tc.testCaseNumber || idx + 1}
                             </span>
                             {tc.result === 'PASS' && (
@@ -395,14 +740,14 @@ const SubmissionResult = () => {
                               </span>
                             )}
                             {!tc.result && (
-                              <span className="text-gray-500 text-sm flex items-center gap-1">
+                              <span className="text-muted text-sm flex items-center gap-1">
                                 <span className="animate-spin">⏳</span>
                                 <span>채점 중...</span>
                               </span>
                             )}
                           </div>
                           {/* Progress bar */}
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                          <div className="w-full bg-gray-200 dark:bg-zinc-600 rounded-full h-1.5">
                             <div
                               className={`h-1.5 rounded-full transition-all duration-300 ${tc.result === 'PASS'
                                 ? 'bg-green-500'
@@ -416,7 +761,7 @@ const SubmissionResult = () => {
                             ></div>
                           </div>
                           {tc.executionTime && (
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="text-xs text-muted mt-1">
                               실행시간: {tc.executionTime}ms
                             </div>
                           )}
@@ -430,12 +775,12 @@ const SubmissionResult = () => {
                 {submission.judgeStatus === 'JUDGING' && (
                   <div className="mt-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">전체 채점 진행률</span>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm font-medium text-sub">전체 채점 진행률</span>
+                      <span className="text-sm text-muted">
                         {submission.passedTestCount || 0}/{submission.totalTestCount || 0}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
                       <div
                         className="bg-blue-500 h-2 rounded-full transition-all duration-500 animate-pulse"
                         style={{
@@ -449,29 +794,34 @@ const SubmissionResult = () => {
             </div>
 
             {/* AI 피드백 */}
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">🤖 AI 피드백</h3>
+                  <h3 className="text-lg font-semibold text-main">🤖 AI 피드백</h3>
                   <button
                     onClick={() => setShowAIFeedback(!showAIFeedback)}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
                   >
                     {showAIFeedback ? '접기' : '펼치기'}
                   </button>
                 </div>
 
                 {submission.aiFeedbackStatus === 'COMPLETED' ? (
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">📊 종합 평가</h4>
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-blue-800 whitespace-pre-wrap">{submission.aiFeedback || '피드백이 없습니다.'}</p>
-                      </div>
+                  showAIFeedback ? (
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-800">
+                      {submission.aiFeedback ? (
+                        <MarkdownRenderer content={submission.aiFeedback} />
+                      ) : (
+                        <p className="text-muted text-center py-4">피드백이 없습니다.</p>
+                      )}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="text-center py-4 text-muted">
+                      <p>피드백을 보려면 '펼치기'를 클릭하세요.</p>
+                    </div>
+                  )
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-muted">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-2"></div>
                     <p>AI가 코드를 분석하고 있습니다...</p>
                   </div>
@@ -480,23 +830,108 @@ const SubmissionResult = () => {
             </div>
           </div>
 
+          {/* 집중 모드 모니터링 통계 */}
+          {submission.solveMode === 'FOCUS' && submission.monitoringStats && (
+            <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-main">👁️ 집중 모드 모니터링 결과</h3>
+                  {submission.monitoringStats.autoSubmitted && (
+                    <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium">
+                      자동 제출됨
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* 전체화면 이탈 */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">🖥️</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.fullscreenExitCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">전체화면 이탈</div>
+                  </div>
+
+                  {/* 탭 전환 */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">📑</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.tabSwitchCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">탭 전환</div>
+                  </div>
+
+                  {/* 얼굴 미검출 */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">👤</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.noFaceCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">얼굴 미검출</div>
+                  </div>
+
+                  {/* 마우스 이탈 */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">🖱️</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.mouseLeaveCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">마우스 이탈</div>
+                  </div>
+                </div>
+
+                {/* 요약 통계 */}
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-4">
+                      <span className="text-muted">
+                        총 위반: <span className="font-bold text-main">{submission.monitoringStats.totalViolations || 0}회</span>
+                      </span>
+                      <span className="text-muted">
+                        경고 표시: <span className="font-bold text-main">{submission.monitoringStats.warningShownCount || 0}회</span>
+                      </span>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      (submission.monitoringStats.totalViolations || 0) === 0
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : (submission.monitoringStats.totalViolations || 0) <= 3
+                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                    }`}>
+                      {(submission.monitoringStats.totalViolations || 0) === 0
+                        ? '완벽한 집중!'
+                        : (submission.monitoringStats.totalViolations || 0) <= 3
+                          ? '양호'
+                          : '주의 필요'}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-400 mt-3">
+                  * 집중 모드 모니터링 결과는 점수에 반영되지 않습니다. (정보 제공 목적)
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* 제출된 코드 */}
-          <div className="bg-white rounded-lg shadow-sm border">
+          <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">💻 제출된 코드</h3>
+              <h3 className="text-lg font-semibold text-main mb-4">💻 제출된 코드</h3>
               <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
                 <pre className="text-gray-100 text-sm font-mono">
                   <code>{submission.sourceCode}</code>
                 </pre>
               </div>
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-gray-600 text-sm">
+                <span className="text-muted text-sm">
                   언어: {submission.language} |
                   문자 수: {submission.sourceCode?.length || 0}
                 </span>
                 <button
                   onClick={() => navigator.clipboard.writeText(submission.sourceCode)}
-                  className="text-blue-600 hover:text-blue-800 text-sm"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
                 >
                   📋 코드 복사
                 </button>

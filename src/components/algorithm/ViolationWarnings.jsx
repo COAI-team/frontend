@@ -7,15 +7,23 @@ import React from 'react';
  * - 전체화면 이탈 경고
  * - 탭 전환 경고
  * - 마우스 이탈 경고 (토스트)
+ * - [Phase 2] NO_FACE 경고 (얼굴 미검출 경고)
+ * - [Phase 2] 개발자도구 열기 경고 (프로덕션 환경에서만 활성화)
  */
 const ViolationWarnings = ({
   showFullscreenWarning,
   showTabSwitchWarning,
   showMouseLeaveWarning,
+  showDevtoolsWarning = false,
   violationCount,
   onDismissFullscreen,
   onDismissTabSwitch,
-  onDismissMouseLeave
+  onDismissMouseLeave,
+  onDismissDevtools,
+  // [Phase 2] NO_FACE 관련 props
+  showNoFaceWarning = false,
+  noFaceDuration = 0,
+  noFaceProgress = 0,
 }) => {
   return (
     <>
@@ -65,6 +73,83 @@ const ViolationWarnings = ({
           >
             닫기
           </button>
+        </div>
+      )}
+
+      {/* [Phase 2] NO_FACE 경고 (얼굴 미검출 경고) */}
+      {showNoFaceWarning && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] animate-bounce">
+          <div className={`p-4 rounded-xl shadow-2xl border-2 ${
+            noFaceProgress >= 1
+              ? 'bg-red-900/95 border-red-500'
+              : 'bg-orange-900/95 border-orange-500'
+          }`}>
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">
+                {noFaceProgress >= 1 ? '🚨' : '👤'}
+              </span>
+              <div>
+                <h3 className={`font-bold text-lg ${
+                  noFaceProgress >= 1 ? 'text-red-200' : 'text-orange-200'
+                }`}>
+                  {noFaceProgress >= 1
+                    ? '심각한 위반 감지!'
+                    : '얼굴이 감지되지 않습니다!'}
+                </h3>
+                <p className="text-sm text-gray-300">
+                  {noFaceProgress >= 1
+                    ? '15초 이상 얼굴이 감지되지 않았습니다. 이 기록은 저장됩니다.'
+                    : '카메라를 향해 얼굴을 보여주세요.'}
+                </p>
+                <div className="mt-2">
+                  <div className="text-xs text-gray-400 mb-1">
+                    미검출 시간: {Math.round(noFaceDuration / 1000)}초 / 15초
+                  </div>
+                  {/* 프로그레스 바 */}
+                  <div className="w-48 h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        noFaceProgress >= 1
+                          ? 'bg-red-500'
+                          : noFaceProgress >= 0.7
+                            ? 'bg-orange-500'
+                            : 'bg-yellow-500'
+                      }`}
+                      style={{ width: `${Math.min(noFaceProgress * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* [Phase 2] 개발자도구 열기 경고 - 콘텐츠 차단 (위반 기록 없음) */}
+      {showDevtoolsWarning && (
+        <div className="fixed inset-0 bg-zinc-900 z-[9999] flex items-center justify-center">
+          <div className="text-center max-w-lg p-8">
+            <div className="w-24 h-24 mx-auto mb-6 bg-zinc-800 rounded-full flex items-center justify-center">
+              <span className="text-5xl">🔒</span>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-4">페이지 콘텐츠 보호됨</h2>
+            <p className="text-gray-300 text-lg mb-2">
+              문제 풀이 중에는 개발자도구를 사용할 수 없습니다.
+            </p>
+            <p className="text-gray-400 mb-6">
+              개발자도구를 닫으면 페이지 콘텐츠가 다시 표시됩니다.
+            </p>
+            <div className="bg-zinc-800 rounded-lg p-4 text-left">
+              <p className="text-sm text-gray-400 mb-2">💡 개발자도구 닫는 방법:</p>
+              <ul className="text-sm text-gray-300 space-y-1">
+                <li>• Windows/Linux: <kbd className="px-2 py-1 bg-zinc-700 rounded text-xs">F12</kbd> 또는 <kbd className="px-2 py-1 bg-zinc-700 rounded text-xs">Ctrl + Shift + I</kbd></li>
+                <li>• Mac: <kbd className="px-2 py-1 bg-zinc-700 rounded text-xs">⌘ + ⌥ + I</kbd></li>
+              </ul>
+            </div>
+            <p className="text-xs text-green-400 mt-4">
+              ※ 이 경고는 위반으로 기록되지 않습니다.
+            </p>
+          </div>
         </div>
       )}
     </>

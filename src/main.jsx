@@ -1,7 +1,13 @@
+if (typeof global === 'undefined') {
+    // Vite + sockjs-client 호환용: sockjs-client가 브라우저에서 global을 기대함
+    // eslint-disable-next-line no-undef
+    window.global = window;
+}
+
 import {createRoot} from "react-dom/client";
 import "./index.css";
-import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
-import {ThemeProvider} from "next-themes";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 
 // 레이아웃 및 메인
 import Layout from "./components/layout/mainLayout/Layout";
@@ -33,6 +39,7 @@ import ProblemList from "./pages/algorithm/ProblemList";
 import ProblemDetail from "./pages/algorithm/ProblemDetail";
 import ProblemGenerator from "./pages/algorithm/ProblemGenerator";
 import ProblemSolve from "./pages/algorithm/ProblemSolve";
+import ProblemLearn from "./pages/algorithm/ProblemLearn";
 import SubmissionResult from "./pages/algorithm/SubmissionResult";
 import MySubmissions from "./pages/algorithm/MySubmissions";
 import DailyMission from "./pages/myPage/DailyMission";
@@ -46,7 +53,7 @@ import MistakeReportPage from "./pages/myPage/MistakeReportPage";
 import CodeboardList from "./pages/codeboard/codeboardList";
 import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
 import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
-
+import CodeboardEdit from "./pages/codeboard/CodeboardEdit";
 
 // 마이페이지 레이아웃
 import MyPageLayout from "./components/layout/myPageLayout/MyPageLayout";
@@ -58,6 +65,7 @@ import DashboardPage from "./pages/myPage/DashboardPage";
 import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
 import AdminStatsDashboard from "./pages/admin/AdminStatsDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminUserBoards from "./pages/admin/AdminUserBoards";
 
 createRoot(document.getElementById("root")).render(
     <LoginProvider>
@@ -81,6 +89,7 @@ createRoot(document.getElementById("root")).render(
                     <Route path="reset-password" element={<ResetPasswordPage/>}/>
                     {/* 알고리즘 문제풀이 페이지 */}
                     <Route path="algorithm/problems/:problemId/solve" element={<ProblemSolve/>}/>
+                    <Route path="algorithm/problems/:problemId/learn" element={<ProblemLearn/>}/>
 
                     {/* 기본 레이아웃 */}
                     <Route path="/" element={<Layout/>}>
@@ -92,18 +101,20 @@ createRoot(document.getElementById("root")).render(
                         <Route path="signup" element={<SignUp/>}/>
 
                         {/* 마이페이지 */}
-                        <Route path="mypage" element={<MyPageLayout/>}>
-                            <Route index element={<Navigate to="profile" replace/>}/>
-                            <Route path="profile" element={<ProfilePage/>}/>
-                            <Route path="billing" element={<BillingPage/>}/>
-                            <Route path="dashboard" element={<DashboardPage/>}/>
-                            <Route path="daily-mission" element={<DailyMission/>}/>
+                        <Route path="mypage" element={<MyPageLayout />}>
+                          <Route index element={<Navigate to="profile" replace />} />
+                          <Route path="profile" element={<ProfilePage />} />
+                          <Route path="billing" element={<BillingPage />} />
+                          <Route path="dashboard" element={<DashboardPage />} />
+                          <Route path="daily-mission" element={<DailyMission />} />
+                          <Route path="algo-history" element={<MySubmissions />} />
                         </Route>
 
                         <Route path="admin" element={<AdminPageLayout/>}>
                             <Route index element={<Navigate to="stats" replace/>}/>
                             <Route path="stats" element={<AdminStatsDashboard/>}/>
                             <Route path="users" element={<AdminUsers/>}/>
+                            <Route path="userboards" element={<AdminUserBoards />} />
                         </Route>
 
 
@@ -114,11 +125,11 @@ createRoot(document.getElementById("root")).render(
                         <Route path="freeboard/:id" element={<FreeboardDetail/>}/>
 
                         {/* 코드게시판 */}
-                        <Route path="codeboard" element={<CodeboardList/>}/>
-                        <Route path="codeboard/write" element={<CodeboardWrite/>}/>
-                        <Route path="codeboard/write/:analysisId" element={<CodeboardWrite/>}/>
-                        <Route path="codeboard/:id" element={<CodeboardDetail/>}/>
-
+                        <Route path="codeboard" element={<CodeboardList />} />
+                        <Route path="codeboard/write" element={<CodeboardWrite />} />
+                        <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
+                        <Route path="codeboard/edit/:id" element={<CodeboardEdit />} />
+                        <Route path="codeboard/:id" element={<CodeboardDetail />} />
 
                         {/* 결제 */}
                         <Route path="pages/payment/pricing" element={<PricingPage/>}/>

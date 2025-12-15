@@ -8,6 +8,7 @@ import { startProblemSolve, submitCode, runTestCode } from '../../service/algori
 import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
+import { useLogin } from '../../context/useLogin';
 
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
@@ -23,10 +24,13 @@ import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
  * - 기본 모드: 수동 타이머 시작
  */
 const ProblemSolve = () => {
+  
   const { problemId } = useParams();
   const navigate = useNavigate();
   const editorRef = useRef(null);
   const eyeTrackerRef = useRef(null); // 시선 추적 ref
+  const { user } = useLogin();
+
 
   // 문제 데이터 상태
   const [problem, setProblem] = useState(null);
@@ -61,6 +65,7 @@ const ProblemSolve = () => {
 
   // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
   const solveMode = selectedMode || 'BASIC';
+  const currentUserId = user?.userId ?? user?.id ?? null;
 
   // 집중 모드 위반 감지 훅
   const {
@@ -103,6 +108,10 @@ const ProblemSolve = () => {
 
   // 모드 선택 완료 및 풀이 시작
   const handleStartSolving = useCallback((mode) => {
+    if (mode === 'LEARN') {
+      navigate(`/algorithm/problems/${problemId}/learn`);
+      return;
+    }
     setSelectedMode(mode);
     setShowModeSelection(false);
     setSolvingStarted(true);
@@ -531,6 +540,7 @@ const ProblemSolve = () => {
         setCustomTimeMinutes={setCustomTimeMinutes}
         onStartSolving={handleStartSolving}
         onNavigateBack={() => navigate('/algorithm')}
+        onGoToLearnMode={() => navigate(`/algorithm/problems/${problemId}/learn`)}
       />
     );
   }
@@ -815,46 +825,45 @@ const ProblemSolve = () => {
               </div>
             </div>
 
-            {/* ✅ 실행결과 영역 (수직 리사이저블) */}
+            {/* result panel (right) */}
             <div style={{ height: `${100 - editorHeight}%` }} className="flex flex-col min-h-0">
-              <div className="p-3 bg-zinc-850 flex-1 overflow-auto">
-                <p className="text-sm text-gray-400 mb-2">실행결과</p>
-
-                {/* 프로그레스 바 */}
-                {isRunning && (
-                  <div className="mb-3">
-                    <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-                      <span>⏳ 코드 실행 중...</span>
-                      <span>{Math.round(runProgress)}%</span>
-                    </div>
-                    <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
-                        style={{ width: `${runProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
+              <div className="p-3 bg-zinc-850 flex-1 overflow-auto space-y-3">
                 <div className="bg-zinc-900 rounded p-3 h-full overflow-auto text-sm">
+                  <p className="text-sm text-gray-400 mb-2">Execution Result</p>
+
+                  {isRunning && (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                        <span>Running test code...</span>
+                        <span>{Math.round(runProgress)}%</span>
+                      </div>
+                      <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                          style={{ width: `${runProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {isRunning ? (
                     <div className="flex items-center gap-2 text-yellow-400">
-                      <span className="animate-spin">⚙️</span>
-                      <span>Judge0 서버에서 코드를 실행하고 있습니다...</span>
+                      <span className="animate-spin">...</span>
+                      <span>Running code on Judge0 server...</span>
                     </div>
                   ) : testResult ? (
                     testResult.error ? (
-                      <span className="text-red-400">❌ {testResult.message}</span>
+                      <span className="text-red-400">Error: {testResult.message}</span>
                     ) : (
                       <div>
                         <div className={`font-bold mb-2 ${testResult.overallResult === 'AC' ? 'text-green-400' : 'text-red-400'}`}>
-                          {testResult.overallResult === 'AC' ? '✅ 정답!' : `❌ ${testResult.overallResult}`}
+                          {testResult.overallResult === 'AC' ? 'Accepted!' : `Result: ${testResult.overallResult}`}
                           <span className="ml-2 text-gray-400 font-normal">
-                            ({testResult.passedCount}/{testResult.totalCount} 통과)
+                            ({testResult.passedCount}/{testResult.totalCount} passed)
                           </span>
                           {testResult.maxExecutionTime && (
                             <span className="ml-2 text-gray-500 font-normal text-xs">
-                              실행시간: {testResult.maxExecutionTime}ms
+                              Time: {testResult.maxExecutionTime}ms
                             </span>
                           )}
                         </div>
@@ -865,7 +874,7 @@ const ProblemSolve = () => {
                             </span>
                             {tc.result !== 'AC' && tc.actualOutput && (
                               <span className="text-gray-500 ml-2">
-                                출력: "{tc.actualOutput?.trim()}"
+                                Output: "{tc.actualOutput?.trim()}"
                               </span>
                             )}
                             {tc.errorMessage && (
@@ -878,37 +887,36 @@ const ProblemSolve = () => {
                       </div>
                     )
                   ) : (
-                    <span className="text-gray-500">💡 코드를 작성하고 "코드 실행" 버튼을 클릭하세요.</span>
+                    <span className="text-gray-500">Write code and press "Run Code" to see results.</span>
                   )}
                 </div>
               </div>
 
-              {/* 하단 버튼 */}
+              {/* footer buttons */}
               <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
                 <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white">
-                  초기화
+                  Reset
                 </button>
                 <button onClick={handleTestRun} disabled={isRunning}
                   className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2">
                   {isRunning ? (
                     <>
-                      <span className="animate-spin">⚙️</span>
-                      실행 중...
+                      <span className="animate-spin">...</span>
+                      Running...
                     </>
                   ) : (
-                    '코드 실행'
+                    'Run Code'
                   )}
                 </button>
                 <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
                   className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2">
-                  {isSubmitting ? '제출 중...' : '✓ 제출 후 채점하기'}
+                  {isSubmitting ? 'Submitting...' : 'Submit & View Result'}
                 </button>
               </div>
             </div>
           </div>
         </div>
       </div>
-
       {/* 시선 추적 컴포넌트 - 집중 모드에서만 활성화 */}
       {eyeTrackingEnabled && selectedMode === 'FOCUS' && (
         <EyeTracker
