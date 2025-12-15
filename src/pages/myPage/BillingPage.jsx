@@ -198,7 +198,6 @@ export default function BillingPage() {
             setPointHistory([]);
             setPointBalance(0);
             setLoading(false);
-            return;
           }
         } else {
           const res = await fetchPaymentHistory({ from: startDate, to: endDate });

@@ -214,3 +214,11 @@ export const SignUpFormPropTypes = {
 export const ThemeContextPropTypes = {
     children: PropTypes.node.isRequired
 }
+
+export const ParagraphPropTypes = {
+    children: PropTypes.node.isRequired,
+}
+
+export const StrongPropTypes = {
+  children: PropTypes.node.isRequired,
+}
