@@ -738,8 +738,11 @@ const SubmissionResult = () => {
               {/* 문제 정보 */}
               <div>
                 <h3 className="text-sm font-medium text-muted mb-2">📝 문제</h3>
-                <p className="text-lg font-semibold text-main">
-                  <span className="text-blue-600 dark:text-blue-400">#{submission.problemId}</span> {submission.problemTitle}
+                <p
+                  onClick={() => navigate(`/algorithm/problems/${submission.problemId}`)}
+                  className="text-lg font-semibold text-main cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  <span className="text-blue-600 dark:text-blue-400 hover:underline">#{submission.problemId}</span> {submission.problemTitle}
                 </p>
                 <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-zinc-700 text-sub`}>
                   {submission.difficulty || 'N/A'}
