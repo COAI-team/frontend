@@ -208,7 +208,8 @@ const ProblemGenerator = () => {
           description: data.description,
           difficulty: data.difficulty,
           testCaseCount: data.testCaseCount,
-          generationTime: data.generationTime,
+          generationTime: data.generationTime,  // LLM이 문제 생성하는데 걸린 시간
+          fetchTime: data.fetchTime,  // 풀에서 꺼내오는데 걸린 시간 (fromPool=true일 때만)
           fromPool: data.fromPool  // 풀에서 즉시 반환 여부
         };
 
@@ -939,15 +940,21 @@ const ProblemGenerator = () => {
 
                 {/* 생성 정보 */}
                 <div className={`rounded-lg p-4 ${generatedProblem.fromPool ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-blue-50 dark:bg-blue-900/20'}`}>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className={`grid gap-4 text-sm ${generatedProblem.fromPool ? 'grid-cols-4' : 'grid-cols-3'}`}>
                     <div>
                       <div className="text-muted">테스트케이스</div>
                       <div className="font-semibold text-main">{generatedProblem.testCaseCount}개</div>
                     </div>
                     <div>
-                      <div className="text-muted">응답 시간</div>
+                      <div className="text-muted">LLM 생성 시간</div>
                       <div className="font-semibold text-main">{generatedProblem.generationTime?.toFixed(2)}초</div>
                     </div>
+                    {generatedProblem.fromPool && generatedProblem.fetchTime && (
+                      <div>
+                        <div className="text-muted">응답 시간</div>
+                        <div className="font-semibold text-emerald-600 dark:text-emerald-400">{generatedProblem.fetchTime?.toFixed(2)}초</div>
+                      </div>
+                    )}
                     <div>
                       <div className="text-muted">제공 방식</div>
                       <div className={`font-semibold ${generatedProblem.fromPool ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
