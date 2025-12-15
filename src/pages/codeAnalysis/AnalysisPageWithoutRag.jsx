@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useLogin } from '../../context/useLogin';
+import { useLogin } from '../../context/login/useLogin';
 
 import RepositorySelector from '../../components/github/RepositorySelector';
 import BranchSelector from '../../components/github/BranchSelector';

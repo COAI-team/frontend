@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import MyPageSidebar from "./MyPageSidebar";
-import { useLogin } from "../../../context/useLogin";
+import { useLogin } from "../../../context/login/useLogin";
 import AlertModal from "../../modal/AlertModal";
 
 export default function MyPageLayout() {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAnalysisHistory } from '../../service/codeAnalysis/analysisApi';
 import { getScoreBadgeColor, getSmellKeyword } from '../../utils/codeAnalysisUtils';
-import { useLogin } from '../../context/useLogin'; // useLogin 추가
+import { useLogin } from '../../context/login/useLogin'; // useLogin 추가
 
 const CodeAnalysisMain = () => {
     const { user, isLogin } = useLogin(); // user 정보 가져오기

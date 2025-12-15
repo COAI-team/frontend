@@ -41,7 +41,7 @@ export default function CommentSection({ boardId, boardType, isDark }) {
           boardId,
           boardType,
           cursor: isLoadMore ? cursor : null,
-          size: 20
+          size: 5
         }
       });
 
@@ -119,7 +119,16 @@ export default function CommentSection({ boardId, boardType, isDark }) {
                   fontSize: '0.875rem',
                   fontWeight: '500',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.5 : 1
+                  opacity: loading ? 0.5 : 1,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.target.style.backgroundColor = isDark ? '#374151' : '#f3f4f6';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
                 }}
               >
                 {loading ? '로딩 중...' : '댓글 더보기'}

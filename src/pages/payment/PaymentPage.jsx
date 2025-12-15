@@ -8,8 +8,8 @@ import AlertModal from "../../components/modal/AlertModal";
 import "./css/payment.css";
 
 const clientKey = import.meta.env.VITE_TOSS_PAYMENTS_CLIENT_KEY;
-const SUCCESS_URL = `${window.location.origin}/pages/payment/PaymentSuccess`;
-const FAIL_URL = `${window.location.origin}/pages/payment/PaymentFail`;
+const SUCCESS_URL = `${globalThis.location.origin}/pages/payment/PaymentSuccess`;
+const FAIL_URL = `${globalThis.location.origin}/pages/payment/PaymentFail`;
 
 const PLANS = {
   basic: { code: "BASIC", name: "Basic plan", baseAmount: 39800 },
@@ -241,7 +241,7 @@ function PaymentPage() {
   const maxUsablePoints = Math.min(userPoints, baseAmount);
 
   const handlePointsChange = (e) => {
-    const raw = e.target.value.replace(/,/g, "");
+    const raw = e.target.value.replaceAll(',', "");
     const numeric = Number(raw);
     if (Number.isNaN(numeric)) {
       setPointsToUse(0);

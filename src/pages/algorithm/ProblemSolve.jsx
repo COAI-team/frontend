@@ -13,7 +13,6 @@ import PenaltyNotification from '../../components/algorithm/PenaltyNotification'
 import ConfirmModal from '../../components/algorithm/ConfirmModal';
 import { useViolationPenalty } from '../../hooks/algorithm/useViolationPenalty';
 import { useApplyThemeClass } from '../../hooks/useApplyThemeClass';
-
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
  * ✅ 수평(좌우) + 수직(상하) 리사이저 지원

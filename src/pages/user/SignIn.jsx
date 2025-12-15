@@ -4,9 +4,9 @@ import {Link, useLocation, useNavigate} from "react-router-dom";
 import {login as apiLogin} from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
 import ResetPasswordModal from "../../components/modal/ResetPasswordModal";
-import {LoginContext} from "../../context/LoginContext.js";
+import {LoginContext} from "../../context/login/LoginContext";
 import LoadingButton from "../../components/button/LoadingButton";
-import {useTheme} from "next-themes";
+import { useTheme } from "../../context/theme/useTheme";
 
 export default function SignIn() {
     const navigate = useNavigate();
