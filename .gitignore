@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Local HTTPS certificates
+localhost-key.pem
+localhost-cert.pem
+*.pem
+
 # Environment files
 .env
 .env.*

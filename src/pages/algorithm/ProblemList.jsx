@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getProblems, DIFFICULTY_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/algorithmApi';
-import TopicSelector from '../../components/algorithm/common/TopicSelector';
+import TopicSelector from '../../components/common/TopicSelector';
 import '../../styles/ProblemList.css';
 
 // 정렬 옵션

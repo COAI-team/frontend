@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { LoginContext } from "./LoginContext";
-import { LoginProviderPropTypes } from "../utils/propTypes";
-import { getUserInfo } from "../service/user/User";
-import { getAuth, saveAuth, removeAuth } from "../utils/auth/token";
-import { normalizeUser } from "../utils/normalizeUser";
+import { LoginProviderPropTypes } from "../../utils/propTypes";
+import { getUserInfo } from "../../service/user/User";
+import { getAuth, saveAuth, removeAuth } from "../../utils/auth/token";
+import { normalizeUser } from "../../utils/normalizeUser";
 
 export default function LoginProvider({ children }) {
     const [auth, setAuth] = useState(null);

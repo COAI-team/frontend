@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTheme } from 'next-themes';
+import { useTheme } from "../../context/theme/useTheme";
 import axiosInstance from '../../server/AxiosConfig'; 
 import WriteEditor from '../../components/editor/WriteEditor';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
@@ -95,7 +95,7 @@ const CodeboardEdit = () => {
         }
     };
 
-    const handleSubmit = ({ title, content, representImage, tags }) => {
+    const handleSubmit = ({ title, content, tags }) => {
         const blocks = [{
             id: `block-${Date.now()}`,
             type: "tiptap",

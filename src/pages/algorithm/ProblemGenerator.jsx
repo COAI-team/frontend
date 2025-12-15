@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateProblemWithSSE, completeMission } from '../../service/algorithm/AlgorithmApi';
+import { drawProblemFromPool, completeMission, getTopics } from '../../service/algorithm/AlgorithmApi';
+import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 
 /**
  * AI 문제 생성 페이지
@@ -16,6 +17,7 @@ const ProblemGenerator = () => {
     topic: '',
     additionalRequirements: '',
     problemType: 'ALGORITHM',
+    storyTheme: '',  // 스토리 테마 선택
   });
 
   const [loading, setLoading] = useState(false);
@@ -40,6 +42,10 @@ const ProblemGenerator = () => {
   const [typingComplete, setTypingComplete] = useState(false);
   const typingRef = useRef(null);
 
+  // 토픽 목록 상태 (백엔드에서 가져옴)
+  const [topicCategories, setTopicCategories] = useState([]);
+  const [topicsLoading, setTopicsLoading] = useState(true);
+
   // ===== 상수 정의 =====
   const DIFFICULTY_OPTIONS = [
     { value: 'BRONZE', label: '브론즈 (초급)', color: 'orange', description: '기본 문법, 간단한 구현' },
@@ -48,77 +54,53 @@ const ProblemGenerator = () => {
     { value: 'PLATINUM', label: '플래티넘 (고급)', color: 'blue', description: '복잡한 알고리즘, 수학적 사고' },
   ];
 
-  // 카테고리별 알고리즘 토픽 (24개)
-  const TOPIC_CATEGORIES_ALGO = {
-    '기초': ['배열', '구현', '시뮬레이션', '재귀', '수학', '문자열'],
-    '탐색': ['탐색', 'BFS', 'DFS', '이분탐색', '백트래킹'],
-    '알고리즘': ['DP', '그리디', '정렬', '분할정복', '투포인터'],
-    '그래프': ['그래프', '최단경로', 'MST', '위상정렬'],
-    '자료구조': ['스택/큐', '트리', '힙', '유니온파인드'],
-  };
+  // 🎄 스토리 테마 옵션 - 겨울/연말 시즌 (백엔드 STORY_THEMES와 동기화)
+  const STORY_THEMES = [
+    { value: 'SANTA_DELIVERY', label: '🎅 산타의 선물 배달', description: '선물 배달 경로 최적화, 굴뚝 탐색' },
+    { value: 'SNOWBALL_FIGHT', label: '⛄ 눈싸움 대작전', description: '눈덩이 전략, 진영 구축, 승리 조건' },
+    { value: 'CHRISTMAS_TREE', label: '🎄 크리스마스 트리 장식', description: '장식 배치, 전구 연결, 트리 꾸미기' },
+    { value: 'NEW_YEAR_FIREWORKS', label: '🎆 새해 불꽃놀이', description: '불꽃 타이밍, 하늘 배치, 쇼 연출' },
+    { value: 'SKI_RESORT', label: '⛷️ 스키장', description: '슬로프 경로, 리프트 최적화, 스키 대회' },
+  ];
 
-  // 평면화된 토픽 배열 (기존 호환성 유지)
-  const TOPIC_SUGGESTIONS_ALGO = Object.values(TOPIC_CATEGORIES_ALGO).flat();
-
+  // SQL 토픽 (하드코딩 유지 - SQL은 아직 미지원)
   const TOPIC_SUGGESTIONS_SQL = [
     'SELECT', 'GROUP BY', 'String, Date', 'JOIN', 'SUM, MAX, MIN', 'IS NULL'
   ];
 
-  // ===== 문제 설명 파싱 함수 =====
-  const parseProblemDescription = (description) => {
-    if (!description) return null;
-
-    const sections = {
-      description: '',
-      input: '',
-      output: '',
-      constraints: '',
-      exampleInput: '',
-      exampleOutput: '',
-    };
-
-    // 섹션 구분자 패턴
-    const patterns = {
-      input: /(?:^|\n)(?:입력|Input)\s*(?::|：)?\s*\n?/i,
-      output: /(?:^|\n)(?:출력|Output)\s*(?::|：)?\s*\n?/i,
-      constraints: /(?:^|\n)(?:제한사항|제한|조건|Constraints?)\s*(?::|：)?\s*\n?/i,
-      exampleInput: /(?:^|\n)(?:예제 ?입력|입력 ?예제|예시 ?입력|Sample Input|Example Input)\s*(?:\d*)\s*(?::|：)?\s*\n?/i,
-      exampleOutput: /(?:^|\n)(?:예제 ?출력|출력 ?예제|예시 ?출력|Sample Output|Example Output)\s*(?:\d*)\s*(?::|：)?\s*\n?/i,
-    };
-
-    let remaining = description;
-    let firstSectionStart = remaining.length;
-
-    // 각 섹션의 시작 위치 찾기
-    const sectionPositions = [];
-    for (const [key, pattern] of Object.entries(patterns)) {
-      const match = remaining.match(pattern);
-      if (match) {
-        const pos = remaining.indexOf(match[0]);
-        sectionPositions.push({ key, pos, matchLength: match[0].length });
-        if (pos < firstSectionStart) {
-          firstSectionStart = pos;
+  // ===== 토픽 목록 조회 =====
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        const response = await getTopics();
+        if (response.data && Array.isArray(response.data)) {
+          setTopicCategories(response.data);
+        } else {
+          console.warn('토픽 API 응답 형식 오류, 기본값 사용');
+          // 폴백: 백엔드 enum과 동일한 기본값 사용
+          setTopicCategories([
+            { category: '자료구조', topics: [{ value: 'HASH', displayName: '해시' }, { value: 'STACK_QUEUE', displayName: '스택/큐' }, { value: 'HEAP', displayName: '힙/우선순위 큐' }, { value: 'TREE', displayName: '트리' }] },
+            { category: '탐색', topics: [{ value: 'DFS_BFS', displayName: 'DFS/BFS' }, { value: 'BRUTE_FORCE', displayName: '완전탐색' }, { value: 'BACKTRACKING', displayName: '백트래킹' }, { value: 'BINARY_SEARCH', displayName: '이분탐색' }, { value: 'GRAPH_SHORTEST_PATH', displayName: '그래프/최단경로' }] },
+            { category: '최적화', topics: [{ value: 'GREEDY', displayName: '그리디' }, { value: 'DP', displayName: '동적 프로그래밍(DP)' }] },
+            { category: '구현', topics: [{ value: 'IMPLEMENTATION', displayName: '구현/시뮬레이션' }, { value: 'SORTING', displayName: '정렬' }, { value: 'STRING', displayName: '문자열 처리' }, { value: 'TWO_POINTER', displayName: '투포인터/슬라이딩 윈도우' }] },
+          ]);
         }
+      } catch (err) {
+        console.error('토픽 목록 조회 실패:', err);
+        // 폴백: 백엔드 enum과 동일한 기본값 사용
+        setTopicCategories([
+          { category: '자료구조', topics: [{ value: 'HASH', displayName: '해시' }, { value: 'STACK_QUEUE', displayName: '스택/큐' }, { value: 'HEAP', displayName: '힙/우선순위 큐' }, { value: 'TREE', displayName: '트리' }] },
+          { category: '탐색', topics: [{ value: 'DFS_BFS', displayName: 'DFS/BFS' }, { value: 'BRUTE_FORCE', displayName: '완전탐색' }, { value: 'BACKTRACKING', displayName: '백트래킹' }, { value: 'BINARY_SEARCH', displayName: '이분탐색' }, { value: 'GRAPH_SHORTEST_PATH', displayName: '그래프/최단경로' }] },
+          { category: '최적화', topics: [{ value: 'GREEDY', displayName: '그리디' }, { value: 'DP', displayName: '동적 프로그래밍(DP)' }] },
+          { category: '구현', topics: [{ value: 'IMPLEMENTATION', displayName: '구현/시뮬레이션' }, { value: 'SORTING', displayName: '정렬' }, { value: 'STRING', displayName: '문자열 처리' }, { value: 'TWO_POINTER', displayName: '투포인터/슬라이딩 윈도우' }] },
+        ]);
+      } finally {
+        setTopicsLoading(false);
       }
-    }
+    };
 
-    // 문제 설명 (첫 섹션 이전의 모든 텍스트)
-    sections.description = remaining.substring(0, firstSectionStart).trim();
-
-    // 위치순 정렬
-    sectionPositions.sort((a, b) => a.pos - b.pos);
-
-    // 각 섹션 내용 추출
-    for (let i = 0; i < sectionPositions.length; i++) {
-      const current = sectionPositions[i];
-      const next = sectionPositions[i + 1];
-      const startPos = current.pos + current.matchLength;
-      const endPos = next ? next.pos : remaining.length;
-      sections[current.key] = remaining.substring(startPos, endPos).trim();
-    }
-
-    return sections;
-  };
+    fetchTopics();
+  }, []);
 
   // ===== 타이핑 효과 =====
   useEffect(() => {
@@ -167,8 +149,20 @@ const ProblemGenerator = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // SQL 문제는 현재 지원하지 않음
+    if (formData.problemType === 'SQL') {
+      setError('SQL 문제는 현재 준비 중입니다. 향후 지원 예정입니다.');
+      return;
+    }
+
     if (!formData.topic.trim()) {
       setError('문제 주제를 선택해주세요.');
+      return;
+    }
+
+    // 스토리 테마 필수 체크 (풀 시스템 사용)
+    if (!formData.storyTheme) {
+      setError('스토리 테마를 선택해주세요.');
       return;
     }
 
@@ -183,22 +177,29 @@ const ProblemGenerator = () => {
     setDisplayedText('');
     setTypingComplete(false);
     setCompletedSteps([]);
-    setGenerationStep('서버 연결 중...');
+    setGenerationStep('풀에서 문제 가져오는 중...');
 
-    console.log('🚀 [SSE] AI 문제 생성 요청:', formData);
+    // 풀 API용 요청 데이터
+    const requestData = {
+      difficulty: formData.difficulty,
+      topic: formData.topic,
+      theme: formData.storyTheme,
+    };
 
-    // SSE 스트리밍 시작
-    const cleanup = generateProblemWithSSE(formData, {
-      // 진행 단계 업데이트 콜백
+    console.log('🚀 [Pool SSE] 풀에서 문제 요청:', requestData);
+
+    // SSE 스트리밍 시작 (풀 API)
+    const cleanup = drawProblemFromPool(requestData, {
+      // 진행 단계 업데이트 콜백 (풀이 비어있을 때 실시간 생성 시에만 호출됨)
       onStep: (message) => {
-        console.log('📍 [SSE] 진행 단계:', message);
+        console.log('📍 [Pool SSE] 진행 단계:', message);
         setCompletedSteps(prev => [...prev, message]);
         setGenerationStep(message);
       },
 
       // 완료 콜백
       onComplete: async (data) => {
-        console.log('✅ [SSE] 문제 생성 완료:', data);
+        console.log('✅ [Pool SSE] 문제 전달 완료:', data);
 
         // 서버 응답 데이터를 컴포넌트 상태에 맞게 변환
         const problemData = {
@@ -207,12 +208,13 @@ const ProblemGenerator = () => {
           description: data.description,
           difficulty: data.difficulty,
           testCaseCount: data.testCaseCount,
-          generationTime: data.generationTime,
-          hasValidationCode: data.hasValidationCode
+          generationTime: data.generationTime,  // LLM이 문제 생성하는데 걸린 시간
+          fetchTime: data.fetchTime,  // 풀에서 꺼내오는데 걸린 시간 (fromPool=true일 때만)
+          fromPool: data.fromPool  // 풀에서 즉시 반환 여부
         };
 
         setGeneratedProblem(problemData);
-        setGenerationStep('생성 완료!');
+        setGenerationStep(data.fromPool ? '풀에서 즉시 반환!' : '생성 완료!');
         setLoading(false);
 
         // 🎯 데일리 미션 완료 처리 (PROBLEM_GENERATE)
@@ -278,8 +280,8 @@ const ProblemGenerator = () => {
 
       // 에러 콜백
       onError: (errorMessage) => {
-        console.error('❌ [SSE] 에러:', errorMessage);
-        setError(errorMessage || '문제 생성 중 오류가 발생했습니다.');
+        console.error('❌ [Pool SSE] 에러:', errorMessage);
+        setError(errorMessage || '문제를 가져오는 중 오류가 발생했습니다.');
         setLoading(false);
       }
     });
@@ -311,6 +313,7 @@ const ProblemGenerator = () => {
       topic: '',
       additionalRequirements: '',
       problemType: 'ALGORITHM',
+      storyTheme: '',
     });
     setGeneratedProblem(null);
     setError(null);
@@ -357,26 +360,77 @@ const ProblemGenerator = () => {
     return colors[difficulty] || 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600';
   };
 
-  // 파싱된 문제 섹션
-  const parsedSections = typingComplete
-    ? parseProblemDescription(generatedProblem?.description)
-    : null;
+  // 파싱된 문제 섹션 (커스텀 훅으로 메모이제이션)
+  const parsedSections = useParsedProblem(
+    typingComplete ? generatedProblem?.description : null
+  );
 
-  // ===== 마크다운 텍스트 파싱 함수 =====
+  // ===== 마크다운 텍스트 파싱 함수 (개선) =====
   const renderFormattedText = (text) => {
     if (!text) return null;
 
-    // **text** 패턴을 찾아서 <strong>으로 변환
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    // 여러 마크다운 패턴 처리: **bold**, `code`, - list items
+    const lines = text.split('\n');
+
+    return lines.map((line, lineIndex) => {
+      // 빈 줄 처리
+      if (!line.trim()) {
+        return <div key={lineIndex} className="h-2" />;
+      }
+
+      // 리스트 아이템 (- 또는 * 로 시작)
+      const listMatch = line.match(/^(\s*)([-*])\s+(.*)$/);
+      if (listMatch) {
+        const [, indent, , content] = listMatch;
+        const indentLevel = Math.floor(indent.length / 2);
+        return (
+          <div key={lineIndex} className="flex items-start gap-2" style={{ marginLeft: `${indentLevel * 16}px` }}>
+            <span className="text-muted mt-1">•</span>
+            <span>{renderInlineFormatting(content)}</span>
+          </div>
+        );
+      }
+
+      // 숫자 리스트 (1. 2. 3. 등)
+      const numListMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+      if (numListMatch) {
+        const [, indent, num, content] = numListMatch;
+        const indentLevel = Math.floor(indent.length / 2);
+        return (
+          <div key={lineIndex} className="flex items-start gap-2" style={{ marginLeft: `${indentLevel * 16}px` }}>
+            <span className="text-muted font-medium min-w-[20px]">{num}.</span>
+            <span>{renderInlineFormatting(content)}</span>
+          </div>
+        );
+      }
+
+      // 일반 줄
+      return <div key={lineIndex}>{renderInlineFormatting(line)}</div>;
+    });
+  };
+
+  // 인라인 포맷팅 처리 (**bold**, `code`, ≤, ≥)
+  const renderInlineFormatting = (text) => {
+    if (!text) return null;
+
+    // **bold**, `code` 패턴 처리
+    const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
 
     return parts.map((part, index) => {
-      // **text** 패턴인 경우
+      // **bold** 패턴
       if (part.startsWith('**') && part.endsWith('**')) {
-        const boldText = part.slice(2, -2);
         return (
           <strong key={index} className="font-bold text-main">
-            {boldText}
+            {part.slice(2, -2)}
           </strong>
+        );
+      }
+      // `code` 패턴
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return (
+          <code key={index} className="px-1.5 py-0.5 bg-gray-200 dark:bg-zinc-700 rounded text-sm font-mono text-red-600 dark:text-red-400">
+            {part.slice(1, -1)}
+          </code>
         );
       }
       // 일반 텍스트
@@ -496,10 +550,10 @@ const ProblemGenerator = () => {
                 </div>
               </div>
 
-              {/* 문제 유형 선택 */}
+              {/* 출제 분야 선택(기존의 문제 유형) */}
               <div>
                 <label className="block text-sm font-medium text-sub mb-3">
-                  문제 유형 <span className="text-red-500">*</span>
+                  출제 분야 <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -516,15 +570,14 @@ const ProblemGenerator = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleInputChange('problemType', 'SQL')}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      formData.problemType === 'SQL'
-                        ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-500'
-                        : 'border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 bg-panel'
-                    }`}
+                    disabled
+                    className="p-4 rounded-lg border-2 border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 opacity-60 cursor-not-allowed relative"
                   >
-                    <div className={`font-semibold ${formData.problemType !== 'SQL' ? 'text-main' : ''}`}>SQL</div>
-                    <div className="text-xs text-muted mt-1">데이터베이스 쿼리 문제</div>
+                    <div className="font-semibold text-gray-400 dark:text-gray-500">SQL</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">데이터베이스 쿼리 문제</div>
+                    <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-medium rounded">
+                      향후 지원 예정
+                    </span>
                   </button>
                 </div>
               </div>
@@ -532,7 +585,7 @@ const ProblemGenerator = () => {
               {/* 주제 선택 */}
               <div>
                 <label className="block text-sm font-medium text-sub mb-3">
-                  문제 주제 <span className="text-red-500">*</span>
+                  알고리즘 유형 <span className="text-red-500">*</span>
                 </label>
                 {formData.problemType === 'SQL' ? (
                   // SQL 토픽 (기존 방식)
@@ -552,25 +605,31 @@ const ProblemGenerator = () => {
                       </button>
                     ))}
                   </div>
+                ) : topicsLoading ? (
+                  // 토픽 로딩 중
+                  <div className="flex items-center gap-2 text-muted">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-sm">토픽 목록 로딩 중...</span>
+                  </div>
                 ) : (
-                  // 알고리즘 토픽 (카테고리별)
+                  // 알고리즘 토픽 (카테고리별 - API에서 가져온 데이터)
                   <div className="space-y-3">
-                    {Object.entries(TOPIC_CATEGORIES_ALGO).map(([category, topics]) => (
-                      <div key={category}>
-                        <div className="text-xs font-semibold text-muted mb-1.5">{category}</div>
+                    {topicCategories.map((categoryData) => (
+                      <div key={categoryData.category}>
+                        <div className="text-xs font-semibold text-muted mb-1.5">{categoryData.category}</div>
                         <div className="flex flex-wrap gap-2">
-                          {topics.map((topic) => (
+                          {categoryData.topics.map((topic) => (
                             <button
-                              key={topic}
+                              key={topic.value}
                               type="button"
-                              onClick={() => handleTopicSuggestionClick(topic)}
+                              onClick={() => handleTopicSuggestionClick(topic.displayName)}
                               className={`px-3 py-1.5 text-sm rounded-lg border-2 transition-all ${
-                                formData.topic === topic
+                                formData.topic === topic.displayName
                                   ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500 font-semibold'
                                   : 'bg-panel border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 text-sub'
                               }`}
                             >
-                              {topic}
+                              {topic.displayName}
                             </button>
                           ))}
                         </div>
@@ -585,8 +644,43 @@ const ProblemGenerator = () => {
                 )}
               </div>
 
-              {/* 추가 요구사항 */}
+              {/* 🎨 스토리 테마 선택 */}
               <div>
+                <label className="block text-sm font-medium text-sub mb-2">
+                  스토리 테마 <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-muted mb-3">
+                문제에 적용할 스토리 테마를 선택하세요. <br />
+                계절마다 새로운 테마가 제공되며, 지금은 코아이가 등장하는 겨울/연말 시즌 테마를 만나볼 수 있습니다! 🎄
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {STORY_THEMES.map((theme) => (
+                    <button
+                      key={theme.value}
+                      type="button"
+                      onClick={() => handleInputChange('storyTheme', formData.storyTheme === theme.value ? '' : theme.value)}
+                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                        formData.storyTheme === theme.value
+                          ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-500'
+                          : 'border-gray-200 dark:border-zinc-600 hover:border-purple-300 dark:hover:border-purple-600 bg-panel'
+                      }`}
+                    >
+                      <div className={`font-semibold text-sm ${formData.storyTheme !== theme.value ? 'text-main' : ''}`}>
+                        {theme.label}
+                      </div>
+                      <div className="text-xs text-muted mt-0.5">{theme.description}</div>
+                    </button>
+                  ))}
+                </div>
+                {formData.storyTheme && (
+                  <div className="mt-2 text-sm text-purple-600 dark:text-purple-400">
+                    선택된 테마: <span className="font-semibold">{STORY_THEMES.find(t => t.value === formData.storyTheme)?.label}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 추가 요구사항 (일단 제외, 추후 추가 가능) */}
+              {/* <div>
                 <label className="block text-sm font-medium text-sub mb-2">
                   추가 요구사항 (선택)
                 </label>
@@ -594,10 +688,10 @@ const ProblemGenerator = () => {
                   value={formData.additionalRequirements}
                   onChange={(e) => handleInputChange('additionalRequirements', e.target.value)}
                   placeholder="예: 초보자용으로 쉽게, 실무 면접 수준..."
-                  rows={3}
+                  rows={2}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-panel text-main placeholder-gray-400 dark:placeholder-gray-500"
                 />
-              </div>
+              </div> */}
 
               {/* 에러 메시지 */}
               {error && (
@@ -706,8 +800,8 @@ const ProblemGenerator = () => {
                   </div>
                   <p className="text-xs text-muted mt-2 text-center">
                     {completedSteps.length === 0
-                      ? '서버에 연결 중...'
-                      : 'AI가 문제를 생성하고 있습니다 (약 5-15초 소요)'}
+                      ? '풀에서 문제를 가져오는 중...'
+                      : '풀이 비어 있어 AI가 문제를 생성하고 있습니다 (약 5-15초 소요)'}
                   </p>
                 </div>
               </div>
@@ -845,22 +939,36 @@ const ProblemGenerator = () => {
                 )}
 
                 {/* 생성 정보 */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className={`rounded-lg p-4 ${generatedProblem.fromPool ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-blue-50 dark:bg-blue-900/20'}`}>
+                  <div className={`grid gap-4 text-sm ${generatedProblem.fromPool ? 'grid-cols-4' : 'grid-cols-3'}`}>
                     <div>
                       <div className="text-muted">테스트케이스</div>
                       <div className="font-semibold text-main">{generatedProblem.testCaseCount}개</div>
                     </div>
                     <div>
-                      <div className="text-muted">생성 시간</div>
+                      <div className="text-muted">LLM 생성 시간</div>
                       <div className="font-semibold text-main">{generatedProblem.generationTime?.toFixed(2)}초</div>
+                    </div>
+                    {generatedProblem.fromPool && generatedProblem.fetchTime && (
+                      <div>
+                        <div className="text-muted">응답 시간</div>
+                        <div className="font-semibold text-emerald-600 dark:text-emerald-400">{generatedProblem.fetchTime?.toFixed(2)}초</div>
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-muted">제공 방식</div>
+                      <div className={`font-semibold ${generatedProblem.fromPool ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                        {generatedProblem.fromPool ? '⚡ 즉시 제공' : '🤖 실시간 생성'}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* 성공 메시지 */}
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-md">
-                  <p className="font-medium">문제가 성공적으로 생성되었습니다!</p>
+                  <p className="font-medium">
+                    {generatedProblem.fromPool ? '문제가 즉시 제공되었습니다!' : '문제가 성공적으로 생성되었습니다!'}
+                  </p>
                   <p className="text-sm mt-1">이제 문제 목록에서 확인하거나 바로 풀이를 시작할 수 있습니다.</p>
                 </div>
 

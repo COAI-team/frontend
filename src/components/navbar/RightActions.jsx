@@ -1,19 +1,14 @@
 import {RightActionsPropTypes} from "../../utils/propTypes";
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import {MoonIcon, SunIcon} from "@heroicons/react/24/outline";
 import Dropdown from "../dropdown/Dropdown";
+import { useTheme } from "../../context/theme/useTheme";
 
-export default function RightActions({
-                                         theme,
-                                         setTheme,
-                                         user,
-                                         logout,
-                                         navigate,
-                                         BASE_URL,
-                                         hydrated,
-                                     }) {
+export default function RightActions({ user, logout, BASE_URL, hydrated }) {
+    const { theme, setTheme } = useTheme();
+    const navigate = useNavigate();
+
     let rawImage;
-
     if (typeof user?.image === "string" && user.image.startsWith("http")) {
         rawImage = user.image;
     } else if (user?.image) {
@@ -29,11 +24,22 @@ export default function RightActions({
         <div className="absolute inset-y-0 right-0 flex items-center gap-2 pr-2 sm:static sm:pr-0 sm:ml-6">
             {/* 다크모드 토글 */}
             <button
-                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-                className={`rounded-md p-1.5 hover:scale-110 transition-transform
-                ${theme === "light" ? "text-gray-700 hover:text-black" : "text-gray-300 hover:text-white"}`}
+                onClick={() => {
+                    const newTheme = theme === "light" ? "dark" : "light";
+                    setTheme(newTheme);
+                }}
+                className="rounded-md p-1.5 hover:scale-110 transition-transform
+             text-gray-700 dark:text-gray-300
+             hover:text-black dark:hover:text-white"
+                aria-label="테마 토글"
             >
-                {theme === "light" ? <MoonIcon className="w-5 h-5"/> : <SunIcon className="w-5 h-5"/>}
+                {theme === "dark" ? (
+                    // 다크모드일 때: 해 아이콘 (라이트로 전환 의미)
+                    <SunIcon className="w-5 h-5 text-white" />
+                ) : (
+                    // 라이트모드일 때: 달 아이콘 (다크로 전환 의미)
+                    <MoonIcon className="w-5 h-5" />
+                )}
             </button>
 
             {/* 사용자 메뉴 */}
@@ -43,10 +49,12 @@ export default function RightActions({
                         <div className="flex items-center gap-2 cursor-pointer">
                             <img
                                 src={profileImage}
-                                className="w-8 h-8 rounded-full object-cover border border-gray-300"
+                                className="w-8 h-8 rounded-full object-cover border border-gray-300 dark:border-gray-600"
                                 alt="프로필"
                             />
-                            <span className="text-sm font-bold">{user.nickname}</span>
+                            <span className="text-sm font-bold dark:text-white">
+                                {user.nickname}
+                            </span>
                         </div>
                     }
                     items={[
@@ -55,7 +63,7 @@ export default function RightActions({
                         {
                             label: "로그아웃",
                             onClick: () => {
-                                logout();
+                                logout?.();
                                 navigate("/");
                             },
                         },
@@ -64,12 +72,9 @@ export default function RightActions({
             ) : (
                 <Link
                     to="/signin"
-                    className={`ml-2 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm
-                    ${
-                        theme === "light"
-                            ? "bg-indigo-600 text-white hover:bg-indigo-500"
-                            : "bg-indigo-500 text-white hover:bg-indigo-400"
-                    }`}
+                    className="ml-2 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm
+                               bg-indigo-600 hover:bg-indigo-500 text-white
+                               dark:bg-indigo-500 dark:hover:bg-indigo-400"
                 >
                     로그인
                 </Link>

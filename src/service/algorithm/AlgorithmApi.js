@@ -1,4 +1,5 @@
 ﻿import axiosInstance from "../../server/AxiosConfig";
+import { getAuth } from "../../utils/auth/token";
 
 /**
  * 오늘의 문제 선착순 보너스 상태 조회
@@ -98,12 +99,13 @@ export const startProblemSolve = async (problemId) => {
 
 /**
  * 코드 제출
+ * 변경사항 (2025-12-13): language (String) → languageId (Integer)
  */
 export const submitCode = async (data) => {
     try {
         const res = await axiosInstance.post('/algo/submissions', {
             problemId: data.problemId,
-            language: data.language,
+            languageId: data.languageId,  // LANGUAGES.LANGUAGE_ID (Judge0 API ID)
             sourceCode: data.sourceCode,
             elapsedTime: data.elapsedTime,
             solveMode: data.solveMode || 'BASIC',
@@ -177,6 +179,47 @@ export const getSharedSubmissions = async (problemId, page = 1, size = 20) => {
 };
 
 /**
+ * 지원 언어 목록 조회
+ * GET /api/algo/languages
+ *
+ * 프론트엔드에서 언어 드롭다운을 동적으로 구성하기 위해 사용
+ */
+export const getLanguages = async () => {
+    try {
+        const res = await axiosInstance.get('/algo/languages');
+        console.log('✅ [getLanguages] 응답:', res.data);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getLanguages] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "언어 목록을 가져오는데 실패했습니다." };
+    }
+};
+
+/**
+ * 알고리즘 토픽 목록 조회
+ * GET /api/algo/problems/topics
+ *
+ * 카테고리별로 그룹화된 토픽 목록을 반환
+ * 응답 형식: [{ category: "자료구조", topics: [{ value: "HASH", displayName: "해시" }, ...] }, ...]
+ */
+export const getTopics = async () => {
+    try {
+        const res = await axiosInstance.get('/algo/problems/topics');
+        console.log('✅ [getTopics] 응답:', res.data);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getTopics] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "토픽 목록을 가져오는데 실패했습니다." };
+    }
+};
+
+/**
  * 제출 공유 상태 변경
  */
 export const updateSharingStatus = async (submissionId, isShared) => {
@@ -198,12 +241,13 @@ export const updateSharingStatus = async (submissionId, isShared) => {
 
 /**
  * 코드 테스트 실행 (샘플 테스트케이스만)
+ * 변경사항 (2025-12-13): language (String) → languageId (Integer)
  */
 export const runTestCode = async (data) => {
     try {
         const res = await axiosInstance.post('/algo/submissions/test', {
             problemId: data.problemId,
-            language: data.language,
+            languageId: data.languageId,  // LANGUAGES.LANGUAGE_ID (Judge0 API ID)
             sourceCode: data.sourceCode
         });
         return res.data;
@@ -240,13 +284,14 @@ export const generateProblem = async (data) => {
 };
 
 /**
- * AI 문제 생성 (SSE 스트리밍 방식)
+ * AI 문제 생성 (SSE 스트리밍 방식 - 검증 파이프라인 포함)
  * - Server-Sent Events를 통해 실시간 진행 상황 수신
+ * - RAG 기반 Few-shot 학습 + 4단계 검증 파이프라인 적용
  * - 각 단계별 진행률을 콜백으로 전달
  *
  * @param {Object} data - 문제 생성 요청 데이터
  * @param {Object} callbacks - 콜백 함수들
- * @param {Function} callbacks.onStep - 진행 단계 업데이트 시 호출
+ * @param {Function} callbacks.onStep - 진행 단계 업데이트 시 호출 (message, percentage)
  * @param {Function} callbacks.onComplete - 완료 시 호출
  * @param {Function} callbacks.onError - 에러 발생 시 호출
  * @returns {Function} SSE 연결 종료 함수
@@ -265,11 +310,11 @@ export const generateProblemWithSSE = (data, callbacks) => {
         params.append('additionalRequirements', data.additionalRequirements);
     }
 
-    // API 베이스 URL 가져오기
+    // API 베이스 URL 가져오기 (검증 포함 스트리밍 엔드포인트 사용)
     const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:9443';
-    const sseUrl = `${baseURL}/algo/problems/generate/stream?${params.toString()}`;
+    const sseUrl = `${baseURL}/algo/problems/generate/validated/stream?${params.toString()}`;
 
-    console.log('🔗 [SSE] 연결 시작:', sseUrl);
+    console.log('🔗 [SSE] 검증 포함 스트리밍 연결 시작:', sseUrl);
 
     // EventSource 생성 (SSE 연결)
     const eventSource = new EventSource(sseUrl, {
@@ -290,17 +335,36 @@ export const generateProblemWithSSE = (data, callbacks) => {
 
             switch (eventData.type) {
                 case 'STEP':
-                    // 진행 단계 업데이트
+                    // 기존 방식 (AIProblemGeneratorService)
                     if (onStep) {
                         onStep(eventData.message);
                     }
                     break;
 
+                case 'PROGRESS':
+                    // 검증 파이프라인 진행률 (ProblemGenerationOrchestrator)
+                    console.log(`📊 [SSE] 진행률: ${eventData.percentage}% - ${eventData.message}`);
+                    if (onStep) {
+                        onStep(eventData.message, eventData.percentage);
+                    }
+                    break;
+
                 case 'COMPLETE':
                     // 완료 - 생성된 문제 데이터 전달
-                    console.log('✅ [SSE] 문제 생성 완료:', eventData.data);
+                    console.log('✅ [SSE] 문제 생성 완료:', eventData);
                     if (onComplete) {
-                        onComplete(eventData.data);
+                        // 검증 파이프라인은 eventData 자체에 데이터가 있음 (data 래핑 없음)
+                        const completeData = eventData.data || eventData;
+                        onComplete({
+                            problemId: completeData.problemId,
+                            title: completeData.title,
+                            description: completeData.description,
+                            difficulty: completeData.difficulty,
+                            testCaseCount: completeData.testCaseCount,
+                            generationTime: completeData.generationTime,
+                            validationResults: completeData.validationResults,
+                            hasValidationCode: completeData.hasValidationCode
+                        });
                     }
                     eventSource.close();
                     break;
@@ -538,6 +602,151 @@ export const getUserLevel = async (userId) => {
     }
 };
 
+// ============== 문제 풀 (Pre-generation Pool) API ==============
+
+/**
+ * 풀에서 문제 꺼내기 (SSE 스트리밍)
+ * - 풀에 문제가 있으면 즉시 반환 (< 1초)
+ * - 풀이 비어있으면 실시간 생성으로 자동 전환 (진행률 표시)
+ * - 문제 반환 후 비동기로 풀 자동 보충
+ *
+ * @param {Object} data - 요청 데이터
+ * @param {string} data.difficulty - 난이도 (BRONZE, SILVER, GOLD, PLATINUM)
+ * @param {string} data.topic - 알고리즘 주제 (displayName)
+ * @param {string} data.theme - 스토리 테마 (SANTA_DELIVERY 등)
+ * @param {Object} callbacks - 콜백 함수들
+ * @param {Function} callbacks.onStep - 진행 단계 업데이트 시 호출 (message, percentage)
+ * @param {Function} callbacks.onComplete - 완료 시 호출
+ * @param {Function} callbacks.onError - 에러 발생 시 호출
+ * @returns {Function} SSE 연결 종료 함수
+ */
+export const drawProblemFromPool = (data, callbacks) => {
+    const { onStep, onComplete, onError } = callbacks;
+
+    // 로그인된 사용자 ID 가져오기 (ALGO_CREATER 저장용)
+    const auth = getAuth();
+    const userId = auth?.user?.userId;
+
+    // URL 쿼리 파라미터 구성
+    const params = new URLSearchParams({
+        difficulty: data.difficulty,
+        topic: data.topic,
+        theme: data.theme || data.storyTheme,  // storyTheme도 지원
+    });
+
+    // userId가 있으면 파라미터에 추가
+    if (userId) {
+        params.append('userId', userId);
+    }
+
+    // API 베이스 URL 가져오기
+    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:9443';
+    const sseUrl = `${baseURL}/algo/pool/draw/stream?${params.toString()}`;
+
+    console.log('🔗 [Pool SSE] 풀에서 문제 꺼내기 연결:', sseUrl);
+
+    // EventSource 생성 (SSE 연결)
+    const eventSource = new EventSource(sseUrl, {
+        withCredentials: true
+    });
+
+    // 메시지 수신 핸들러
+    eventSource.onmessage = (event) => {
+        try {
+            let rawData = event.data;
+            if (rawData.startsWith('data: ')) {
+                rawData = rawData.substring(6).trim();
+            }
+
+            const eventData = JSON.parse(rawData);
+            console.log('📨 [Pool SSE] 이벤트 수신:', eventData);
+
+            switch (eventData.type) {
+                case 'PROGRESS':
+                    // 실시간 생성 시 진행률 (풀이 비어있을 때만)
+                    console.log(`📊 [Pool SSE] 진행률: ${eventData.percentage}% - ${eventData.message}`);
+                    if (onStep) {
+                        onStep(eventData.message, eventData.percentage);
+                    }
+                    break;
+
+                case 'COMPLETE': {
+                    // 완료 - 풀에서 즉시 반환 또는 실시간 생성 완료
+                    const fromPool = eventData.fromPool;
+                    console.log(`✅ [Pool SSE] 문제 전달 완료 - ${fromPool ? '풀에서 즉시 반환' : '실시간 생성'}`);
+
+                    if (onComplete) {
+                        onComplete({
+                            problemId: eventData.problemId,
+                            title: eventData.title,
+                            description: eventData.description,
+                            difficulty: eventData.difficulty,
+                            testCaseCount: eventData.testCaseCount,
+                            generationTime: eventData.generationTime,
+                            fromPool: fromPool,  // 풀에서 온 문제인지 여부
+                            fetchTime: eventData.fetchTime  // 풀에서 가져온 응답 시간
+                        });
+                    }
+                    eventSource.close();
+                    break;
+                }
+
+                case 'ERROR':
+                    console.error('❌ [Pool SSE] 에러:', eventData.message);
+                    if (onError) {
+                        onError(eventData.message);
+                    }
+                    eventSource.close();
+                    break;
+
+                default:
+                    console.warn('⚠️ [Pool SSE] 알 수 없는 이벤트 타입:', eventData.type);
+            }
+        } catch (parseError) {
+            console.error('❌ [Pool SSE] 이벤트 파싱 실패:', parseError, event.data);
+        }
+    };
+
+    eventSource.onopen = () => {
+        console.log('✅ [Pool SSE] 연결 성공');
+    };
+
+    eventSource.onerror = (error) => {
+        console.error('❌ [Pool SSE] 연결 에러:', error);
+        if (eventSource.readyState === EventSource.CLOSED) {
+            console.log('🔌 [Pool SSE] 연결 종료됨');
+        } else {
+            if (onError) {
+                onError('서버 연결이 끊어졌습니다. 다시 시도해주세요.');
+            }
+        }
+        eventSource.close();
+    };
+
+    return () => {
+        console.log('🔌 [Pool SSE] 수동 연결 종료');
+        eventSource.close();
+    };
+};
+
+/**
+ * 풀 상태 조회
+ * GET /api/algo/pool/status
+ */
+export const getPoolStatus = async () => {
+    try {
+        const res = await axiosInstance.get('/algo/pool/status');
+        console.log('✅ [getPoolStatus] 응답:', res.data);
+        return res.data;
+    } catch (err) {
+        console.error("❌ [getPoolStatus] 요청 실패:", err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: "풀 상태를 가져오는데 실패했습니다." };
+    }
+};
+
 // ============== 상수 정의 ==============
 
 export const DIFFICULTY_OPTIONS = [
@@ -561,27 +770,29 @@ export const PROBLEM_TYPE_OPTIONS = [
     { value: 'SQL', label: 'DATABASE' },
 ];
 
+/**
+ * 언어 옵션 목록 (필터용)
+ *
+ * @deprecated 문제 풀이 시 사용 가능한 언어는 백엔드에서 동적으로 제공됩니다.
+ * startProblemSolve API 응답의 availableLanguages 필드를 사용하세요.
+ * 각 언어는 { languageId, languageName, timeLimit, memoryLimit } 형태입니다.
+ *
+ * 변경사항 (2025-12-13):
+ * - 백엔드에서 availableLanguages를 languageId (Integer) 기반으로 제공
+ * - 이 상수는 필터링/검색 용도로만 유지
+ */
 export const LANGUAGE_OPTIONS = [
-    { value: 'ALL', label: '모든 언어' },
-    { value: 'C (Clang)', label: 'C (Clang)' },
-    { value: 'C11', label: 'C11 (GCC)' },
-    { value: 'C++17', label: 'C++17 (GCC)' },
-    { value: 'C++20', label: 'C++20 (GCC)' },
-    { value: 'Java 17', label: 'Java 17' },
-    { value: 'Java 11', label: 'Java 11' },
-    { value: 'Python 3', label: 'Python 3' },
-    { value: 'PyPy3', label: 'PyPy3' },
-    { value: 'node.js', label: 'Node.js' },
-    { value: 'TypeScript', label: 'TypeScript' },
-    { value: 'Go', label: 'Go' },
-    { value: 'Rust', label: 'Rust' },
-    { value: 'Kotlin (JVM)', label: 'Kotlin' },
-    { value: 'Swift', label: 'Swift' },
-    { value: 'C#', label: 'C# (Mono)' },
-    { value: 'PHP', label: 'PHP' },
-    { value: 'Ruby', label: 'Ruby' },
-    { value: 'SQL', label: 'SQL (SQLite)' },
-    { value: 'Bash', label: 'Bash' },
+    { id: 51, label: 'C#', piston: 'csharp.net' },
+    { id: 82, label: 'SQLite', piston: 'sqlite3' },
+    { id: 83, label: 'Swift', piston: 'swift' },
+    { id: 91, label: 'Java', piston: 'java' },
+    { id: 93, label: 'JavaScript', piston: 'javascript' },
+    { id: 94, label: 'TypeScript', piston: 'typescript' },
+    { id: 100, label: 'Python', piston: 'python' },
+    { id: 105, label: 'C++', piston: 'c++' },
+    { id: 106, label: 'Go', piston: 'go' },
+    { id: 108, label: 'Rust', piston: 'rust' },
+    { id: 111, label: 'Kotlin', piston: 'kotlin' },
 ];
 
 export const TOPIC_OPTIONS = [

@@ -1,11 +1,16 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useTheme } from 'next-themes';
+import { useTheme } from "../../context/theme/useTheme";
 import { CheckCircleIcon, XCircleIcon, LightBulbIcon } from '@heroicons/react/24/outline';
+import { getScoreColor, getSmellKeyword, getToneEmoji } from '../../utils/codeAnalysisUtils';
 
 const AnalysisResult = () => {
     const { theme } = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
+
+    const { aiScore, codeSmells = [], suggestions = [] } = parsedResult;
+
+    const smellInfo = getSmellKeyword(aiScore);
 
     // Get data from navigation state
     const { analysisResult, repoName, filePath, toneLevel } = location.state || {};
@@ -40,14 +45,6 @@ const AnalysisResult = () => {
             </div>
         );
     }
-
-    const { aiScore, codeSmells = [], suggestions = [] } = parsedResult;
-
-import { getScoreColor, getSmellKeyword, getToneEmoji } from '../../utils/codeAnalysisUtils';
-
-    const { aiScore, codeSmells = [], suggestions = [] } = parsedResult;
-
-    const smellInfo = getSmellKeyword(aiScore);
 
     return (
         <div className={`min-h-screen ${theme === 'light' ? 'bg-gray-50' : 'bg-gray-900'} py-12`}>
@@ -197,7 +194,7 @@ import { getScoreColor, getSmellKeyword, getToneEmoji } from '../../utils/codeAn
                 {/* Actions */}
                 <div className="mt-8 flex gap-4">
                     <button
-                        onClick={() => window.print()}
+                        onClick={() => globalThis.print()}
                         className={`flex-1 px-6 py-3 rounded-lg font-semibold ${
                             theme === 'light'
                                 ? 'bg-gray-200 text-gray-900 hover:bg-gray-300'

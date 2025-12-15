@@ -1,14 +1,8 @@
-if (typeof global === 'undefined') {
-    // Vite + sockjs-client 호환용: sockjs-client가 브라우저에서 global을 기대함
-    // eslint-disable-next-line no-undef
-    window.global = window;
-}
-
 import {createRoot} from "react-dom/client";
 import "./index.css";
+import {ThemeProvider} from "./context/theme/ThemeProvider";
+import LoginProvider from "./context/login/LoginProvider";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { ThemeProvider } from "next-themes";
-
 // 레이아웃 및 메인
 import Layout from "./components/layout/mainLayout/Layout";
 import Main from "./pages/Main";
@@ -22,7 +16,6 @@ import PaymentFail from "./pages/payment/PaymentFail";
 // 사용자 관련
 import SignIn from "./pages/user/SignIn";
 import SignUp from "./pages/user/SignUp";
-import LoginProvider from "./context/LoginProvider";
 import ResetPasswordPage from "./pages/user/ResetPasswordPage";
 
 // GitHub OAuth Callback
@@ -46,8 +39,13 @@ import DailyMission from "./pages/myPage/DailyMission";
 
 // 코드 분석 도메인
 import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
+<<<<<<< HEAD
 import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
 import MistakeReportPage from "./pages/myPage/MistakeReportPage";
+=======
+import AnalysisPage from "./pages/codeanalysis/AnalysisPage";
+import AnalysisPageWithoutRag from "./pages/codeAnalysis/AnalysisPageWithoutRag";
+>>>>>>> e64b2e36b870b001fc75959a7db5cd602481d2f0
 
 // 코드게시판
 import CodeboardList from "./pages/codeboard/codeboardList";
@@ -68,22 +66,15 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminUserBoards from "./pages/admin/AdminUserBoards";
 
 createRoot(document.getElementById("root")).render(
-    <LoginProvider>
-        <BrowserRouter>
-            <ThemeProvider
-                attribute="class"
-                defaultTheme="dark"
-                enableSystem={false}
-            >
+    <ThemeProvider>
+        <LoginProvider>
+            <BrowserRouter>
                 <Routes>
-                    {/* GitHub OAuth Callback Route (최상단에 추가됨) */}
+                    {/* GitHub OAuth Callback (레이아웃 없이) */}
                     <Route path="/auth/github/callback" element={<GitHubCallback/>}/>
 
                     {/* 옛날 payments 경로 대응 */}
-                    <Route
-                        path="/payments/*"
-                        element={<Navigate to="/pages/payment/pricing" replace/>}
-                    />
+                    <Route path="/payments/*" element={<Navigate to="/pricing" replace/>}/>
 
                     {/* 비밀번호 재설정 페이지 */}
                     <Route path="reset-password" element={<ResetPasswordPage/>}/>
@@ -110,6 +101,7 @@ createRoot(document.getElementById("root")).render(
                           <Route path="algo-history" element={<MySubmissions />} />
                         </Route>
 
+                        {/* 관리자 */}
                         <Route path="admin" element={<AdminPageLayout/>}>
                             <Route index element={<Navigate to="stats" replace/>}/>
                             <Route path="stats" element={<AdminStatsDashboard/>}/>
@@ -117,52 +109,38 @@ createRoot(document.getElementById("root")).render(
                             <Route path="userboards" element={<AdminUserBoards />} />
                         </Route>
 
+                        {/* 자유게시판 - 리스트를 레이아웃으로 */}
+                        <Route path="freeboard" element={<FreeboardList/>}>
+                            <Route index element={<FreeboardList/>}/>
+                            <Route path="write" element={<FreeboardWrite/>}/>
+                            <Route path="edit/:id" element={<FreeboardEdit/>}/>
+                            <Route path=":id" element={<FreeboardDetail/>}/>
+                        </Route>
 
-                        {/* 자유게시판 */}
-                        <Route path="freeboard" element={<FreeboardList/>}/>
-                        <Route path="freeboard/write" element={<FreeboardWrite/>}/>
-                        <Route path="freeboard/edit/:id" element={<FreeboardEdit/>}/>
-                        <Route path="freeboard/:id" element={<FreeboardDetail/>}/>
-
-                        {/* 코드게시판 */}
-                        <Route path="codeboard" element={<CodeboardList />} />
-                        <Route path="codeboard/write" element={<CodeboardWrite />} />
-                        <Route path="codeboard/write/:analysisId" element={<CodeboardWrite />} />
-                        <Route path="codeboard/edit/:id" element={<CodeboardEdit />} />
-                        <Route path="codeboard/:id" element={<CodeboardDetail />} />
+                        {/* 코드게시판 - 리스트를 레이아웃으로 */}
+                        <Route path="codeboard" element={<CodeboardList/>}>
+                            <Route index element={<CodeboardList/>}/>
+                            <Route path="write" element={<CodeboardWrite/>}/>
+                            <Route path="write/:analysisId" element={<CodeboardWrite/>}/>
+                            <Route path="edit/:id" element={<CodeboardEdit/>}/>
+                            <Route path=":id" element={<CodeboardDetail/>}/>
+                        </Route>
 
                         {/* 결제 */}
-                        <Route path="pages/payment/pricing" element={<PricingPage/>}/>
-                        <Route path="pages/payment/buy" element={<PaymentPage/>}/>
-                        <Route
-                            path="pages/payment/PaymentSuccess"
-                            element={<PaymentSuccess/>}
-                        />
-                        <Route
-                            path="pages/payment/PaymentFail"
-                            element={<PaymentFail/>}
-                        />
+                        <Route path="pricing" element={<PricingPage/>}/>
+                        <Route path="buy" element={<PaymentPage/>}/>
+                        <Route path="payment/success" element={<PaymentSuccess/>}/>
+                        <Route path="payment/fail" element={<PaymentFail/>}/>
 
                         {/* 알고리즘 */}
                         <Route path="algorithm" element={<ProblemList/>}/>
                         <Route path="algorithm/problems" element={<ProblemList/>}/>
-                        <Route
-                            path="algorithm/problems/:problemId"
-                            element={<ProblemDetail/>}
-                        />
-                        <Route
-                            path="algorithm/problems/generate"
-                            element={<ProblemGenerator/>}
-                        />
-                        <Route
-                            path="algorithm/submissions/:submissionId"
-                            element={<SubmissionResult/>}
-                        />
-                        <Route
-                            path="algorithm/my-submissions"
-                            element={<MySubmissions/>}
-                        />
+                        <Route path="algorithm/problems/:problemId" element={<ProblemDetail/>}/>
+                        <Route path="algorithm/problems/generate" element={<ProblemGenerator/>}/>
+                        <Route path="algorithm/submissions/:submissionId" element={<SubmissionResult/>}/>
+                        <Route path="algorithm/my-submissions" element={<MySubmissions/>}/>
 
+<<<<<<< HEAD
                         {/* 코드 분석 (CodeNose) */}
                         <Route path="codeAnalysis" element={<CodeAnalysisMain/>}/>
                         <Route path="codeAnalysis/new" element={<AnalysisPage/>}/>
@@ -170,12 +148,21 @@ createRoot(document.getElementById("root")).render(
                         
                         {/* 멘탈 케어 (Repetitive Mistake Report) */}
                         <Route path="mistake-report" element={<MistakeReportPage/>}/>
+=======
+                        {/* 코드 분석 */}
+                        <Route path="codeAnalysis" element={<CodeAnalysisMain/>}>
+                            <Route index element={<CodeAnalysisMain/>}/>
+                            <Route path="new" element={<AnalysisPage/>}/>
+                            <Route path="norag" element={<AnalysisPageWithoutRag/>}/>
+                            <Route path=":analysisId" element={<AnalysisPage/>}/>
+                        </Route>
+>>>>>>> e64b2e36b870b001fc75959a7db5cd602481d2f0
                     </Route>
 
                     {/* 잘못된 경로는 홈으로 */}
                     <Route path="*" element={<Navigate to="/" replace/>}/>
                 </Routes>
-            </ThemeProvider>
-        </BrowserRouter>
-    </LoginProvider>
+            </BrowserRouter>
+        </LoginProvider>
+    </ThemeProvider>
 );
