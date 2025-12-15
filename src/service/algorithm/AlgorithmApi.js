@@ -683,7 +683,8 @@ export const drawProblemFromPool = (data, callbacks) => {
                             difficulty: eventData.difficulty,
                             testCaseCount: eventData.testCaseCount,
                             generationTime: eventData.generationTime,
-                            fromPool: fromPool  // 풀에서 온 문제인지 여부
+                            fromPool: fromPool,  // 풀에서 온 문제인지 여부
+                            fetchTime: eventData.fetchTime  // 풀에서 가져온 응답 시간
                         });
                     }
                     eventSource.close();
