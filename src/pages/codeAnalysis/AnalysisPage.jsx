@@ -46,6 +46,38 @@ const AnalysisPage = () => {
     const [streamedContent, setStreamedContent] = useState('');
     const [error, setError] = useState(null);
 
+    // RAG Toggle State
+    const [useRag, setUseRag] = useState(true);
+    const [ragMessage, setRagMessage] = useState("");
+    
+    // RAG Message Logic
+    useEffect(() => {
+        if (useRag) {
+            setRagMessage("당신의 기록을 파묘하여 좀 더 개인화 된 코드 분석을 진행합니다. 이 모든 것은 당신을 위한 거랍니다...음뫄하하하");
+        } else {
+            setRagMessage("당신의 기록은 뒤로 하고, 있는 그대로의 코드를 분석합니다. 그래요. 과거가 뭐가 중요한가요?");
+        }
+        
+        // 메시지 3초 후 사라지게 하려면 아래 코드 추가 (원하는 UX에 따라 결정, User Request는 '비동기로 표시'라고만 함)
+        // const timer = setTimeout(() => setRagMessage(""), 5000); 
+        // return () => clearTimeout(timer);
+    }, [useRag]);
+
+    // Smart Suggestion Logic
+    // Smart Suggestion Logic (Move to onSearch handler)
+    const handleOwnerSearch = (owner) => {
+        if (!owner || !user) return;
+        
+        // Assumption: owner matches user.nickname or name
+        const isMyRepo = owner.toLowerCase() === (user.nickname || user.name || user.githubId || "").toLowerCase();
+        
+        if (isMyRepo) {
+            setUseRag(true);
+        } else {
+            setUseRag(false);
+        }
+    };
+
 
     // Load existing analysis if ID is present
     useEffect(() => {
@@ -90,7 +122,6 @@ const AnalysisPage = () => {
 
         const fetchContent = async () => {
             try {
-                // TODO: GithubService API 사용
                 const response = await axiosInstance.get(`/api/github/repos/${selectedRepo.owner}/${selectedRepo.name}/content`, {
                     params: { path: selectedFile.path }
                 });
@@ -207,18 +238,36 @@ const AnalysisPage = () => {
                 userId: user?.userId 
             });
 
-            // 2. 분석 요청 (동기 -> 결과 한 번에 수신)
-            const response = await analyzeStoredFile({
-                analysisId: saveResponse.data.fileId,
-                repositoryUrl: selectedRepo.url,
-                filePath: selectedFile.path,
-                analysisTypes: formState.analysisTypes,
-                toneLevel: formState.toneLevel,
-                customRequirements: formState.customRequirements,
-                userId: user?.userId 
-            });
 
-            const accumulated = response.data;
+            // 2. 분석 요청 (Toggle에 따라 분기)
+            let response;
+            if (useRag) {
+                 // RAG Mode (Original)
+                 response = await analyzeStoredFile({
+                    analysisId: saveResponse.data.fileId,
+                    repositoryUrl: selectedRepo.url,
+                    filePath: selectedFile.path,
+                    analysisTypes: formState.analysisTypes,
+                    toneLevel: formState.toneLevel,
+                    customRequirements: formState.customRequirements,
+                    userId: user?.userId 
+                });
+            } else {
+                // No RAG Mode
+                const noRagResponse = await axiosInstance.post('/api/analysis/norag/analyze-stored', {
+                    analysisId: saveResponse.data.fileId,
+                    repositoryUrl: selectedRepo.url,
+                    filePath: selectedFile.path,
+                    analysisTypes: formState.analysisTypes,
+                    toneLevel: formState.toneLevel,
+                    customRequirements: formState.customRequirements,
+                    userId: user?.userId
+                });
+
+                response = { data: noRagResponse.data.data }; 
+            }
+            const accumulated = response.data; 
+
 
             // 3. 결과 파싱
             try {
@@ -284,7 +333,7 @@ const AnalysisPage = () => {
                             <div className="rounded-lg shadow-sm border p-6">
                                 <h2 className="text-lg font-semibold mb-4">📂 파일 선택</h2>
                                 <div className="space-y-4">
-                                    <RepositorySelector onSelect={handleRepoSelect} />
+                                    <RepositorySelector onSelect={handleRepoSelect} onSearch={handleOwnerSearch} />
                                     {selectedRepo && <BranchSelector repository={selectedRepo} onSelect={handleBranchSelect} />}
                                     {selectedBranch && <FileTree repository={selectedRepo} branch={selectedBranch} onSelect={setSelectedFile} />}
                                 </div>
@@ -314,6 +363,27 @@ const AnalysisPage = () => {
                         {isNew && !analysisResult && !isLoading && (
                             <div className="rounded-lg shadow-sm border p-6">
                                 <h2 className="text-lg font-semibold mb-4">⚙️ 분석 설정</h2>
+                                
+                                {/* RAG Toggle Switch */}
+                                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-medium text-gray-700">RAG (과거 이력 참조) 모드</span>
+                                        <button 
+                                            onClick={() => setUseRag(!useRag)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${useRag ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useRag ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Async Message Area */}
+                                    <div className={`text-sm transition-all duration-500 ease-in-out ${ragMessage ? 'opacity-100 max-h-20' : 'opacity-0 max-h-0'}`}>
+                                       <p className={`p-2 rounded ${useRag ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-200 text-gray-600'}`}>
+                                           {ragMessage}
+                                       </p>
+                                    </div>
+                                </div>
+
                                 <AnalysisForm onSubmit={handleAnalysisSubmit} isLoading={isLoading} />
                                 {error && (
                                     <div className="mt-4 p-3 bg-red-50 text-red-700 rounded border border-red-200">

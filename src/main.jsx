@@ -39,8 +39,8 @@ import DailyMission from "./pages/myPage/DailyMission";
 
 // 코드 분석 도메인
 import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
-import AnalysisPage from "./pages/codeanalysis/AnalysisPage";
-import AnalysisPageWithoutRag from "./pages/codeAnalysis/AnalysisPageWithoutRag";
+import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
+import MistakeReportPage from "./pages/myPage/MistakeReportPage";
 
 // 코드게시판
 import CodeboardList from "./pages/codeboard/codeboardList";
@@ -135,13 +135,13 @@ createRoot(document.getElementById("root")).render(
                         <Route path="algorithm/submissions/:submissionId" element={<SubmissionResult/>}/>
                         <Route path="algorithm/my-submissions" element={<MySubmissions/>}/>
 
-                        {/* 코드 분석 */}
-                        <Route path="codeAnalysis" element={<CodeAnalysisMain/>}>
-                            <Route index element={<CodeAnalysisMain/>}/>
-                            <Route path="new" element={<AnalysisPage/>}/>
-                            <Route path="norag" element={<AnalysisPageWithoutRag/>}/>
-                            <Route path=":analysisId" element={<AnalysisPage/>}/>
-                        </Route>
+                        {/* 코드 분석 (CodeNose) */}
+                        <Route path="codeAnalysis" element={<CodeAnalysisMain/>}/>
+                        <Route path="codeAnalysis/new" element={<AnalysisPage/>}/>
+                        <Route path="codeAnalysis/:analysisId" element={<AnalysisPage/>}/>
+                        
+                        {/* 멘탈 케어 (Repetitive Mistake Report) */}
+                        <Route path="mistake-report" element={<MistakeReportPage/>}/>
                     </Route>
 
                     {/* 잘못된 경로는 홈으로 */}
