@@ -239,7 +239,6 @@ const AnalysisPage = () => {
             });
 
 
-<<<<<<< HEAD
             // 2. 분석 요청 (Toggle에 따라 분기)
             let response;
             if (useRag) {
@@ -269,9 +268,6 @@ const AnalysisPage = () => {
             }
             const accumulated = response.data; 
 
-=======
-            const accumulated = response.data;
->>>>>>> e64b2e36b870b001fc75959a7db5cd602481d2f0
 
             // 3. 결과 파싱
             try {

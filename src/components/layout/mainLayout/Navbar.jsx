@@ -10,22 +10,12 @@ import {NavLinks} from "../../navbar/NavLinks";
 import RightActions from "../../navbar/RightActions";
 
 const initialNavigation = [
-<<<<<<< HEAD
   { name: "코드 분석", href: "/codeAnalysis/new" },
   { name: "알고리즘", href: "/algorithm" },
   { name: "자유게시판", href: "/freeboard" },
   { name: "코드게시판", href: "/codeboard" },
   { name: "결제", href: "/payments" },
   { name: "관리자", href: "/admin" },
-=======
-    {name: "코드 분석", href: "/codeAnalysis/new"},
-    {name: "코드 분석 (No RAG)", href: "/codeAnalysis/norag"},
-    {name: "알고리즘", href: "/algorithm"},
-    {name: "자유게시판", href: "/freeboard"},
-    {name: "코드게시판", href: "/codeboard"},
-    {name: "결제", href: "/payments"},
-    {name: "관리자", href: "/admin"},
->>>>>>> e64b2e36b870b001fc75959a7db5cd602481d2f0
 ];
 
 export default function Navbar() {
