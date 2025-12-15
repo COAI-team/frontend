@@ -19,7 +19,6 @@ const ViolationWarnings = ({
   onDismissFullscreen,
   onDismissTabSwitch,
   onDismissMouseLeave,
-  onDismissDevtools,
   // [Phase 2] NO_FACE 관련 props
   showNoFaceWarning = false,
   noFaceDuration = 0,
