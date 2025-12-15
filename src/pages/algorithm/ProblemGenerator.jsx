@@ -43,8 +43,13 @@ const ProblemGenerator = () => {
   const typingRef = useRef(null);
 
   // 토픽 목록 상태 (백엔드에서 가져옴)
-  const [topicCategories, setTopicCategories] = useState([]);
-  const [topicsLoading, setTopicsLoading] = useState(true);
+  const [topicCategories, setTopicCategories] = useState([
+    { category: '자료구조', topics: [{ value: 'HASH', displayName: '해시' }, { value: 'STACK_QUEUE', displayName: '스택/큐' }, { value: 'HEAP', displayName: '힙/우선순위 큐' }, { value: 'TREE', displayName: '트리' }] },
+    { category: '탐색', topics: [{ value: 'DFS_BFS', displayName: 'DFS/BFS' }, { value: 'BRUTE_FORCE', displayName: '완전탐색' }, { value: 'BACKTRACKING', displayName: '백트래킹' }, { value: 'BINARY_SEARCH', displayName: '이분탐색' }, { value: 'GRAPH_SHORTEST_PATH', displayName: '그래프/최단경로' }] },
+    { category: '최적화', topics: [{ value: 'GREEDY', displayName: '그리디' }, { value: 'DP', displayName: '동적 프로그래밍(DP)' }] },
+    { category: '구현', topics: [{ value: 'IMPLEMENTATION', displayName: '구현/시뮬레이션' }, { value: 'SORTING', displayName: '정렬' }, { value: 'STRING', displayName: '문자열 처리' }, { value: 'TWO_POINTER', displayName: '투포인터/슬라이딩 윈도우' }] },
+  ]);
+  const [topicsLoading, setTopicsLoading] = useState(false);
 
   // ===== 상수 정의 =====
   const DIFFICULTY_OPTIONS = [
@@ -61,11 +66,6 @@ const ProblemGenerator = () => {
     { value: 'CHRISTMAS_TREE', label: '🎄 크리스마스 트리 장식', description: '장식 배치, 전구 연결, 트리 꾸미기' },
     { value: 'NEW_YEAR_FIREWORKS', label: '🎆 새해 불꽃놀이', description: '불꽃 타이밍, 하늘 배치, 쇼 연출' },
     { value: 'SKI_RESORT', label: '⛷️ 스키장', description: '슬로프 경로, 리프트 최적화, 스키 대회' },
-  ];
-
-  // SQL 토픽 (하드코딩 유지 - SQL은 아직 미지원)
-  const TOPIC_SUGGESTIONS_SQL = [
-    'SELECT', 'GROUP BY', 'String, Date', 'JOIN', 'SUM, MAX, MIN', 'IS NULL'
   ];
 
   // ===== 토픽 목록 조회 =====
