@@ -1,0 +1,206 @@
+.tracker-selector {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+}
+
+.tracker-selector-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tracker-selector-description {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0 0 1.5rem 0;
+}
+
+.tracker-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.tracker-option {
+    position: relative;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tracker-option:hover:not(.disabled) {
+    border-color: #8b5cf6;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+    transform: translateY(-2px);
+}
+
+.tracker-option.selected {
+    border-color: #8b5cf6;
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+}
+
+.tracker-option.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.tracker-option-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.tracker-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.tracker-info {
+    flex: 1;
+}
+
+.tracker-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 0.25rem 0;
+}
+
+.tracker-desc {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.tracker-radio {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.tracker-radio.checked {
+    border-color: #8b5cf6;
+    background: #8b5cf6;
+}
+
+.tracker-radio .checkmark {
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.tracker-features {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.tracker-features h5 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    margin: 0 0 0.5rem 0;
+}
+
+.tracker-features ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.25rem;
+}
+
+.tracker-features li {
+    font-size: 0.8rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.tracker-features .feature-check {
+    color: #22c55e;
+    font-weight: bold;
+}
+
+.tracker-pros-cons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.tracker-pros-cons .pros,
+.tracker-pros-cons .cons {
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.tracker-pros-cons h5 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    margin: 0 0 0.5rem 0;
+}
+
+.tracker-pros-cons ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tracker-pros-cons li {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+}
+
+.tracker-badge {
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.tracker-badge.recommended {
+    background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+/* 반응형 */
+@media (max-width: 640px) {
+    .tracker-options {
+        grid-template-columns: 1fr;
+    }
+
+    .tracker-features ul {
+        grid-template-columns: 1fr;
+    }
+
+    .tracker-pros-cons {
+        grid-template-columns: 1fr;
+    }
+}

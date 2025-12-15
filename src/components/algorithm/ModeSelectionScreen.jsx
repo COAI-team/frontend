@@ -1,26 +1,31 @@
 import React from 'react';
+import TrackerSelector from './eye-tracking/TrackerSelector';
 
 /**
  * 풀이 모드 선택 화면 컴포넌트
  *
  * 기능:
- * - 학습 모드 / 기본 모드 / 집중 모드 선택
- * - 풀이 시간 프리셋 + 커스텀 시간 설정
- * - 집중 모드 선택 시 주의사항 안내
+ * - 기본 모드 / 집중 모드 선택
+ * - 모드별 기능 안내
+ * - 집중 모드 선택 시 타이머 설정 UI 표시
+ * - 집중 모드 선택 시 추적기 선택 UI 표시 (TrackerSelector)
  */
 const ModeSelectionScreen = ({
   problem,
   problemId,
   selectedMode,
   setSelectedMode,
-  customTimeMinutes,
-  setCustomTimeMinutes,
   onStartSolving,
   onNavigateBack,
-  onGoToLearnMode
+  // 타이머 설정 props (집중 모드용)
+  customTimeMinutes,
+  setCustomTimeMinutes,
+  // 추적기 선택 props (집중 모드용)
+  selectedTrackerType,
+  setSelectedTrackerType
 }) => {
+  // 타이머 프리셋 옵션
   const timePresets = [15, 30, 45, 60];
-
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-100">
       {/* Header */}
@@ -31,7 +36,9 @@ const ModeSelectionScreen = ({
               <h1 className="text-xl font-bold">
                 #{problem?.problemId || problemId} {problem?.title || '문제'}
               </h1>
-              <p className="text-sm text-gray-400 mt-1">풀이 모드를 선택해주세요</p>
+              <p className="text-sm text-gray-400 mt-1">
+                맞힌사람 {problem?.successCount || 0} • 제출 {problem?.totalAttempts || 0}
+              </p>
             </div>
             <button
               onClick={onNavigateBack}
@@ -46,43 +53,6 @@ const ModeSelectionScreen = ({
       {/* Body */}
       <div className="container mx-auto px-6 py-12">
         <div className="max-w-5xl mx-auto">
-          {/* Time presets */}
-          <div className="mb-8 text-center">
-            <h2 className="text-lg font-semibold mb-4">풀이 시간 설정</h2>
-
-            <div className="flex items-center justify-center gap-4 flex-wrap">
-              {timePresets.map((time) => (
-                <button
-                  key={time}
-                  onClick={() => setCustomTimeMinutes(time)}
-                  className={`px-4 py-2 rounded-lg transition-all ${
-                    customTimeMinutes === time
-                      ? 'bg-purple-600'
-                      : 'bg-zinc-700 hover:bg-zinc-600'
-                  }`}
-                >
-                  {time}분
-                </button>
-              ))}
-
-              <div className="flex items-center gap-2 ml-0 md:ml-4">
-                <input
-                  type="number"
-                  min="1"
-                  max="180"
-                  value={customTimeMinutes}
-                  onChange={(e) =>
-                    setCustomTimeMinutes(
-                      Math.max(1, Math.min(180, parseInt(e.target.value, 10) || 30))
-                    )
-                  }
-                  className="w-20 px-3 py-2 bg-zinc-700 rounded-lg text-center"
-                />
-                <span className="text-gray-400">분</span>
-              </div>
-            </div>
-          </div>
-
           {/* Mode cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <ModeCard
@@ -133,15 +103,72 @@ const ModeSelectionScreen = ({
           {/* 집중 모드 주의사항 */}
           {selectedMode === 'FOCUS' && <FocusModeWarning />}
 
-          {/* Start button */}
+          {/* 집중 모드 타이머 설정 */}
+          {selectedMode === 'FOCUS' && (
+            <div className="mt-6 p-6 bg-zinc-800 border border-zinc-700 rounded-xl">
+              <div className="text-center mb-4">
+                <span className="text-4xl mb-2 block">⏱️</span>
+                <h3 className="text-lg font-bold text-white">풀이 시간 설정</h3>
+                <p className="text-sm text-gray-400 mt-1">집중 모드에서 사용할 타이머 시간을 설정하세요</p>
+              </div>
+
+              {/* 프리셋 버튼 */}
+              <div className="flex items-center justify-center gap-3 mb-4">
+                {timePresets.map(time => (
+                  <button
+                    key={time}
+                    onClick={() => setCustomTimeMinutes(time)}
+                    className={`px-5 py-2 rounded-lg font-semibold transition-all ${
+                      customTimeMinutes === time
+                        ? 'bg-purple-600 text-white ring-2 ring-purple-400'
+                        : 'bg-zinc-700 hover:bg-zinc-600 text-gray-300'
+                    }`}
+                  >
+                    {time}분
+                  </button>
+                ))}
+              </div>
+
+              {/* 커스텀 시간 입력 */}
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-gray-400">직접 입력:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={customTimeMinutes}
+                  onChange={(e) =>
+                    setCustomTimeMinutes(
+                      Math.max(1, Math.min(180, parseInt(e.target.value) || 30))
+                    )
+                  }
+                  className="w-20 px-3 py-2 bg-zinc-700 rounded-lg text-center text-lg font-mono text-white"
+                />
+                <span className="text-gray-400">분</span>
+              </div>
+            </div>
+          )}
+
+          {/* 집중 모드 추적기 선택 */}
+          {selectedMode === 'FOCUS' && (
+            <div className="mt-6 p-6 bg-zinc-800 border border-zinc-700 rounded-xl">
+              <div className="text-center mb-4">
+                <span className="text-4xl mb-2 block">👁️</span>
+                <h3 className="text-lg font-bold text-white">시선 추적 방식 선택</h3>
+                <p className="text-sm text-gray-400 mt-1">집중 모드에서 사용할 시선 추적 라이브러리를 선택하세요</p>
+              </div>
+              <TrackerSelector
+                selectedTracker={selectedTrackerType}
+                onSelect={setSelectedTrackerType}
+              />
+            </div>
+          )}
+
+          {/* 시작 버튼 */}
           <div className="mt-8 text-center">
             <button
               onClick={() => {
                 if (!selectedMode) return;
-                if (selectedMode === 'LEARN') {
-                  onGoToLearnMode?.();
-                  return;
-                }
                 onStartSolving(selectedMode);
               }}
               disabled={!selectedMode}
@@ -161,9 +188,13 @@ const ModeSelectionScreen = ({
             </button>
 
             <p className="text-gray-500 text-sm mt-3">
-              {selectedMode === 'LEARN'
-                ? '학습 모드로 이동합니다.'
-                : `${customTimeMinutes}분 동안 문제를 풀게 됩니다.`}
+              {selectedMode === 'FOCUS'
+                ? `전체화면 모드로 전환되며 시선 추적이 활성화됩니다 (${customTimeMinutes}분)`
+                : selectedMode === 'BASIC'
+                  ? '풀이 화면에서 타이머 또는 스톱워치를 설정할 수 있습니다'
+                  : selectedMode === 'LEARN'
+                    ? '튜터와 함께 문제를 연습할 수 있습니다'
+                    : '모드를 선택하면 시작할 수 있습니다'}
             </p>
           </div>
         </div>

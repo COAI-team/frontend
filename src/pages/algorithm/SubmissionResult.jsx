@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubmissionResult, completeMission, updateSharingStatus } from '../../service/algorithm/AlgorithmApi';
+import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
+import { commitToGithub, getGithubSettings } from '../../service/github/GithubApi';
+import { AiFillGithub } from 'react-icons/ai';
 
 /**
  * 간단한 마크다운 렌더러 컴포넌트
@@ -102,64 +105,6 @@ const MarkdownRenderer = ({ content }) => {
 };
 
 /**
- * 문제 설명 파싱 함수
- */
-const parseProblemDescription = (description) => {
-  if (!description) return null;
-
-  const sections = {
-    description: '',
-    input: '',
-    output: '',
-    constraints: '',
-    exampleInput: '',
-    exampleOutput: '',
-  };
-
-  // 섹션 구분자 패턴
-  const patterns = {
-    input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-    output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-    constraints: /(?:^|\n)(?:\*\*)?(?:제한사항|제한 ?사항|제한|조건|Constraints?)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-    exampleInput: /(?:^|\n)(?:\*\*)?(?:예제 ?입력|입력 ?예제|예시 ?입력|Sample Input|Example Input)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
-    exampleOutput: /(?:^|\n)(?:\*\*)?(?:예제 ?출력|출력 ?예제|예시 ?출력|Sample Output|Example Output)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
-  };
-
-  let remaining = description;
-  let firstSectionStart = remaining.length;
-
-  // 각 섹션의 시작 위치 찾기
-  const sectionPositions = [];
-  for (const [key, pattern] of Object.entries(patterns)) {
-    const match = remaining.match(pattern);
-    if (match) {
-      const pos = remaining.indexOf(match[0]);
-      sectionPositions.push({ key, pos, matchLength: match[0].length });
-      if (pos < firstSectionStart) {
-        firstSectionStart = pos;
-      }
-    }
-  }
-
-  // 문제 설명 (첫 섹션 이전의 모든 텍스트)
-  sections.description = remaining.substring(0, firstSectionStart).trim();
-
-  // 위치순 정렬
-  sectionPositions.sort((a, b) => a.pos - b.pos);
-
-  // 각 섹션 내용 추출
-  for (let i = 0; i < sectionPositions.length; i++) {
-    const current = sectionPositions[i];
-    const next = sectionPositions[i + 1];
-    const startPos = current.pos + current.matchLength;
-    const endPos = next ? next.pos : remaining.length;
-    sections[current.key] = remaining.substring(startPos, endPos).trim();
-  }
-
-  return sections;
-};
-
-/**
  * 마크다운 텍스트 파싱 함수 (라이트/다크 테마 지원)
  */
 const renderFormattedText = (text) => {
@@ -218,19 +163,6 @@ const CodeBlock = ({ title, icon, content }) => {
 };
 
 /**
- * 난이도 배지 스타일 (라이트 테마)
- */
-const getDifficultyBadge = (diff) => {
-  const styles = {
-    'BRONZE': 'bg-orange-100 text-orange-800 border-orange-300',
-    'SILVER': 'bg-gray-100 text-gray-800 border-gray-300',
-    'GOLD': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    'PLATINUM': 'bg-cyan-100 text-cyan-800 border-cyan-300'
-  };
-  return styles[diff] || 'bg-gray-100 text-gray-700 border-gray-300';
-};
-
-/**
  * 제출 결과 페이지 - 실시간 업데이트 버전
  */
 const SubmissionResult = () => {
@@ -245,6 +177,11 @@ const SubmissionResult = () => {
   const [showProblemDescription, setShowProblemDescription] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
+  // GitHub 커밋 상태
+  const [githubSettings, setGithubSettings] = useState(null);
+  const [isCommitting, setIsCommitting] = useState(false);
+  const [commitStatus, setCommitStatus] = useState({ success: null, message: '', url: '' });
+
   // 🎯 데일리 미션 완료 상태
   const [missionStatus, setMissionStatus] = useState({
     completed: false,
@@ -257,6 +194,12 @@ const SubmissionResult = () => {
   const pollingInterval = useRef(null);
   // 미션 완료 중복 호출 방지
   const missionCompletedRef = useRef(false);
+  // 자동 커밋 중복 호출 방지
+  const autoCommitTriggeredRef = useRef(false);
+  // 이전 AI 피드백 상태 추적 (자동 커밋 윈도우 판단용)
+  const prevAiFeedbackStatusRef = useRef(null);
+  // 자동 커밋 윈도우 활성화 여부 (AI 완료 후 3초 이내만 true)
+  const [autoCommitWindowActive, setAutoCommitWindowActive] = useState(false);
 
   // 데이터 조회 함수
   const fetchResult = async () => {
@@ -348,6 +291,29 @@ const SubmissionResult = () => {
         }
       }
 
+      // 🚀 AI 피드백이 방금 완료된 경우 자동 커밋 윈도우 활성화 (3초)
+      const prevAiStatus = prevAiFeedbackStatusRef.current;
+      if (
+        data.aiFeedbackStatus === 'COMPLETED' &&
+        prevAiStatus !== null &&
+        prevAiStatus !== 'COMPLETED' &&
+        data.judgeResult === 'AC' &&
+        !data.githubCommitUrl &&
+        !autoCommitTriggeredRef.current
+      ) {
+        console.log('🚀 자동 커밋 윈도우 활성화 (3초)');
+        setAutoCommitWindowActive(true);
+
+        // 3초 후 윈도우 비활성화
+        setTimeout(() => {
+          console.log('⏰ 자동 커밋 윈도우 만료');
+          setAutoCommitWindowActive(false);
+        }, 3000);
+      }
+
+      // 이전 AI 상태 업데이트
+      prevAiFeedbackStatusRef.current = data.aiFeedbackStatus;
+
       // 둘 다 완료되면 폴링 중지
       if (isJudgeComplete && isAiComplete) {
         stopPolling();
@@ -379,8 +345,124 @@ const SubmissionResult = () => {
       startPolling();
     }
     return () => stopPolling();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId]);
 
+  // GitHub 설정 로드
+  useEffect(() => {
+    const loadGithubSettings = async () => {
+      const res = await getGithubSettings();
+      if (!res.error) {
+        setGithubSettings(res);
+      }
+    };
+    loadGithubSettings();
+  }, []);
+
+  // 🚀 자동 커밋 처리 (AC + AI 완료 + 자동커밋 활성화 + 윈도우 활성화 시)
+  useEffect(() => {
+    const performAutoCommit = async () => {
+      // 자동 커밋 조건 체크
+      if (!submission) return;
+      if (!githubSettings?.autoCommitEnabled) return; // 자동 커밋 비활성화
+      if (!githubSettings?.githubRepoName) return; // 저장소 미설정
+      if (submission.githubCommitUrl) return; // 이미 커밋됨
+      if (submission.judgeResult !== 'AC') return; // 정답이 아님
+      if (submission.aiFeedbackStatus !== 'COMPLETED') return; // AI 피드백 미완료
+      if (autoCommitTriggeredRef.current) return; // 이미 자동 커밋 시도함
+      if (isCommitting) return; // 커밋 진행 중
+      if (!autoCommitWindowActive) return; // ⏰ 자동 커밋 윈도우 비활성화 (이전 제출 방지)
+
+      // 자동 커밋 실행
+      autoCommitTriggeredRef.current = true;
+      console.log('🚀 자동 커밋 시작...');
+
+      setIsCommitting(true);
+      setCommitStatus({ success: null, message: '자동 커밋 중...', url: '' });
+
+      const res = await commitToGithub(submissionId);
+
+      setIsCommitting(false);
+
+      if (res.error) {
+        setCommitStatus({
+          success: false,
+          message: res.message || '자동 커밋에 실패했습니다.',
+          url: ''
+        });
+        console.error('❌ 자동 커밋 실패:', res.message);
+      } else {
+        setCommitStatus({
+          success: true,
+          message: '자동 커밋이 완료되었습니다!',
+          url: res.commitUrl || ''
+        });
+        setSubmission(prev => ({ ...prev, githubCommitUrl: res.commitUrl }));
+        console.log('✅ 자동 커밋 완료:', res.commitUrl);
+      }
+
+      // 5초 후 메시지 숨기기
+      setTimeout(() => {
+        setCommitStatus(prev => ({ ...prev, success: null }));
+      }, 5000);
+    };
+
+    performAutoCommit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submission?.judgeResult, submission?.aiFeedbackStatus, submission?.githubCommitUrl, githubSettings?.autoCommitEnabled, githubSettings?.githubRepoName, autoCommitWindowActive]);
+
+  // GitHub 커밋 핸들러 (수동)
+  const handleGithubCommit = async () => {
+    if (!submissionId) return;
+
+    setIsCommitting(true);
+    setCommitStatus({ success: null, message: '', url: '' });
+
+    const res = await commitToGithub(submissionId);
+
+    setIsCommitting(false);
+
+    if (res.error) {
+      setCommitStatus({
+        success: false,
+        message: res.message || '커밋에 실패했습니다.',
+        url: ''
+      });
+    } else {
+      setCommitStatus({
+        success: true,
+        message: '커밋이 완료되었습니다!',
+        url: res.commitUrl || ''
+      });
+      // submission 상태 업데이트 (커밋 URL 반영)
+      setSubmission(prev => ({ ...prev, githubCommitUrl: res.commitUrl }));
+    }
+
+    // 3초 후 메시지 숨기기
+    setTimeout(() => {
+      setCommitStatus(prev => ({ ...prev, success: null }));
+    }, 5000);
+  };
+
+  // GitHub 커밋 버튼 활성화 조건
+  const canCommitToGithub = () => {
+    if (!submission) return false;
+    if (!githubSettings?.githubRepoName) return false; // 저장소 미설정
+    if (submission.githubCommitUrl) return false; // 이미 커밋됨
+    if (submission.judgeResult !== 'AC') return false; // 정답이 아님
+    if (submission.aiFeedbackStatus !== 'COMPLETED') return false; // AI 피드백 미완료
+    return true;
+  };
+
+  // GitHub 커밋 버튼 비활성화 이유
+  const getGithubButtonDisabledReason = () => {
+    if (!submission) return '';
+    if (submission.githubCommitUrl) return ''; // 이미 커밋됨 (링크로 표시)
+    if (!githubSettings?.githubRepoName) return '저장소 미설정';
+    if (submission.judgeResult !== 'AC') return '정답만 커밋 가능';
+    if (submission.aiFeedbackStatus !== 'COMPLETED') return 'AI 분석 대기 중...';
+    return '';
+  };
 
   // 결과 색상 및 아이콘
   const getResultInfo = (result) => {
@@ -395,10 +477,8 @@ const SubmissionResult = () => {
     }
   };
 
-  // 파싱된 문제 섹션
-  const parsedSections = useMemo(() => {
-    return parseProblemDescription(submission?.problemDescription);
-  }, [submission?.problemDescription]);
+  // 파싱된 문제 섹션 (커스텀 훅으로 메모이제이션)
+  const parsedSections = useParsedProblem(submission?.problemDescription);
 
   // 공유하기
   const handleShare = async () => {
@@ -489,6 +569,99 @@ const SubmissionResult = () => {
               >
                 🔄 다시 풀기
               </button>
+
+              {/* GitHub 커밋 버튼 - 항상 표시 */}
+              {submission.githubCommitUrl && submission.githubCommitUrl.length > 0 ? (
+                // 이미 커밋된 경우: 커밋 보기 링크
+                <a
+                  href={submission.githubCommitUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors flex items-center gap-2"
+                >
+                  <AiFillGithub className="w-5 h-5" />
+                  커밋 보기
+                </a>
+              ) : !githubSettings?.githubRepoName ? (
+                // 저장소 미설정: 설정 페이지로 이동
+                <button
+                  onClick={() => navigate('/mypage/profile')}
+                  className="px-4 py-2 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors flex items-center gap-2"
+                  title="프로필에서 GitHub 저장소를 설정해주세요"
+                >
+                  <AiFillGithub className="w-5 h-5" />
+                  저장소 설정
+                </button>
+              ) : githubSettings?.autoCommitEnabled && (isCommitting || submission.judgeResult !== 'AC' || submission.aiFeedbackStatus !== 'COMPLETED' || autoCommitWindowActive) ? (
+                // 자동 커밋 활성화 상태 (자동 커밋 진행 중이거나 윈도우 활성화 중)
+                isCommitting ? (
+                  // 자동 커밋 진행 중
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-800 text-white rounded cursor-wait flex items-center gap-2 animate-pulse"
+                  >
+                    <AiFillGithub className="w-5 h-5 animate-spin" />
+                    자동 커밋 중...
+                  </button>
+                ) : submission.judgeResult !== 'AC' ? (
+                  // 정답이 아님
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed flex items-center gap-2"
+                    title="정답(AC)일 때만 자동 커밋됩니다"
+                  >
+                    <AiFillGithub className="w-5 h-5" />
+                    정답만 커밋 가능
+                  </button>
+                ) : submission.aiFeedbackStatus !== 'COMPLETED' ? (
+                  // AI 피드백 대기 중
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-600 text-gray-300 rounded cursor-wait flex items-center gap-2"
+                    title="AI 분석 완료 후 자동으로 커밋됩니다"
+                  >
+                    <AiFillGithub className="w-5 h-5" />
+                    <span className="flex items-center gap-1">
+                      <span className="animate-spin text-xs">⏳</span>
+                      자동 커밋 대기 중
+                    </span>
+                  </button>
+                ) : (
+                  // 자동 커밋 조건 충족 (곧 커밋됨)
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-green-600 text-white rounded cursor-wait flex items-center gap-2"
+                  >
+                    <AiFillGithub className="w-5 h-5" />
+                    자동 커밋 준비 중...
+                  </button>
+                )
+              ) : canCommitToGithub() ? (
+                // 수동 커밋 가능: 활성화된 버튼
+                <button
+                  onClick={handleGithubCommit}
+                  disabled={isCommitting}
+                  className={`px-4 py-2 rounded transition-colors flex items-center gap-2 ${
+                    isCommitting
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-800 text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <AiFillGithub className="w-5 h-5" />
+                  {isCommitting ? '커밋 중...' : 'GitHub 커밋'}
+                </button>
+              ) : (
+                // 수동 커밋 불가: 비활성화된 버튼 (항상 표시)
+                <button
+                  disabled
+                  className="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed flex items-center gap-2"
+                  title={getGithubButtonDisabledReason()}
+                >
+                  <AiFillGithub className="w-5 h-5" />
+                  <span>{getGithubButtonDisabledReason() || 'GitHub 커밋'}</span>
+                </button>
+              )}
+
               <button
                 onClick={handleShare}
                 disabled={isSharing}
@@ -530,13 +703,44 @@ const SubmissionResult = () => {
             </div>
           )}
 
+          {/* GitHub 커밋 상태 배너 */}
+          {commitStatus.success !== null && (
+            <div className={`rounded-lg shadow-lg p-4 flex items-center justify-between ${
+              commitStatus.success
+                ? 'bg-gradient-to-r from-gray-700 to-gray-800 text-white'
+                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+            }`}>
+              <div className="flex items-center gap-3">
+                <AiFillGithub className="w-8 h-8" />
+                <div>
+                  <h3 className="font-bold">{commitStatus.success ? 'GitHub 커밋 완료!' : '커밋 실패'}</h3>
+                  <p className={`text-sm ${commitStatus.success ? 'text-gray-300' : ''}`}>
+                    {commitStatus.message}
+                  </p>
+                </div>
+              </div>
+              {commitStatus.success && commitStatus.url && (
+                <a
+                  href={commitStatus.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-white text-gray-800 rounded hover:bg-gray-100 transition-colors font-medium"
+                >
+                  커밋 보기 →
+                </a>
+              )}
+            </div>
+          )}
+
           {/* 결과 요약 카드 */}
           <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700 p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* 문제 정보 */}
               <div>
                 <h3 className="text-sm font-medium text-muted mb-2">📝 문제</h3>
-                <p className="text-lg font-semibold text-main">{submission.problemTitle}</p>
+                <p className="text-lg font-semibold text-main">
+                  <span className="text-blue-600 dark:text-blue-400">#{submission.problemId}</span> {submission.problemTitle}
+                </p>
                 <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-zinc-700 text-sub`}>
                   {submission.difficulty || 'N/A'}
                 </span>
@@ -598,9 +802,6 @@ const SubmissionResult = () => {
                 <div className="flex items-center gap-3">
                   <span className="text-xl">📋</span>
                   <h3 className="text-lg font-semibold text-main">문제 설명</h3>
-                  <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(submission.difficulty)}`}>
-                    {submission.difficulty || 'N/A'}
-                  </span>
                 </div>
                 <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm flex items-center gap-1">
                   <span>{showProblemDescription ? '접기' : '펼치기'}</span>
@@ -686,110 +887,137 @@ const SubmissionResult = () => {
 
           {/* 상세 결과 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 실행 결과 */}
-            <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-main mb-4">📈 실행 결과</h3>
+            {/* 왼쪽 열: 실행 결과 + 제출된 코드 */}
+            <div className="space-y-6">
+              {/* 실행 결과 */}
+              <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-main mb-4">📈 실행 결과</h3>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted">실행 시간:</span>
-                    <span className="font-mono text-main">{submission.executionTime ? `${submission.executionTime}s` : '-'}</span>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted">실행 시간:</span>
+                      <span className="font-mono text-main">{submission.executionTime ? `${submission.executionTime}s` : '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted">메모리 사용량:</span>
+                      <span className="font-mono text-main">{submission.memoryUsage ? `${submission.memoryUsage}KB` : '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted">사용 언어:</span>
+                      <span className="font-medium text-main">{submission.languageName}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted">제출 시간:</span>
+                      <span className="font-mono text-main">{new Date(submission.submittedAt).toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted">메모리 사용량:</span>
-                    <span className="font-mono text-main">{submission.memoryUsage ? `${submission.memoryUsage}KB` : '-'}</span>
+
+                  {/* 테스트케이스 상세 결과 */}
+                  {submission.testCaseResults && submission.testCaseResults.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-sm font-semibold text-main mb-3">📋 테스트케이스 결과</h4>
+                      <div className="space-y-3">
+                        {submission.testCaseResults.map((tc, idx) => (
+                          <div key={idx} className="border dark:border-zinc-600 rounded-lg p-3 bg-gray-50 dark:bg-zinc-700">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-sub">
+                                Test Case #{tc.testCaseNumber || idx + 1}
+                              </span>
+                              {tc.result === 'PASS' && (
+                                <span className="text-green-600 text-sm flex items-center gap-1">
+                                  <span>✅</span>
+                                  <span>통과</span>
+                                </span>
+                              )}
+                              {tc.result === 'FAIL' && (
+                                <span className="text-red-600 text-sm flex items-center gap-1">
+                                  <span>❌</span>
+                                  <span>실패</span>
+                                </span>
+                              )}
+                              {tc.result === 'ERROR' && (
+                                <span className="text-orange-600 text-sm flex items-center gap-1">
+                                  <span>⚠️</span>
+                                  <span>에러</span>
+                                </span>
+                              )}
+                              {!tc.result && (
+                                <span className="text-muted text-sm flex items-center gap-1">
+                                  <span className="animate-spin">⏳</span>
+                                  <span>채점 중...</span>
+                                </span>
+                              )}
+                            </div>
+                            {/* Progress bar */}
+                            <div className="w-full bg-gray-200 dark:bg-zinc-600 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full transition-all duration-300 ${tc.result === 'PASS'
+                                  ? 'bg-green-500'
+                                  : tc.result === 'FAIL'
+                                    ? 'bg-red-500'
+                                    : tc.result === 'ERROR'
+                                      ? 'bg-orange-500'
+                                      : 'bg-blue-500 animate-pulse'
+                                  }`}
+                                style={{ width: tc.result ? '100%' : '60%' }}
+                              ></div>
+                            </div>
+                            {tc.executionTime && (
+                              <div className="text-xs text-muted mt-1">
+                                실행시간: {tc.executionTime}ms
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 채점 진행 중일 때 전체 프로그레스 바 */}
+                  {submission.judgeStatus === 'JUDGING' && (
+                    <div className="mt-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-sub">전체 채점 진행률</span>
+                        <span className="text-sm text-muted">
+                          {submission.passedTestCount || 0}/{submission.totalTestCount || 0}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-500 animate-pulse"
+                          style={{
+                            width: `${submission.totalTestCount ? ((submission.passedTestCount || 0) / submission.totalTestCount) * 100 : 0}%`
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 제출된 코드 */}
+              <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-main mb-4">💻 제출된 코드</h3>
+                  <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                    <pre className="text-gray-100 text-sm font-mono">
+                      <code>{submission.sourceCode}</code>
+                    </pre>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted">사용 언어:</span>
-                    <span className="font-medium text-main">{submission.language}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted">제출 시간:</span>
-                    <span className="font-mono text-main">{new Date(submission.submittedAt).toLocaleString()}</span>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-muted text-sm">
+                      언어: {submission.languageName} |
+                      문자 수: {submission.sourceCode?.length || 0}
+                    </span>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(submission.sourceCode)}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
+                    >
+                      📋 코드 복사
+                    </button>
                   </div>
                 </div>
-
-                {/* 테스트케이스 상세 결과 */}
-                {submission.testCaseResults && submission.testCaseResults.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="text-sm font-semibold text-main mb-3">📋 테스트케이스 결과</h4>
-                    <div className="space-y-3">
-                      {submission.testCaseResults.map((tc, idx) => (
-                        <div key={idx} className="border dark:border-zinc-600 rounded-lg p-3 bg-gray-50 dark:bg-zinc-700">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-sub">
-                              Test Case #{tc.testCaseNumber || idx + 1}
-                            </span>
-                            {tc.result === 'PASS' && (
-                              <span className="text-green-600 text-sm flex items-center gap-1">
-                                <span>✅</span>
-                                <span>통과</span>
-                              </span>
-                            )}
-                            {tc.result === 'FAIL' && (
-                              <span className="text-red-600 text-sm flex items-center gap-1">
-                                <span>❌</span>
-                                <span>실패</span>
-                              </span>
-                            )}
-                            {tc.result === 'ERROR' && (
-                              <span className="text-orange-600 text-sm flex items-center gap-1">
-                                <span>⚠️</span>
-                                <span>에러</span>
-                              </span>
-                            )}
-                            {!tc.result && (
-                              <span className="text-muted text-sm flex items-center gap-1">
-                                <span className="animate-spin">⏳</span>
-                                <span>채점 중...</span>
-                              </span>
-                            )}
-                          </div>
-                          {/* Progress bar */}
-                          <div className="w-full bg-gray-200 dark:bg-zinc-600 rounded-full h-1.5">
-                            <div
-                              className={`h-1.5 rounded-full transition-all duration-300 ${tc.result === 'PASS'
-                                ? 'bg-green-500'
-                                : tc.result === 'FAIL'
-                                  ? 'bg-red-500'
-                                  : tc.result === 'ERROR'
-                                    ? 'bg-orange-500'
-                                    : 'bg-blue-500 animate-pulse'
-                                }`}
-                              style={{ width: tc.result ? '100%' : '60%' }}
-                            ></div>
-                          </div>
-                          {tc.executionTime && (
-                            <div className="text-xs text-muted mt-1">
-                              실행시간: {tc.executionTime}ms
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 채점 진행 중일 때 전체 프로그레스 바 */}
-                {submission.judgeStatus === 'JUDGING' && (
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-sub">전체 채점 진행률</span>
-                      <span className="text-sm text-muted">
-                        {submission.passedTestCount || 0}/{submission.totalTestCount || 0}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-500 animate-pulse"
-                        style={{
-                          width: `${submission.totalTestCount ? ((submission.passedTestCount || 0) / submission.totalTestCount) * 100 : 0}%`
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -914,30 +1142,6 @@ const SubmissionResult = () => {
               </div>
             </div>
           )}
-
-          {/* 제출된 코드 */}
-          <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-main mb-4">💻 제출된 코드</h3>
-              <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-                <pre className="text-gray-100 text-sm font-mono">
-                  <code>{submission.sourceCode}</code>
-                </pre>
-              </div>
-              <div className="mt-4 flex items-center justify-between">
-                <span className="text-muted text-sm">
-                  언어: {submission.language} |
-                  문자 수: {submission.sourceCode?.length || 0}
-                </span>
-                <button
-                  onClick={() => navigator.clipboard.writeText(submission.sourceCode)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
-                >
-                  📋 코드 복사
-                </button>
-              </div>
-            </div>
-          </div>
 
         </div>
       </div>

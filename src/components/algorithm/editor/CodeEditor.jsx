@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { editorOptions, LANGUAGE_MAP } from './editorUtils';
-import {CodeEditorPropTypes} from '../../../utils/propTypes';
+
 /**
  * Monaco Editor 컴포넌트 (ALG-04)
  * 문제 풀이용 코드 에디터
@@ -86,7 +86,7 @@ const CodeEditor = ({
     // Ctrl+Enter 실행 단축키 (부모에서 처리 가능하도록)
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       const event = new CustomEvent('editor-run', { detail: { code: editor.getValue() } });
-      globalThis.dispatchEvent(event);
+      window.dispatchEvent(event);
     });
 
     // 테마 커스터마이징
@@ -169,5 +169,3 @@ const CodeEditor = ({
 };
 
 export default CodeEditor;
-
-CodeEditor.propTypes = CodeEditorPropTypes;

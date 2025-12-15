@@ -15,6 +15,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
+    "@mediapipe/tasks-vision": "^0.10.21",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@monaco-editor/react": "^4.7.0",
     "@stomp/stompjs": "^7.2.1",

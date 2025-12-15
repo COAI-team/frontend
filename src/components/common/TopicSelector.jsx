@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import '../../../styles/TopicSelector.css';
+import '../../styles/TopicSelector.css';
 import {EXTRA_TOPICS, MAIN_TOPICS} from "../constants/topics";
 import {TopicSelectorPropTypes} from "../../utils/propTypes";
 

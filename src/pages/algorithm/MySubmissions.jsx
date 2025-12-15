@@ -115,6 +115,12 @@ const MySubmissions = () => {
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                   >
+                    풀이 모드
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
+                  >
                     결과
                   </th>
                   <th
@@ -153,8 +159,20 @@ const MySubmissions = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-main">
+                        <span className="text-blue-600 dark:text-blue-400">#{submission.problemId}</span>{" "}
                         {submission.problemTitle}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          submission.solveMode === "FOCUS"
+                            ? "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/30"
+                            : "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30"
+                        }`}
+                      >
+                        {submission.solveMode === "FOCUS" ? "집중 모드" : "기본 모드"}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -166,7 +184,7 @@ const MySubmissions = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
-                      {submission.language}
+                      {submission.languageName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       {submission.memoryUsage

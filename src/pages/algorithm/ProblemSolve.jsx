@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
-import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY, ALLOWED_LANGUAGES } from '../../components/algorithm/editor/editorUtils';
+import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
 import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolationDetection';
+import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
-import EyeTracker from '../../components/algorithm/eye-tracking/EyeTracker';
+import EyeTracker, { TRACKER_TYPES } from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
-import { useLogin } from '../../context/login/useLogin';
-
+import PenaltyNotification from '../../components/algorithm/PenaltyNotification';
+import ConfirmModal from '../../components/algorithm/ConfirmModal';
+import { useViolationPenalty } from '../../hooks/algorithm/useViolationPenalty';
+import { useApplyThemeClass } from '../../hooks/useApplyThemeClass';
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
  * ✅ 수평(좌우) + 수직(상하) 리사이저 지원
@@ -24,13 +27,15 @@ import { useLogin } from '../../context/login/useLogin';
  * - 기본 모드: 수동 타이머 시작
  */
 const ProblemSolve = () => {
-  
   const { problemId } = useParams();
   const navigate = useNavigate();
   const editorRef = useRef(null);
   const eyeTrackerRef = useRef(null); // 시선 추적 ref
-  const { user } = useLogin();
+  const handleSubmitRef = useRef(null); // 자동 제출용 ref (stale closure 방지)
+  const noFaceSustainedRecordedRef = useRef(false); // NO_FACE_SUSTAINED 중복 기록 방지
 
+  // 테마 적용 (이 페이지는 Layout 밖에 있어서 직접 호출 필요)
+  useApplyThemeClass();
 
   // 문제 데이터 상태
   const [problem, setProblem] = useState(null);
@@ -44,13 +49,21 @@ const ProblemSolve = () => {
   const [solvingStarted, setSolvingStarted] = useState(false); // 풀이 시작 여부
 
   // 에디터 상태
-  const [selectedLanguage, setSelectedLanguage] = useState('Python 3');
+  // 변경사항 (2025-12-13): selectedLanguageId 추가 (API 호출용), Python 3 → Python
+  const [selectedLanguage, setSelectedLanguage] = useState('Python');  // 표시용 languageName
+  const [selectedLanguageId, setSelectedLanguageId] = useState(null);    // API 호출용 languageId
   const [code, setCode] = useState('');
 
   // 타이머 상태 (풀이 시간 - 기본 30분)
   const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [startTime, setStartTime] = useState(null);
+  const [timerEndTime, setTimerEndTime] = useState(null); // 타이머 종료 시점 (timestamp) - 브라우저 스로틀링 방지
+
+  // ========== 타이머 모드 관련 상태 ==========
+  const [timerMode, setTimerMode] = useState('TIMER'); // 'TIMER' (카운트다운) | 'STOPWATCH' (스톱워치)
+  const [elapsedTime, setElapsedTime] = useState(0); // 스톱워치용 경과 시간
+  const [isTimerHovered, setIsTimerHovered] = useState(false); // 타이머 hover 상태 (시간 편집용)
 
   // 실행 결과 상태
   const [testResult, setTestResult] = useState(null);
@@ -63,23 +76,92 @@ const ProblemSolve = () => {
   const [eyeTrackingReady, setEyeTrackingReady] = useState(false);
   const [monitoringSessionId, setMonitoringSessionId] = useState(null);
 
+  // [Debug] 시선 추적 디버그 모드 상태
+  const [eyeTrackingDebugMode, setEyeTrackingDebugMode] = useState(false);
+
+  // 추적기 타입 선택 (WebGazer / MediaPipe)
+  const [selectedTrackerType, setSelectedTrackerType] = useState(TRACKER_TYPES.MEDIAPIPE);
+
+  // MediaPipe 전용 상태
+  const [drowsinessState, setDrowsinessState] = useState({
+    isDrowsy: false,
+    perclos: 0,
+    consecutiveClosedFrames: 0
+  });
+  const [multipleFacesState, setMultipleFacesState] = useState({
+    faceCount: 0,
+    detectedFaces: []
+  });
+  const drowsyViolationRecordedRef = useRef(false); // 졸음 위반 중복 기록 방지
+
+  // [Phase 2] NO_FACE 경고 상태
+  const [noFaceState, setNoFaceState] = useState({
+    showNoFaceWarning: false,
+    noFaceDuration: 0,
+    noFaceProgress: 0
+  });
+
+  // 커스텀 Confirm 모달 상태 (전체화면 유지용)
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    onCancel: null, // 취소 시 커스텀 동작 (null이면 기본 닫기)
+    confirmText: '확인',
+    cancelText: '취소'
+  });
+
   // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
   const solveMode = selectedMode || 'BASIC';
-  const currentUserId = user?.userId ?? user?.id ?? null;
+
+  // [Phase 2] 시간 감소 콜백 (패널티 시스템용)
+  // timerEndTime을 조정하여 브라우저 스로틀링에도 정확하게 동작
+  const handleTimeReduction = useCallback((seconds) => {
+    setTimerEndTime(prev => {
+      if (!prev) return prev;
+      return prev - seconds * 1000; // 종료 시점을 앞당김
+    });
+    setTimeLeft(prev => Math.max(0, prev - seconds));
+    console.log(`⏰ Time reduced by ${seconds / 60} minutes`);
+  }, []);
+
+  // [Phase 2] 자동 제출 콜백 (ref를 통해 최신 handleSubmit 호출)
+  const handleAutoSubmit = useCallback(() => {
+    if (handleSubmitRef.current) {
+      handleSubmitRef.current();
+    }
+  }, []);
 
   // 집중 모드 위반 감지 훅
   const {
     showFullscreenWarning,
     showTabSwitchWarning,
     showMouseLeaveWarning,
+    showDevtoolsWarning,
     violationCount,
     enterFullscreen,
     dismissFullscreenWarning,
     dismissTabSwitchWarning,
-    dismissMouseLeaveWarning
+    dismissMouseLeaveWarning,
+    dismissDevtoolsWarning
   } = useFocusViolationDetection({
     isActive: selectedMode === 'FOCUS' && solvingStarted,
+    isDevtoolsCheckActive: solvingStarted, // 기본/집중 모드 모두 개발자도구 감지
     monitoringSessionId
+  });
+
+  // [Phase 2] 패널티 시스템 훅
+  const {
+    penaltyNotification,
+    recordViolation,
+    dismissNotification,
+    getPenaltyStatus
+  } = useViolationPenalty({
+    isActive: selectedMode === 'FOCUS' && solvingStarted,
+    currentTimeLeft: timeLeft,
+    onTimeReduction: handleTimeReduction,
+    onAutoSubmit: handleAutoSubmit
   });
 
   // ✅ 수평 리사이저 (문제설명 | 에디터)
@@ -98,55 +180,241 @@ const ProblemSolve = () => {
     containerRef: editorContainerRef
   } = useVerticalResizable(70, 30, 85);
 
-  // 경과 시간 계산
+  // 경과 시간 계산 (제출용)
   const getElapsedTime = useCallback(() => {
+    if (selectedMode === 'BASIC' && timerMode === 'STOPWATCH') {
+      // 스톱워치 모드: 경과 시간 반환
+      return elapsedTime;
+    }
+    // 타이머 모드 또는 집중 모드: startTime 기준
     if (!startTime) return 0;
     return Math.floor((new Date() - startTime) / 1000);
-  }, [startTime]);
+  }, [startTime, selectedMode, timerMode, elapsedTime]);
 
   // ========== 모드 선택 및 시작 핸들러 ==========
 
   // 모드 선택 완료 및 풀이 시작
   const handleStartSolving = useCallback((mode) => {
+    // 학습 모드: 별도 페이지로 이동
     if (mode === 'LEARN') {
       navigate(`/algorithm/problems/${problemId}/learn`);
       return;
     }
+
     setSelectedMode(mode);
     setShowModeSelection(false);
-    setSolvingStarted(true);
-
-    // 사용자 지정 시간으로 타이머 설정
-    const timeInSeconds = customTimeMinutes * 60;
-    setTimeLeft(timeInSeconds);
-    setStartTime(new Date());
 
     if (mode === 'FOCUS') {
+      // 집중 모드: 모드 선택 화면에서 타이머 설정 완료 후 바로 시작
+      const timeInSeconds = customTimeMinutes * 60;
+      setTimeLeft(timeInSeconds);
+      setStartTime(new Date());
+      setSolvingStarted(true);
+
+      // 디버그 모드 초기화 (캘리브레이션 후 미리보기 OFF 상태로 시작)
+      setEyeTrackingDebugMode(false);
+      setEyeTrackingReady(false);
+      // 이전 세션의 디버그 UI 요소 정리
+      const oldDebugContainer = document.getElementById('mediapipeDebugContainer');
+      if (oldDebugContainer) oldDebugContainer.remove();
+      const oldGazeDot = document.getElementById('mediapipeGazeDot');
+      if (oldGazeDot) oldGazeDot.remove();
+
       // 집중 모드: 전체화면 진입 + 시선 추적 자동 활성화
+      // timerEndTime은 eyeTrackingReady 시점에 설정됨
       enterFullscreen();
       setEyeTrackingEnabled(true);
+    } else {
+      // 기본 모드: 바로 풀이 시작 (타이머는 페이지 내에서 수동 설정)
+      setSolvingStarted(true);
+      setStartTime(new Date());
+      // 타이머 초기값 설정 (카운트다운용)
+      setTimeLeft(customTimeMinutes * 60);
     }
-    // 기본 모드는 사용자가 수동으로 타이머 시작
-  }, [customTimeMinutes, enterFullscreen]);
+  }, [customTimeMinutes, enterFullscreen, navigate, problemId]);
+
 
   // 집중 모드에서 시선 추적 준비 완료 시 타이머 자동 시작
   useEffect(() => {
     if (selectedMode === 'FOCUS' && eyeTrackingReady && solvingStarted && !isTimerRunning) {
+      // 타이머 종료 시점 설정 (브라우저 스로틀링 방지)
+      setTimerEndTime(Date.now() + timeLeft * 1000);
       setIsTimerRunning(true);
       console.log('🎯 집중 모드: 시선 추적 준비 완료, 타이머 자동 시작');
     }
-  }, [selectedMode, eyeTrackingReady, solvingStarted, isTimerRunning]);
+  }, [selectedMode, eyeTrackingReady, solvingStarted, isTimerRunning, timeLeft]);
 
-  // 기본 모드 타이머 시작
+  // [Phase 2] 위반 이벤트를 패널티 시스템에 연결
+  // 전체화면 이탈 위반
+  useEffect(() => {
+    if (showFullscreenWarning && selectedMode === 'FOCUS') {
+      recordViolation('FULLSCREEN_EXIT');
+    }
+  }, [showFullscreenWarning, selectedMode, recordViolation]);
+
+  // 탭 전환 위반
+  useEffect(() => {
+    if (showTabSwitchWarning && selectedMode === 'FOCUS') {
+      recordViolation('TAB_SWITCH');
+    }
+  }, [showTabSwitchWarning, selectedMode, recordViolation]);
+
+  // NO_FACE 15초 이상 위반 (심각한 위반) - 중복 기록 방지
+  useEffect(() => {
+    if (noFaceState.noFaceProgress >= 1 && selectedMode === 'FOCUS') {
+      if (!noFaceSustainedRecordedRef.current) {
+        noFaceSustainedRecordedRef.current = true;
+        recordViolation('NO_FACE_SUSTAINED');
+      }
+    } else if (noFaceState.noFaceProgress < 1) {
+      // 얼굴이 다시 감지되면 플래그 리셋 (다음 15초 미검출 시 다시 기록 가능)
+      noFaceSustainedRecordedRef.current = false;
+    }
+  }, [noFaceState.noFaceProgress, selectedMode, recordViolation]);
+
+  // 졸음 감지 위반 (MediaPipe only) - 중복 기록 방지
+  useEffect(() => {
+    if (drowsinessState.isDrowsy && selectedMode === 'FOCUS' && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE) {
+      if (!drowsyViolationRecordedRef.current) {
+        drowsyViolationRecordedRef.current = true;
+        recordViolation('DROWSINESS_DETECTED');
+      }
+    } else if (!drowsinessState.isDrowsy) {
+      // 졸음 상태가 해제되면 플래그 리셋
+      drowsyViolationRecordedRef.current = false;
+    }
+  }, [drowsinessState.isDrowsy, selectedMode, selectedTrackerType, recordViolation]);
+
+  // 기본 모드에서 타이머 설정 변경 시 timeLeft 업데이트 (시작 전에만)
+  useEffect(() => {
+    if (selectedMode === 'BASIC' && !isTimerRunning && timerMode === 'TIMER') {
+      setTimeLeft(customTimeMinutes * 60);
+    }
+  }, [customTimeMinutes, selectedMode, isTimerRunning, timerMode]);
+
+  // 기본 모드 타이머/스톱워치 시작
   const handleStartTimer = useCallback(() => {
     if (selectedMode === 'BASIC') {
-      // 기본 모드에서 시작 버튼 클릭 시
-      const timeInSeconds = customTimeMinutes * 60;
-      setTimeLeft(timeInSeconds);
-      setStartTime(new Date());
+      if (timerMode === 'TIMER') {
+        // 타이머 모드: 카운트다운
+        const timeInSeconds = customTimeMinutes * 60;
+        setTimeLeft(timeInSeconds);
+        setTimerEndTime(Date.now() + timeInSeconds * 1000);
+      } else {
+        // 스톱워치 모드: 카운트업
+        setElapsedTime(0);
+        setStartTime(new Date());
+      }
       setIsTimerRunning(true);
     }
-  }, [selectedMode, customTimeMinutes]);
+  }, [selectedMode, customTimeMinutes, timerMode]);
+
+  // 기본 모드 타이머/스톱워치 일시정지/재개
+  const handleToggleTimer = useCallback(() => {
+    if (isTimerRunning) {
+      // 일시정지
+      setIsTimerRunning(false);
+      if (timerMode === 'STOPWATCH') {
+        // 스톱워치: 현재 경과 시간 저장
+        setElapsedTime(prev => prev);
+      }
+    } else {
+      // 재개
+      if (timerMode === 'TIMER') {
+        // 타이머: 새로운 종료 시점 설정
+        setTimerEndTime(Date.now() + timeLeft * 1000);
+      } else {
+        // 스톱워치: 시작 시간 재설정 (경과 시간 고려)
+        setStartTime(new Date(Date.now() - elapsedTime * 1000));
+      }
+      setIsTimerRunning(true);
+    }
+  }, [isTimerRunning, timeLeft, timerMode, elapsedTime]);
+
+  // 기본 모드 타이머/스톱워치 리셋
+  const handleResetTimer = useCallback(() => {
+    setIsTimerRunning(false);
+    if (timerMode === 'TIMER') {
+      const timeInSeconds = customTimeMinutes * 60;
+      setTimeLeft(timeInSeconds);
+      setTimerEndTime(null);
+    } else {
+      setElapsedTime(0);
+    }
+  }, [timerMode, customTimeMinutes]);
+
+  // 모드 선택 페이지로 돌아가기 (확인창 포함)
+  const handleBackToModeSelection = useCallback(() => {
+    setConfirmModal({
+      isOpen: true,
+      title: '모드 선택으로 돌아가기',
+      message: '이 페이지에서 나가면 기존에 작성한 코드는 사라집니다.\n그래도 나가겠습니까?',
+      confirmText: '나가기',
+      cancelText: '취소',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+
+        // 시선 추적 세션 종료 (handleSubmit과 동일한 패턴)
+        if (eyeTrackingEnabled && eyeTrackerRef.current) {
+          await eyeTrackerRef.current.stopTracking(timeLeft);
+          setEyeTrackingEnabled(false);
+          setMonitoringSessionId(null);
+        }
+
+        // 디버그 모드 UI 요소 정리 (document.body에 직접 추가된 요소들)
+        const debugContainer = document.getElementById('mediapipeDebugContainer');
+        if (debugContainer) debugContainer.remove();
+        const gazeDot = document.getElementById('mediapipeGazeDot');
+        if (gazeDot) gazeDot.remove();
+
+        // 상태 초기화
+        setShowModeSelection(true);
+        setSelectedMode(null);
+        setSolvingStarted(false);
+        setIsTimerRunning(false);
+        setEyeTrackingDebugMode(false); // 디버그 모드 초기화
+        setEyeTrackingReady(false); // 추적 준비 상태 초기화
+        setCode('');
+        setTestResult(null);
+      },
+      onCancel: () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  }, [timeLeft, eyeTrackingEnabled]);
+
+  // 브라우저 뒤로가기 처리
+  useEffect(() => {
+    if (!showModeSelection && solvingStarted) {
+      // popstate 이벤트 (브라우저 뒤로가기 버튼)
+      const handlePopState = (e) => {
+        e.preventDefault();
+        // 히스토리에 다시 추가하여 페이지 이탈 방지
+        window.history.pushState(null, '', window.location.href);
+        handleBackToModeSelection();
+      };
+
+      // 키보드 뒤로가기 (Cmd+[ 또는 Ctrl+[)
+      const handleKeyDown = (e) => {
+        // Mac: Cmd+[, Windows/Linux: Ctrl+[
+        if (e.key === '[' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          handleBackToModeSelection();
+        }
+      };
+
+      // 히스토리에 현재 상태 추가 (뒤로가기 시 popstate 트리거용)
+      window.history.pushState(null, '', window.location.href);
+
+      window.addEventListener('popstate', handlePopState);
+      window.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showModeSelection, solvingStarted, handleBackToModeSelection]);
 
   // 코드 제출
   // 변경: solveMode, monitoringSessionId 추가
@@ -171,9 +439,10 @@ const ProblemSolve = () => {
     setIsTimerRunning(false);
 
     try {
+      // 변경사항 (2025-12-13): language (String) → languageId (Integer)
       const res = await submitCode({
         problemId: Number(problemId),
-        language: selectedLanguage, // DB expects exact language name (e.g., "Python 3", "Java 17")
+        languageId: selectedLanguageId, // LANGUAGES.LANGUAGE_ID (Judge0 API ID)
         sourceCode: code,
         elapsedTime: getElapsedTime(),
         solveMode: currentSolveMode,
@@ -192,7 +461,12 @@ const ProblemSolve = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [code, problemId, selectedLanguage, navigate, getElapsedTime, eyeTrackingEnabled, solveMode, monitoringSessionId, timeLeft]);
+  }, [code, problemId, selectedLanguageId, navigate, getElapsedTime, eyeTrackingEnabled, solveMode, monitoringSessionId, timeLeft]);
+
+  // [Phase 2] handleSubmit ref 업데이트 (자동 제출용)
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  }, [handleSubmit]);
 
   // 문제 데이터 로드
   useEffect(() => {
@@ -215,12 +489,17 @@ const ProblemSolve = () => {
 
         setProblem(problemData);
 
-        // SQL 문제인 경우 기본 언어를 SQL로 설정
+        // 기본 언어 설정 (languageId와 languageName 모두 설정)
+        // 변경사항 (2025-12-13): languageId 지원 추가, Python 3 → Python
         if (problemData.problemType === 'SQL') {
           setSelectedLanguage('SQL');
+          const sqlLang = problemData.availableLanguages?.find(l => l.languageName === 'SQL');
+          setSelectedLanguageId(sqlLang?.languageId || null);
         } else {
-          // 기본 언어 설정 (Python 3)
-          setSelectedLanguage('Python 3');
+          // 기본 언어 설정 (Python)
+          setSelectedLanguage('Python');
+          const pythonLang = problemData.availableLanguages?.find(l => l.languageName === 'Python');
+          setSelectedLanguageId(pythonLang?.languageId || null);
         }
 
         setTimeLeft(30 * 60);
@@ -239,45 +518,118 @@ const ProblemSolve = () => {
     }
   }, [problemId]);
 
-  // 타이머 효과
+  // 타이머 효과 - 시간 기반 계산 (브라우저 스로틀링 방지)
+  // 백그라운드 탭에서도 정확한 시간 계산을 위해 Date.now() 사용
   useEffect(() => {
-    let interval = null;
-    if (isTimerRunning && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
-    } else if (timeLeft === 0 && isTimerRunning) {
-      handleSubmit();
-      setIsTimerRunning(false);
+    if (!isTimerRunning) return;
+
+    // 타이머 모드 (카운트다운) - 집중 모드 또는 기본모드의 타이머
+    if ((selectedMode === 'FOCUS' || timerMode === 'TIMER') && timerEndTime) {
+      const updateTimer = () => {
+        const now = Date.now();
+        const remaining = Math.max(0, Math.floor((timerEndTime - now) / 1000));
+        setTimeLeft(remaining);
+
+        if (remaining === 0) {
+          setIsTimerRunning(false);
+
+          if (selectedMode === 'FOCUS') {
+            // 집중 모드: 자동 제출
+            handleSubmit();
+          } else {
+            // 기본 모드: 확인 모달 표시
+            setConfirmModal({
+              isOpen: true,
+              title: '⏰ 타이머 종료',
+              message: '설정한 풀이 시간이 종료되었습니다.\n이대로 제출하시겠습니까?',
+              confirmText: '제출하기',
+              cancelText: '계속 풀기',
+              onConfirm: () => {
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                handleSubmit();
+              },
+              onCancel: () => {
+                // 타이머 비활성화하고 계속 풀기
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                setTimerEndTime(null);
+              }
+            });
+          }
+        }
+      };
+
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
     }
-    return () => clearInterval(interval);
-  }, [isTimerRunning, timeLeft, handleSubmit]);
 
-  // 초기 코드 설정
+    // 스톱워치 모드 (카운트업) - 기본 모드에서만
+    if (selectedMode === 'BASIC' && timerMode === 'STOPWATCH' && startTime) {
+      const updateStopwatch = () => {
+        const now = Date.now();
+        const elapsed = Math.floor((now - startTime.getTime()) / 1000);
+        setElapsedTime(elapsed);
+      };
+
+      updateStopwatch();
+      const interval = setInterval(updateStopwatch, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isTimerRunning, timerEndTime, handleSubmit, selectedMode, timerMode, startTime]);
+
+  // 초기 코드 설정 (집중모드에서는 빈 코드, 기본모드에서는 템플릿)
   useEffect(() => {
-    // 백엔드 languageName을 template key로 변환
-    const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || selectedLanguage;
-    const template = codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요';
-    console.log(`[ProblemSolve] Loading template for language: ${selectedLanguage}`, {
-      templateKey,
-      hasTemplate: !!codeTemplates[templateKey],
-      templateLength: template.length
-    });
-    setCode(template);
-  }, [selectedLanguage]);
+    if (selectedMode === 'FOCUS') {
+      // 집중모드: 빈 코드
+      setCode('');
+      console.log(`[ProblemSolve] FOCUS mode - empty code`);
+    } else {
+      // 기본모드: 템플릿 제공
+      const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || selectedLanguage;
+      const template = codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요';
+      console.log(`[ProblemSolve] Loading template for language: ${selectedLanguage}`, {
+        templateKey,
+        hasTemplate: !!codeTemplates[templateKey],
+        templateLength: template.length
+      });
+      setCode(template);
+    }
+  }, [selectedLanguage, selectedMode]);
 
-  // 시간 포맷팅
+  // 시간 포맷팅 (HH:MM:SS)
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 언어 변경
-  const handleLanguageChange = (lang) => {
-    if (window.confirm(`언어를 ${lang}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`)) {
-      setSelectedLanguage(lang);
-      const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[lang] || lang;
-      setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
-    }
+  // 언어 변경 (커스텀 모달 사용 - 전체화면 유지)
+  // 변경사항 (2025-12-13): languageId도 함께 업데이트
+  const handleLanguageChange = (langName) => {
+    // 현재 언어와 같으면 무시
+    if (langName === selectedLanguage) return;
+
+    setConfirmModal({
+      isOpen: true,
+      title: '언어 변경',
+      message: `언어를 ${langName}로 변경하시겠습니까?\n현재 작성한 코드가 초기화됩니다.`,
+      onConfirm: () => {
+        setSelectedLanguage(langName);
+        // languageId 찾아서 설정
+        const langInfo = problem?.availableLanguages?.find(l => l.languageName === langName);
+        setSelectedLanguageId(langInfo?.languageId || null);
+
+        // 집중모드에서는 빈 코드, 기본모드에서는 템플릿 제공
+        if (selectedMode === 'FOCUS') {
+          setCode('');
+        } else {
+          const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[langName] || langName;
+          setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
+        }
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   // 코드 테스트 실행
@@ -302,9 +654,10 @@ const ProblemSolve = () => {
     }, 300);
 
     try {
+      // 변경사항 (2025-12-13): language (String) → languageId (Integer)
       const res = await runTestCode({
         problemId: Number(problemId),
-        language: selectedLanguage, // DB expects exact language name (e.g., "Python 3", "Java 17")
+        languageId: selectedLanguageId, // LANGUAGES.LANGUAGE_ID (Judge0 API ID)
         sourceCode: code
       });
 
@@ -335,11 +688,23 @@ const ProblemSolve = () => {
     editorRef.current = { editor, monaco };
   };
 
-  // 코드 초기화
+  // 코드 초기화 (커스텀 모달 사용 - 전체화면 유지)
   const handleResetCode = () => {
-    if (window.confirm('코드를 초기화하시겠습니까?')) {
-      setCode(codeTemplates[selectedLanguage] || codeTemplates['default'] || '// 코드를 작성하세요');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: '코드 초기화',
+      message: '코드를 초기화하시겠습니까?\n현재 작성한 코드가 삭제됩니다.',
+      onConfirm: () => {
+        // 집중모드에서는 빈 코드, 기본모드에서는 템플릿 제공
+        if (selectedMode === 'FOCUS') {
+          setCode('');
+        } else {
+          const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || selectedLanguage;
+          setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
+        }
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   // 난이도 배지 스타일
@@ -353,62 +718,6 @@ const ProblemSolve = () => {
     return styles[diff] || 'bg-gray-700/50 text-gray-400 border-gray-600';
   };
 
-  // ===== 문제 설명 파싱 함수 =====
-  const parseProblemDescription = (description) => {
-    if (!description) return null;
-
-    const sections = {
-      description: '',
-      input: '',
-      output: '',
-      constraints: '',
-      exampleInput: '',
-      exampleOutput: '',
-    };
-
-    // 섹션 구분자 패턴
-    const patterns = {
-      input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-      output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-      constraints: /(?:^|\n)(?:\*\*)?(?:제한사항|제한 ?사항|제한|조건|Constraints?)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-      exampleInput: /(?:^|\n)(?:\*\*)?(?:예제 ?입력|입력 ?예제|예시 ?입력|Sample Input|Example Input)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
-      exampleOutput: /(?:^|\n)(?:\*\*)?(?:예제 ?출력|출력 ?예제|예시 ?출력|Sample Output|Example Output)(?:\*\*)?\s*(?:\d*)?\s*(?::|：)?\s*\n?/i,
-    };
-
-    let remaining = description;
-    let firstSectionStart = remaining.length;
-
-    // 각 섹션의 시작 위치 찾기
-    const sectionPositions = [];
-    for (const [key, pattern] of Object.entries(patterns)) {
-      const match = remaining.match(pattern);
-      if (match) {
-        const pos = remaining.indexOf(match[0]);
-        sectionPositions.push({ key, pos, matchLength: match[0].length });
-        if (pos < firstSectionStart) {
-          firstSectionStart = pos;
-        }
-      }
-    }
-
-    // 문제 설명 (첫 섹션 이전의 모든 텍스트)
-    sections.description = remaining.substring(0, firstSectionStart).trim();
-
-    // 위치순 정렬
-    sectionPositions.sort((a, b) => a.pos - b.pos);
-
-    // 각 섹션 내용 추출
-    for (let i = 0; i < sectionPositions.length; i++) {
-      const current = sectionPositions[i];
-      const next = sectionPositions[i + 1];
-      const startPos = current.pos + current.matchLength;
-      const endPos = next ? next.pos : remaining.length;
-      sections[current.key] = remaining.substring(startPos, endPos).trim();
-    }
-
-    return sections;
-  };
-
   // ===== 마크다운 텍스트 파싱 함수 =====
   const renderFormattedText = (text) => {
     if (!text) return null;
@@ -420,7 +729,7 @@ const ProblemSolve = () => {
       if (part.startsWith('**') && part.endsWith('**')) {
         const boldText = part.slice(2, -2);
         return (
-          <strong key={index} className="font-bold text-gray-100">
+          <strong key={index} className="font-bold text-white">
             {boldText}
           </strong>
         );
@@ -429,14 +738,14 @@ const ProblemSolve = () => {
     });
   };
 
-  // ===== 섹션 렌더링 컴포넌트 (다크 테마) =====
-  const SectionCard = ({ title, icon, content, bgColor = 'bg-zinc-900/50' }) => {
+  // ===== 섹션 렌더링 컴포넌트 =====
+  const SectionCard = ({ title, icon, content, bgColor = 'bg-zinc-800/50' }) => {
     if (!content) return null;
     return (
       <div className={`${bgColor} rounded-lg p-4 border border-zinc-700`}>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-lg">{icon}</span>
-          <h4 className="font-semibold text-gray-200">{title}</h4>
+          <h4 className="font-semibold text-white">{title}</h4>
         </div>
         <div className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
           {renderFormattedText(content)}
@@ -460,10 +769,8 @@ const ProblemSolve = () => {
     );
   };
 
-  // 파싱된 문제 섹션
-  const parsedSections = useMemo(() => {
-    return parseProblemDescription(problem?.description);
-  }, [problem?.description]);
+  // 파싱된 문제 섹션 (커스텀 훅으로 메모이제이션)
+  const parsedSections = useParsedProblem(problem?.description);
 
   // 필터링된 언어 목록 (useMemo로 캐싱 - 렌더링 중 반복 계산 방지)
   const filteredLanguages = useMemo(() => {
@@ -473,7 +780,7 @@ const ProblemSolve = () => {
     const filtered = problem.availableLanguages.filter(lang => {
       if (seen.has(lang.languageName)) return false;
       seen.add(lang.languageName);
-      if (!ALLOWED_LANGUAGES.has(lang.languageName)) return false;
+      // 백엔드에서 제공하는 언어 목록을 신뢰 (ALLOWED_LANGUAGES 하드코딩 제거)
       const monacoLang = LANGUAGE_MAP[lang.languageName];
       return monacoLang && monacoLang !== 'plaintext';
     });
@@ -500,6 +807,30 @@ const ProblemSolve = () => {
     console.log('Eye tracking session ended:', sessionId);
     setEyeTrackingReady(false);
     setMonitoringSessionId(null);
+  }, []);
+
+  // MediaPipe 전용 콜백: 졸음 상태 변경
+  const handleDrowsinessStateChange = useCallback((state) => {
+    setDrowsinessState(state);
+    if (state.isDrowsy) {
+      console.log('😴 Drowsiness detected - PERCLOS:', (state.perclos * 100).toFixed(1) + '%');
+    }
+  }, []);
+
+  // MediaPipe 전용 콜백: 다중 인물 감지
+  const handleMultipleFacesDetected = useCallback((state) => {
+    setMultipleFacesState(state);
+    if (state.faceCount > 1) {
+      console.log('👥 Multiple faces detected:', state.faceCount);
+    }
+  }, []);
+
+  // [Debug] 시선 추적 디버그 모드 토글 핸들러
+  const handleToggleEyeTrackingDebug = useCallback(() => {
+    if (eyeTrackerRef.current?.toggleDebugMode) {
+      eyeTrackerRef.current.toggleDebugMode();
+      setEyeTrackingDebugMode(prev => !prev);
+    }
   }, []);
 
   // 로딩 상태
@@ -536,26 +867,37 @@ const ProblemSolve = () => {
         problemId={problemId}
         selectedMode={selectedMode}
         setSelectedMode={setSelectedMode}
-        customTimeMinutes={customTimeMinutes}
-        setCustomTimeMinutes={setCustomTimeMinutes}
         onStartSolving={handleStartSolving}
         onNavigateBack={() => navigate('/algorithm')}
-        onGoToLearnMode={() => navigate(`/algorithm/problems/${problemId}/learn`)}
+        customTimeMinutes={customTimeMinutes}
+        setCustomTimeMinutes={setCustomTimeMinutes}
+        selectedTrackerType={selectedTrackerType}
+        setSelectedTrackerType={setSelectedTrackerType}
       />
     );
   }
 
+
   return (
-    <div className="min-h-screen bg-zinc-900 text-gray-100">
+    <div className="h-screen bg-zinc-900 text-gray-100 flex flex-col overflow-hidden">
       {/* 헤더 */}
-      <div className="bg-zinc-800 border-b border-zinc-700">
+      <div className="bg-zinc-800 border-b border-zinc-700 flex-shrink-0">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
-              <p className="text-sm text-gray-400 mt-1">
-                맞힌사람 {problem?.solvedCount || 0} • 제출한 사람 {problem?.submitCount || 0}
-              </p>
+            <div className="flex items-center gap-4">
+              {/* 모드 선택으로 돌아가기 버튼 */}
+              <button
+                onClick={handleBackToModeSelection}
+                className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-1"
+              >
+                ← 모드 선택
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-white">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
+                <p className="text-sm text-gray-400 mt-1">
+                  맞힌사람 {problem?.successCount || 0} • 제출 {problem?.totalAttempts || 0}
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-6">
@@ -574,78 +916,203 @@ const ProblemSolve = () => {
                 )}
               </div>
 
-              {/* 타이머 */}
+              {/* 타이머/스톱워치 표시 */}
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${isTimerRunning ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>
-                <span className="text-sm">풀이 시간</span>
-                <span className={`font-mono text-lg ${timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400'}`}>
-                  {formatTime(timeLeft)}
+                <span className="text-sm">
+                  {selectedMode === 'BASIC' ? (timerMode === 'TIMER' ? '타이머' : '스톱워치') : '남은 시간'}
                 </span>
+
+                {/* 기본 모드 + 타이머 + 실행 전: hover 시 시간 직접 편집 */}
+                {selectedMode === 'BASIC' && timerMode === 'TIMER' && !isTimerRunning ? (
+                  <div
+                    className="relative"
+                    onMouseEnter={() => setIsTimerHovered(true)}
+                    onMouseLeave={() => setIsTimerHovered(false)}
+                  >
+                    {/* 고정 너비 컨테이너로 떨림 방지 */}
+                    <div className={`w-28 text-center font-mono text-lg px-2 py-1 rounded transition-all ${
+                      isTimerHovered
+                        ? 'bg-zinc-600 ring-2 ring-yellow-500/50'
+                        : 'bg-zinc-700/50 hover:bg-zinc-700'
+                    }`}>
+                      {isTimerHovered ? (
+                        <input
+                          type="text"
+                          value={formatTime(timeLeft)}
+                          onChange={(e) => {
+                            // HH:MM:SS 형식에서 총 초로 변환
+                            const parts = e.target.value.split(':').map(p => parseInt(p) || 0);
+                            let totalSeconds = 0;
+                            if (parts.length === 3) {
+                              totalSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                            } else if (parts.length === 2) {
+                              totalSeconds = parts[0] * 60 + parts[1];
+                            } else {
+                              totalSeconds = parts[0] * 60;
+                            }
+                            // 최대 3시간 (10800초) 제한
+                            totalSeconds = Math.max(60, Math.min(10800, totalSeconds));
+                            setCustomTimeMinutes(Math.ceil(totalSeconds / 60));
+                            setTimeLeft(totalSeconds);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              setIsTimerHovered(false);
+                            }
+                          }}
+                          className="w-full bg-transparent text-yellow-400 text-center outline-none font-mono text-lg"
+                          autoFocus
+                        />
+                      ) : (
+                        <span className="text-yellow-400 cursor-pointer" title="클릭하여 시간 수정">
+                          {formatTime(timeLeft)}
+                        </span>
+                      )}
+                    </div>
+                    {isTimerHovered && (
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-xs text-gray-500 whitespace-nowrap">
+                        최대 3시간 (03:00:00)
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className={`font-mono text-lg w-28 text-center inline-block ${
+                    selectedMode === 'FOCUS' || timerMode === 'TIMER'
+                      ? (timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400')
+                      : 'text-cyan-400'
+                  }`}>
+                    {selectedMode === 'FOCUS' || timerMode === 'TIMER'
+                      ? formatTime(timeLeft)
+                      : formatTime(elapsedTime)
+                    }
+                  </span>
+                )}
               </div>
 
               {/* 타이머 컨트롤 - 기본 모드에서만 수동 제어 가능 */}
               {selectedMode === 'BASIC' && (
-                <>
-                  {!isTimerRunning && !startTime ? (
-                    // 아직 시작 안 함 - 시간 설정 가능
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="1"
-                        max="180"
-                        value={customTimeMinutes}
-                        onChange={(e) => setCustomTimeMinutes(Math.max(1, Math.min(180, parseInt(e.target.value) || 30)))}
-                        className="w-16 px-2 py-1 bg-zinc-700 rounded text-center text-sm"
-                      />
-                      <span className="text-gray-400 text-sm">분</span>
+                <div className="flex items-center gap-2">
+                  {/* 타이머/스톱워치 모드 토글 */}
+                  {!isTimerRunning && (
+                    <div className="flex items-center bg-zinc-700 rounded-lg p-0.5">
                       <button
-                        onClick={handleStartTimer}
-                        className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700"
+                        onClick={() => setTimerMode('TIMER')}
+                        className={`px-2 py-1 rounded text-xs transition-all ${
+                          timerMode === 'TIMER'
+                            ? 'bg-yellow-600 text-white'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
                       >
-                        시작
+                        ⏱️ 타이머
+                      </button>
+                      <button
+                        onClick={() => setTimerMode('STOPWATCH')}
+                        className={`px-2 py-1 rounded text-xs transition-all ${
+                          timerMode === 'STOPWATCH'
+                            ? 'bg-cyan-600 text-white'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        ⏱️ 스톱워치
                       </button>
                     </div>
-                  ) : (
-                    // 이미 시작됨 - 일시정지/재개
+                  )}
+
+                  {/* 시작/일시정지/재개 버튼 */}
+                  {!isTimerRunning ? (
                     <button
-                      onClick={() => setIsTimerRunning(!isTimerRunning)}
-                      className={`px-3 py-1 rounded text-sm ${isTimerRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                      onClick={handleStartTimer}
+                      className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700 text-white"
                     >
-                      {isTimerRunning ? '일시정지' : '재개'}
+                      시작
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleToggleTimer}
+                      className="px-3 py-1 rounded text-sm bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      일시정지
                     </button>
                   )}
-                </>
+
+                  {/* 리셋 버튼 - 실행 중이거나 경과 시간이 있을 때 */}
+                  {(isTimerRunning || elapsedTime > 0 || (timerMode === 'TIMER' && timeLeft !== customTimeMinutes * 60)) && (
+                    <button
+                      onClick={handleResetTimer}
+                      className="px-2 py-1 rounded text-sm bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 text-gray-600 dark:text-gray-300"
+                      title="리셋"
+                    >
+                      ↺
+                    </button>
+                  )}
+                </div>
               )}
 
-              {/* 집중 모드 상태 표시 */}
-              {selectedMode === 'FOCUS' && (
-                <span className={`text-sm ${eyeTrackingReady ? 'text-green-400' : 'text-yellow-400'}`}>
-                  {eyeTrackingReady ? '추적 중' : '캘리브레이션 중...'}
-                </span>
-              )}
+              {/* 집중 모드 상태 표시는 상단 중앙 바로 이동됨 */}
             </div>
           </div>
         </div>
       </div>
 
+      {/* 집중 모드 상태 바 (상단 중앙) */}
+      {selectedMode === 'FOCUS' && (
+        <div className="bg-zinc-850 border-b border-zinc-700 py-2 flex-shrink-0">
+          <div className="flex justify-center items-center gap-4">
+            {/* 추적기 상태 표시 */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 rounded-lg">
+              <span className={`text-xs px-2 py-0.5 rounded ${
+                selectedTrackerType === 'mediapipe'
+                  ? 'bg-purple-900/50 text-purple-300'
+                  : 'bg-blue-900/50 text-blue-300'
+              }`}>
+                {selectedTrackerType === 'mediapipe' ? 'MediaPipe' : 'WebGazer'}
+              </span>
+              <span className={`flex items-center gap-1.5 text-sm font-medium ${eyeTrackingReady ? 'text-green-400' : 'text-yellow-400'}`}>
+                {eyeTrackingReady && (
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                )}
+                {eyeTrackingReady ? '추적 중' : selectedTrackerType === 'mediapipe' ? '준비 중...' : '캘리브레이션 중...'}
+              </span>
+            </div>
+
+            {/* 디버그 버튼 (추적 준비 완료 시에만) */}
+            {eyeTrackingReady && (
+              <button
+                onClick={handleToggleEyeTrackingDebug}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  eyeTrackingDebugMode
+                    ? 'bg-green-600 text-white ring-2 ring-green-400 shadow-lg shadow-green-500/30'
+                    : 'bg-zinc-700 text-gray-300 hover:bg-zinc-600 hover:text-white'
+                }`}
+                title="웹캠 미리보기, 시선 위치 점, 얼굴 가이드 박스 표시"
+              >
+                <span className="text-lg">{eyeTrackingDebugMode ? '📹' : '🔍'}</span>
+                <span>{eyeTrackingDebugMode ? '미리보기 ON' : '미리보기'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 메인 컨텐츠 */}
-      <div className="container mx-auto px-6 py-6" ref={containerRef}>
-        <div className="flex h-[calc(100vh-220px)] gap-1">
+      <div className="flex-1 container mx-auto px-6 py-4 min-h-0" ref={containerRef}>
+        <div className="flex h-full gap-1">
 
           {/* 왼쪽: 문제 설명 */}
           <div className="bg-zinc-800 rounded-lg overflow-auto" style={{ width: `${leftPanelWidth}%` }}>
             <div className="p-6">
-              <h2 className="text-lg font-bold mb-4">문제 설명</h2>
+              <h2 className="text-lg font-bold text-white mb-4">문제 설명</h2>
 
               {/* 제한 정보 표시 */}
               <div className="flex flex-wrap gap-3 mb-6">
                 <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
                   {problem?.difficulty || 'N/A'}
                 </span>
-                <span className="px-3 py-1 rounded-full text-xs bg-blue-900/50 text-blue-400 border border-blue-700">
+                <span className="px-3 py-1 rounded-full text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-700">
                   ⏱ 시간제한: {problem?.timeLimit || 1000}ms
                 </span>
-                <span className="px-3 py-1 rounded-full text-xs bg-green-900/50 text-green-400 border border-green-700">
+                <span className="px-3 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700">
                   💾 메모리제한: {problem?.memoryLimit || 256}MB
                 </span>
               </div>
@@ -658,7 +1125,7 @@ const ProblemSolve = () => {
                     title="문제 설명"
                     icon="📋"
                     content={parsedSections.description}
-                    bgColor="bg-zinc-900/30"
+                    bgColor="bg-gray-50 dark:bg-zinc-900/30"
                   />
 
                   {/* 입력/출력 */}
@@ -667,13 +1134,13 @@ const ProblemSolve = () => {
                       title="입력"
                       icon="📥"
                       content={parsedSections.input}
-                      bgColor="bg-blue-900/20"
+                      bgColor="bg-blue-50 dark:bg-blue-900/20"
                     />
                     <SectionCard
                       title="출력"
                       icon="📤"
                       content={parsedSections.output}
-                      bgColor="bg-green-900/20"
+                      bgColor="bg-green-50 dark:bg-green-900/20"
                     />
                   </div>
 
@@ -682,7 +1149,7 @@ const ProblemSolve = () => {
                     title="제한사항"
                     icon="⚠️"
                     content={parsedSections.constraints}
-                    bgColor="bg-yellow-900/20"
+                    bgColor="bg-yellow-50 dark:bg-yellow-900/20"
                   />
 
                   {/* 파싱된 예제 입출력 */}
@@ -704,19 +1171,19 @@ const ProblemSolve = () => {
                   {/* DB에서 가져온 샘플 테스트케이스 (파싱된 예제가 없을 경우) */}
                   {!parsedSections.exampleInput && !parsedSections.exampleOutput && problem?.sampleTestCases?.length > 0 && (
                     <div>
-                      <h3 className="font-semibold mb-3 text-white flex items-center gap-2">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
                         <span>📋</span> 예제
                       </h3>
                       {problem.sampleTestCases.map((tc, idx) => (
-                        <div key={idx} className="bg-zinc-900 rounded p-4 mb-3 border border-zinc-700">
+                        <div key={idx} className="bg-gray-100 dark:bg-zinc-900 rounded p-4 mb-3 border border-gray-300 dark:border-zinc-700">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <p className="text-xs text-gray-500 mb-1">입력</p>
-                              <pre className="text-sm bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.input}</pre>
+                              <pre className="text-sm bg-gray-900 dark:bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.input}</pre>
                             </div>
                             <div>
                               <p className="text-xs text-gray-500 mb-1">출력</p>
-                              <pre className="text-sm bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.expectedOutput}</pre>
+                              <pre className="text-sm bg-gray-900 dark:bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.expectedOutput}</pre>
                             </div>
                           </div>
                         </div>
@@ -733,19 +1200,19 @@ const ProblemSolve = () => {
 
                   {problem?.sampleTestCases?.length > 0 && (
                     <div className="mt-6">
-                      <h3 className="font-semibold mb-3 text-white flex items-center gap-2">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
                         <span>📋</span> 예제
                       </h3>
                       {problem.sampleTestCases.map((tc, idx) => (
-                        <div key={idx} className="bg-zinc-900 rounded p-4 mb-3 border border-zinc-700">
+                        <div key={idx} className="bg-gray-100 dark:bg-zinc-900 rounded p-4 mb-3 border border-gray-300 dark:border-zinc-700">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <p className="text-xs text-gray-500 mb-1">입력</p>
-                              <pre className="text-sm bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.input}</pre>
+                              <pre className="text-sm bg-gray-900 dark:bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.input}</pre>
                             </div>
                             <div>
                               <p className="text-xs text-gray-500 mb-1">출력</p>
-                              <pre className="text-sm bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.expectedOutput}</pre>
+                              <pre className="text-sm bg-gray-900 dark:bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.expectedOutput}</pre>
                             </div>
                           </div>
                         </div>
@@ -759,7 +1226,7 @@ const ProblemSolve = () => {
 
           {/* ✅ 수평 리사이저 (좌우) */}
           <div
-            className={`w-1 bg-zinc-700 hover:bg-purple-500 cursor-col-resize transition-colors ${isHorizontalResizing ? 'bg-purple-500' : ''}`}
+            className={`w-1 bg-gray-300 dark:bg-zinc-700 hover:bg-purple-500 cursor-col-resize transition-colors ${isHorizontalResizing ? 'bg-purple-500' : ''}`}
             onMouseDown={handleHorizontalResizeStart}
           />
 
@@ -775,7 +1242,7 @@ const ProblemSolve = () => {
                 <select
                   value={selectedLanguage}
                   onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="bg-zinc-700 border-none rounded px-3 py-1 text-sm"
+                  className="bg-gray-100 dark:bg-zinc-700 border-none rounded px-3 py-1 text-sm"
                 >
                   {problem?.problemType === 'SQL' ? (
                     <option value="SQL">SQL (SQLite)</option>
@@ -797,8 +1264,8 @@ const ProblemSolve = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-zinc-700 rounded" title="복사">📋</button>
-                <button className="p-2 hover:bg-zinc-700 rounded" title="전체화면">⛶</button>
+                <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded" title="복사">📋</button>
+                <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded" title="전체화면">⛶</button>
               </div>
             </div>
 
@@ -816,54 +1283,55 @@ const ProblemSolve = () => {
 
             {/* ✅ 수직 리사이저 (상하) */}
             <div
-              className={`h-1 bg-zinc-700 hover:bg-purple-500 cursor-row-resize transition-colors flex-shrink-0 ${isVerticalResizing ? 'bg-purple-500' : ''}`}
+              className={`h-1 bg-gray-300 dark:bg-zinc-700 hover:bg-purple-500 cursor-row-resize transition-colors flex-shrink-0 ${isVerticalResizing ? 'bg-purple-500' : ''}`}
               onMouseDown={handleVerticalResizeStart}
             >
               {/* 리사이저 핸들 표시 */}
               <div className="flex justify-center items-center h-full">
-                <div className="w-8 h-0.5 bg-zinc-500 rounded-full"></div>
+                <div className="w-8 h-0.5 bg-gray-400 dark:bg-zinc-500 rounded-full"></div>
               </div>
             </div>
 
-            {/* result panel (right) */}
+            {/* ✅ 실행결과 영역 (수직 리사이저블) */}
             <div style={{ height: `${100 - editorHeight}%` }} className="flex flex-col min-h-0">
-              <div className="p-3 bg-zinc-850 flex-1 overflow-auto space-y-3">
-                <div className="bg-zinc-900 rounded p-3 h-full overflow-auto text-sm">
-                  <p className="text-sm text-gray-400 mb-2">Execution Result</p>
+              <div className="p-3 bg-zinc-850 flex-1 overflow-auto">
+                <p className="text-sm text-gray-400 mb-2">실행결과</p>
 
-                  {isRunning && (
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-                        <span>Running test code...</span>
-                        <span>{Math.round(runProgress)}%</span>
-                      </div>
-                      <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
-                          style={{ width: `${runProgress}%` }}
-                        />
-                      </div>
+                {/* 프로그레스 바 */}
+                {isRunning && (
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <span>⏳ 코드 실행 중...</span>
+                      <span>{Math.round(runProgress)}%</span>
                     </div>
-                  )}
+                    <div className="w-full bg-gray-300 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                        style={{ width: `${runProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
 
+                <div className="bg-gray-900 dark:bg-zinc-900 rounded p-3 h-full overflow-auto text-sm text-gray-100">
                   {isRunning ? (
                     <div className="flex items-center gap-2 text-yellow-400">
-                      <span className="animate-spin">...</span>
-                      <span>Running code on Judge0 server...</span>
+                      <span className="animate-spin">⚙️</span>
+                      <span>Judge0 서버에서 코드를 실행하고 있습니다...</span>
                     </div>
                   ) : testResult ? (
                     testResult.error ? (
-                      <span className="text-red-400">Error: {testResult.message}</span>
+                      <span className="text-red-400">❌ {testResult.message}</span>
                     ) : (
                       <div>
                         <div className={`font-bold mb-2 ${testResult.overallResult === 'AC' ? 'text-green-400' : 'text-red-400'}`}>
-                          {testResult.overallResult === 'AC' ? 'Accepted!' : `Result: ${testResult.overallResult}`}
+                          {testResult.overallResult === 'AC' ? '✅ 정답!' : `❌ ${testResult.overallResult}`}
                           <span className="ml-2 text-gray-400 font-normal">
-                            ({testResult.passedCount}/{testResult.totalCount} passed)
+                            ({testResult.passedCount}/{testResult.totalCount} 통과)
                           </span>
                           {testResult.maxExecutionTime && (
                             <span className="ml-2 text-gray-500 font-normal text-xs">
-                              Time: {testResult.maxExecutionTime}ms
+                              실행시간: {testResult.maxExecutionTime}ms
                             </span>
                           )}
                         </div>
@@ -874,7 +1342,7 @@ const ProblemSolve = () => {
                             </span>
                             {tc.result !== 'AC' && tc.actualOutput && (
                               <span className="text-gray-500 ml-2">
-                                Output: "{tc.actualOutput?.trim()}"
+                                출력: "{tc.actualOutput?.trim()}"
                               </span>
                             )}
                             {tc.errorMessage && (
@@ -887,46 +1355,51 @@ const ProblemSolve = () => {
                       </div>
                     )
                   ) : (
-                    <span className="text-gray-500">Write code and press "Run Code" to see results.</span>
+                    <span className="text-gray-500">💡 코드를 작성하고 "코드 실행" 버튼을 클릭하세요.</span>
                   )}
                 </div>
               </div>
 
-              {/* footer buttons */}
+              {/* 하단 버튼 */}
               <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
                 <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white">
-                  Reset
+                  초기화
                 </button>
                 <button onClick={handleTestRun} disabled={isRunning}
                   className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2">
                   {isRunning ? (
                     <>
-                      <span className="animate-spin">...</span>
-                      Running...
+                      <span className="animate-spin">⚙️</span>
+                      실행 중...
                     </>
                   ) : (
-                    'Run Code'
+                    '코드 실행'
                   )}
                 </button>
                 <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
                   className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2">
-                  {isSubmitting ? 'Submitting...' : 'Submit & View Result'}
+                  {isSubmitting ? '제출 중...' : '✓ 제출 후 채점하기'}
                 </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
       {/* 시선 추적 컴포넌트 - 집중 모드에서만 활성화 */}
       {eyeTrackingEnabled && selectedMode === 'FOCUS' && (
         <EyeTracker
           ref={eyeTrackerRef}
+          trackerType={selectedTrackerType}
           problemId={Number(problemId)}
           isEnabled={eyeTrackingEnabled}
           timeLimitMinutes={customTimeMinutes}
           onReady={handleEyeTrackerReady}
           onSessionStart={handleSessionStart}
           onSessionEnd={handleSessionEnd}
+          onNoFaceStateChange={setNoFaceState}
+          onDrowsinessStateChange={handleDrowsinessStateChange}
+          onMultipleFacesDetected={handleMultipleFacesDetected}
         />
       )}
 
@@ -935,10 +1408,40 @@ const ProblemSolve = () => {
         showFullscreenWarning={showFullscreenWarning}
         showTabSwitchWarning={showTabSwitchWarning}
         showMouseLeaveWarning={showMouseLeaveWarning}
+        showDevtoolsWarning={showDevtoolsWarning}
         violationCount={violationCount}
         onDismissFullscreen={dismissFullscreenWarning}
         onDismissTabSwitch={dismissTabSwitchWarning}
         onDismissMouseLeave={dismissMouseLeaveWarning}
+        onDismissDevtools={dismissDevtoolsWarning}
+        // [Phase 2] NO_FACE 경고 props
+        showNoFaceWarning={noFaceState.showNoFaceWarning}
+        noFaceDuration={noFaceState.noFaceDuration}
+        noFaceProgress={noFaceState.noFaceProgress}
+        // [MediaPipe] 졸음 감지 경고 props
+        showDrowsinessWarning={drowsinessState.isDrowsy && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE}
+        drowsinessPerclos={drowsinessState.perclos}
+        // [MediaPipe] 다중 인물 감지 경고 props
+        showMultipleFacesWarning={multipleFacesState.faceCount > 1 && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE}
+        multipleFacesCount={multipleFacesState.faceCount}
+      />
+
+      {/* [Phase 2] 패널티 알림 */}
+      <PenaltyNotification
+        notification={penaltyNotification}
+        onDismiss={dismissNotification}
+        penaltyStatus={getPenaltyStatus()}
+      />
+
+      {/* 커스텀 Confirm 모달 (전체화면 유지용) */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={confirmModal.onCancel || (() => setConfirmModal(prev => ({ ...prev, isOpen: false })))}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
       />
     </div>
   );

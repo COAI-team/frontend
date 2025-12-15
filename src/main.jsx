@@ -128,15 +128,12 @@ createRoot(document.getElementById("root")).render(
                         <Route path="payment/fail" element={<PaymentFail/>}/>
 
                         {/* 알고리즘 */}
-                        <Route path="algorithm" element={<ProblemList/>}>
-                            <Route index element={<ProblemList/>}/>
-                            <Route path="problems" element={<ProblemList/>}/>
-                            <Route path="problems/:problemId" element={<ProblemDetail/>}/>
-                            <Route path="problems/generate" element={<ProblemGenerator/>}/>
-                            <Route path="problems/:problemId/solve" element={<ProblemSolve/>}/>
-                            <Route path="submissions/:submissionId" element={<SubmissionResult/>}/>
-                            <Route path="my-submissions" element={<MySubmissions/>}/>
-                        </Route>
+                        <Route path="algorithm" element={<ProblemList/>}/>
+                        <Route path="algorithm/problems" element={<ProblemList/>}/>
+                        <Route path="algorithm/problems/:problemId" element={<ProblemDetail/>}/>
+                        <Route path="algorithm/problems/generate" element={<ProblemGenerator/>}/>
+                        <Route path="algorithm/submissions/:submissionId" element={<SubmissionResult/>}/>
+                        <Route path="algorithm/my-submissions" element={<MySubmissions/>}/>
 
                         {/* 코드 분석 */}
                         <Route path="codeAnalysis" element={<CodeAnalysisMain/>}>
