@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "cert:key": "openssl genrsa -out localhost-key.pem 2048",
-    "cert:cert": "openssl req -x509 -new -key localhost-key.pem -days 365 -out localhost-cert.pem",
+    "cert:cert": "cmd /c \"SET OPENSSL_CONF=&& openssl req -x509 -new -key localhost-key.pem -days 365 -out localhost-cert.pem\"",
     "cert": "npm run cert:key && npm run cert:cert"
   },
   "dependencies": {

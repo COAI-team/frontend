@@ -2,14 +2,16 @@ import axios, {AxiosError} from "axios";
 import {getAuth, saveAuth, removeAuth} from "../utils/auth/token";
 
 const API_URL = import.meta.env.VITE_API_URL;
-
+//const API_URL = "http://localhost:9443";
 export const axiosInstance = axios.create({
   baseURL: API_URL,
   timeout: 300000,
+  withCredentials: true, // 쿠키 기반 인증(HTTPS 포함) 유지
 });
 
 // baseURL 한 번 더 강제
 axiosInstance.defaults.baseURL = API_URL;
+axiosInstance.defaults.withCredentials = true;
 
 // =====================================================
 // 1) 요청 인터셉터: AccessToken 자동 주입
