@@ -140,11 +140,29 @@ const FreeboardList = () => {
     return date.toLocaleDateString('ko-KR');
   };
 
-  return (
+return (
     <div className="freeboard-list-container">
       <div className="freeboard-header">
-        <h1 className="freeboard-title">자유게시판</h1>
-        <p className="freeboard-subtitle">개발과 관련된 다양한 주제로 자유롭게 이야기를 나눠보세요</p>
+        <div className="freeboard-header-row">
+          <div className="freeboard-header-text">
+            <h1 className="freeboard-title">자유게시판</h1>
+            <p className="freeboard-subtitle">개발과 관련된 다양한 주제로 자유롭게 이야기를 나눠보세요</p>
+          </div>
+
+          <div className="freeboard-header-actions">
+            <button
+              className="write-post-btn"
+              onClick={handleWriteClick}
+              title="글쓰기"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              글쓰기
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="freeboard-controls">
