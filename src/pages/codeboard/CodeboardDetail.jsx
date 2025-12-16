@@ -207,6 +207,10 @@ const CodeboardDetail = () => {
     console.log("신고 클릭");
   };
 
+  const handleCommentCountChange = (newCount) => {
+    setCommentCount(newCount);
+  };
+
   const renderLinkPreview = (preview, isDark) => {
     const title = preview.getAttribute('data-title');
     const description = preview.getAttribute('data-description');
@@ -626,6 +630,7 @@ const CodeboardDetail = () => {
               currentUserId={currentUserId}
               currentUserNickname={currentUserNickname}
               isDark={isDark}
+              onCommentCountChange={handleCommentCountChange}
             />
           </div>
         </div>
