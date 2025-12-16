@@ -62,9 +62,18 @@ export function useTutorWebSocket({
       tokenPreview: accessToken ? accessToken.slice(0, 15) + '...' : null
     });
 
+    const tokenParam = accessToken ? `?access_token=${encodeURIComponent(accessToken)}` : '';
+
     const client = new Client({
       webSocketFactory: () =>
-        new SockJS(`${API_URL}/ws/tutor`, null, { withCredentials: true }),
+        new SockJS(`${API_URL}/ws/tutor${tokenParam}`, null, {
+          withCredentials: true,
+          transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+          transportOptions: {
+            'xhr-streaming': { withCredentials: true },
+            'xhr-polling': { withCredentials: true }
+          }
+        }),
       reconnectDelay: 5000,
       // ✅ 여기서 Authorization 헤더에 Bearer 토큰 세팅
       connectHeaders: {
@@ -183,6 +192,7 @@ export function useTutorWebSocket({
     const interval = setInterval(() => {
       const now = Date.now();
       if (!userId) return;
+      if (isPending) return; // 튜터 답변 대기 중에는 자동 힌트 대기
       if (pendingAutoRef.current) return;
       if (!code || !code.trim()) return;
 
