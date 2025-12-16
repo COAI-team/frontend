@@ -203,6 +203,7 @@ const AnalysisPage = () => {
                 const jsonStr = cleanMarkdownCodeBlock(accumulated);
                 const result = JSON.parse(jsonStr);
                 
+                // 백엔드에서 이미 analysisId를 포함해서 보냄
                 setAnalysisResult(result);
             } catch (parseErr) {
                 console.error("JSON Parse Error:", parseErr);
@@ -410,12 +411,18 @@ const AnalysisPage = () => {
                                 </div>
                                 
                                 {isNew && (
-                                    <div className="mt-6 pt-6 border-t text-center">
+                                    <div className="mt-6 pt-6 border-t flex justify-center gap-3">
                                         <button
                                             onClick={() => window.location.href = '/codeAnalysis/new'}
                                             className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                         >
                                             새로운 분석하기
+                                        </button>
+                                        <button
+                                            onClick={() => navigate(`/codeboard/write/${analysisResult.analysisId}`)}
+                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                                        >
+                                            분석결과 공유하기
                                         </button>
                                     </div>
                                 )}
@@ -424,25 +431,6 @@ const AnalysisPage = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Floating Write Button */}
-            <button 
-                onClick={() => {
-                    const id = analysisResult?.analysisId || analysisId;
-                    if (id) {
-                        navigate(`/codeboard/write/${id}`);
-                    } else {
-                        alert('분석 결과 ID를 찾을 수 없습니다.');
-                    }
-                }}
-                className="floating-write-btn"
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
-                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                글쓰기
-            </button>
 
             <AlertModal
                 open={showLoginAlert}
