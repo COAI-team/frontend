@@ -5,7 +5,7 @@ import { getAuth } from "../../utils/auth/token";
 import { MessageCircle, Share2, AlertCircle } from "lucide-react";
 import "../../styles/FreeboardDetail.css";
 import CommentSection from "../../components/comment/CommentSection";
-import LikeButton from '../../components/common/LikeButton';
+import LikeButton from '../../components/button/LikeButton';
 import { processCodeBlocks, applyHighlighting } from '../../utils/codeBlockUtils';
 
 const FreeboardDetail = () => {

@@ -174,7 +174,7 @@ const ModeSelectionScreen = ({
               disabled={!selectedMode}
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
                 selectedMode
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
+                  ? 'bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
                   : 'bg-zinc-700 text-gray-500 cursor-not-allowed'
               }`}
             >

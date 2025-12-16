@@ -1,195 +1,128 @@
-import axios, {AxiosError} from "axios";
-import {getAuth, saveAuth, removeAuth} from "../utils/auth/token";
+import axios, { AxiosError } from "axios";
+import { getAuth, saveAuth, removeAuth } from "../utils/auth/token";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+const PUBLIC_PATHS = new Set([
+  '/freeboard', '/codeboard', '/like', '/comment',
+  '/algo', '/analysis', '/api/analysis'
+]);
+
+const REFRESH_URL = `${API_URL}/users/refresh`;
+
 export const axiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 300000,
+  timeout: 30000,
 });
 
-// baseURL 한 번 더 강제
-axiosInstance.defaults.baseURL = API_URL;
+let isRefreshing = false;
+let failedQueue = [];
 
-// =====================================================
-// 1) 요청 인터셉터: AccessToken 자동 주입
-// =====================================================
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+const getAuthHeaders = () => {
+  const auth = getAuth();
+  return auth?.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {};
+};
+
+const isPublicGetRequest = (config) => {
+  if (config.method?.toUpperCase() !== 'GET') return false;
+  return PUBLIC_PATHS.has(config.url?.split('?')[0]?.split('/').pop());
+};
+
+const refreshAccessToken = async () => {
+  const auth = getAuth();
+  if (!auth?.refreshToken) throw new AxiosError('No refresh token');
+
+  const response = await axios.post(REFRESH_URL, {}, {
+    headers: { Authorization: `Bearer ${auth.refreshToken}` },
+  });
+
+  const newToken = response.data.accessToken;
+  saveAuth({ ...auth, accessToken: newToken });
+  return newToken;
+};
+
+// ✅ 요청 인터셉터: Promise.reject → throw
 axiosInstance.interceptors.request.use(
   (config) => {
-
-    // ⛔ 1) _skipAuth 요청은 토큰 주입 건너뛰기 (GitHub 연동용)
-    if (config._skipAuth === true) {
-      return config;
-    }
-
-    // ⛔ 2) 평소에는 자동 토큰 주입
-    const auth = getAuth();
-    if (auth?.accessToken) {
-      config.headers.Authorization = `Bearer ${auth.accessToken}`;
-    }
-
+    if (config._skipAuth) return config;
+    Object.assign(config.headers, getAuthHeaders());
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    throw error;  // ✅ 수정1
+  }
 );
 
-// =====================================================
-// 2) 응답 인터셉터: Token 만료 처리 + 공통 401/403 핸들링
-// =====================================================
-
-let isRefreshing = false;
-let refreshCallbacks = [];
-
-const onTokenRefreshed = (newToken) => {
-  refreshCallbacks.forEach((cb) => cb(newToken));
-  refreshCallbacks = [];
-};
-
-const onTokenRefreshFailed = (error) => {
-  refreshCallbacks.forEach((cb) => cb(null, error));
-  refreshCallbacks = [];
-};
-
-const isExpired = (error) => {
-  const status = error?.response?.status;
-  const code = error?.response?.data?.code;
-
-  return status === 401 && code === "TOKEN_EXPIRED";
-};
-
-async function refreshAccessToken(refreshToken) {
-  const refreshUrl = `${API_URL}/users/refresh`;
-
-  try {
-    const res = await axios.post(
-      refreshUrl,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${refreshToken}`,
-        },
-      }
-    );
-    return res.data.accessToken;
-  } catch (error) {
-    console.error('❌ Refresh 실패:', {
-      status: error.response?.status,
-      data: error.response?.data
-    });
-    throw error;
-  }
-}
-
+// ✅ 응답 인터셉터: 모든 Promise.reject → throw
 axiosInstance.interceptors.response.use(
   (res) => res,
-
   async (error) => {
+    const originalConfig = error.config;
+
     if (!error.response) {
-      throw new AxiosError(
-        "서버로부터 응답을 받지 못했습니다.",
-        "NO_RESPONSE",
-        error.config,
-        error.request,
-        {status: 0}
-      );
+      throw new AxiosError("서버 연결 실패", "NETWORK_ERROR", originalConfig);
     }
 
-    const originalRequest = error.config;
+    const { status } = error.response;
+    const isTokenExpired = status === 401 && error.response.data?.code === "TOKEN_EXPIRED";
 
-    // 2-1) AccessToken 만료 → refresh 후 재시도
-    if (isExpired(error)) {
-
-      const auth = getAuth();
-      const refreshToken = auth?.refreshToken;
-
-      if (!refreshToken) {
-        removeAuth();
-        globalThis.location.replace("/signin");
-        return;
-      }
-
+    if (isTokenExpired && !originalConfig._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
-          refreshCallbacks.push((token, err) => {
-            if (err) {
-              reject(err);
-            } else {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              resolve(axiosInstance(originalRequest));
-            }
+          failedQueue.push({
+            resolve,
+            reject
           });
-        });
+        })
+          .then((token) => {
+            originalConfig.headers.Authorization = `Bearer ${token}`;
+            return axiosInstance(originalConfig);
+          })
+          .catch((err) => {
+            throw err;
+          });
       }
 
+      originalConfig._retry = true;
       isRefreshing = true;
+
       try {
-        const newAccessToken = await refreshAccessToken(refreshToken);
-
-        const updated = {...auth, accessToken: newAccessToken};
-        saveAuth(updated);
-
-        onTokenRefreshed(newAccessToken);
-
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return axiosInstance(originalRequest);
-
+        const newToken = await refreshAccessToken();
+        processQueue(null, newToken);
+        originalConfig.headers.Authorization = `Bearer ${newToken}`;
+        return axiosInstance(originalConfig);
       } catch (refreshError) {
-        onTokenRefreshFailed(refreshError);
-
+        processQueue(refreshError, null);
         removeAuth();
         globalThis.location.replace("/signin");
         throw refreshError;
-
       } finally {
         isRefreshing = false;
       }
     }
 
-    // 2-2) 만료가 아닌 401/403 → 로그인 만료 처리
-    const status = error?.response?.status;
-    const skipAuthRedirect =
-      originalRequest?.headers?.["X-Skip-Auth-Redirect"] === "true" ||
-      originalRequest?._skipAuthRedirect;
+    // ✅ 권한 에러 처리
+    if ((status === 401 || status === 403) && !isPublicGetRequest(originalConfig)) {
+      const skipRedirect = originalConfig._skipAuthRedirect ||
+        originalConfig.headers['X-Skip-Auth-Redirect'] === 'true';
 
-    const currentPath = globalThis.location?.pathname || "/";
-
-    if (currentPath.startsWith("/signin")) {
-      throw error;
-    }
-
-    // 공개 GET 엔드포인트 체크
-    const isPublicGetRequest = (request) => {
-      if (request.method?.toUpperCase() !== 'GET') return false;
-
-      const publicPaths = [
-        '/freeboard',
-        '/codeboard',
-        '/like',
-        '/comment',
-        '/algo',
-        '/analysis',
-        '/api/analysis'
-      ];
-
-      const url = request.url || '';
-      return publicPaths.some(path => url.includes(path));
-    };
-
-    // 공개 GET 요청이면 리다이렉트하지 않음
-    if (isPublicGetRequest(originalRequest) && (status === 401 || status === 403)) {
-      throw error;
-    }
-
-    if (!skipAuthRedirect && (status === 401 || status === 403)) {
-      removeAuth();
-
-      const redirectParam = encodeURIComponent(
-        currentPath + (globalThis.location?.search || "")
-      );
-
-      if (!originalRequest?._redirectedForAuth) {
-        originalRequest._redirectedForAuth = true;
-        globalThis.location.replace(`/signin?redirect=${redirectParam}`);
+      if (!skipRedirect && !globalThis.location.pathname.startsWith('/signin')) {
+        removeAuth();
+        const redirectUrl = encodeURIComponent(
+          globalThis.location.pathname + globalThis.location.search
+        );
+        globalThis.location.replace(`/signin?redirect=${redirectUrl}`);
       }
     }
 

@@ -6,7 +6,7 @@ import {useTheme} from "../../../context/theme/useTheme";
 import MobileNav from "../../navbar/MobileNav";
 import MobileMenuButton from "../../button/MobileMenuButton";
 import Logo from "../../navbar/Logo";
-import {NavLinks} from "../../navbar/NavLinks";
+import NavLinks from "../../navbar/NavLinks";
 import RightActions from "../../navbar/RightActions";
 
 const initialNavigation = [
