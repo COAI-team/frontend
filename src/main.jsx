@@ -112,7 +112,7 @@ createRoot(document.getElementById("root")).render(
 
                         {/* 코드게시판 - 리스트를 레이아웃으로 */}
                         <Route path="codeboard" element={<CodeboardList/>} />
-                        <Route path="codeboard/write" element={<CodeboardWrite/>} />
+                        <Route path="codeboard/write/:analysisId" element={<CodeboardWrite/>} />
                         <Route path="codeboard/edit/:id" element={<CodeboardEdit/>} />
                         <Route path="codeboard/:id" element={<CodeboardDetail/>} />
 

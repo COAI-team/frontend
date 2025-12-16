@@ -203,8 +203,6 @@ const AnalysisPage = () => {
                 const jsonStr = cleanMarkdownCodeBlock(accumulated);
                 const result = JSON.parse(jsonStr);
                 
-                // analysisResult에 analysisId 추가 (글쓰기 버튼용)
-                result.analysisId = analysisId;
                 setAnalysisResult(result);
             } catch (parseErr) {
                 console.error("JSON Parse Error:", parseErr);
