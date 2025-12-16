@@ -408,14 +408,6 @@ return (
           />
         </>
       )}
-
-      <button className="floating-write-btn" onClick={handleWriteClick}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        글쓰기
-      </button>
     </div>
   );
 };
