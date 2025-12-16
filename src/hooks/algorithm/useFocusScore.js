@@ -170,6 +170,7 @@ export const useFocusScore = (gazePosition, isTracking, options = {}) => {
         const stats = statsRef.current;
         return {
             ...stats,
+            finalScore: Math.round(displayScore * 10) / 10, // 제출 시점의 집중도 점수
             focusedPercentage: stats.totalTime > 0
                 ? (stats.focusedTime / stats.totalTime) * 100
                 : 0,
@@ -178,7 +179,7 @@ export const useFocusScore = (gazePosition, isTracking, options = {}) => {
                 : 0,
             avgScore: Math.round(stats.avgScore * 10) / 10,
         };
-    }, []);
+    }, [displayScore]);
 
     return {
         score: displayScore,

@@ -56,6 +56,7 @@ const MediaPipeTracker = forwardRef(({
     const sessionIdRef = useRef(null);
     const onSessionEndRef = useRef(null);
     const cleanupCalledRef = useRef(false);
+    const getFocusStatsRef = useRef(null); // 집중도 통계 ref
 
     const {
         isCalibrated,
@@ -112,7 +113,8 @@ const MediaPipeTracker = forwardRef(({
         stopTrackingRef.current = stopTracking;
         sessionIdRef.current = sessionId;
         onSessionEndRef.current = onSessionEnd;
-    }, [stopTracking, sessionId, onSessionEnd]);
+        getFocusStatsRef.current = getFocusStats;
+    }, [stopTracking, sessionId, onSessionEnd, getFocusStats]);
 
     // NO_FACE 상태 변경 시 부모에게 알림
     useEffect(() => {
@@ -325,14 +327,18 @@ const MediaPipeTracker = forwardRef(({
             const currentSessionId = sessionIdRef.current;
             const currentOnSessionEnd = onSessionEndRef.current;
 
+            // 집중도 통계 수집 (세션 종료 시 함께 전송)
+            const focusStats = getFocusStats ? getFocusStats() : null;
+
             console.log('🔴 [MediaPipeTracker] stopTracking called', {
                 hasStopTracking: !!currentStopTracking,
                 sessionId: currentSessionId,
-                cleanupCalled: cleanupCalledRef.current
+                cleanupCalled: cleanupCalledRef.current,
+                focusStats
             });
 
             if (currentStopTracking) {
-                await currentStopTracking(remainingSeconds);
+                await currentStopTracking(remainingSeconds, focusStats);
             }
             if (currentOnSessionEnd && currentSessionId) {
                 currentOnSessionEnd(currentSessionId);
@@ -375,9 +381,13 @@ const MediaPipeTracker = forwardRef(({
             const currentStopTracking = stopTrackingRef.current;
             const currentSessionId = sessionIdRef.current;
             const currentOnSessionEnd = onSessionEndRef.current;
+            const currentGetFocusStats = getFocusStatsRef.current;
+
+            // 집중도 통계 수집 (언마운트 시에도 전송)
+            const focusStats = currentGetFocusStats ? currentGetFocusStats() : null;
 
             if (currentStopTracking) {
-                currentStopTracking().then(() => {
+                currentStopTracking(null, focusStats).then(() => {
                     if (currentOnSessionEnd && currentSessionId) {
                         currentOnSessionEnd(currentSessionId);
                     }

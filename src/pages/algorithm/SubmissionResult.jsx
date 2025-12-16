@@ -1115,7 +1115,7 @@ const SubmissionResult = () => {
                   <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
                     <div className="text-2xl mb-1">😴</div>
                     <div className="text-2xl font-bold text-main">
-                      {submission.monitoringStats.drowsinessCount || 0}
+                      {submission.monitoringStats.sleepingCount || 0}
                     </div>
                     <div className="text-xs text-muted">졸음 감지</div>
                   </div>
@@ -1129,11 +1129,11 @@ const SubmissionResult = () => {
                     <div className="text-xs text-muted">다중 인물</div>
                   </div>
 
-                  {/* 깜빡임 없음 (Liveness) */}
+                  {/* 깜빡임 없음 (Liveness 감지) */}
                   <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
-                    <div className="text-2xl mb-1">👁️</div>
+                    <div className="text-2xl mb-1">🖼️</div>
                     <div className="text-2xl font-bold text-main">
-                      {submission.monitoringStats.noBlinkCount || 0}
+                      {submission.monitoringStats.maskDetectedCount || 0}
                     </div>
                     <div className="text-xs text-muted">깜빡임 없음</div>
                   </div>
@@ -1147,6 +1147,84 @@ const SubmissionResult = () => {
                     <div className="text-xs text-muted">시선 이탈</div>
                   </div>
                 </div>
+
+                {/* 집중도 점수 통계 */}
+                {(submission.monitoringStats.focusAvgScore != null || submission.monitoringStats.focusFinalScore != null) && (
+                  <div className="mt-6 pt-6 border-t border-gray-200 dark:border-zinc-700">
+                    <h4 className="text-md font-semibold text-main mb-4 flex items-center gap-2">
+                      📊 집중도 점수
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {/* 평균 집중도 */}
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg p-4 text-center border border-blue-100 dark:border-blue-800">
+                        <div className="text-sm text-blue-600 dark:text-blue-400 mb-1">평균 점수</div>
+                        <div className={`text-2xl font-bold ${
+                          (submission.monitoringStats.focusAvgScore || 0) >= 50 ? 'text-green-600' :
+                          (submission.monitoringStats.focusAvgScore || 0) >= 0 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {submission.monitoringStats.focusAvgScore?.toFixed(1) || '0.0'}
+                        </div>
+                        <div className="text-xs text-muted">(-100 ~ +100)</div>
+                      </div>
+
+                      {/* 최종 집중도 */}
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg p-4 text-center border border-green-100 dark:border-green-800">
+                        <div className="text-sm text-green-600 dark:text-green-400 mb-1">최종 점수</div>
+                        <div className={`text-2xl font-bold ${
+                          (submission.monitoringStats.focusFinalScore || 0) >= 50 ? 'text-green-600' :
+                          (submission.monitoringStats.focusFinalScore || 0) >= 0 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {submission.monitoringStats.focusFinalScore?.toFixed(1) || '0.0'}
+                        </div>
+                        <div className="text-xs text-muted">제출 시점</div>
+                      </div>
+
+                      {/* 집중 시간 비율 */}
+                      <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 rounded-lg p-4 text-center border border-purple-100 dark:border-purple-800">
+                        <div className="text-sm text-purple-600 dark:text-purple-400 mb-1">집중 시간</div>
+                        <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                          {submission.monitoringStats.focusFocusedPercentage?.toFixed(1) || '0.0'}%
+                        </div>
+                        <div className="w-full bg-purple-200 dark:bg-purple-900 rounded-full h-1.5 mt-2">
+                          <div
+                            className="bg-purple-500 h-1.5 rounded-full transition-all duration-300"
+                            style={{ width: `${submission.monitoringStats.focusFocusedPercentage || 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      {/* 고집중 시간 비율 */}
+                      <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg p-4 text-center border border-amber-100 dark:border-amber-800">
+                        <div className="text-sm text-amber-600 dark:text-amber-400 mb-1">고집중 시간</div>
+                        <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                          {submission.monitoringStats.focusHighFocusPercentage?.toFixed(1) || '0.0'}%
+                        </div>
+                        <div className="w-full bg-amber-200 dark:bg-amber-900 rounded-full h-1.5 mt-2">
+                          <div
+                            className="bg-amber-500 h-1.5 rounded-full transition-all duration-300"
+                            style={{ width: `${submission.monitoringStats.focusHighFocusPercentage || 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 집중 시간 상세 (ms → 분:초 변환) */}
+                    {(submission.monitoringStats.focusTotalTime || submission.monitoringStats.focusFocusedTime) && (
+                      <div className="mt-4 text-sm text-muted flex items-center gap-4">
+                        <span>
+                          총 측정 시간: <span className="font-medium text-main">
+                            {Math.floor((submission.monitoringStats.focusTotalTime || 0) / 60000)}분 {Math.floor(((submission.monitoringStats.focusTotalTime || 0) % 60000) / 1000)}초
+                          </span>
+                        </span>
+                        <span>
+                          집중 상태 시간: <span className="font-medium text-main">
+                            {Math.floor((submission.monitoringStats.focusFocusedTime || 0) / 60000)}분 {Math.floor(((submission.monitoringStats.focusFocusedTime || 0) % 60000) / 1000)}초
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* 요약 통계 */}
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">

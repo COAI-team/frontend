@@ -447,6 +447,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     const [isCalibrated, setIsCalibrated] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
     const [sessionId, setSessionId] = useState(null);
+    const sessionIdRef = useRef(null); // Ref for synchronous access in trackingLoop
 
     // NO_FACE 상태
     const noFaceStartTimeRef = useRef(null);
@@ -487,12 +488,19 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     const earHistoryRef = useRef([]); // PERCLOS 계산용
     const drowsyViolationSentRef = useRef(false);
 
+    // ========== Gaze Away (시선 이탈) 위반 추적 ==========
+    const lastGazeAwayViolationTimeRef = useRef(0); // 마지막 GAZE_AWAY 전송 시간
+    const GAZE_AWAY_THROTTLE_MS = 5000; // 5초마다 최대 1회 전송
+
     // ========== Liveness Detection (사진/영상 감지) ==========
     // 눈 깜빡임이 일정 시간 동안 없으면 사진/영상으로 판정
     const LIVENESS_BLINK_TIMEOUT_MS = 30000; // 30초 동안 눈 깜빡임 없으면 경고
     const lastBlinkTimeRef = useRef(Date.now()); // 마지막 눈 깜빡임 시간
     const wasBlinkingRef = useRef(false); // 이전 프레임 눈 감김 상태
     const [livenessWarning, setLivenessWarning] = useState(false); // 사진 감지 경고
+    const livenessWarningRef = useRef(false); // trackingLoop에서 사용 (순환 의존성 방지)
+    const livenessViolationSentRef = useRef(false); // Liveness 위반 전송 여부 (1회만)
+    const multipleFacesViolationSentRef = useRef(false); // 다중인물 위반 전송 여부 (1회만)
 
     // 고빈도 데이터를 위한 refs (setState 호출 최소화 - Maximum update depth 방지)
     const latestDataRef = useRef({
@@ -1204,7 +1212,9 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                 if (wasBlinkingRef.current && !isCurrentlyBlinking) {
                     // 눈을 감았다가 뜸 = 깜빡임 완료
                     lastBlinkTimeRef.current = Date.now();
-                    if (livenessWarning) {
+                    if (livenessWarningRef.current) {
+                        livenessWarningRef.current = false;
+                        livenessViolationSentRef.current = false; // 리셋하여 다음 30초 후 재전송 가능
                         setLivenessWarning(false);
                         console.log('✅ Blink detected - liveness confirmed');
                     }
@@ -1213,9 +1223,28 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
 
                 // 일정 시간 동안 눈 깜빡임 없으면 사진/영상 의심
                 const timeSinceLastBlink = Date.now() - lastBlinkTimeRef.current;
-                if (timeSinceLastBlink >= LIVENESS_BLINK_TIMEOUT_MS && !livenessWarning) {
+                if (timeSinceLastBlink >= LIVENESS_BLINK_TIMEOUT_MS && !livenessWarningRef.current) {
+                    livenessWarningRef.current = true;
                     setLivenessWarning(true);
                     console.warn('⚠️ Liveness warning: No blink detected for', Math.round(timeSinceLastBlink / 1000), 'seconds');
+
+                    // Liveness 위반 전송 (1회) - 백엔드 타입: MASK_DETECTED (깜빡임 없음 감지)
+                    if (!livenessViolationSentRef.current && sessionIdRef.current) {
+                        livenessViolationSentRef.current = true;
+                        console.log('🚨 MASK_DETECTED violation - sessionId:', sessionIdRef.current);
+                        sendMonitoringViolation(sessionIdRef.current, 'MASK_DETECTED', {
+                            description: `No blink detected for ${Math.round(timeSinceLastBlink / 1000)} seconds - possible photo/video`,
+                            timeSinceLastBlink: Math.round(timeSinceLastBlink / 1000)
+                        }).then(res => {
+                            if (res?.error) {
+                                console.error('❌ MASK_DETECTED violation API error:', res);
+                            } else {
+                                console.log('✅ MASK_DETECTED violation API success:', res);
+                            }
+                        }).catch(err => {
+                            console.error('❌ MASK_DETECTED violation network error:', err);
+                        });
+                    }
                 }
 
                 // NO_FACE 리셋 (이전에 얼굴이 없었다가 감지된 경우만 로그)
@@ -1228,30 +1257,78 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                     sustainedViolationSentRef.current = false;
                 }
 
-                // 다중 인물 경고 (2명 이상)
-                if (results.faceLandmarks.length > 1 && sessionId) {
-                    sendMonitoringViolation(sessionId, 'MULTIPLE_FACES', {
+                // 다중 인물 경고 (2명 이상) - 1회만 전송
+                if (results.faceLandmarks.length > 1 && !multipleFacesViolationSentRef.current && sessionIdRef.current) {
+                    multipleFacesViolationSentRef.current = true;
+                    console.log('🚨 MULTIPLE_FACES violation - sessionId:', sessionIdRef.current);
+                    sendMonitoringViolation(sessionIdRef.current, 'MULTIPLE_FACES', {
                         description: `Multiple faces detected: ${results.faceLandmarks.length} people`,
                         faceCount: results.faceLandmarks.length
+                    }).then(res => {
+                        if (res?.error) {
+                            console.error('❌ MULTIPLE_FACES violation API error:', res);
+                        } else {
+                            console.log('✅ MULTIPLE_FACES violation API success:', res);
+                        }
                     }).catch(err => {
-                        console.warn('MULTIPLE_FACES violation send failed:', err);
+                        console.error('❌ MULTIPLE_FACES violation network error:', err);
                     });
                 }
+                // 다중 인물 해제 시 플래그 리셋 (다시 감지되면 새로 전송)
+                if (results.faceLandmarks.length <= 1 && multipleFacesViolationSentRef.current) {
+                    multipleFacesViolationSentRef.current = false;
+                }
 
-                // 졸음 위반 전송 (1회)
-                if (drowsiness.isDrowsy && !drowsyViolationSentRef.current && sessionId) {
+                // 졸음 위반 전송 (1회) - 백엔드 타입명: SLEEPING
+                if (drowsiness.isDrowsy && !drowsyViolationSentRef.current && sessionIdRef.current) {
                     drowsyViolationSentRef.current = true;
-                    sendMonitoringViolation(sessionId, 'DROWSINESS_DETECTED', {
+                    console.log('🚨 SLEEPING violation - sessionId:', sessionIdRef.current);
+                    sendMonitoringViolation(sessionIdRef.current, 'SLEEPING', {
                         description: `Drowsiness detected - PERCLOS: ${(drowsiness.perclos * 100).toFixed(1)}%`,
                         perclos: drowsiness.perclos
+                    }).then(res => {
+                        if (res?.error) {
+                            console.error('❌ SLEEPING violation API error:', res);
+                        } else {
+                            console.log('✅ SLEEPING violation API success:', res);
+                        }
                     }).catch(err => {
-                        console.warn('DROWSINESS violation send failed:', err);
+                        console.error('❌ SLEEPING violation network error:', err);
                     });
                 }
 
                 // 졸음 상태 해제 시 플래그 리셋
                 if (!drowsiness.isDrowsy && drowsyViolationSentRef.current) {
                     drowsyViolationSentRef.current = false;
+                }
+
+                // ========== 시선 이탈 (GAZE_AWAY) 위반 전송 ==========
+                // rawGazePosition이 화면 밖으로 나갔는지 확인 (throttled - 5초에 1회)
+                if (gazeResult?.raw) {
+                    const rawGaze = gazeResult.raw;
+                    const isGazeOutOfBounds =
+                        rawGaze.x < 0 || rawGaze.x > window.innerWidth ||
+                        rawGaze.y < 0 || rawGaze.y > window.innerHeight;
+
+                    if (isGazeOutOfBounds && sessionIdRef.current) {
+                        const currentTime = Date.now();
+                        if (currentTime - lastGazeAwayViolationTimeRef.current >= GAZE_AWAY_THROTTLE_MS) {
+                            lastGazeAwayViolationTimeRef.current = currentTime;
+                            console.log('🚨 GAZE_AWAY violation - sessionId:', sessionIdRef.current);
+                            sendMonitoringViolation(sessionIdRef.current, 'GAZE_AWAY', {
+                                description: `Gaze out of bounds: (${Math.round(rawGaze.x)}, ${Math.round(rawGaze.y)})`,
+                                gazePosition: { x: Math.round(rawGaze.x), y: Math.round(rawGaze.y) }
+                            }).then(res => {
+                                if (res?.error) {
+                                    console.error('❌ GAZE_AWAY violation API error:', res);
+                                } else {
+                                    console.log('✅ GAZE_AWAY violation API success:', res);
+                                }
+                            }).catch(err => {
+                                console.error('❌ GAZE_AWAY violation network error:', err);
+                            });
+                        }
+                    }
                 }
 
             } else if (!isFaceStablyDetected) {
@@ -1277,24 +1354,30 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                     latestDataRef.current.showNoFaceWarning = true;
                     console.log('⚠️ NO_FACE warning shown (5+ seconds)');
 
-                    if (sessionId) {
-                        recordMonitoringWarning(sessionId).catch(err => {
+                    if (sessionIdRef.current) {
+                        recordMonitoringWarning(sessionIdRef.current).catch(err => {
                             console.warn('Warning record failed:', err);
                         });
                     }
                 }
 
                 // 15초 이상: 심각한 위반
-                if (duration >= NO_FACE_THRESHOLD_MS && !sustainedViolationSentRef.current && sessionId) {
+                if (duration >= NO_FACE_THRESHOLD_MS && !sustainedViolationSentRef.current && sessionIdRef.current) {
                     sustainedViolationSentRef.current = true;
-                    console.log('🚨 NO_FACE_SUSTAINED violation sent (15+ seconds)');
+                    console.log('🚨 NO_FACE_SUSTAINED violation - sessionId:', sessionIdRef.current);
 
-                    sendMonitoringViolation(sessionId, 'NO_FACE_SUSTAINED', {
+                    sendMonitoringViolation(sessionIdRef.current, 'NO_FACE_SUSTAINED', {
                         description: `Face not detected for ${Math.round(duration / 1000)} seconds - serious violation`,
                         duration: Math.round(duration / 1000),
                         severity: 'HIGH'
+                    }).then(res => {
+                        if (res?.error) {
+                            console.error('❌ NO_FACE_SUSTAINED violation API error:', res);
+                        } else {
+                            console.log('✅ NO_FACE_SUSTAINED violation API success:', res);
+                        }
                     }).catch(err => {
-                        console.warn('NO_FACE_SUSTAINED violation send failed:', err);
+                        console.error('❌ NO_FACE_SUSTAINED violation network error:', err);
                     });
                 }
             }
@@ -1320,14 +1403,14 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             animationFrameRef.current = requestAnimationFrame(trackingLoop);
         }
     }, [
-        sessionId,
+        // sessionId는 sessionIdRef로 접근하여 stale closure 방지
         calculateHeadPose,
         estimateGazeFromIris,
         analyzeEyeState,
         extractIrisPosition,
         detectDrowsiness,
-        updateReactState,
-        livenessWarning
+        updateReactState
+        // livenessWarning은 ref로 접근하여 순환 의존성 방지
         // drawDebugOverlay는 trackingLoop 이후에 정의되어 ref 패턴으로 접근
     ]);
 
@@ -1519,9 +1602,13 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         earHistoryRef.current = [];
         closedFrameCountRef.current = 0;
         drowsyViolationSentRef.current = false;
+        lastGazeAwayViolationTimeRef.current = 0;
         // Liveness 리셋
         lastBlinkTimeRef.current = Date.now();
         wasBlinkingRef.current = false;
+        livenessWarningRef.current = false;
+        livenessViolationSentRef.current = false;
+        multipleFacesViolationSentRef.current = false;
         setLivenessWarning(false);
         // 얼굴 감지 상태 리셋
         faceDetectionCounterRef.current = { detected: 0, notDetected: 0 };
@@ -1542,11 +1629,17 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
         try {
             // 세션 시작
             const response = await startMonitoringSession(problemId, timeLimitMinutes);
+            console.log('📡 Session start API response:', JSON.stringify(response, null, 2));
+
             const newSessionId = response.data?.sessionId || response.sessionId;
+            if (!newSessionId) {
+                console.error('❌ Failed to get sessionId from response:', response);
+            }
+            sessionIdRef.current = newSessionId; // Sync ref update for trackingLoop
             setSessionId(newSessionId);
             setIsTracking(true);
 
-            console.log('🎯 MediaPipe monitoring session started, sessionId:', newSessionId);
+            console.log('🎯 MediaPipe monitoring session started, sessionId:', newSessionId, 'sessionIdRef:', sessionIdRef.current);
 
             // 추적 루프 시작
             trackingLoop();
@@ -1557,7 +1650,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     }, [isCalibrated, problemId, timeLimitMinutes, setupWebcam, trackingLoop]);
 
     // 추적 종료
-    const stopTracking = useCallback(async (remainingSeconds = null) => {
+    const stopTracking = useCallback(async (remainingSeconds = null, focusScoreStats = null) => {
         if (isCleaningUpRef.current) {
             console.log('⚠️ stopTracking already in progress, skipping...');
             return;
@@ -1571,11 +1664,12 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
                 animationFrameRef.current = null;
             }
 
-            // 세션 종료
-            if (sessionId) {
+            // 세션 종료 (집중도 점수 통계 포함)
+            const currentSessionId = sessionIdRef.current;
+            if (currentSessionId) {
                 try {
-                    await endMonitoringSession(sessionId, remainingSeconds);
-                    console.log('✅ Monitoring session ended, sessionId:', sessionId);
+                    await endMonitoringSession(currentSessionId, remainingSeconds, focusScoreStats);
+                    console.log('✅ Monitoring session ended, sessionId:', currentSessionId, 'focusScoreStats:', focusScoreStats);
                 } catch (error) {
                     console.error('Failed to end monitoring session:', error);
                 }
@@ -1643,6 +1737,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             console.log('✅ MediaPipe tracking stopped');
 
             setIsTracking(false);
+            sessionIdRef.current = null;
             setSessionId(null);
 
             // 상태 리셋
@@ -1654,6 +1749,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             warningShownRef.current = false;
             sustainedViolationSentRef.current = false;
             drowsyViolationSentRef.current = false;
+            lastGazeAwayViolationTimeRef.current = 0;
             earHistoryRef.current = [];
             closedFrameCountRef.current = 0;
 
@@ -1676,7 +1772,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             // 정리 플래그 리셋 (다음 세션에서 stopTracking 호출 가능하도록)
             isCleaningUpRef.current = false;
         }
-    }, [sessionId]);
+    }, []); // sessionId는 sessionIdRef로 접근
 
     // 디버그 모드 토글
     const toggleDebugMode = useCallback(() => {
