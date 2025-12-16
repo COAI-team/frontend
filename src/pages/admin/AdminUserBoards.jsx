@@ -1,6 +1,7 @@
 import React from "react";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import AdminBoardDetailModal from "./AdminBoardDetailModal";
 
 const API_BASE_URL = "http://localhost:9443/admin";
 const DEFAULT_PAGE_SIZE = 10;
@@ -65,6 +66,12 @@ const AdminUserBoards = () => {
   const [sortOption, setSortOption] = useState("recent");
   const [hoveredFilter, setHoveredFilter] = useState(null);
   const [hoveredSort, setHoveredSort] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const [selectedBoardDetail, setSelectedBoardDetail] = useState(null);
+  const [selectedBoardType, setSelectedBoardType] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedBoardId, setSelectedBoardId] = useState(null);
 
   const fetchBoards = async (page = 1) => {
     try {
@@ -112,6 +119,44 @@ const AdminUserBoards = () => {
       );
     } finally {
       setLoading(false);
+    }
+  };
+  const fetchBoardDetail = async (boardId, boardTypeKey) => {
+    const normalizedType = resolveBoardTypeKey(boardTypeKey);
+    if (!normalizedType) {
+      setDetailError("알 수 없는 게시판 유형입니다.");
+      setSelectedBoardDetail(null);
+      setSelectedBoardType(null);
+      setIsDetailModalOpen(false);
+      setSelectedBoardId(null);
+      return;
+    }
+    try {
+      setDetailLoading(true);
+      setDetailError("");
+      setIsDetailModalOpen(true);
+      const res = await axios.get(
+        `${API_BASE_URL}/boarddetail/${normalizedType}/${boardId}`
+      );
+      if (res.data?.message === "success" && res.data?.data) {
+        setSelectedBoardDetail(res.data.data);
+        setSelectedBoardType(normalizedType);
+        setSelectedBoardId(boardId);
+      } else {
+        setDetailError("상세 정보를 불러오지 못했습니다.");
+        setSelectedBoardDetail(null);
+        setSelectedBoardType(null);
+        setSelectedBoardId(null);
+      }
+    } catch (err) {
+      setDetailError(
+        err.response?.data?.message || "상세 정보를 호출하는 중 오류가 발생했습니다."
+      );
+      setSelectedBoardDetail(null);
+      setSelectedBoardType(null);
+      setSelectedBoardId(null);
+    } finally {
+      setDetailLoading(false);
     }
   };
 
@@ -264,6 +309,33 @@ const AdminUserBoards = () => {
     });
   };
   const displayBoards = getSortedBoards();
+
+  const handleDeleteBoard = async () => {
+    if (!selectedBoardId || !selectedBoardType) return;
+    const boardId = selectedBoardId;
+    const normalizedType = selectedBoardType;
+    if (
+      !window.confirm(
+        "정말로 해당 게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+      )
+    ) {
+      return;
+    }
+    try {
+      await axios.delete(
+        `${API_BASE_URL}/boarddetail/${normalizedType}/${boardId}`
+      );
+      fetchBoards(pageInfo.page);
+      setIsDetailModalOpen(false);
+      setSelectedBoardDetail(null);
+      setSelectedBoardType(null);
+      setSelectedBoardId(null);
+    } catch (err) {
+      alert(
+        err.response?.data?.message || "삭제 요청 중 오류가 발생했습니다."
+      );
+    }
+  };
 
   return (
     <div style={styles.container}>
@@ -442,6 +514,7 @@ const AdminUserBoards = () => {
                           (e.currentTarget.style.backgroundColor =
                             rowBaseColor)
                         }
+                        onClick={() => fetchBoardDetail(boardId, boardKey)}
                       >
                         <td style={styles.tdCenter}>{boardId}</td>
                         <td style={styles.tdLeft}>{boardTitle}</td>
@@ -498,6 +571,15 @@ const AdminUserBoards = () => {
           )}
         </>
       )}
+      <AdminBoardDetailModal
+        open={isDetailModalOpen}
+        loading={detailLoading}
+        error={detailError}
+        detail={selectedBoardDetail}
+        boardType={selectedBoardType}
+        onDelete={selectedBoardDetail ? handleDeleteBoard : undefined}
+        onClose={() => setIsDetailModalOpen(false)}
+      />
     </div>
   );
 };
@@ -677,6 +759,7 @@ const styles = {
   tbodyRow: {
     transition: "background-color 0.2s ease",
     borderBottom: "1px solid #15191f",
+    cursor: "pointer",
   },
   rowEven: {
     backgroundColor: "#10141b",
