@@ -1093,7 +1093,7 @@ const SubmissionResult = () => {
                     <div className="text-xs text-muted">탭 전환</div>
                   </div>
 
-                  {/* 얼굴 미검출 */}
+                  {/* 얼굴 미검출 (15초 이상) */}
                   <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
                     <div className="text-2xl mb-1">👤</div>
                     <div className="text-2xl font-bold text-main">
@@ -1109,6 +1109,42 @@ const SubmissionResult = () => {
                       {submission.monitoringStats.mouseLeaveCount || 0}
                     </div>
                     <div className="text-xs text-muted">마우스 이탈</div>
+                  </div>
+
+                  {/* 졸음 감지 */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">😴</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.drowsinessCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">졸음 감지</div>
+                  </div>
+
+                  {/* 다중 인물 감지 */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">👥</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.multipleFacesCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">다중 인물</div>
+                  </div>
+
+                  {/* 깜빡임 없음 (Liveness) */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">👁️</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.noBlinkCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">깜빡임 없음</div>
+                  </div>
+
+                  {/* 시선 이탈 */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">👀</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.gazeAwayCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">시선 이탈</div>
                   </div>
                 </div>
 

@@ -36,6 +36,7 @@ const MediaPipeTracker = forwardRef(({
     onNoFaceStateChange,
     onDrowsinessStateChange,
     onMultipleFacesDetected,
+    onLivenessWarningChange,  // 깜빡임 없음 경고 콜백 (사진/영상 감지)
     skipCalibration = false, // 기본: 3-point 캘리브레이션 사용
     showFocusGauge = false,
     focusGaugePosition = 'top-right',
@@ -80,6 +81,7 @@ const MediaPipeTracker = forwardRef(({
         eyeState,
         irisPosition,
         drowsinessState,
+        livenessWarning,  // 사진/영상 감지 경고 (30초 동안 눈 깜빡임 없음)
         // 3-point 캘리브레이션용 refs
         faceLandmarkerRef,
         videoRef,
@@ -139,6 +141,13 @@ const MediaPipeTracker = forwardRef(({
             });
         }
     }, [faceCount, detectedFaces, onMultipleFacesDetected]);
+
+    // 깜빡임 없음 경고 상태 변경 시 부모에게 알림 (Liveness 검증)
+    useEffect(() => {
+        if (onLivenessWarningChange) {
+            onLivenessWarningChange(livenessWarning);
+        }
+    }, [livenessWarning, onLivenessWarningChange]);
 
     // 웹캠 권한 요청
     useEffect(() => {

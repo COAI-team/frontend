@@ -18,6 +18,7 @@ import MediaPipeTracker from './MediaPipeTracker';
  * - onNoFaceStateChange: NO_FACE 상태 변경 콜백
  * - onDrowsinessStateChange: 졸음 상태 변경 콜백 (MediaPipe only)
  * - onMultipleFacesDetected: 다중 인물 감지 콜백 (MediaPipe only)
+ * - onLivenessWarningChange: 깜빡임 없음 경고 콜백 (MediaPipe only, Liveness 검증)
  * - showFocusGauge: 집중도 게이지 표시 여부 (MediaPipe only)
  * - focusGaugePosition: 게이지 위치 (MediaPipe only)
  * - focusGaugeCompact: 게이지 컴팩트 모드 (MediaPipe only)
@@ -43,6 +44,7 @@ const EyeTracker = forwardRef(({
     // MediaPipe 전용 콜백
     onDrowsinessStateChange,
     onMultipleFacesDetected,
+    onLivenessWarningChange,
     skipCalibration,
     // 집중도 게이지 (MediaPipe only)
     showFocusGauge = false,
@@ -65,6 +67,7 @@ const EyeTracker = forwardRef(({
                 onNoFaceStateChange={onNoFaceStateChange}
                 onDrowsinessStateChange={onDrowsinessStateChange}
                 onMultipleFacesDetected={onMultipleFacesDetected}
+                onLivenessWarningChange={onLivenessWarningChange}
                 skipCalibration={skipCalibration === true} // 명시적으로 true일 때만 스킵
                 showFocusGauge={showFocusGauge}
                 focusGaugePosition={focusGaugePosition}

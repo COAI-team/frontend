@@ -96,6 +96,8 @@ const ProblemSolve = () => {
     detectedFaces: []
   });
   const drowsyViolationRecordedRef = useRef(false); // 졸음 위반 중복 기록 방지
+  const [livenessWarning, setLivenessWarning] = useState(false); // 깜빡임 없음 경고 (사진/영상 감지)
+  const livenessViolationRecordedRef = useRef(false); // 깜빡임 없음 위반 중복 기록 방지
 
   // [Phase 2] NO_FACE 경고 상태
   const [noFaceState, setNoFaceState] = useState({
@@ -287,6 +289,19 @@ const ProblemSolve = () => {
       drowsyViolationRecordedRef.current = false;
     }
   }, [drowsinessState.isDrowsy, selectedMode, selectedTrackerType, recordViolation]);
+
+  // 깜빡임 없음 위반 (MediaPipe only, Liveness 검증) - 중복 기록 방지
+  useEffect(() => {
+    if (livenessWarning && selectedMode === 'FOCUS' && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE) {
+      if (!livenessViolationRecordedRef.current) {
+        livenessViolationRecordedRef.current = true;
+        recordViolation('NO_BLINK_SUSTAINED');
+      }
+    } else if (!livenessWarning) {
+      // 경고 상태가 해제되면 플래그 리셋
+      livenessViolationRecordedRef.current = false;
+    }
+  }, [livenessWarning, selectedMode, selectedTrackerType, recordViolation]);
 
   // 기본 모드에서 타이머 설정 변경 시 timeLeft 업데이트 (시작 전에만)
   useEffect(() => {
@@ -825,6 +840,14 @@ const ProblemSolve = () => {
     setMultipleFacesState(state);
     if (state.faceCount > 1) {
       console.log('👥 Multiple faces detected:', state.faceCount);
+    }
+  }, []);
+
+  // MediaPipe 전용 콜백: 깜빡임 없음 경고 (Liveness 검증)
+  const handleLivenessWarningChange = useCallback((isWarning) => {
+    setLivenessWarning(isWarning);
+    if (isWarning) {
+      console.log('👁️ Liveness warning: No blink detected for 30+ seconds');
     }
   }, []);
 
@@ -1448,6 +1471,7 @@ const ProblemSolve = () => {
           onNoFaceStateChange={setNoFaceState}
           onDrowsinessStateChange={handleDrowsinessStateChange}
           onMultipleFacesDetected={handleMultipleFacesDetected}
+          onLivenessWarningChange={handleLivenessWarningChange}
           skipCalibration={true}
           showFocusGauge={showFocusGauge}
           focusGaugePosition="right-center"
@@ -1476,6 +1500,8 @@ const ProblemSolve = () => {
         // [MediaPipe] 다중 인물 감지 경고 props
         showMultipleFacesWarning={multipleFacesState.faceCount > 1 && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE}
         multipleFacesCount={multipleFacesState.faceCount}
+        // [MediaPipe] 깜빡임 없음 경고 props (Liveness 검증)
+        showLivenessWarning={livenessWarning && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE}
       />
 
       {/* [Phase 2] 패널티 알림 */}
