@@ -12,8 +12,12 @@ const REFRESH_URL = `${API_URL}/users/refresh`;
 
 export const axiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 30000,
+  timeout: 300000,
+  withCredentials: true, // 쿠키 기반 인증(HTTPS 포함) 유지
 });
+
+axiosInstance.defaults.baseURL = API_URL;
+axiosInstance.defaults.withCredentials = true;
 
 let isRefreshing = false;
 let failedQueue = [];
