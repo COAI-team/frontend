@@ -79,6 +79,9 @@ const ProblemSolve = () => {
   // [Debug] 시선 추적 디버그 모드 상태
   const [eyeTrackingDebugMode, setEyeTrackingDebugMode] = useState(false);
 
+  // [집중도 게이지] 실시간 집중도 점수 표시
+  const [showFocusGauge, setShowFocusGauge] = useState(false);
+
   // 추적기 타입 선택 (WebGazer / MediaPipe)
   const [selectedTrackerType, setSelectedTrackerType] = useState(TRACKER_TYPES.MEDIAPIPE);
 
@@ -988,6 +991,28 @@ const ProblemSolve = () => {
                     }
                   </span>
                 )}
+
+                {/* 집중도 게이지 토글 - 집중 모드 + MediaPipe + 추적 준비 완료 시 */}
+                {selectedMode === 'FOCUS' && eyeTrackingReady && selectedTrackerType === 'mediapipe' && (
+                  <div className="relative group ml-3">
+                    <button
+                      onClick={() => setShowFocusGauge(prev => !prev)}
+                      className={`w-8 h-8 rounded-lg text-base transition-all flex items-center justify-center ${
+                        showFocusGauge
+                          ? 'bg-emerald-600/80 text-white ring-1 ring-emerald-400 shadow-lg shadow-emerald-500/20'
+                          : 'bg-zinc-700/80 text-gray-400 hover:bg-zinc-600 hover:text-white'
+                      }`}
+                    >
+                      {showFocusGauge ? '🚨' : '🚨'}
+                    </button>
+                    {/* 호버 툴팁 - 아래에 표시 */}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-zinc-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-zinc-700 z-50">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-zinc-900"></div>
+                      집중도 게이지 {showFocusGauge ? '숨기기' : '보기'}
+                      <div className="text-gray-400 mt-0.5">실시간 집중 정도를 확인</div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 타이머 컨트롤 - 기본 모드에서만 수동 제어 가능 */}
@@ -1400,6 +1425,10 @@ const ProblemSolve = () => {
           onNoFaceStateChange={setNoFaceState}
           onDrowsinessStateChange={handleDrowsinessStateChange}
           onMultipleFacesDetected={handleMultipleFacesDetected}
+          skipCalibration={true}
+          showFocusGauge={showFocusGauge}
+          focusGaugePosition="right-center"
+          focusGaugeCompact={false}
         />
       )}
 

@@ -18,12 +18,18 @@ import MediaPipeTracker from './MediaPipeTracker';
  * - onNoFaceStateChange: NO_FACE 상태 변경 콜백
  * - onDrowsinessStateChange: 졸음 상태 변경 콜백 (MediaPipe only)
  * - onMultipleFacesDetected: 다중 인물 감지 콜백 (MediaPipe only)
+ * - showFocusGauge: 집중도 게이지 표시 여부 (MediaPipe only)
+ * - focusGaugePosition: 게이지 위치 (MediaPipe only)
+ * - focusGaugeCompact: 게이지 컴팩트 모드 (MediaPipe only)
+ * - onFocusScoreChange: 집중도 점수 변경 콜백 (MediaPipe only)
  *
  * Ref Methods (useImperativeHandle):
  * - stopTracking(remainingSeconds): 추적 종료
  * - toggleDebugMode(): 디버그 모드 토글
  * - getDebugMode(): 현재 디버그 모드 상태
  * - getTrackingData(): MediaPipe 추가 데이터 (MediaPipe only)
+ * - getFocusScore(): 집중도 점수 (MediaPipe only)
+ * - getFocusStats(): 집중도 통계 (MediaPipe only)
  */
 const EyeTracker = forwardRef(({
     trackerType = 'webgazer',
@@ -37,7 +43,12 @@ const EyeTracker = forwardRef(({
     // MediaPipe 전용 콜백
     onDrowsinessStateChange,
     onMultipleFacesDetected,
-    skipCalibration
+    skipCalibration,
+    // 집중도 게이지 (MediaPipe only)
+    showFocusGauge = false,
+    focusGaugePosition = 'top-right',
+    focusGaugeCompact = false,
+    onFocusScoreChange
 }, ref) => {
 
     // trackerType에 따라 적절한 추적기 렌더링
@@ -55,6 +66,10 @@ const EyeTracker = forwardRef(({
                 onDrowsinessStateChange={onDrowsinessStateChange}
                 onMultipleFacesDetected={onMultipleFacesDetected}
                 skipCalibration={skipCalibration === true} // 명시적으로 true일 때만 스킵
+                showFocusGauge={showFocusGauge}
+                focusGaugePosition={focusGaugePosition}
+                focusGaugeCompact={focusGaugeCompact}
+                onFocusScoreChange={onFocusScoreChange}
             />
         );
     }
