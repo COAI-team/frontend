@@ -1027,7 +1027,7 @@ const ProblemSolve = () => {
                           timerMode === 'TIMER'
                             ? 'bg-yellow-600 text-white'
                             : 'text-gray-400 hover:text-white'
-                        }`}
+                        } cursor-pointer`}
                       >
                         ⏱️ 타이머
                       </button>
@@ -1037,7 +1037,7 @@ const ProblemSolve = () => {
                           timerMode === 'STOPWATCH'
                             ? 'bg-cyan-600 text-white'
                             : 'text-gray-400 hover:text-white'
-                        }`}
+                        } cursor-pointer`}
                       >
                         ⏱️ 스톱워치
                       </button>
@@ -1048,7 +1048,7 @@ const ProblemSolve = () => {
                   {!isTimerRunning ? (
                     <button
                       onClick={handleStartTimer}
-                      className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700 text-white"
+                      className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700 text-white cursor-pointer"
                     >
                       시작
                     </button>
