@@ -891,7 +891,7 @@ const ProblemSolve = () => {
               {/* 모드 선택으로 돌아가기 버튼 */}
               <button
                 onClick={handleBackToModeSelection}
-                className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-1"
+                className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
               >
                 ← 모드 선택
               </button>
@@ -999,8 +999,8 @@ const ProblemSolve = () => {
                       onClick={() => setShowFocusGauge(prev => !prev)}
                       className={`w-8 h-8 rounded-lg text-base transition-all flex items-center justify-center ${
                         showFocusGauge
-                          ? 'bg-emerald-600/80 text-white ring-1 ring-emerald-400 shadow-lg shadow-emerald-500/20'
-                          : 'bg-zinc-700/80 text-gray-400 hover:bg-zinc-600 hover:text-white'
+                          ? 'bg-emerald-600/80 text-white ring-1 ring-emerald-400 shadow-lg shadow-emerald-500/20 cursor-pointer'
+                          : 'bg-zinc-700/80 text-gray-400 hover:bg-zinc-600 hover:text-white cursor-pointer'
                       }`}
                     >
                       {showFocusGauge ? '🚨' : '🚨'}
@@ -1289,8 +1289,31 @@ const ProblemSolve = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded" title="복사">📋</button>
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded" title="전체화면">⛶</button>
+                <div className="relative group">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(code);
+                        // 복사 성공 시 버튼 텍스트 임시 변경
+                        const btn = document.getElementById('copyCodeBtn');
+                        if (btn) {
+                          btn.textContent = '✓';
+                          setTimeout(() => { btn.textContent = '📋'; }, 1500);
+                        }
+                      } catch (err) {
+                        console.error('복사 실패:', err);
+                      }
+                    }}
+                    id="copyCodeBtn"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded cursor-pointer"
+                  >
+                    📋
+                  </button>
+                  {/* 호버 툴팁 */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 bg-zinc-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-zinc-700 z-50">
+                    복사
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1387,11 +1410,11 @@ const ProblemSolve = () => {
 
               {/* 하단 버튼 */}
               <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
-                <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white">
+                <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white cursor-pointer">
                   초기화
                 </button>
                 <button onClick={handleTestRun} disabled={isRunning}
-                  className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2">
+                  className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2 cursor-pointer">
                   {isRunning ? (
                     <>
                       <span className="animate-spin">⚙️</span>
@@ -1402,7 +1425,7 @@ const ProblemSolve = () => {
                   )}
                 </button>
                 <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
-                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2">
+                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2 cursor-pointer">
                   {isSubmitting ? '제출 중...' : '✓ 제출 후 채점하기'}
                 </button>
               </div>
