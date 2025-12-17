@@ -15,12 +15,6 @@
   padding: 0 1rem;
 }
 
-.freeboard-header-actions {
-  padding: 0;
-  margin: 0;
-  align-items: center;
-}
-
 .freeboard-title,
 .codeboard-title {
   font-size: 2rem;
@@ -702,4 +696,24 @@ html.dark .smell-bad {
   color: white;
   border: none;
   cursor: pointer;
+}
+
+.smell-visual-card {
+    width: 200px;
+    height: 140px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.smell-visual-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.5;
 }
