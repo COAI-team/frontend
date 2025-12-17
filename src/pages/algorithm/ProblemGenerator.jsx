@@ -739,7 +739,7 @@ const ProblemGenerator = () => {
 
               {/* AI 면책 조항 */}
               <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
-                AI가 생성한 문제로 오류가 있을 수 있습니다. 기존 문제와 유사할 경우 이는 우연의 일치입니다.
+                AI가 생성한 문제로 실수가 있을 수 있습니다. 기존 문제와 유사할 경우 이는 우연의 일치입니다.
               </p>
             </form>
           </div>
