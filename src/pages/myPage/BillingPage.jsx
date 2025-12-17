@@ -508,7 +508,11 @@ export default function BillingPage() {
                 <span className="text-sub">총 환불 금액: {formatMoney(filteredRefundSum)}</span>
               </div>
             </div>
-            <Pagination page={historyPage} totalPages={historyTotalPages} onPageChange={setHistoryPage} />
+            <Pagination
+              currentPage={historyPage}
+              totalPages={historyTotalPages}
+              onPageChange={setHistoryPage}
+            />
           </>
         ) : (
           <>
@@ -595,7 +599,11 @@ export default function BillingPage() {
                 <span className="text-sub">총 적립 포인트: {formatPoint(filteredTotalPointEarn)}</span>
               </div>
             </div>
-            <Pagination page={pointPage} totalPages={pointTotalPages} onPageChange={setPointPage} />
+            <Pagination
+              currentPage={pointPage}
+              totalPages={pointTotalPages}
+              onPageChange={setPointPage}
+            />
           </>
         )}
 

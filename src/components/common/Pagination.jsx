@@ -51,7 +51,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={handleFirst}
         disabled={currentPage === 1}
-        className="flex items-center justify-center w-9 h-9 rounded-md bg-[#2a3441] dark:bg-[#1e293b] text-gray-400 hover:text-gray-200 hover:bg-[#374151] dark:hover:bg-[#334155] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
+        className="flex items-center justify-center w-9 h-9 rounded-md bg-[#2a3441] dark:bg-[#1e293b] text-gray-400 hover:text-gray-200 hover:bg-[#374151] dark:hover:bg-[#334155] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all duration-150"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -62,7 +62,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={handlePrevious}
         disabled={currentPage === 1}
-        className="flex items-center justify-center w-9 h-9 rounded-md bg-[#2a3441] dark:bg-[#1e293b] text-gray-400 hover:text-gray-200 hover:bg-[#374151] dark:hover:bg-[#334155] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
+        className="flex items-center justify-center w-9 h-9 rounded-md bg-[#2a3441] dark:bg-[#1e293b] text-gray-400 hover:text-gray-200 hover:bg-[#374151] dark:hover:bg-[#334155] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all duration-150"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -76,7 +76,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
             key={number}
             onClick={() => onPageChange(number)}
             className={`
-              flex items-center justify-center min-w-[36px] h-9 px-3 rounded-md transition-all duration-150
+              flex items-center justify-center min-w-[36px] h-9 px-3 rounded-md transition-all duration-150 cursor-pointer
               ${currentPage === number
                 ? 'bg-[#4a5568] dark:bg-[#475569] text-white font-medium'
                 : 'bg-[#2a3441] dark:bg-[#1e293b] text-gray-400 hover:text-gray-200 hover:bg-[#374151] dark:hover:bg-[#334155]'
@@ -92,7 +92,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={handleNext}
         disabled={currentPage === totalPages}
-        className="flex items-center justify-center w-9 h-9 rounded-md bg-[#2a3441] dark:bg-[#1e293b] text-gray-400 hover:text-gray-200 hover:bg-[#374151] dark:hover:bg-[#334155] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
+        className="flex items-center justify-center w-9 h-9 rounded-md bg-[#2a3441] dark:bg-[#1e293b] text-gray-400 hover:text-gray-200 hover:bg-[#374151] dark:hover:bg-[#334155] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all duration-150"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -103,7 +103,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={handleLast}
         disabled={currentPage === totalPages}
-        className="flex items-center justify-center w-9 h-9 rounded-md bg-[#2a3441] dark:bg-[#1e293b] text-gray-400 hover:text-gray-200 hover:bg-[#374151] dark:hover:bg-[#334155] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
+        className="flex items-center justify-center w-9 h-9 rounded-md bg-[#2a3441] dark:bg-[#1e293b] text-gray-400 hover:text-gray-200 hover:bg-[#374151] dark:hover:bg-[#334155] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all duration-150"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />

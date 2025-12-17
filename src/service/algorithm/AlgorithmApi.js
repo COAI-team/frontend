@@ -85,16 +85,29 @@ export const getProblem = async (problemId) => {
  * 문제 풀이 시작
  */
 export const startProblemSolve = async (problemId) => {
-    try {
-        const res = await axiosInstance.get(`/algo/problems/${problemId}/solve`);
-        return res.data;
-    } catch (err) {
-        console.error("❌ [startProblemSolve] 요청 실패:", err);
-        if (err.response?.data) {
-            return { error: true, code: err.response.data.code, message: err.response.data.message };
-        }
-        return { error: true, message: "문제 풀이를 시작할 수 없습니다." };
-    }
+  try {
+    const res = await axiosInstance.get(`/algo/problems/${problemId}/solve`);
+    return res.data;
+  } catch (err) {
+    const status = err.response?.status;
+    const data = err.response?.data;
+
+    // 서버가 JSON이 아니라 문자열/HTML/빈 응답 줄 수도 있어서 안전하게 처리
+    const message =
+      (typeof data === "string" ? data : data?.message) ||
+      err.message ||
+      "문제 풀이를 시작할 수 없습니다.";
+
+    console.error("❌ [startProblemSolve] 요청 실패:", { status, data, err });
+
+    return {
+      error: true,
+      status,
+      code: (typeof data === "object" && data) ? data.code : undefined,
+      message,
+      raw: data, // 필요 없으면 빼도 됨
+    };
+  }
 };
 
 /**

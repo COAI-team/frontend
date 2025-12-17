@@ -10,7 +10,8 @@ const LikeButton = ({
     initialLikeCount = 0,
     showCount = true,
     showUsers = true,
-    size = 'md'
+    size = 'md',
+    onChange
 }) => {
     const navigate = useNavigate();
     const [isLiked, setIsLiked] = useState(initialIsLiked);
@@ -30,7 +31,6 @@ const LikeButton = ({
 
         checkDarkMode();
 
-        // 다크모드 토글되는 경우 대응
         const observer = new MutationObserver(checkDarkMode);
         observer.observe(document.documentElement, {
             attributes: true,
@@ -48,11 +48,16 @@ const LikeButton = ({
         }
     }, []);
 
+    // props 변경 시 동기화
+    useEffect(() => {
+        setIsLiked(initialIsLiked);
+        setLikeCount(initialLikeCount);
+    }, [initialIsLiked, initialLikeCount]);
+
     // 좋아요 토글
     const handleLike = async (e) => {
         e.stopPropagation();
         
-        // 로그인 체크
         if (!currentUser) {
             const goLogin = window.confirm(
                 "로그인 후 좋아요를 누를 수 있습니다. 로그인 하시겠습니까?"
@@ -70,9 +75,15 @@ const LikeButton = ({
         try {
             const response = await axiosInstance.post(`/like/${referenceType}/${referenceId}`);
             const newIsLiked = response.data.data.isLiked;
+            const newLikeCount = newIsLiked ? likeCount + 1 : likeCount - 1;
             
             setIsLiked(newIsLiked);
-            setLikeCount(prev => newIsLiked ? prev + 1 : prev - 1);
+            setLikeCount(newLikeCount);
+            
+            // 부모 컴포넌트에 변경 알림
+            if (onChange) {
+                onChange(newIsLiked, newLikeCount);
+            }
         } catch (error) {
             console.error('좋아요 처리 실패:', error);
             if (error.response?.data?.message === '좋아요 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.') {
@@ -137,7 +148,7 @@ const LikeButton = ({
                     width="20" 
                     height="20"
                     fill={isLiked ? '#ef4444' : 'none'}
-                    stroke="currentColor"  // currentColor 사용
+                    stroke="currentColor"
                     strokeWidth={2}
                     viewBox="0 0 24 24"
                     style={{ transition: 'all 0.2s' }}
@@ -164,11 +175,19 @@ const LikeButton = ({
                             <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
                                 {likeUsers.map((user, idx) => (
                                     <div key={idx} className="flex items-center gap-2">
-                                        <img 
-                                            src={user.userImage || '/default-profile.png'} 
-                                            alt={user.userNickname}
-                                            className="w-6 h-6 rounded-full"
-                                        />
+                                        <div style={{
+                                            width: '1.5rem',
+                                            height: '1.5rem',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '0.75rem',
+                                            backgroundColor: '#4b5563',
+                                            color: '#e5e7eb'
+                                        }}>
+                                            {user.userNickname ? user.userNickname.charAt(0).toUpperCase() : 'U'}
+                                        </div>
                                         <span className="text-xs">{user.userNickname}</span>
                                     </div>
                                 ))}

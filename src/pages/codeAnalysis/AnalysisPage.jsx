@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useLogin } from '../../context/login/useLogin'; // Add Import
+import { useLogin } from '../../context/login/useLogin';
 
 import RepositorySelector from '../../components/github/RepositorySelector';
 import BranchSelector from '../../components/github/BranchSelector';
@@ -16,12 +16,12 @@ import AlertModal from "../../components/modal/AlertModal";
 
 
 const AnalysisPage = () => {
-    const { user } = useLogin(); // Get User
+    const { user } = useLogin();
     const { analysisId } = useParams();
 
     const navigate = useNavigate();
 
-    // Auht State
+    // Auth State
     const [isAuthed, setIsAuthed] = useState(!!getAuth()?.accessToken);
     const [showLoginAlert, setShowLoginAlert] = useState(false);
 
@@ -45,6 +45,37 @@ const AnalysisPage = () => {
     const [analysisResult, setAnalysisResult] = useState(null);
     const [streamedContent, setStreamedContent] = useState('');
     const [error, setError] = useState(null);
+
+    // RAG Toggle State
+    const [useRag, setUseRag] = useState(true);
+    const [ragMessage, setRagMessage] = useState("");
+    
+    // RAG Message Logic
+    useEffect(() => {
+        if (useRag) {
+            setRagMessage("당신의 기록을 파묘하여 좀 더 개인화 된 코드 분석을 진행합니다. 이 모든 것은 당신을 위한 거랍니다...음뫄하하하");
+        } else {
+            setRagMessage("당신의 기록은 뒤로 하고, 있는 그대로의 코드를 분석합니다. 그래요. 과거가 뭐가 중요한가요?");
+        }
+        
+        // 메시지 3초 후 사라지게 하려면 아래 코드 추가 (원하는 UX에 따라 결정, User Request는 '비동기로 표시'라고만 함)
+        // const timer = setTimeout(() => setRagMessage(""), 5000); 
+        // return () => clearTimeout(timer);
+    }, [useRag]);
+
+    // Smart Suggestion Logic (Move to onSearch handler)
+    const handleOwnerSearch = (owner) => {
+        if (!owner || !user) return;
+        
+        // Assumption: owner matches user.nickname or name
+        const isMyRepo = owner.toLowerCase() === (user.nickname || user.name || user.githubId || "").toLowerCase();
+        
+        if (isMyRepo) {
+            setUseRag(true);
+        } else {
+            setUseRag(false);
+        }
+    };
 
 
     // Load existing analysis if ID is present
@@ -90,7 +121,6 @@ const AnalysisPage = () => {
 
         const fetchContent = async () => {
             try {
-                // TODO: GithubService API 사용
                 const response = await axiosInstance.get(`/api/github/repos/${selectedRepo.owner}/${selectedRepo.name}/content`, {
                     params: { path: selectedFile.path }
                 });
@@ -127,69 +157,7 @@ const AnalysisPage = () => {
         return trimmed;
     };
 
-    // const handleAnalysisSubmit = async (formState) => {
-    //     if (!selectedFile || !selectedRepo) return;
-
-    //     setIsLoading(true);
-    //     setError(null);
-    //     setAnalysisResult(null);
-    //     setStreamedContent('');
-
-    //     try {
-    //         // 1. 파일 저장
-    //         const saveResponse = await saveFile({
-    //             repositoryUrl: selectedRepo.url,
-    //             owner: selectedRepo.owner,
-    //             repo: selectedRepo.name,
-    //             filePath: selectedFile.path,
-    //             userId: user?.userId 
-    //         });
-
-    //         // 2. 분석 요청 (동기 -> 결과 한 번에 수신)
-    //         const response = await analyzeStoredFile({
-    //             analysisId: saveResponse.data.fileId,
-    //             repositoryUrl: selectedRepo.url,
-    //             filePath: selectedFile.path,
-    //             analysisTypes: formState.analysisTypes,
-    //             toneLevel: formState.toneLevel,
-    //             customRequirements: formState.customRequirements,
-    //             userId: user?.userId 
-    //         });
-
-    //         const accumulated = response.data; // API returns success(data) or just data depending on ApiResponse wrapping. 
-    //         // The controller returns ApiResponse.success(result), so response.data should be the ApiResponse object.
-    //         // Let's check AnalysisController.java: return ResponseEntity.ok(ApiResponse.success(result));
-    //         // And analysisApi.js: return res.data;
-    //         // So 'response' here is 'res.data' from axios, which is the ApiResponse JSON. 
-    //         // The actual content is in response.data (if ApiResponse has 'data' field).
-    //         // Wait, analyzeStoredFile in analysisApi.js returns res.data.
-    //         // So 'response' variable here holds the body of the HTTP response.
-    //         // The body is ApiResponse<String>. So response.data is the string content (the analysis result).
-    //         // Let's verify ApiResponse structure. Usually it has 'status', 'message', 'data'.
-    //         // So accumulated = response.data;
-
-
-    //         // 3. 결과 파싱
-    //         try {
-    //             const jsonStr = cleanMarkdownCodeBlock(accumulated);
-    //             const result = JSON.parse(jsonStr);
-    //             setAnalysisResult(result);
-    //         } catch (parseErr) {
-    //             console.error("JSON Parse Error:", parseErr);
-    //             console.log("Raw Content:", accumulated);
-    //             // 파싱 실패 시 원본 텍스트라도 보여주기 위해 더미 객체에 넣거나 에러 처리
-    //             setError("분석 결과를 처리하는 중 오류가 발생했습니다. (JSON 파싱 실패)");
-    //         }
-            
-    //     } catch (err) {
-    //         console.error(err);
-    //         setError("분석 중 오류가 발생했습니다.");
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
-
-        const handleAnalysisSubmit = async (formState) => {
+    const handleAnalysisSubmit = async (formState) => {
         if (!selectedFile || !selectedRepo) return;
 
         setIsLoading(true);
@@ -218,29 +186,44 @@ const AnalysisPage = () => {
                 userId: user?.userId 
             });
 
-            const accumulated = response.data;
+            const accumulated = response.data; // API returns success(data) or just data depending on ApiResponse wrapping. 
+            // The controller returns ApiResponse.success(result), so response.data should be the ApiResponse object.
+            // And analysisApi.js: return res.data;
+            // So 'response' here is 'res.data' from axios, which is the ApiResponse JSON. 
+            // The actual content is in response.data (if ApiResponse has 'data' field).
+            // Wait, analyzeStoredFile in analysisApi.js returns res.data.
+            // So 'response' variable here holds the body of the HTTP response.
+            // The body is ApiResponse<String>. So response.data is the string content (the analysis result).
+            // Let's verify ApiResponse structure. Usually it has 'status', 'message', 'data'.
+            // So accumulated = response.data;
+
 
             // 3. 결과 파싱
             try {
                 const jsonStr = cleanMarkdownCodeBlock(accumulated);
                 const result = JSON.parse(jsonStr);
+                setAnalysisResult(result);
                 
-                // 분석 결과 저장 API 호출
-                const saveAnalysisResponse = await axiosInstance.post('/analysis/save', {
-                    fileId: saveResponse.data.fileId,  // 1단계에서 받은 fileId
-                    repositoryUrl: selectedRepo.url,
-                    filePath: selectedFile.path,
-                    analysisResult: result  // 파싱된 결과 객체
-                });
+                // 백엔드에서 이미 analysisId를 포함해서 보냄
+                setAnalysisResult(result);
+
+                // // 분석 결과 저장 API 호출
+                // const saveAnalysisResponse = await axiosInstance.post('/analysis/save', {
+                //     fileId: saveResponse.data.fileId,  // 1단계에서 받은 fileId
+                //     repositoryUrl: selectedRepo.url,
+                //     filePath: selectedFile.path,
+                //     analysisResult: result  // 파싱된 결과 객체
+                // });
                 
-                const savedAnalysisId = saveAnalysisResponse.data.data.analysisId;  // ApiResponse 구조 고려
+                // const savedAnalysisId = saveAnalysisResponse.data.data.analysisId;  // ApiResponse 구조 고려
                 
-                // URL 업데이트
-                navigate(`/codeAnalysis/${savedAnalysisId}`);
+                // // URL 업데이트
+                // navigate(`/codeAnalysis/${savedAnalysisId}`);
                 
             } catch (parseErr) {
                 console.error("JSON Parse Error:", parseErr);
                 console.log("Raw Content:", accumulated);
+                // 파싱 실패 시 원본 텍스트라도 보여주기 위해 더미 객체에 넣거나 에러 처리
                 setError("분석 결과를 처리하는 중 오류가 발생했습니다. (JSON 파싱 실패)");
             }
             
@@ -251,6 +234,8 @@ const AnalysisPage = () => {
             setIsLoading(false);
         }
     };
+
+    const resolvedAnalysisId = analysisResult?.analysisId ?? analysisId; // 게시판 글쓰기 버튼
 
     return (
         <div className="min-h-screen">
@@ -284,7 +269,7 @@ const AnalysisPage = () => {
                             <div className="rounded-lg shadow-sm border p-6">
                                 <h2 className="text-lg font-semibold mb-4">📂 파일 선택</h2>
                                 <div className="space-y-4">
-                                    <RepositorySelector onSelect={handleRepoSelect} />
+                                    <RepositorySelector onSelect={handleRepoSelect} onSearch={handleOwnerSearch} />
                                     {selectedRepo && <BranchSelector repository={selectedRepo} onSelect={handleBranchSelect} />}
                                     {selectedBranch && <FileTree repository={selectedRepo} branch={selectedBranch} onSelect={setSelectedFile} />}
                                 </div>
@@ -314,6 +299,27 @@ const AnalysisPage = () => {
                         {isNew && !analysisResult && !isLoading && (
                             <div className="rounded-lg shadow-sm border p-6">
                                 <h2 className="text-lg font-semibold mb-4">⚙️ 분석 설정</h2>
+                                
+                                {/* RAG Toggle Switch */}
+                                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-medium text-gray-700">RAG (과거 이력 참조) 모드</span>
+                                        <button 
+                                            onClick={() => setUseRag(!useRag)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${useRag ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useRag ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Async Message Area */}
+                                    <div className={`text-sm transition-all duration-500 ease-in-out ${ragMessage ? 'opacity-100 max-h-20' : 'opacity-0 max-h-0'}`}>
+                                       <p className={`p-2 rounded ${useRag ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-200 text-gray-600'}`}>
+                                           {ragMessage}
+                                       </p>
+                                    </div>
+                                </div>
+
                                 <AnalysisForm onSubmit={handleAnalysisSubmit} isLoading={isLoading} />
                                 {error && (
                                     <div className="mt-4 p-3 bg-red-50 text-red-700 rounded border border-red-200">
@@ -422,12 +428,36 @@ const AnalysisPage = () => {
                                 </div>
                                 
                                 {isNew && (
-                                    <div className="mt-6 pt-6 border-t text-center">
+                                    <div className="mt-6 pt-6 border-t flex justify-center gap-3">
                                         <button
                                             onClick={() => window.location.href = '/codeAnalysis/new'}
                                             className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                         >
                                             새로운 분석하기
+                                        </button>
+                                        <button
+                                            onClick={() => navigate(`/codeboard/write/${analysisResult.analysisId}`)}
+                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                                        >
+                                            분석결과 공유하기
+                                        </button>
+                                    </div>
+                                )}
+
+                                {resolvedAnalysisId && (
+                                    <div className="mt-6 pt-6 border-t flex justify-center gap-3">
+                                        <button
+                                            onClick={() => window.location.href = '/codeAnalysis/new'}
+                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                                        >
+                                            다른코드 분석하기
+                                        </button>
+
+                                        <button
+                                            onClick={() => navigate(`/codeboard/write/${resolvedAnalysisId}`)}
+                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                                        >
+                                            분석결과 공유하기
                                         </button>
                                     </div>
                                 )}
@@ -436,25 +466,6 @@ const AnalysisPage = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Floating Write Button */}
-            <button 
-                onClick={() => {
-                    const id = analysisResult?.analysisId || analysisId;
-                    if (id) {
-                        navigate(`/codeboard/write/${id}`);
-                    } else {
-                        alert('분석 결과 ID를 찾을 수 없습니다.');
-                    }
-                }}
-                className="floating-write-btn"
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
-                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                글쓰기
-            </button>
 
             <AlertModal
                 open={showLoginAlert}
