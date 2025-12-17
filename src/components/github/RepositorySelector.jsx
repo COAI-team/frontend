@@ -58,7 +58,9 @@ const RepositorySelector = ({ onSelect, onSearch }) => {
     };
 
     const handleManualSearch = () => {
-        if (onSearch) onSearch(owner);
+        // 사용자 본인의 GitHub ID인지 검증
+        const isOwnRepo = user?.githubId && owner.toLowerCase() === user.githubId.toLowerCase();
+        if (onSearch) onSearch(owner, isOwnRepo);
         fetchRepositories();
     };
 

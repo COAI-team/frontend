@@ -1,4 +1,4 @@
-import {useEffect, useState, useCallback, useMemo} from "react";
+import {useEffect, useState} from "react";
 import {AiFillGithub} from "react-icons/ai";
 import {
   deactivateUser,
@@ -15,6 +15,7 @@ import AlertModal from "../../components/modal/AlertModal";
 import ViewModeCard from "../../components/card/ViewModeCard";
 import EditModeCard from "../../components/card/EditModeCard";
 import GitHubAutoCommitSettings from "../../components/github/GitHubAutoCommitSettings";
+import axiosInstance from "../../server/AxiosConfig";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -42,26 +43,21 @@ export default function ProfilePage() {
 
   const [githubConnected, setGithubConnected] = useState(false);
 
-  // ✅ localStorage 값을 위한 별도 상태 추가
-  const [moaiCount, setMoaiCount] = useState(() =>
-    JSON.parse(localStorage.getItem("moaiCount") ?? "1")
-  );
-  const [walkingMoaiEnabled, setWalkingMoaiEnabled] = useState(() =>
-    JSON.parse(localStorage.getItem("walkingMoai") ?? "true")
-  );
+  // MCP 관련 상태
+  const [showMcpModal, setShowMcpModal] = useState(false);
+  const [mcpToken, setMcpToken] = useState(null);
+  const [mcpLoading, setMcpLoading] = useState(false);
 
-  // ✅ useCallback으로 모달 열기 함수 메모이제이션
-  const openModal = useCallback((msg) => {
+  const openModal = (msg) => {
     setModalMsg(msg);
     setModalOpen(true);
-  }, []);
+  };
 
-  // ✅ useCallback으로 이메일 마스킹 함수 메모이제이션
-  const maskEmail = useCallback((email) => {
+  const maskEmail = (email) => {
     if (!email?.includes("@")) return email;
     const [id, domain] = email.split("@");
     return `${id.slice(0, 2)}****@${domain}`;
-  }, []);
+  };
 
   /** 🔥 사용자 기본 정보 불러오기 */
   useEffect(() => {
@@ -76,7 +72,7 @@ export default function ProfilePage() {
         preview: res.userImage || null,
         image: null,
         githubId: res.githubId || "",
-        githubToken: "",
+        githubToken: "", // 보안상 토큰은 비워둠 (입력 시에만 값 존재)
         hasGithubToken: res.hasGithubToken || false,
       });
 
@@ -85,7 +81,7 @@ export default function ProfilePage() {
       /** 🔥 GitHub 연동 상태 가져오기 */
       const github = await getGithubUserInfo();
       if (!github.error) {
-        setGithubConnected(github.linked);
+        setGithubConnected(github.linked); // ✔ linked 사용
       }
     };
 
@@ -135,30 +131,16 @@ export default function ProfilePage() {
     fetchSubscription();
   }, [accessToken]);
 
-  // ✅ storage 이벤트 리스너 추가 (다른 탭/창에서 변경 감지)
-  useEffect(() => {
-    const handleStorageChange = () => {
-      setMoaiCount(JSON.parse(localStorage.getItem("moaiCount") ?? "1"));
-      setWalkingMoaiEnabled(JSON.parse(localStorage.getItem("walkingMoai") ?? "true"));
-    };
-
-    globalThis.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      globalThis.removeEventListener("storage", handleStorageChange);
-    };
-  }, []);
-
   /** 🔥 GitHub OAuth 연결 */
-  const handleGithubConnect = useCallback(() => {
+  const handleGithubConnect = () => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
     const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
 
-    globalThis.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=link`;
-  }, []);
+    globalThis.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}`;
+  };
 
   /** 🔥 GitHub 연결 해제 */
-  const handleGithubDisconnect = useCallback(async () => {
+  const handleGithubDisconnect = async () => {
     const res = await disconnectGithub();
 
     if (res.error) {
@@ -168,10 +150,10 @@ export default function ProfilePage() {
 
     openModal("🔌 GitHub 연결이 해제되었습니다.");
     setGithubConnected(false);
-  }, [openModal]);
+  };
 
   /** 🔥 프로필 이미지 변경 */
-  const handleImageChange = useCallback((e) => {
+  const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -180,10 +162,10 @@ export default function ProfilePage() {
       image: file,
       preview: URL.createObjectURL(file),
     }));
-  }, []);
+  };
 
   /** 🔥 정보 저장 */
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     const result = await updateMyInfo({
       name: profile.name,
       nickname: profile.nickname,
@@ -209,20 +191,20 @@ export default function ProfilePage() {
       ...prev,
       preview: result.user.userImage,
       image: null,
-      githubId: result.user.githubId,
+      githubId: result.user.githubId, // 업데이트된 값 반영
       hasGithubToken: result.user.hasGithubToken,
-      githubToken: "",
+      githubToken: "", // 저장 후 입력창 초기화
     }));
 
     setEditMode(false);
-  }, [profile.name, profile.nickname, profile.image, profile.githubId, profile.githubToken, openModal, setUser]);
+  };
 
   /** 🔥 탈퇴 처리 */
-  const handleDeactivate = useCallback(() => {
+  const handleDeactivate = () => {
     setDeleteModalOpen(true);
-  }, []);
+  };
 
-  const confirmDeactivate = useCallback(async () => {
+  const confirmDeactivate = async () => {
     const res = await deactivateUser(accessToken);
     if (res.error) {
       openModal("❌ 탈퇴 처리 중 오류");
@@ -232,10 +214,10 @@ export default function ProfilePage() {
     openModal("😢 탈퇴가 완료되었습니다. 90일 동안 복구 가능합니다.");
     setIsDeleted(true);
     setUser(null);
-  }, [accessToken, openModal, setUser]);
+  };
 
   /** 🔥 계정 복구 */
-  const handleRestore = useCallback(async () => {
+  const handleRestore = async () => {
     const res = await restoreUser(accessToken);
     if (res.error) {
       openModal("❌ 계정 복구 실패");
@@ -244,68 +226,73 @@ export default function ProfilePage() {
 
     openModal("🎉 계정이 복구되었습니다!");
     setIsDeleted(false);
-  }, [accessToken, openModal]);
+  };
 
-  // ✅ useMemo로 구독 정보 텍스트 및 톤 계산 최적화
-  const subscriptionInfo = useMemo(() => {
-    let tone;
-    let text;
-
-    if (subscriptionError) {
-      tone = "error";
-      text = subscriptionError;
-    } else if (subscriptionLoading) {
-      tone = "muted";
-      text = "구독 정보를 불러오는 중...";
-    } else {
-      tone = "primary";
-      text = `현재 구독 요금제: ${subscription.label}`;
+  /** ⚡ MCP 토큰 발급/조회 */
+  const handleGetMcpToken = async () => {
+    try {
+      setMcpLoading(true);
+      const res = await axiosInstance.post('/api/mcp/token');
+      setMcpToken(res.data.mcpToken);
+      setShowMcpModal(true);
+    } catch (err) {
+      console.error("Failed to issue MCP token", err);
+      openModal("❌ MCP 토큰 발급 실패");
+    } finally {
+      setMcpLoading(false);
     }
+  };
 
-    return { text, tone };
-  }, [subscriptionError, subscriptionLoading, subscription.label]);
+  /** ⚡ MCP 토큰 재발급 */
+  const handleRegenerateMcpToken = async () => {
+    try {
+      setMcpLoading(true);
+      const res = await axiosInstance.put('/api/mcp/token/regenerate');
+      setMcpToken(res.data.mcpToken);
+      openModal("✅ MCP 토큰이 재생성되었습니다. 기존 연결은 더 이상 작동하지 않습니다.");
+    } catch (err) {
+      console.error("Failed to regenerate MCP token", err);
+      openModal("❌ MCP 토큰 재생성 실패");
+    } finally {
+      setMcpLoading(false);
+    }
+  };
 
-  // ✅ useCallback으로 모아이 수량 변경 핸들러 메모이제이션
-  const handleMoaiCountChange = useCallback((e) => {
-    const value = e.target.value;
-    localStorage.setItem("moaiCount", value);
-    globalThis.dispatchEvent(new Event("storage"));
-    setMoaiCount(JSON.parse(value));
-  }, []);
-
-  // ✅ useCallback으로 워킹 모아이 토글 핸들러 메모이제이션
-  const handleWalkingMoaiToggle = useCallback((e) => {
-    const checked = e.target.checked;
-    localStorage.setItem("walkingMoai", checked);
-    globalThis.dispatchEvent(new Event("storage"));
-    setWalkingMoaiEnabled(checked);
-  }, []);
-
-  // ✅ useCallback으로 모달 닫기 핸들러 메모이제이션
-  const handleDeleteModalClose = useCallback(() => {
-    setDeleteModalOpen(false);
-  }, []);
-
-  const handleModalClose = useCallback(() => {
-    setModalOpen(false);
-  }, []);
-
-  const handleEditModeCancel = useCallback(() => {
-    setEditMode(false);
-  }, []);
-
-  const handleEditModeToggle = useCallback(() => {
-    setEditMode(true);
-  }, []);
-
-  // ✅ 프로필 이미지 URL 정리
-  useEffect(() => {
-    return () => {
-      if (profile.preview && profile.image) {
-        URL.revokeObjectURL(profile.preview);
+  /** MCP 설정 JSON 생성 */
+  const mcpConfigJson = mcpToken ? JSON.stringify({
+    mcpServers: {
+      "coai": {
+        "command": "/opt/homebrew/bin/node",
+        "args": [
+          "/Users/bangseong-il/Desktop/JAVA/FinalProject/backend/mcp-bridge/index.js"
+        ],
+        "env": {
+          "COAI_SERVER_URL": "https://localhost:9443/api/mcp/analyze",
+          "COAI_MCP_TOKEN": mcpToken
+        }
       }
-    };
-  }, [profile.preview, profile.image]);
+    }
+  }, null, 2) : "";
+
+  let subscriptionTone;
+
+  if (subscriptionError) {
+    subscriptionTone = "error";
+  } else if (subscriptionLoading) {
+    subscriptionTone = "muted";
+  } else {
+    subscriptionTone = "primary";
+  }
+
+  let subscriptionText;
+
+  if (subscriptionLoading) {
+    subscriptionText = "구독 정보를 불러오는 중...";
+  } else if (subscriptionError) {
+    subscriptionText = subscriptionError;
+  } else {
+    subscriptionText = `현재 구독 요금제: ${subscription.label}`;
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -316,15 +303,15 @@ export default function ProfilePage() {
           profile={profile}
           setProfile={setProfile}
           handleImageChange={handleImageChange}
-          onCancel={handleEditModeCancel}
+          onCancel={() => setEditMode(false)}
           onSave={handleSave}
         />
       ) : (
         <ViewModeCard
           profile={profile}
           maskEmail={maskEmail}
-          subscriptionInfo={subscriptionInfo}
-          onEdit={handleEditModeToggle}
+          subscriptionInfo={{text: subscriptionText, tone: subscriptionTone}}
+          onEdit={() => setEditMode(true)}
         />
       )}
 
@@ -352,7 +339,7 @@ export default function ProfilePage() {
                 </button>
               ) : (
                 <button
-                  onClick={handleGithubConnect}
+                  onClick={handleGithubConnect} // ✔ 연결하기
                   className="px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
                 >
                   연결하기
@@ -369,19 +356,24 @@ export default function ProfilePage() {
           <div className="flex justify-between items-center">
             <div>
               <h3 className="font-medium text-lg">모아이 대량 발생</h3>
-              <p className="text-gray-500 text-sm">최대 {moaiCount}마리의 모아이가 출현합니다.</p>
+              <p className="text-gray-500 text-sm">최대 {JSON.parse(localStorage.getItem("moaiCount") ?? "1")}마리의
+                모아이가 출현합니다.</p>
             </div>
             <span className="font-bold text-lg text-blue-600">
-              {moaiCount} 마리
-            </span>
+                             {JSON.parse(localStorage.getItem("moaiCount") ?? "1")} 마리
+                        </span>
           </div>
           <input
             type="range"
             min="1"
             max="10"
             step="1"
-            value={moaiCount}
-            onChange={handleMoaiCountChange}
+            value={JSON.parse(localStorage.getItem("moaiCount") ?? "1")}
+            onChange={(e) => {
+              localStorage.setItem("moaiCount", e.target.value);
+              globalThis.dispatchEvent(new Event("storage"));
+              setProfile({...profile});
+            }}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
           />
           <div className="flex items-center justify-between p-4 border-t pt-4 mt-4">
@@ -393,14 +385,18 @@ export default function ProfilePage() {
               htmlFor="walkingMoai"
               className="relative inline-flex items-center cursor-pointer"
             >
+              {/* 접근성용 레이블 */}
               <span className="sr-only">워킹 모아이 설정</span>
 
               <input
                 type="checkbox"
-                id="walkingMoai"
                 className="sr-only peer"
-                checked={walkingMoaiEnabled}
-                onChange={handleWalkingMoaiToggle}
+                checked={JSON.parse(localStorage.getItem("walkingMoai") ?? "true")}
+                onChange={(e) => {
+                  localStorage.setItem("walkingMoai", e.target.checked);
+                  globalThis.dispatchEvent(new Event("storage"));
+                  setProfile({ ...profile });
+                }}
               />
 
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4
@@ -415,6 +411,91 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* MCP 연결 설정 */}
+      <div className="mt-14">
+        <h2 className="text-xl font-semibold mb-4">🔌 Local AI 연결 (MCP)</h2>
+
+        <div className="border rounded-2xl shadow-sm p-6 space-y-4">
+          <p className="text-gray-500 text-sm">
+            Claude Desktop이나 다른 MCP 호환 클라이언트에서 CodeNose AI를 사용할 수 있습니다.
+          </p>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleGetMcpToken}
+              disabled={mcpLoading}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+            >
+              {mcpLoading ? '처리 중...' : '연결 설정 보기'}
+            </button>
+
+            {mcpToken && (
+              <button
+                onClick={handleRegenerateMcpToken}
+                disabled={mcpLoading}
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+              >
+                토큰 재생성
+              </button>
+            )}
+          </div>
+
+          <p className="text-xs text-gray-400">
+            토큰을 재생성하면 기존 연결이 무효화됩니다. 새 토큰으로 설정 파일을 업데이트해야 합니다.
+          </p>
+        </div>
+      </div>
+
+      {/* MCP Connect Modal */}
+      {showMcpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl p-6 relative animate-fade-in-up border border-gray-700">
+            <button
+              onClick={() => setShowMcpModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-white"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+
+            <h2 className="text-xl font-bold mb-4 text-indigo-400">⚡️ Connect CodeNose AI to Your IDE</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+              Copy the configuration below and add it to your <code className="bg-gray-700 px-1 rounded">claude_desktop_config.json</code> file.
+            </p>
+
+            <div className="relative">
+                            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto font-mono border border-gray-700">
+                                {mcpConfigJson}
+                            </pre>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(mcpConfigJson);
+                  openModal("📋 클립보드에 복사되었습니다!");
+                }}
+                className="absolute top-2 right-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2 py-1 rounded transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              <button
+                onClick={handleRegenerateMcpToken}
+                disabled={mcpLoading}
+                className="px-3 py-1 bg-orange-500 hover:bg-orange-400 text-white text-sm rounded transition-colors disabled:opacity-50"
+              >
+                {mcpLoading ? '처리 중...' : '🔄 토큰 재생성'}
+              </button>
+              <button
+                onClick={() => setShowMcpModal(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 계정 관리 */}
       <div className="mt-14">
@@ -444,7 +525,7 @@ export default function ProfilePage() {
       {/* 탈퇴 확인 모달 */}
       <AlertModal
         open={deleteModalOpen}
-        onClose={handleDeleteModalClose}
+        onClose={() => setDeleteModalOpen(false)}
         onConfirm={confirmDeactivate}
         type="warning"
         title="회원 탈퇴"
@@ -455,7 +536,7 @@ export default function ProfilePage() {
       {/* 일반 알림 모달 */}
       <AlertModal
         open={modalOpen}
-        onClose={handleModalClose}
+        onClose={() => setModalOpen(false)}
         title="알림"
         message={modalMsg}
         confirmText="확인"

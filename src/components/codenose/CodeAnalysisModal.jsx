@@ -3,9 +3,11 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, FolderIcon, DocumentIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import axiosInstance from '../../server/AxiosConfig';
 import { useNavigate } from 'react-router-dom';
+import { useLogin } from '../../context/login/useLogin';
 
 const CodeAnalysisModal = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
+    const { user } = useLogin();
 
     // Modal steps: 'github-id' -> 'repo-select' -> 'file-tree' -> 'file-confirm'
     const [step, setStep] = useState('github-id');
@@ -185,7 +187,7 @@ const CodeAnalysisModal = ({ isOpen, onClose }) => {
                 owner: selectedRepo.owner,
                 repo: selectedRepo.name,
                 filePath: selectedFile.path,
-                userId: 1 // TODO: Get from auth context
+                userId: user?.userId
             });
 
             console.log('Save response:', saveResponse.data); // 디버깅용

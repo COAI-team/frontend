@@ -64,17 +64,15 @@ const AnalysisPage = () => {
     }, [useRag]);
 
     // Smart Suggestion Logic (Move to onSearch handler)
-    const handleOwnerSearch = (owner) => {
-        if (!owner || !user) return;
+    const handleOwnerSearch = (owner, isOwnRepo) => {
+        if (!owner) return;
         
-        // Assumption: owner matches user.nickname or name
-        const isMyRepo = owner.toLowerCase() === (user.nickname || user.name || user.githubId || "").toLowerCase();
-        
-        if (isMyRepo) {
-            setUseRag(true);
-        } else {
+        // isOwnRepo: RepositorySelector에서 사용자의 githubId와 비교한 결과
+        // 본인 레포일 경우만 RAG 활성화 유지, 다른 사용자면 noRAG로 전환
+        if (!isOwnRepo) {
             setUseRag(false);
         }
+        // 사용자가 자유롭게 토글할 수 있도록, 본인 레포일 때는 기존 상태 유지
     };
 
 
@@ -426,23 +424,6 @@ const AnalysisPage = () => {
                                         </div>
                                     </div>
                                 </div>
-                                
-                                {isNew && (
-                                    <div className="mt-6 pt-6 border-t flex justify-center gap-3">
-                                        <button
-                                            onClick={() => window.location.href = '/codeAnalysis/new'}
-                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                                        >
-                                            새로운 분석하기
-                                        </button>
-                                        <button
-                                            onClick={() => navigate(`/codeboard/write/${analysisResult.analysisId}`)}
-                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                                        >
-                                            분석결과 공유하기
-                                        </button>
-                                    </div>
-                                )}
 
                                 {resolvedAnalysisId && (
                                     <div className="mt-6 pt-6 border-t flex justify-center gap-3">
@@ -450,7 +431,7 @@ const AnalysisPage = () => {
                                             onClick={() => window.location.href = '/codeAnalysis/new'}
                                             className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                         >
-                                            다른코드 분석하기
+                                            새로운 분석하기
                                         </button>
 
                                         <button
