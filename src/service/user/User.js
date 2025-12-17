@@ -57,9 +57,24 @@ export const updateMyInfo = (payload) =>
   axiosInstance.put("/users/me", createFormData(payload)).then(res => res.data);
 
 // ✅ GitHub API
-export const loginWithGithub = (code, mode) => {
-  const query = mode ? `?code=${code}&mode=${mode}` : `?code=${code}`;
-  return axiosInstance.get(`/auth/github/callback${query}`).then(res => res.data);
+export const loginWithGithub = async (code, mode) => {
+  try {
+    const query = mode ? `?code=${code}&mode=${mode}` : `?code=${code}`;
+    const response = await axiosInstance.get(`/auth/github/callback${query}`, {
+      _skipAuthRedirect: true
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ [GitHub Login] 오류:", error);
+
+    return {
+      error: {
+        message: error.response?.data?.message || error.message || "GitHub 로그인에 실패했습니다.",
+        response: error.response,
+        status: error.response?.status
+      }
+    };
+  }
 };
 
 export const getGithubUserInfo = () =>

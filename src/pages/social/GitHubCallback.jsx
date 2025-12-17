@@ -200,36 +200,56 @@ export default function GitHubCallback() {
       return;
     }
 
-    const githubResult = await loginWithGithub(code, mode);
+    try {
+      const githubResult = await loginWithGithub(code, mode);
 
-    if (githubResult?.error) {
-      console.error("❌ GitHub 처리 실패:", githubResult.error);
-      showAlert("error", "GitHub 처리 실패", githubResult.error);
-      return;
-    }
+      if (githubResult?.error) {
+        console.error("❌ GitHub 처리 실패:", githubResult.error);
 
-    /* 🔗 GitHub 계정 연동 모드 */
-    if (mode === "link") {
-      await handleLinkMode(githubResult);
-      return;
-    }
+        // ⭐ 에러 객체를 문자열로 변환
+        const errorMessage =
+          githubResult.error.response?.data?.message ||
+          githubResult.error.message ||
+          "GitHub 로그인 중 오류가 발생했습니다.";
 
-    /* 🔐 GitHub 로그인 모드 */
-    const { loginResponse } = githubResult;
-
-    /* ⛔ 기존 일반 계정 존재 → GitHub 연동 필요 */
-    if (!loginResponse) {
-      if (githubResult.needLink) {
-        await handleNeedLink(githubResult);
+        showAlert("error", "GitHub 처리 실패", errorMessage);
         return;
       }
 
-      showAlert("error", "로그인 오류", githubResult.message);
-      return;
-    }
+      /* 🔗 GitHub 계정 연동 모드 */
+      if (mode === "link") {
+        await handleLinkMode(githubResult);
+        return;
+      }
 
-    /* 🎉 정상 GitHub 로그인 */
-    handleSuccessfulLogin(loginResponse);
+      /* 🔐 GitHub 로그인 모드 */
+      const { loginResponse } = githubResult;
+
+      /* ⛔ 기존 일반 계정 존재 → GitHub 연동 필요 */
+      if (!loginResponse) {
+        if (githubResult.needLink) {
+          await handleNeedLink(githubResult);
+          return;
+        }
+
+        showAlert("error", "로그인 오류", githubResult.message || "알 수 없는 오류");
+        return;
+      }
+
+      /* 🎉 정상 GitHub 로그인 */
+      handleSuccessfulLogin(loginResponse);
+
+    } catch (err) {
+      console.error("❌ GitHub 처리 중 예외:", err);
+
+      // ⭐ 예외 객체를 문자열로 변환
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "GitHub 로그인 처리 중 오류가 발생했습니다.";
+
+      showAlert("error", "오류 발생", errorMessage);
+    }
   }, [showAlert, handleLinkMode, handleNeedLink, handleSuccessfulLogin]);
 
   useEffect(() => {
