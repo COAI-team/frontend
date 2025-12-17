@@ -126,6 +126,7 @@
   min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  table-layout: fixed;
 }
 
 .shared-solutions-table thead {
@@ -225,6 +226,8 @@
 .solution-tabs {
   display: flex;
   gap: 0;
+  align-items: center;       
+  white-space: nowrap;    
 }
 
 .solution-tab-button {
@@ -239,6 +242,10 @@
   transition: color 0.2s, border-color 0.2s;
   white-space: nowrap;
   flex-shrink: 0;
+
+  display: flex;         
+  align-items: center;     
+  gap: 6px;                   
 }
 
 .solution-tab-button:hover {
@@ -255,10 +262,16 @@ html.dark .solution-tab-button.active {
   border-bottom-color: #60a5fa;
 }
 
+/* 아이콘 줄어들지 않게 */
+.solution-tab-button svg {
+  flex-shrink: 0;
+}
+
 /* 탭 컨텐츠 */
 .solution-tab-content {
   padding: 1.5rem 0 0 0;
 }
+
 
 /* 코드 블록 */
 .solution-code-block {

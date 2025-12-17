@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { getSharedSubmissions } from '../../service/algorithm/algorithmApi';
 import '../../styles/SharedSolutions.css';
+import { Code2, Bot, MessageSquare } from 'lucide-react';
+
+// import React, { useState, useEffect } from 'react';
+// import { getSharedSubmissions, toggleLike, getComments, createComment, deleteComment } from '../../service/algorithm/algorithmSocialApi';
+// import '../../styles/SharedSolutions.css';
 
 const SharedSolutions = ({ problemId }) => {
   const [solutions, setSolutions] = useState([]);
@@ -168,6 +173,15 @@ const SharedSolutions = ({ problemId }) => {
           <>
             <div className="shared-solutions-table-wrapper">
               <table className="shared-solutions-table">
+                <colgroup>
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '160px' }} />
+                </colgroup>
+
                 <thead>
                   <tr>
                     <th>제출 번호</th>
@@ -288,10 +302,16 @@ const SolutionDetail = ({ solution, onLike }) => {
     setNewComment('');
   };
 
+  // const tabs = [
+  //   { id: 'code', label: '제출 코드', icon: '💻' },
+  //   { id: 'feedback', label: 'AI 피드백', icon: '🤖' },
+  //   { id: 'comments', label: `댓글 (${comments.length})`, icon: '💬' }
+  // ];
+
   const tabs = [
-    { id: 'code', label: '제출 코드', icon: '💻' },
-    { id: 'feedback', label: 'AI 피드백', icon: '🤖' },
-    { id: 'comments', label: `댓글 (${comments.length})`, icon: '💬' }
+    { id: 'code', label: '제출 코드', icon: Code2 },
+    { id: 'feedback', label: 'AI 피드백', icon: Bot },
+    { id: 'comments', label: `댓글 (${comments.length})`, icon: MessageSquare }
   ];
 
   return (
@@ -327,15 +347,20 @@ const SolutionDetail = ({ solution, onLike }) => {
       {/* 탭 메뉴 */}
       <div className="solution-tabs-container">
         <div className="solution-tabs">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`solution-tab-button ${activeTab === tab.id ? 'active' : ''}`}
-            >
-              <span>{tab.icon}</span> {tab.label}
-            </button>
-          ))}
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`solution-tab-button ${activeTab === tab.id ? 'active' : ''}`}
+              >
+                <Icon size={18} strokeWidth={1.8} />
+                <span className="tab-label">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
