@@ -9,20 +9,21 @@ const SharedSolutions = ({ problemId }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [expandedId, setExpandedId] = useState(null);
+  const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'likes'
+  const [selectedLanguage, setSelectedLanguage] = useState(''); // 언어 필터
   const pageSize = 20;
 
   useEffect(() => {
     fetchSolutions(currentPage);
-  }, [problemId, currentPage]);
+  }, [problemId, currentPage, sortBy, selectedLanguage]);
 
   const fetchSolutions = async (page) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await getSharedSubmissions(problemId, page, pageSize);
+      const response = await getSharedSubmissions(problemId, page, pageSize, sortBy, selectedLanguage);
       
-      // API 응답 구조 확인
       console.log('API 응답:', response);
       
       if (response.error) {
@@ -46,27 +47,11 @@ const SharedSolutions = ({ problemId }) => {
     setExpandedId(expandedId === submissionId ? null : submissionId);
   };
 
-  const getStatusText = (status) => {
-    const statusMap = {
-      'AC': '맞았습니다',
-      'WA': '틀렸습니다',
-      'TLE': '시간초과',
-      'MLE': '메모리초과',
-      'RE': '런타임에러',
-      'CE': '컴파일에러'
-    };
-    return statusMap[status] || status;
-  };
-
-  const getStatusClass = (status) => {
-    const classMap = {
-      'AC': 'status-badge-ac',
-      'WA': 'status-badge-wa',
-      'TLE': 'status-badge-tle',
-      'MLE': 'status-badge-mle',
-      'RE': 'status-badge-re'
-    };
-    return `status-badge ${classMap[status] || 'status-badge-default'}`;
+  // 좋아요 처리
+  const handleLike = async (submissionId) => {
+    // TODO: 좋아요 API 호출
+    console.log('좋아요:', submissionId);
+    // 성공 시 solutions 상태 업데이트
   };
 
   const formatDate = (dateValue) => {
@@ -95,6 +80,9 @@ const SharedSolutions = ({ problemId }) => {
     
     return '-';
   };
+
+  // 언어 목록 추출 (중복 제거)
+  const availableLanguages = [...new Set(solutions.map(s => s.language))].filter(Boolean);
 
   if (loading && currentPage === 1) {
     return (
@@ -130,13 +118,46 @@ const SharedSolutions = ({ problemId }) => {
   return (
     <div className="shared-solutions-container">
       <div className="shared-solutions-content">
+        {/* 헤더 및 필터 */}
         <div className="shared-solutions-header">
-          <h2 className="shared-solutions-title">
-            다른 사람의 풀이
-          </h2>
-          <p className="shared-solutions-count">
-            총 {solutions.length}개의 풀이
-          </p>
+          <div className="header-left">
+            <h2 className="shared-solutions-title">
+              다른 사람의 풀이
+            </h2>
+            <p className="shared-solutions-count">
+              총 {solutions.length}개의 풀이
+            </p>
+          </div>
+          
+          <div className="header-filters">
+            {/* 정렬 옵션 */}
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="filter-select-inline"
+            >
+              <option value="latest">최신순</option>
+              <option value="likes">좋아요순</option>
+            </select>
+
+            {/* 언어 필터 */}
+            <select
+              value={selectedLanguage}
+              onChange={(e) => {
+                setSelectedLanguage(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="filter-select-inline"
+            >
+              <option value="">전체 언어</option>
+              {availableLanguages.map(lang => (
+                <option key={lang} value={lang}>{lang}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {solutions.length === 0 ? (
@@ -150,10 +171,10 @@ const SharedSolutions = ({ problemId }) => {
                 <thead>
                   <tr>
                     <th>제출 번호</th>
-                    <th>결과</th>
+                    <th>작성자</th>
                     <th>언어</th>
                     <th>점수</th>
-                    <th>메모리 / 시간</th>
+                    <th>좋아요</th>
                     <th>제출 일시</th>
                   </tr>
                 </thead>
@@ -163,18 +184,32 @@ const SharedSolutions = ({ problemId }) => {
                       {/* 테이블 행 */}
                       <tr onClick={() => toggleExpand(solution.submissionId)}>
                         <td>#{solution.submissionId}</td>
-                        <td>
-                          <span className={getStatusClass(solution.judgeResult)}>
-                            {getStatusText(solution.judgeResult)}
-                          </span>
+                        <td style={{ fontWeight: 500 }}>
+                          {solution.userName || solution.userNickname || solution.nickname || '익명'}
                         </td>
-                        <td>{solution.language}</td>
+                        <td>{solution.language || solution.languageName || '-'}</td>
                         <td style={{ fontWeight: 500 }}>
                           {solution.finalScore ? `${solution.finalScore}점` : '-'}
                         </td>
-                        <td className="text-secondary">
-                          {solution.memoryUsage ? `${Math.round(solution.memoryUsage / 1024)}KB` : '-'} /
-                          {solution.executionTime ? ` ${solution.executionTime}ms` : ' -'}
+                        <td>
+                          <span className="like-count-display">
+                            <svg 
+                              width="16" 
+                              height="16"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              viewBox="0 0 24 24"
+                              style={{ color: 'var(--text-secondary)' }}
+                            >
+                              <path 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                              />
+                            </svg>
+                            <span>{solution.likeCount || 0}</span>
+                          </span>
                         </td>
                         <td className="text-secondary">
                           {formatDate(solution.submittedAt)}
@@ -185,7 +220,10 @@ const SharedSolutions = ({ problemId }) => {
                       {expandedId === solution.submissionId && (
                         <tr className="solution-detail-row">
                           <td colSpan="6" className="solution-detail-cell">
-                            <SolutionDetail solution={solution} />
+                            <SolutionDetail 
+                              solution={solution} 
+                              onLike={() => handleLike(solution.submissionId)}
+                            />
                           </td>
                         </tr>
                       )}
@@ -226,8 +264,8 @@ const SharedSolutions = ({ problemId }) => {
   );
 };
 
-const SolutionDetail = ({ solution }) => {
-  const [activeTab, setActiveTab] = useState('code'); // 'code', 'feedback', 'comments'
+const SolutionDetail = ({ solution, onLike }) => {
+  const [activeTab, setActiveTab] = useState('code');
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
 
@@ -258,7 +296,7 @@ const SolutionDetail = ({ solution }) => {
 
   return (
     <div>
-      {/* 점수 정보 - 항상 표시 */}
+      {/* 점수 정보 */}
       <div className="score-grid">
         <div className="score-card">
           <div className="score-card-label">최종 점수</div>
@@ -309,6 +347,28 @@ const SolutionDetail = ({ solution }) => {
             <pre className="solution-code-block">
               <code>{solution.sourceCode}</code>
             </pre>
+            
+            {/* 좋아요 버튼 */}
+            <div className="solution-like-section">
+              <button
+                onClick={onLike}
+                className={`solution-like-button ${solution.isLiked ? 'liked' : ''}`}
+              >
+                <svg 
+                  className="like-icon"
+                  viewBox="0 0 24 24" 
+                  fill={solution.isLiked ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+                <span className="like-text">
+                  {solution.isLiked ? '좋아요 취소' : '좋아요'}
+                </span>
+                <span className="like-count">{solution.likeCount || 0}</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -324,6 +384,28 @@ const SolutionDetail = ({ solution }) => {
                 AI 피드백이 아직 생성되지 않았습니다.
               </div>
             )}
+            
+            {/* 좋아요 버튼 */}
+            <div className="solution-like-section">
+              <button
+                onClick={onLike}
+                className={`solution-like-button ${solution.isLiked ? 'liked' : ''}`}
+              >
+                <svg 
+                  className="like-icon"
+                  viewBox="0 0 24 24" 
+                  fill={solution.isLiked ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+                <span className="like-text">
+                  {solution.isLiked ? '좋아요 취소' : '좋아요'}
+                </span>
+                <span className="like-count">{solution.likeCount || 0}</span>
+              </button>
+            </div>
           </div>
         )}
 
