@@ -1,9 +1,9 @@
-import {UserCircleIcon} from "@heroicons/react/24/solid";
-import {EditModeCardPropTypes} from "../../utils/propTypes";
-import {HiOutlineCamera} from "react-icons/hi";
-import {useState, useCallback, useMemo, memo} from "react";
+import { UserCircleIcon } from "@heroicons/react/24/solid";
+import { EditModeCardPropTypes } from "../../utils/propTypes";
+import { HiOutlineCamera } from "react-icons/hi";
+import { useState, useCallback, useMemo, memo } from "react";
 import RuleItem from "../signup/RuleItem";
-import {validateNameRules, validateNicknameRules} from "../../utils/validators";
+import { validateNameRules, validateNicknameRules } from "../../utils/validators";
 
 const EditModeCard = ({
                         profile,
@@ -15,118 +15,135 @@ const EditModeCard = ({
   const [focusName, setFocusName] = useState(false);
   const [focusNickname, setFocusNickname] = useState(false);
 
-  // ✅ useMemo로 규칙 검사 메모이제이션
-  const nameRules = useMemo(() =>
-      validateNameRules(profile.name),
+  /** 규칙 검사 */
+  const nameRules = useMemo(
+    () => validateNameRules(profile.name),
     [profile.name]
   );
 
-  const nicknameRules = useMemo(() =>
-      validateNicknameRules(profile.nickname),
+  const nicknameRules = useMemo(
+    () => validateNicknameRules(profile.nickname),
     [profile.nickname]
   );
 
-  // ✅ useMemo로 표시 조건 메모이제이션
-  const showNameRules = useMemo(() =>
-      focusName || profile.name.length > 0,
+  /** 규칙 표시 조건 */
+  const showNameRules = useMemo(
+    () => focusName && profile.name.length > 0,
     [focusName, profile.name.length]
   );
 
-  const showNicknameRules = useMemo(() =>
-      focusNickname || profile.nickname.length > 0,
+  const showNicknameRules = useMemo(
+    () => focusNickname && profile.nickname.length > 0,
     [focusNickname, profile.nickname.length]
   );
 
-  // ✅ useMemo로 유효성 검사 메모이제이션
-  const isNameValid = useMemo(() =>
-      nameRules.noSpaceSpecial,
+  /** 유효성 검사 */
+  const isNameValid = useMemo(
+    () => nameRules.noSpaceSpecial,
     [nameRules.noSpaceSpecial]
   );
 
-  const isNicknameValid = useMemo(() =>
-      nicknameRules.hasValidLength && nicknameRules.isAllowedChars,
-    [nicknameRules.hasValidLength, nicknameRules.isAllowedChars]
-  );
+  const isNicknameValid = useMemo(() => {
+    if (profile.nickname.length === 0) return true;
+    return (
+      nicknameRules.hasValidLength &&
+      nicknameRules.isAllowedChars
+    );
+  }, [profile.nickname, nicknameRules]);
 
-  // ✅ useMemo로 저장 버튼 비활성화 상태 메모이제이션
-  const isSaveDisabled = useMemo(() =>
-      !isNameValid || !isNicknameValid,
+  /** 저장 버튼 상태 */
+  const isSaveDisabled = useMemo(
+    () => Boolean(!isNameValid || !isNicknameValid),
     [isNameValid, isNicknameValid]
   );
 
-  // ✅ useCallback으로 이벤트 핸들러 메모이제이션
-  const handleNicknameChange = useCallback((e) => {
-    const value = e.target.value;
-    setProfile((prev) => ({...prev, nickname: value}));
-  }, [setProfile]);
-
+  /** 이벤트 핸들러 */
   const handleNameChange = useCallback((e) => {
     const value = e.target.value;
-    setProfile((prev) => ({...prev, name: value}));
+    console.log("이름 입력:", value);
+
+    setProfile((prev) => ({
+      ...prev,
+      name: value.replaceAll(/\s+/g, " ").trim(),
+    }));
   }, [setProfile]);
 
-  const handleGithubIdChange = useCallback((e) => {
-    setProfile(prev => ({...prev, githubId: e.target.value}));
+
+  const handleNicknameChange = useCallback((e) => {
+    console.log("닉네임 입력:", e.target.value);
+
+    setProfile((prev) => ({
+      ...prev,
+      nickname: e.target.value,
+    }));
   }, [setProfile]);
 
-  const handleGithubTokenChange = useCallback((e) => {
-    setProfile(prev => ({...prev, githubToken: e.target.value}));
-  }, [setProfile]);
+  const handleGithubIdChange = useCallback(
+    (e) => {
+      setProfile((prev) => ({ ...prev, githubId: e.target.value }));
+    },
+    [setProfile]
+  );
 
-  const handleNameFocus = useCallback(() => {
-    setFocusName(true);
-  }, []);
-
-  const handleNameBlur = useCallback(() => {
-    setFocusName(false);
-  }, []);
-
-  const handleNicknameFocus = useCallback(() => {
-    setFocusNickname(true);
-  }, []);
-
-  const handleNicknameBlur = useCallback(() => {
-    setFocusNickname(false);
-  }, []);
+  const handleGithubTokenChange = useCallback(
+    (e) => {
+      setProfile((prev) => ({ ...prev, githubToken: e.target.value }));
+    },
+    [setProfile]
+  );
 
   const openTokenPage = useCallback(() => {
-    window.open('https://github.com/settings/tokens', '_blank');
+    window.open("https://github.com/settings/tokens", "_blank");
   }, []);
 
   const handleSaveClick = useCallback(() => {
-    onSave(isSaveDisabled);
-  }, [onSave, isSaveDisabled]);
+    console.log("저장 클릭");
+    console.log("profile:", profile);
+    console.log("isNameValid:", isNameValid);
+    console.log("isNicknameValid:", isNicknameValid);
 
-  // ✅ useMemo로 클래스명 메모이제이션
-  const nameInputClassName = useMemo(() =>
-      `mt-1 w-full border rounded-md px-4 py-2 
-        ${!isNameValid && profile.name.length > 0 ? "border-red-500" : ""}`,
+    if (!isSaveDisabled) {
+      onSave();
+    }
+  }, [onSave, isSaveDisabled, profile, isNameValid, isNicknameValid]);
+
+  /** 클래스명 */
+  const nameInputClassName = useMemo(
+    () =>
+      `mt-1 w-full border rounded-md px-4 py-2 ${
+        !isNameValid && profile.name.length > 0
+          ? "border-red-500"
+          : ""
+      }`,
     [isNameValid, profile.name.length]
   );
 
-  const nicknameInputClassName = useMemo(() =>
-      `mt-1 w-full border rounded-md px-4 py-2 
-        ${!isNicknameValid && profile.nickname.length > 0 ? "border-red-500" : ""}`,
+  const nicknameInputClassName = useMemo(
+    () =>
+      `mt-1 w-full border rounded-md px-4 py-2 ${
+        !isNicknameValid && profile.nickname.length > 0
+          ? "border-red-500"
+          : ""
+      }`,
     [isNicknameValid, profile.nickname.length]
   );
 
-  const saveButtonClassName = useMemo(() =>
+  const saveButtonClassName = useMemo(
+    () =>
       `px-6 py-2 rounded-md text-white ${
-        isNameValid && isNicknameValid
-          ? "bg-blue-600 hover:bg-blue-500"
-          : "bg-gray-400 cursor-not-allowed"
+        isSaveDisabled
+          ? "bg-gray-400 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-500"
       }`,
-    [isNameValid, isNicknameValid]
+    [isSaveDisabled]
   );
 
   return (
     <div className="border rounded-2xl p-10 shadow-sm">
-
       {/* 프로필 이미지 */}
       <div className="flex justify-center mb-6">
         <div className="relative w-32 h-32">
-          <div
-            className="w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+          <div className="w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
             {profile.preview ? (
               <img
                 src={profile.preview}
@@ -134,24 +151,21 @@ const EditModeCard = ({
                 alt="프로필 이미지"
               />
             ) : (
-              <UserCircleIcon className="w-28 h-28 text-gray-400"/>
+              <UserCircleIcon className="w-28 h-28 text-gray-400" />
             )}
           </div>
 
-          {/* 카메라 버튼 */}
           <label
             htmlFor="profile-upload"
-            className="absolute bottom-0 right-0 w-10 h-10 bg-white dark:bg-gray-800 rounded-full shadow flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            aria-label="프로필 이미지 변경"
+            className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full shadow flex items-center justify-center cursor-pointer"
           >
-            <HiOutlineCamera className="w-6 h-6 text-gray-700 dark:text-gray-300"/>
+            <HiOutlineCamera className="w-6 h-6 text-gray-700" />
             <input
               id="profile-upload"
               type="file"
               accept="image/*"
               onChange={handleImageChange}
               className="hidden"
-              aria-label="프로필 이미지 파일 선택"
             />
           </label>
         </div>
@@ -159,29 +173,21 @@ const EditModeCard = ({
 
       {/* 입력 폼 */}
       <div className="space-y-6">
-
         {/* 이름 */}
         <div>
           <label
             htmlFor="name"
-            className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            이름
-          </label>
+            className="text-sm font-medium">이름</label>
           <input
-            id="name"
             type="text"
             className={nameInputClassName}
             value={profile.name}
-            onFocus={handleNameFocus}
-            onBlur={handleNameBlur}
+            onFocus={() => setFocusName(true)}
+            onBlur={() => setFocusName(false)}
             onChange={handleNameChange}
-            aria-invalid={!isNameValid && profile.name.length > 0}
-            aria-describedby={showNameRules ? "name-rules" : undefined}
           />
-
-          {/* 이름 규칙 리스트 */}
           {showNameRules && (
-            <ul id="name-rules" className="mt-2 text-xs space-y-1">
+            <ul className="mt-2 text-xs">
               <RuleItem
                 ok={nameRules.noSpaceSpecial}
                 text="공백과 특수문자를 사용할 수 없습니다."
@@ -194,24 +200,17 @@ const EditModeCard = ({
         <div>
           <label
             htmlFor="nickname"
-            className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            닉네임
-          </label>
+            className="text-sm font-medium">닉네임</label>
           <input
-            id="nickname"
             type="text"
             className={nicknameInputClassName}
             value={profile.nickname}
-            onFocus={handleNicknameFocus}
-            onBlur={handleNicknameBlur}
+            onFocus={() => setFocusNickname(true)}
+            onBlur={() => setFocusNickname(false)}
             onChange={handleNicknameChange}
-            aria-invalid={!isNicknameValid && profile.nickname.length > 0}
-            aria-describedby={showNicknameRules ? "nickname-rules" : undefined}
           />
-
-          {/* 닉네임 규칙 리스트 */}
           {showNicknameRules && (
-            <ul id="nickname-rules" className="mt-2 text-xs space-y-1">
+            <ul className="mt-2 text-xs">
               <RuleItem
                 ok={nicknameRules.hasValidLength}
                 text="길이는 3~20자여야 합니다."
@@ -228,16 +227,12 @@ const EditModeCard = ({
         <div>
           <label
             htmlFor="email"
-            className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            이메일
-          </label>
+            className="text-sm font-medium">이메일</label>
           <input
-            id="email"
             type="email"
-            className="mt-1 w-full border rounded-md px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+            className="mt-1 w-full border rounded-md px-4 py-2 bg-gray-100 cursor-not-allowed"
             value={profile.email}
             readOnly
-            aria-readonly="true"
           />
         </div>
 
@@ -245,48 +240,40 @@ const EditModeCard = ({
         <div>
           <label
             htmlFor="githubId"
-            className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            GitHub ID
-          </label>
+            className="text-sm font-medium">GitHub ID</label>
           <input
-            id="githubId"
             type="text"
-            className="mt-1 w-full border rounded-md px-4 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+            className="mt-1 w-full border rounded-md px-4 py-2"
             value={profile.githubId || ""}
-            placeholder="GitHub 아이디를 입력하세요"
             onChange={handleGithubIdChange}
           />
         </div>
 
         {/* GitHub Token */}
         <div>
-          <div className="flex justify-between items-center mb-1">
+          <div className="flex justify-between mb-1">
             <label
               htmlFor="githubToken"
-              className="text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              GitHub Token
-            </label>
+              className="text-sm font-medium">GitHub Token</label>
             <button
               type="button"
               onClick={openTokenPage}
-              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+              className="text-xs text-blue-600 underline"
             >
               토큰 발급받기
             </button>
           </div>
           <input
-            id="githubToken"
             type="password"
-            className="mt-1 w-full border rounded-md px-4 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+            className="mt-1 w-full border rounded-md px-4 py-2"
             value={profile.githubToken || ""}
-            placeholder={profile.hasGithubToken ? "토큰이 저장되어 있습니다 (수정하려면 입력)" : "GitHub Personal Access Token (repo scope)"}
             onChange={handleGithubTokenChange}
-            autoComplete="off"
+            placeholder={
+              profile.hasGithubToken
+                ? "토큰이 저장되어 있습니다 (수정하려면 입력)"
+                : "GitHub Personal Access Token"
+            }
           />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            * Private Repository 접근 및 API 호출 제한 해제를 위해 필요합니다. (repo 권한 필요)
-          </p>
         </div>
       </div>
 
@@ -295,17 +282,15 @@ const EditModeCard = ({
         <button
           type="button"
           onClick={onCancel}
-          className="px-6 py-2 border rounded-md hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors"
+          className="px-6 py-2 border rounded-md"
         >
           취소
         </button>
-
         <button
           type="button"
           onClick={handleSaveClick}
           disabled={isSaveDisabled}
           className={saveButtonClassName}
-          aria-disabled={isSaveDisabled}
         >
           저장
         </button>
