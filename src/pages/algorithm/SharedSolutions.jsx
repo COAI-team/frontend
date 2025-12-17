@@ -182,6 +182,7 @@ const SharedSolutions = ({ problemId }) => {
                   <col style={{ width: '160px' }} />
                 </colgroup>
 
+
                 <thead>
                   <tr>
                     <th>제출 번호</th>
@@ -290,10 +291,29 @@ const SolutionDetail = ({ solution, onLike }) => {
 
     return (
       <div className="ai-feedback-content">
-        {solution.aiFeedback}
+        {stripMarkdown(solution.aiFeedback)}
       </div>
     );
   };
+
+  const stripMarkdown = (text) => {
+  if (!text) return '';
+
+  return text
+    // 제목 기호 제거 (##, ### 등)
+    .replace(/^#{1,6}\s*/gm, '')
+    // 굵게, 기울임
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    // 인라인 코드
+    .replace(/`([^`]*)`/g, '$1')
+    // 코드블록
+    .replace(/```[\s\S]*?```/g, '')
+    // 리스트 기호
+    .replace(/^-+\s*/gm, '')
+    // 불필요한 공백 정리
+    .trim();
+};
 
   const handleCommentSubmit = (e) => {
     e.preventDefault();
