@@ -489,13 +489,36 @@ export const recordMonitoringWarning = async (sessionId) => {
 
 /**
  * 모니터링 세션 종료
+ * @param {string} sessionId - 모니터링 세션 ID
+ * @param {number|null} remainingSeconds - 남은 시간 (초)
+ * @param {object|null} focusScoreStats - 집중도 점수 통계 (선택)
+ *   - avgScore: 평균 점수 (-100 ~ 100)
+ *   - finalScore: 최종 점수 (-100 ~ 100)
+ *   - focusedPercentage: 집중 시간 비율 (%)
+ *   - highFocusPercentage: 높은 집중 시간 비율 (%)
+ *   - totalTime: 총 시간 (초)
+ *   - focusedTime: 집중 시간 (초)
  */
-export const endMonitoringSession = async (sessionId, remainingSeconds = null) => {
+export const endMonitoringSession = async (sessionId, remainingSeconds = null, focusScoreStats = null) => {
     try {
-        const res = await axiosInstance.post('/algo/monitoring/end', {
+        const requestBody = {
             sessionId,
             remainingSeconds
-        });
+        };
+
+        // 집중도 점수 통계가 있으면 포함
+        if (focusScoreStats) {
+            requestBody.focusScoreStats = {
+                avgScore: focusScoreStats.avgScore || 0,
+                finalScore: focusScoreStats.finalScore || focusScoreStats.currentScore || 0,
+                focusedPercentage: focusScoreStats.focusedPercentage || 0,
+                highFocusPercentage: focusScoreStats.highFocusPercentage || 0,
+                totalTime: focusScoreStats.totalTime || 0,
+                focusedTime: focusScoreStats.focusedTime || 0
+            };
+        }
+
+        const res = await axiosInstance.post('/algo/monitoring/end', requestBody);
         return res.data;
     } catch (err) {
         console.error('❌ [endMonitoringSession] 요청 실패:', err);
