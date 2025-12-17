@@ -707,6 +707,29 @@ const SubmissionResult = () => {
             </div>
           )}
 
+          {/* 🏆 획득 XP 배너 (AC 제출 시에만 표시) */}
+          {submission.judgeResult === 'AC' && submission.earnedXp > 0 && (
+            <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg shadow-lg p-4 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">✨</span>
+                  <div>
+                    <h3 className="font-bold text-lg">경험치 획득!</h3>
+                    <p className="text-purple-100 text-sm">
+                      {submission.isFirstSolve ? '🎉 첫 정답 보너스 1.5배 적용!' : '문제를 정답 처리하여 XP를 획득했습니다'}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold">+{submission.earnedXp} XP</p>
+                  <p className="text-purple-100 text-xs">
+                    {submission.isFirstSolve ? '첫 정답 보너스' : '문제 풀이 보상'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* GitHub 커밋 상태 배너 */}
           {commitStatus.success !== null && (
             <div className={`rounded-lg shadow-lg p-4 flex items-center justify-between ${

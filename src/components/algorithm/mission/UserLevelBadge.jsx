@@ -3,9 +3,13 @@ import { ALGO_LEVEL_INFO } from '../../../service/algorithm/AlgorithmApi';
 /**
  * 사용자 알고리즘 레벨 표시 컴포넌트
  * - 레벨 뱃지 (EMERALD/SAPPHIRE/RUBY/DIAMOND)
+ * - 현재 XP / 총 XP
  * - 연속 풀이 스트릭
- * - 총 해결 문제 수
- * - 다음 레벨까지 진행률
+ * - 다음 레벨까지 진행률 (XP 기반)
+ *
+ * 변경사항 (2025-12-17): XP 기반 레벨 시스템 도입
+ * - totalSolved 대신 totalXp 기반 진행률 표시
+ * - 레벨 임계값: EMERALD(0), SAPPHIRE(300), RUBY(1000), DIAMOND(3000)
  */
 const UserLevelBadge = ({ userLevel }) => {
     if (!userLevel) {
@@ -22,10 +26,10 @@ const UserLevelBadge = ({ userLevel }) => {
         );
     }
 
-    const { algoLevel, totalSolved, currentStreak, maxStreak } = userLevel;
+    const { algoLevel, totalXp = 0, totalSolved, currentStreak, maxStreak } = userLevel;
     const levelInfo = ALGO_LEVEL_INFO[algoLevel] || ALGO_LEVEL_INFO.EMERALD;
 
-    // 다음 레벨 계산
+    // 다음 레벨 계산 (XP 기반)
     const getNextLevelInfo = () => {
         const levels = ['EMERALD', 'SAPPHIRE', 'RUBY', 'DIAMOND'];
         const currentIndex = levels.indexOf(algoLevel);
@@ -39,19 +43,19 @@ const UserLevelBadge = ({ userLevel }) => {
         return {
             level: nextLevel,
             info: nextLevelInfo,
-            remaining: nextLevelInfo.minSolved - totalSolved
+            remainingXp: nextLevelInfo.requiredXp - totalXp
         };
     };
 
     const nextLevel = getNextLevelInfo();
 
-    // 현재 레벨 내 진행률 계산
+    // 현재 레벨 내 진행률 계산 (XP 기반)
     const getProgressPercent = () => {
         if (!nextLevel) return 100; // 최고 레벨
 
-        const currentMin = levelInfo.minSolved;
-        const nextMin = nextLevel.info.minSolved;
-        const progress = totalSolved - currentMin;
+        const currentMin = levelInfo.requiredXp;
+        const nextMin = nextLevel.info.requiredXp;
+        const progress = totalXp - currentMin;
         const total = nextMin - currentMin;
 
         return Math.min((progress / total) * 100, 100);
@@ -79,27 +83,27 @@ const UserLevelBadge = ({ userLevel }) => {
             {/* 통계 */}
             <div className="grid grid-cols-3 gap-2 mb-6">
                 <div className="text-center p-2 bg-gray-50 rounded-md">
-                    <div className="text-lg font-bold text-gray-900">
-                        {totalSolved}
+                    <div className="text-lg font-bold text-blue-600">
+                        {totalXp.toLocaleString()}
                     </div>
                     <div className="text-xs text-gray-500">
-                        총 풀이
+                        총 XP
                     </div>
                 </div>
                 <div className="text-center p-2 bg-gray-50 rounded-md">
                     <div className="text-lg font-bold text-orange-500">
-                        {currentStreak}
+                        {currentStreak}일
                     </div>
                     <div className="text-xs text-gray-500">
                         연속
                     </div>
                 </div>
                 <div className="text-center p-2 bg-gray-50 rounded-md">
-                    <div className="text-lg font-bold text-purple-500">
-                        {maxStreak}
+                    <div className="text-lg font-bold text-gray-600">
+                        {totalSolved}
                     </div>
                     <div className="text-xs text-gray-500">
-                        최대
+                        총 풀이
                     </div>
                 </div>
             </div>
@@ -125,7 +129,7 @@ const UserLevelBadge = ({ userLevel }) => {
                         ></div>
                     </div>
                     <div className="text-xs text-gray-400 mt-2 text-center">
-                        {nextLevel.remaining}문제 더 풀면 레벨업!
+                        {nextLevel.remainingXp.toLocaleString()} XP 더 모으면 레벨업!
                     </div>
                 </div>
             ) : (
@@ -139,7 +143,7 @@ const UserLevelBadge = ({ userLevel }) => {
             {/* 레벨 안내 */}
             <div className="mt-4 pt-4 border-t">
                 <div className="text-xs text-gray-400 text-center">
-                    레벨 기준: EMERALD(0) → SAPPHIRE(20) → RUBY(50) → DIAMOND(100)
+                    XP 기준: EMERALD(0) → SAPPHIRE(300) → RUBY(1000) → DIAMOND(3000)
                 </div>
             </div>
         </div>
