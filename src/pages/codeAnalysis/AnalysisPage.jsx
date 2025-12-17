@@ -426,23 +426,6 @@ const AnalysisPage = () => {
                                         </div>
                                     </div>
                                 </div>
-                                
-                                {isNew && (
-                                    <div className="mt-6 pt-6 border-t flex justify-center gap-3">
-                                        <button
-                                            onClick={() => window.location.href = '/codeAnalysis/new'}
-                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                                        >
-                                            새로운 분석하기
-                                        </button>
-                                        <button
-                                            onClick={() => navigate(`/codeboard/write/${analysisResult.analysisId}`)}
-                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                                        >
-                                            분석결과 공유하기
-                                        </button>
-                                    </div>
-                                )}
 
                                 {resolvedAnalysisId && (
                                     <div className="mt-6 pt-6 border-t flex justify-center gap-3">
@@ -450,7 +433,7 @@ const AnalysisPage = () => {
                                             onClick={() => window.location.href = '/codeAnalysis/new'}
                                             className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                                         >
-                                            다른코드 분석하기
+                                            새로운 분석하기
                                         </button>
 
                                         <button
