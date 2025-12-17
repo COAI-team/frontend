@@ -6,13 +6,36 @@ import {
   LANGUAGE_MAP,
   LANGUAGE_NAME_TO_TEMPLATE_KEY
 } from '../../components/algorithm/editor/editorUtils';
-import { startProblemSolve, runTestCode } from '../../service/algorithm/AlgorithmApi';
+import { startProblemSolve, runTestCode, getLanguages } from '../../service/algorithm/AlgorithmApi';
 import { useTutorWebSocket } from '../../hooks/algorithm/useTutorWebSocket';
 import { useLogin } from '../../context/login/useLogin';
 import { getAuth } from '../../utils/auth/token';
 import { useLoginRequiredModal } from '../../hooks/common/useLoginRequiredModal.jsx';
 
 const TUTOR_AUTO_INTERVAL_MS = 8000;
+const JUDGE0_LANGUAGE_IDS = {
+  Python: 100,
+  'C++': 105,
+  'C#': 51,
+  Java: 91,
+  JavaScript: 93,
+  TypeScript: 94,
+  Go: 106,
+  Rust: 108,
+  Kotlin: 111,
+  Swift: 83,
+  SQL: 82,
+  SQLite: 82
+};
+
+const resolveLanguageId = (langName, sourceList = []) => {
+  if (!langName) return null;
+  const found = sourceList.find((lang) => (lang.languageName || lang) === langName);
+  if (found?.languageId || found?.id) {
+    return Number(found.languageId || found.id);
+  }
+  return JUDGE0_LANGUAGE_IDS[langName] ?? null;
+};
 
 /** 마크다운 굵게(**텍스트**) 처리 */
 function renderFormattedText(text) {
@@ -146,7 +169,11 @@ const ProblemLearn = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [selectedLanguage, setSelectedLanguage] = useState('Python 3');
+  const [selectedLanguage, setSelectedLanguage] = useState('Python');
+  const [selectedLanguageId, setSelectedLanguageId] = useState(null);
+  const [languages, setLanguages] = useState([]);
+  const [languageConfirm, setLanguageConfirm] = useState({ isOpen: false, newLang: null });
+  const [exitConfirm, setExitConfirm] = useState(false);
   const [code, setCode] = useState('');
 
   const [tutorQuestion, setTutorQuestion] = useState('');
@@ -154,7 +181,7 @@ const ProblemLearn = () => {
   const [tutorFontSize, setTutorFontSize] = useState('14px');
   const [tutorTextColor, setTutorTextColor] = useState('#e5e7eb');
 
-  const [setHasRunOnce] = useState(false);
+  const [hasRunOnce, setHasRunOnce] = useState(false);
   const [lastJudgeResult, setLastJudgeResult] = useState(null);
   const [lastJudgeSource, setLastJudgeSource] = useState('');
   const [lastCodeUpdatedAt, setLastCodeUpdatedAt] = useState(Date.now());
@@ -195,17 +222,52 @@ const ProblemLearn = () => {
         setLoading(true);
         setError(null);
         const res = await startProblemSolve(problemId);
-        const data = res?.data || res;
+        const raw = res?.data || res;
+        const data = raw?.data || raw?.Data || raw;
         setProblem(data);
 
-        const defaultLang =
-          data?.defaultLanguage && LANGUAGE_MAP[data.defaultLanguage]
-            ? LANGUAGE_MAP[data.defaultLanguage]
-            : 'Python 3';
-        setSelectedLanguage(defaultLang);
+        const available = Array.isArray(data?.availableLanguages) ? data.availableLanguages : [];
+        let langList = available;
 
-        const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[defaultLang] || 'python';
+        // 백엔드가 빈 배열을 반환하면 전체 언어 목록 API로 보강
+        if (!langList.length) {
+          const allLangRes = await getLanguages();
+          const allLangData =
+            allLangRes?.data?.data ||
+            allLangRes?.data ||
+            allLangRes?.Data ||
+            allLangRes ||
+            [];
+          if (Array.isArray(allLangData)) {
+            langList = allLangData.map((lang) => ({
+              languageId: lang.languageId,
+              languageName: lang.languageName,
+              timeLimit: lang.timeLimit,
+              memoryLimit: lang.memoryLimit
+            }));
+          }
+        }
+
+        setLanguages(langList);
+
+        let initialLang = 'Python';
+        if (data?.problemType === 'SQL') {
+          initialLang = 'SQL';
+        } else if (data?.defaultLanguage && LANGUAGE_MAP[data.defaultLanguage]) {
+          initialLang = LANGUAGE_MAP[data.defaultLanguage];
+        } else if (data?.defaultLanguage) {
+          initialLang = data.defaultLanguage;
+        } else if (langList.length) {
+          initialLang = langList[0].languageName || langList[0];
+        }
+
+        const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[initialLang] || 'python';
+        setSelectedLanguage(initialLang);
+        setSelectedLanguageId(resolveLanguageId(initialLang, langList));
         setCode(codeTemplates[templateKey] || '');
+        setHasRunOnce(false);
+        setLastJudgeResult(null);
+        setLastJudgeSource('');
       } catch (err) {
         console.error(err);
         setError('문제를 불러오는 중 오류가 발생했습니다.');
@@ -217,10 +279,10 @@ const ProblemLearn = () => {
   }, [problemId]);
 
   const filteredLanguages = useMemo(() => {
-    // 백엔드에서 제공하는 언어 목록을 신뢰 (ALLOWED_LANGUAGES 하드코딩 제거)
-    if (problem?.availableLanguages?.length) {
+    const sourceList = languages.length ? languages : problem?.availableLanguages || [];
+    if (sourceList.length) {
       const seen = new Set();
-      return problem.availableLanguages
+      return sourceList
         .map((lang) => lang.languageName || lang)
         .filter((langName) => {
           if (!langName || seen.has(langName)) return false;
@@ -229,8 +291,16 @@ const ProblemLearn = () => {
           return monacoLang && monacoLang !== 'plaintext';
         });
     }
-    return [];
-  }, [problem]);
+    return selectedLanguage ? [selectedLanguage] : [];
+  }, [languages, problem, selectedLanguage]);
+
+  const getLanguageId = useCallback(
+    (langName) => {
+      const source = languages.length ? languages : problem?.availableLanguages || [];
+      return resolveLanguageId(langName, source);
+    },
+    [languages, problem?.availableLanguages]
+  );
 
   const canRunJudgeNow = useCallback(() => {
     const now = Date.now();
@@ -241,8 +311,8 @@ const ProblemLearn = () => {
     return true;
   }, []);
 
-  const handleLanguageChange = useCallback((e) => {
-    const newLang = e.target.value;
+  const applyLanguageChange = useCallback((newLang) => {
+    if (!newLang) return;
     setSelectedLanguage(newLang);
     const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[newLang] || 'python';
     setCode(codeTemplates[templateKey] || '');
@@ -250,7 +320,26 @@ const ProblemLearn = () => {
     setLastJudgeResult(null);
     setLastJudgeSource('');
     setAutoHintEnabled(false);
-  }, []);
+
+    setSelectedLanguageId(getLanguageId(newLang));
+  }, [getLanguageId]);
+
+  const handleLanguageChange = useCallback(
+    (e) => {
+      const newLang = e.target.value;
+      const currentTemplateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || 'python';
+      const currentTemplate = codeTemplates[currentTemplateKey] || '';
+      const isModified = code.trim() !== '' && code !== currentTemplate;
+
+      if (isModified) {
+        setLanguageConfirm({ isOpen: true, newLang });
+        return;
+      }
+
+      applyLanguageChange(newLang);
+    },
+    [selectedLanguage, code, applyLanguageChange]
+  );
 
   const handleEditorMount = useCallback((editor) => {
     editorRef.current = editor;
@@ -450,9 +539,15 @@ const ProblemLearn = () => {
       let judgeMeta;
       if (canRunJudgeNow()) {
         try {
+          const languageId =
+            selectedLanguageId ??
+            (languages.length ? languages : problem?.availableLanguages || []).find(
+              (lang) => (lang.languageName || lang) === selectedLanguage
+            )?.languageId ??
+            null;
           const res = await runTestCode({
             problemId: Number(problemId),
-            language: selectedLanguage,
+            languageId,
             sourceCode: code
           });
           const data = res?.data || res;
@@ -480,6 +575,9 @@ const ProblemLearn = () => {
       isQuestionOnCooldown,
       problemId,
       selectedLanguage,
+      selectedLanguageId,
+      problem,
+      languages,
       code,
       sendUserQuestion,
       scrollToBottom,
@@ -501,9 +599,15 @@ const ProblemLearn = () => {
       if (nextEnabled && canRunJudgeNow()) {
         (async () => {
           try {
+            const languageId =
+              selectedLanguageId ??
+              (languages.length ? languages : problem?.availableLanguages || []).find(
+                (lang) => (lang.languageName || lang) === selectedLanguage
+              )?.languageId ??
+              null;
             const res = await runTestCode({
               problemId: Number(problemId),
-              language: selectedLanguage,
+              languageId,
               sourceCode: code
             });
             const data = res?.data || res;
@@ -518,7 +622,7 @@ const ProblemLearn = () => {
 
       return nextEnabled;
     });
-  }, [currentUserId, isPro, problemId, selectedLanguage, code, canRunJudgeNow]);
+  }, [currentUserId, isPro, problemId, selectedLanguage, selectedLanguageId, problem, languages, code, canRunJudgeNow]);
 
   const tutorStatusDotClass = useMemo(() => {
     switch (tutorStatus) {
@@ -536,23 +640,23 @@ const ProblemLearn = () => {
   const tutorStatusText = useMemo(() => {
     switch (tutorStatus) {
       case 'CONNECTED':
-        return 'Tutor Connected';
+        return '튜터 연결됨';
       case 'CONNECTING':
-        return 'Tutor Connecting';
+        return '튜터 연결 중...';
       case 'ERROR':
-        return 'Tutor Error';
+        return '튜터 연결 오류';
       default:
-        return 'Tutor Disconnected';
+        return '튜터 연결 안 됨';
     }
   }, [tutorStatus]);
 
   const tutorPlaceholder = !currentUserId
-    ? 'Login to send questions.'
+    ? '로그인 후 튜터에게 질문할 수 있습니다.'
     : isFree
       ? 'Live Tutor는 Basic / Pro 구독에서 이용 가능합니다.'
       : isQuestionOnCooldown
         ? `${questionCooldownRemaining}초 뒤에 질문을 다시 보낼 수 있습니다.`
-        : 'Ask the tutor a question...';
+        : '튜터에게 질문을 입력하세요...';
 
   const autoHintStatusLabel = useMemo(() => {
     const baseSec = Math.floor(TUTOR_AUTO_INTERVAL_MS / 1000);
@@ -614,10 +718,29 @@ const ProblemLearn = () => {
 
       setIsRunning(true);
       setRunProgress(0);
+      setTestResult(null);
+
+      const progressInterval = setInterval(() => {
+        setRunProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + Math.random() * 15;
+        });
+      }, 300);
       try {
+        const languageId = getLanguageId(selectedLanguage);
+        if (!languageId) {
+          clearInterval(progressInterval);
+          setTestResult({ error: true, message: '지원 언어 정보를 불러오지 못했습니다. 잠시 후 다시 실행해주세요.' });
+          setIsRunning(false);
+          setRunProgress(0);
+          return;
+        }
         const res = await runTestCode({
           problemId: Number(problemId),
-          language: selectedLanguage,
+          languageId,
           sourceCode: code
         });
         const data = res?.data || res;
@@ -628,11 +751,15 @@ const ProblemLearn = () => {
       } catch {
         setTestResult({ error: true, message: '테스트 실행 중 오류가 발생했습니다.' });
       } finally {
-        setIsRunning(false);
+        clearInterval(progressInterval);
         setRunProgress(100);
+        setTimeout(() => {
+          setIsRunning(false);
+          setRunProgress(0);
+        }, 500);
       }
     },
-    [problemId, selectedLanguage, code, canRunJudgeNow]
+    [problemId, selectedLanguage, selectedLanguageId, problem, languages, code, canRunJudgeNow]
   );
 
   const parsedSections = useMemo(
@@ -667,15 +794,14 @@ const ProblemLearn = () => {
                 #{problem?.problemId || problemId} {problem?.title || '문제'}
               </h1>
               <p className="text-sm text-gray-400">
-                맞힌 사람 {problem?.solvedUserCount ?? 0} • 제출한 사람{' '}
-                {problem?.submittedCount ?? 0}
+                맞힌 사람 {problem?.solvedUserCount ?? 0} · 제출한 사람 {problem?.submittedCount ?? 0}
               </p>
               <span className="ml-2 px-2 py-1 rounded-full text-xs bg-purple-700 text-white">
                 학습 모드
               </span>
             </div>
             <button
-              onClick={() => navigate(`/algorithm/problems/${problemId}/solve`)}
+              onClick={() => setExitConfirm(true)}
               className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"
             >
               ← 풀이 모드로
@@ -793,11 +919,11 @@ const ProblemLearn = () => {
 
               {/* 에디터 + 실행결과 */}
               <div className="col-span-6 h-full min-h-0">
-                <div className="bg-zinc-850 rounded border border-zinc-700 p-4 h-full flex flex-col">
+                <div className="bg-zinc-850 rounded border border-zinc-700 p-4 h-full flex flex-col min-h-0">
                   {/* 언어 선택 + Tutor 상태 */}
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
-                      <label className="text-sm text-gray-300">Language</label>
+                      <label className="text-sm text-gray-300">언어</label>
                       <select
                         value={selectedLanguage}
                         onChange={handleLanguageChange}
@@ -817,7 +943,7 @@ const ProblemLearn = () => {
                   </div>
 
                   {/* 코드 에디터 */}
-                  <div className="flex-1 min-h-0 overflow-hidden">
+                  <div className="flex-[7] min-h-0 overflow-hidden flex flex-col">
                     <CodeEditor
                       language={selectedLanguage}
                       value={code}
@@ -828,34 +954,34 @@ const ProblemLearn = () => {
                     />
                   </div>
 
-                  {/* Execution Result */}
-                  <div className="mt-4 pt-3 border-t border-zinc-800 flex flex-col">
-                    <p className="text-sm text-gray-400 mb-2">Execution Result</p>
+                  {/* 실행 결과 */}
+                  <div className="flex-[3] min-h-0 flex flex-col border-t border-zinc-800 mt-4 pt-3">
+                    <p className="text-sm text-gray-300 mb-2">실행 결과</p>
 
                     {isRunning && (
                       <div className="mb-3">
                         <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-                          <span>Running test code...</span>
+                          <span>⏳ 코드 실행 중...</span>
                           <span>{Math.round(runProgress)}%</span>
                         </div>
-                        <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-gray-300 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                            className="h-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 transition-all duration-300 ease-out"
                             style={{ width: `${runProgress}%` }}
                           />
                         </div>
                       </div>
                     )}
 
-                    <div className="text-xs max-h-[260px] overflow-y-auto">
+                    <div className="bg-zinc-900 rounded p-3 h-full overflow-auto text-xs text-gray-100 border border-zinc-800">
                       {isRunning ? (
-                        <div className="flex items-center gap-2 text-yellow-400 mt-1 text-xs">
-                          <span className="animate-spin">...</span>
-                          <span>Running code on Judge0 server...</span>
+                        <div className="flex items-center gap-2 text-yellow-300">
+                          <span className="animate-spin">⚙️</span>
+                          <span>Judge0 서버에서 코드를 실행하고 있습니다...</span>
                         </div>
                       ) : testResult ? (
                         testResult.error ? (
-                          <span className="text-red-400">Error: {testResult.message}</span>
+                          <span className="text-red-400">오류: {testResult.message}</span>
                         ) : (
                           <div>
                             <div
@@ -865,30 +991,24 @@ const ProblemLearn = () => {
                                   : 'text-red-400'
                               }`}
                             >
-                              {testResult.overallResult === 'AC'
-                                ? 'Accepted!'
-                                : `Result: ${testResult.overallResult}`}
+                              {testResult.overallResult === 'AC' ? '정답!' : `결과: ${testResult.overallResult}`}
                               <span className="ml-2 text-gray-400 font-normal">
-                                ({testResult.passedCount}/{testResult.totalCount} passed)
+                                ({testResult.passedCount}/{testResult.totalCount} 통과)
                               </span>
                               {testResult.maxExecutionTime && (
                                 <span className="ml-2 text-gray-500 font-normal text-xs">
-                                  Time: {testResult.maxExecutionTime}ms
+                                  실행시간: {testResult.maxExecutionTime}ms
                                 </span>
                               )}
                             </div>
                             {testResult.testCaseResults?.map((tc, idx) => (
                               <div key={idx} className="text-xs mt-1">
-                                <span
-                                  className={
-                                    tc.result === 'AC' ? 'text-green-400' : 'text-red-400'
-                                  }
-                                >
+                                <span className={tc.result === 'AC' ? 'text-green-400' : 'text-red-400'}>
                                   TC{tc.testCaseNumber}: {tc.result}
                                 </span>
                                 {tc.result !== 'AC' && tc.actualOutput && (
                                   <span className="text-gray-500 ml-2">
-                                    Output: "{tc.actualOutput?.trim()}"
+                                    출력: "{tc.actualOutput?.trim()}"
                                   </span>
                                 )}
                                 {tc.errorMessage && (
@@ -901,19 +1021,24 @@ const ProblemLearn = () => {
                           </div>
                         )
                       ) : (
-                        <span className="text-gray-500 text-xs">
-                          Write code and press &quot;Run Code&quot; to see results.
-                        </span>
+                        <span className="text-gray-500">코드를 작성하고 "코드 실행" 버튼을 눌러주세요.</span>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 pt-3">
+                    <div className="flex items-center justify-end gap-3 pt-3 flex-shrink-0">
                       <button
                         onClick={runTests}
                         className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2 text-sm"
                         disabled={isRunning}
                       >
-                        {isRunning ? 'Running...' : 'Run Code'}
+                        {isRunning ? (
+                          <>
+                            <span className="animate-spin">⚙️</span>
+                            실행 중...
+                          </>
+                        ) : (
+                          '코드 실행'
+                        )}
                       </button>
                     </div>
                   </div>
@@ -922,28 +1047,28 @@ const ProblemLearn = () => {
 
               {/* Live Tutor */}
               <div className="col-span-3 h-full min-h-0">
-                <div className="bg-zinc-900 rounded border border-zinc-700 p-3 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-1">
+                <div className="bg-zinc-900 rounded border border-zinc-700 p-3 h-full flex flex-col overflow-hidden">
+                  <div className="flex items-center justify-between mb-1 flex-shrink-0 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${tutorStatusDotClass}`} />
-                      <span className="text-sm font-semibold">Live Tutor</span>
+                      <span className="text-sm font-semibold">라이브 튜터</span>
                     </div>
                     {isPro && (
                       <button
                         type="button"
                         onClick={handleToggleAutoHint}
-                        className={`px-3 py-1 rounded-full text-[11px] border whitespace-nowrap ${
+                        className={`px-3 py-1 rounded-full text-[11px] border whitespace-nowrap shrink-0 ${
                           autoHintEnabled
                             ? 'bg-purple-600/90 border-purple-400 text-white'
                             : 'bg-zinc-900 border-zinc-600 text-gray-300'
                         }`}
                       >
-                        AUTO HINT {autoHintEnabled ? 'ON' : 'OFF'}
+                        자동 힌트 {autoHintEnabled ? 'ON' : 'OFF'}
                       </button>
                     )}
                   </div>
                   <p
-                    className="mb-2 text-[11px] text-gray-400 truncate"
+                    className="mb-2 text-[11px] text-gray-400 truncate flex-shrink-0"
                     title={autoHintStatusLabel}
                   >
                     {autoHintStatusLabel}
@@ -958,7 +1083,7 @@ const ProblemLearn = () => {
                     >
                       <div className="flex items-center gap-2 mb-2 text-xs text-gray-400">
                         <label className="flex items-center gap-1">
-                          Font
+                          글꼴
                           <select
                             value={tutorFontSize}
                             onChange={(e) => setTutorFontSize(e.target.value)}
@@ -971,7 +1096,7 @@ const ProblemLearn = () => {
                           </select>
                         </label>
                         <label className="flex items-center gap-1">
-                          Color
+                          색상
                           <input
                             type="color"
                             value={tutorTextColor}
@@ -983,8 +1108,7 @@ const ProblemLearn = () => {
 
                       {allMessages.length === 0 ? (
                         <p className="text-gray-500 text-xs">
-                          No tutor messages yet. Auto hints will appear when your code stays
-                          stable.
+                          아직 튜터 메시지가 없습니다. 코드가 안정되면 자동 힌트가 도착합니다.
                         </p>
                       ) : (
                         <>
@@ -995,16 +1119,16 @@ const ProblemLearn = () => {
                             let rightLabel = null;
 
                             if (isUser) {
-                              label = 'QUESTION';
+                              label = '질문';
                             } else {
                               const type = msg.type || 'HINT';
                               const trigger = msg.triggerType || '';
 
                               if (type === 'HINT' && trigger === 'AUTO') {
-                                label = 'HINT';
-                                rightLabel = 'AUTO';
+                                label = '힌트';
+                                rightLabel = '자동';
                               } else if (type === 'HINT' && (!trigger || trigger === 'USER')) {
-                                label = 'ANSWER';
+                                label = '답변';
                               } else {
                                 label = type.toUpperCase();
                                 if (trigger && trigger.toUpperCase() !== label) {
@@ -1043,7 +1167,7 @@ const ProblemLearn = () => {
                                     className="whitespace-pre-wrap"
                                     style={{ fontSize: tutorFontSize, color: tutorTextColor }}
                                   >
-                                    {msg.content || 'No content provided.'}
+                                    {msg.content || '메시지 내용이 없습니다.'}
                                   </div>
                                 </div>
                               </div>
@@ -1088,13 +1212,13 @@ const ProblemLearn = () => {
                         className="absolute right-4 bottom-4 z-10 px-3 py-1 rounded-full bg-purple-600 text-white text-xs shadow-lg flex items-center gap-1"
                       >
                         <span className="text-lg leading-none">↓</span>
-                        {hasNewMessages && <span>NEW</span>}
+                        {hasNewMessages && <span>새 메시지</span>}
                       </button>
                     )}
                   </div>
 
                   {/* 입력 영역 */}
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex gap-2 flex-shrink-0 min-w-0">
                     <input
                       type="text"
                       value={tutorQuestion}
@@ -1108,7 +1232,7 @@ const ProblemLearn = () => {
                         }
                       }}
                       placeholder={tutorPlaceholder}
-                      className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-purple-500 disabled:opacity-60"
+                      className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-purple-500 disabled:opacity-60"
                       disabled={
                         tutorStatus !== 'CONNECTED' ||
                         !currentUserId ||
@@ -1124,14 +1248,14 @@ const ProblemLearn = () => {
                       disabled={!canSend}
                       className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm font-medium disabled:opacity-50"
                     >
-                      Send
+                      전송
                     </button>
                   </div>
 
                   {/* 티어 안내 */}
                   {!currentUserId && (
                     <p className="text-xs text-yellow-400 mt-2">
-                      Login to use the tutor feature.
+                      튜터 기능을 사용하려면 로그인하세요.
                     </p>
                   )}
                   {currentUserId && isFree && (
@@ -1152,6 +1276,62 @@ const ProblemLearn = () => {
       </div>
 
       {LoginRequiredModalElement}
+
+      {exitConfirm && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-lg font-semibold mb-3">풀이 모드로 이동</h3>
+            <p className="text-sm text-gray-300 mb-4">
+              학습 모드를 떠나면 작성 중인 코드와 튜터 채팅이 사라집니다. 풀이 모드로 이동할까요?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"
+                onClick={() => setExitConfirm(false)}
+              >
+                취소
+              </button>
+              <button
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm"
+                onClick={() => {
+                  setExitConfirm(false);
+                  navigate(`/algorithm/problems/${problemId}/solve`);
+                }}
+              >
+                나가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {languageConfirm.isOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-lg font-semibold mb-3">언어 변경</h3>
+            <p className="text-sm text-gray-300 mb-4">
+              기존 코드 양식에서 수정사항이 존재합니다. 언어를 변경하면 코드가 초기화됩니다. 계속하시겠습니까?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"
+                onClick={() => setLanguageConfirm({ isOpen: false, newLang: null })}
+              >
+                아니오
+              </button>
+              <button
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm"
+                onClick={() => {
+                  applyLanguageChange(languageConfirm.newLang);
+                  setLanguageConfirm({ isOpen: false, newLang: null });
+                }}
+              >
+                예
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

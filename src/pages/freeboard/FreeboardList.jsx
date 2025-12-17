@@ -13,14 +13,14 @@ const FreeboardList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [viewType, setViewType] = useState('list');
 
-  // URL에서 파라미터 읽기 (단일 진실 공급원)
+  // URL에서 파라미터 읽기
   const keyword = searchParams.get('keyword') || '';
   const currentPage = Number(searchParams.get('page')) || 1;
   const pageSize = Number(searchParams.get('size')) || 10;
   const sortBy = searchParams.get('sort') || 'CREATED_AT';
   const sortDirection = searchParams.get('direction') || 'DESC';
 
-  // 검색 입력용 로컬 state (입력 중에는 URL 업데이트 안 함)
+  // 검색 입력용 로컬 state
   const [searchInput, setSearchInput] = useState(keyword);
 
   // URL 파라미터 업데이트 헬퍼 함수
@@ -35,7 +35,6 @@ const FreeboardList = () => {
       }
     });
 
-    // 조건이 바뀌면 페이지 초기화
     if (resetPage) {
       newParams.delete('page');
     }
@@ -47,6 +46,17 @@ const FreeboardList = () => {
   useEffect(() => {
     setSearchInput(keyword);
   }, [keyword]);
+
+  // 디바운스 검색
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== keyword) {
+        updateParams({ keyword: searchInput }, true);
+      }
+    }, 500); // 500ms 후 검색
+
+    return () => clearTimeout(timer);
+  }, [searchInput, keyword, updateParams]);
 
   // 게시글 목록 조회
   const fetchPosts = useCallback(async () => {
@@ -62,8 +72,6 @@ const FreeboardList = () => {
         }
       });
       
-      console.log('응답:', response.data);
-      
       const data = response.data.data || response.data;
       setPosts(data.content || []);
       setTotalPages(data.totalPages || 1);
@@ -74,14 +82,14 @@ const FreeboardList = () => {
     }
   }, [currentPage, pageSize, sortBy, sortDirection, keyword]);
 
-  // URL 파라미터가 변경될 때마다 게시글 조회
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  // 검색 폼 제출
+  // 검색 폼 제출 (엔터키)
   const handleSearch = (e) => {
     e.preventDefault();
+    // 즉시 검색
     updateParams({ keyword: searchInput }, true);
   };
 
@@ -102,7 +110,6 @@ const FreeboardList = () => {
 
   // 태그 클릭
   const handleTagClick = (tag) => {
-    // 새로운 params로 완전히 교체 (다른 조건 초기화)
     setSearchParams({ keyword: tag.trim() });
   };
 
@@ -140,7 +147,7 @@ const FreeboardList = () => {
     return date.toLocaleDateString('ko-KR');
   };
 
-return (
+  return (
     <div className="freeboard-list-container">
       <div className="freeboard-header">
         <div className="freeboard-header-row">

@@ -62,7 +62,7 @@ const ModeSelectionScreen = ({
               features={[
                 { text: '힌트 제공 (Pro: 자동, Basic: 질문)', enabled: true },
                 { text: '연습용 페이지 (채점 기록과 별도)', enabled: true },
-                { text: '타이머/시선 추적 없음', enabled: true }
+                { text: '타이머/시선 추적 없음', enabled: false }
               ]}
               isSelected={selectedMode === 'LEARN'}
               onClick={() => setSelectedMode('LEARN')}

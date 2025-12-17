@@ -202,9 +202,24 @@ const AnalysisPage = () => {
             try {
                 const jsonStr = cleanMarkdownCodeBlock(accumulated);
                 const result = JSON.parse(jsonStr);
+                setAnalysisResult(result);
                 
                 // 백엔드에서 이미 analysisId를 포함해서 보냄
                 setAnalysisResult(result);
+
+                // // 분석 결과 저장 API 호출
+                // const saveAnalysisResponse = await axiosInstance.post('/analysis/save', {
+                //     fileId: saveResponse.data.fileId,  // 1단계에서 받은 fileId
+                //     repositoryUrl: selectedRepo.url,
+                //     filePath: selectedFile.path,
+                //     analysisResult: result  // 파싱된 결과 객체
+                // });
+                
+                // const savedAnalysisId = saveAnalysisResponse.data.data.analysisId;  // ApiResponse 구조 고려
+                
+                // // URL 업데이트
+                // navigate(`/codeAnalysis/${savedAnalysisId}`);
+                
             } catch (parseErr) {
                 console.error("JSON Parse Error:", parseErr);
                 console.log("Raw Content:", accumulated);
