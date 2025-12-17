@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from "../../context/theme/useTheme";
+import { useLogin } from '../../context/login/useLogin';
 import { Info } from 'lucide-react';
 import axiosInstance from '../../server/AxiosConfig';
 
 const AnalysisOptions = () => {
     const { theme } = useTheme();
+    const { user } = useLogin();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -70,7 +72,7 @@ const AnalysisOptions = () => {
                 toneLevel,
                 customRequirements,
                 analysisId,
-                userId: 1 // TODO: Get from auth context
+                userId: user?.userId
             });
 
             console.log('Analysis response:', response.data);

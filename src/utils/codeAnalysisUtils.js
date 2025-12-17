@@ -37,3 +37,32 @@ export const getToneEmoji = (level) => {
     const emojis = { 1: '😊', 2: '🙂', 3: '😐', 4: '😠', 5: '😾' };
     return emojis[level] || '😐';
 };
+
+
+export const getSmellVisual = (score) => {
+    if (score >= 90) return {
+        gradient: 'linear-gradient(135deg, #E8D5F2 0%, #F3E5F5 100%)',
+        icon: '🌸',
+        pattern: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%)'
+    };
+    if (score >= 70) return {
+        gradient: 'linear-gradient(135deg, #C8E6C9 0%, #E8F5E9 100%)',
+        icon: '🍃',
+        pattern: 'radial-gradient(circle at 80% 30%, rgba(255,255,255,0.3) 0%, transparent 50%)'
+    };
+    if (score >= 50) return {
+        gradient: 'linear-gradient(135deg, #D7CCC8 0%, #EFEBE9 100%)',
+        icon: '🤧',
+        pattern: 'radial-gradient(circle at 40% 70%, rgba(100,100,100,0.1) 0%, transparent 50%)'
+    };
+    if (score >= 30) return {
+        gradient: 'linear-gradient(135deg, #FFCCBC 0%, #FFE0B2 100%)',
+        icon: '🤢',
+        pattern: 'radial-gradient(circle at 60% 40%, rgba(255,100,0,0.1) 0%, transparent 50%)'
+    };
+    return {
+        gradient: 'linear-gradient(135deg, #FFCDD2 0%, #CFD8DC 100%)',
+        icon: '🤮',
+        pattern: 'radial-gradient(circle at 50% 50%, rgba(150,0,0,0.2) 0%, transparent 50%)'
+    };
+};

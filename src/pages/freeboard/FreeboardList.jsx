@@ -35,6 +35,7 @@ const FreeboardList = () => {
       }
     });
 
+    // 조건이 바뀌면 페이지 초기화
     if (resetPage) {
       newParams.delete('page');
     }
@@ -53,7 +54,7 @@ const FreeboardList = () => {
       if (searchInput !== keyword) {
         updateParams({ keyword: searchInput }, true);
       }
-    }, 500); // 500ms 후 검색
+    }, 300); // 300ms 후 검색
 
     return () => clearTimeout(timer);
   }, [searchInput, keyword, updateParams]);
@@ -82,6 +83,7 @@ const FreeboardList = () => {
     }
   }, [currentPage, pageSize, sortBy, sortDirection, keyword]);
 
+  // URL 파라미터가 변경될 때마다 게시글 조회
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
