@@ -9,7 +9,7 @@ import CommentSection from '../../components/comment/CommentSection';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
 import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
 import { processCodeBlocks, applyHighlighting } from '../../utils/codeBlockUtils';
-import LikeButton from '../../components/common/LikeButton';
+import LikeButton from '../../components/button/LikeButton';
 
 const CodeboardDetail = () => {
   const { id } = useParams();
