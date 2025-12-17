@@ -29,6 +29,7 @@ const CodeboardList = () => {
   const pageSize = Number(searchParams.get('size')) || 10;
   const sortBy = searchParams.get('sort') || 'CREATED_AT';
   const sortDirection = searchParams.get('direction') || 'DESC';
+  const scoreRange = searchParams.get('scoreRange') || '';
 
   // 검색 입력용 로컬 state
   const [searchInput, setSearchInput] = useState(keyword);
@@ -58,7 +59,7 @@ const CodeboardList = () => {
     setSearchInput(keyword);
   }, [keyword]);
 
-  // 게시글 목록 조회
+  // 게시글 목록 조회 (scoreRange 필터링 포함)
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
@@ -73,14 +74,24 @@ const CodeboardList = () => {
       });
       
       const data = response.data.data || response.data;
-      setPosts(data.content || []);
+      let filteredContent = data.content || [];
+      
+      // scoreRange가 있으면 클라이언트에서 필터링
+      if (scoreRange) {
+        const [min, max] = scoreRange.split('-').map(Number);
+        filteredContent = filteredContent.filter(post => 
+          post.aiScore != null && post.aiScore >= min && post.aiScore < max
+        );
+      }
+      
+      setPosts(filteredContent);
       setTotalPages(data.totalPages || 1);
     } catch (error) {
       console.error('게시글 목록 조회 실패:', error);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, sortBy, sortDirection, keyword]);
+  }, [currentPage, pageSize, sortBy, sortDirection, keyword, scoreRange]);
 
   // URL 파라미터가 변경될 때마다 게시글 조회
   useEffect(() => {
@@ -118,8 +129,19 @@ const CodeboardList = () => {
 
   // 태그 클릭
   const handleTagClick = (tag) => {
-    // 새로운 params로 완전히 교체 (다른 조건 초기화)
     setSearchParams({ keyword: tag.trim() });
+  };
+
+  // AI 점수 태그 클릭 핸들러
+  const handleSmellTagClick = (score) => {
+    let range;
+    if (score >= 90) range = '90-100';
+    else if (score >= 70) range = '70-90';
+    else if (score >= 50) range = '50-70';
+    else if (score >= 30) range = '30-50';
+    else range = '0-30';
+    
+    setSearchParams({ scoreRange: range });
   };
 
   const handlePostClick = (postId) => {
@@ -172,7 +194,6 @@ const CodeboardList = () => {
           </div>
 
           <div className="freeboard-header-actions">
-            {/* 코드분석 내역 버튼 */}
             <button
               className="analysis-list-btn"
               onClick={handleAnalysisListClick}
@@ -311,7 +332,12 @@ const CodeboardList = () => {
                               color: post.aiScore >= 50 
                                 ? '#4caf50' 
                                 : '#ff5252',
-                              cursor: 'default'
+                              cursor: 'pointer'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              handleSmellTagClick(post.aiScore);
                             }}
                           >
                             {getSmellKeyword(post.aiScore).text.replace(/🌸|🍃|🤧|🤢|🤮/g, '').trim()}
@@ -355,7 +381,6 @@ const CodeboardList = () => {
                     </div>
                   </div>
 
-                  {/* 이모티콘 카드 - 오른쪽에 배치 */}
                   {post.aiScore != null && (() => {
                     const visual = getSmellVisual(post.aiScore);
                     return (
@@ -434,7 +459,12 @@ const CodeboardList = () => {
                               color: post.aiScore >= 50 
                                 ? '#4caf50' 
                                 : '#ff5252',
-                              cursor: 'default'
+                              cursor: 'pointer'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              handleSmellTagClick(post.aiScore);
                             }}
                           >
                             {getSmellKeyword(post.aiScore).text.replace(/🌸|🍃|🤧|🤢|🤮/g, '').trim()}
