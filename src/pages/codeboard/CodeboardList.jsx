@@ -331,7 +331,7 @@ const CodeboardList = () => {
                                 : 'rgba(255, 82, 82, 0.15)',
                               color: post.aiScore >= 50 
                                 ? '#4caf50' 
-                                : '#ff5252',
+                                : '#FF5E5B',
                               cursor: 'pointer'
                             }}
                             onClick={(e) => {
@@ -458,7 +458,7 @@ const CodeboardList = () => {
                                 : 'rgba(255, 82, 82, 0.15)',
                               color: post.aiScore >= 50 
                                 ? '#4caf50' 
-                                : '#ff5252',
+                                : '#FF5E5B',
                               cursor: 'pointer'
                             }}
                             onClick={(e) => {
