@@ -222,9 +222,10 @@ export const useEyeTracking = (problemId, isActive = false, timeLimitMinutes = 3
             }
 
             // 세션 종료 요청 (sessionId가 있을 때만)
+            // WebGazer는 집중도 점수 미지원 (focusScoreStats = null)
             if (sessionId) {
                 try {
-                    await endMonitoringSession(sessionId, remainingSeconds);
+                    await endMonitoringSession(sessionId, remainingSeconds, null);
                     console.log('✅ Monitoring session ended, sessionId:', sessionId);
                 } catch (error) {
                     console.error('Failed to end monitoring session:', error);
