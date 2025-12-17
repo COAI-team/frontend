@@ -110,7 +110,7 @@ const CodeboardList = () => {
   };
 
   const handleWriteClick = () => {
-    navigate('/codeAnalysis/new');
+    navigate('/codeAnalysis');
   };
 
   const getPreviewText = (content) => {
@@ -139,11 +139,39 @@ const CodeboardList = () => {
     return date.toLocaleDateString('ko-KR');
   };
 
+  const handleAnalysisListClick = () => {
+    navigate("/analysis");
+  };
+
   return (
     <div className="freeboard-list-container">
       <div className="freeboard-header">
-        <h1 className="freeboard-title">코드게시판</h1>
-        <p className="freeboard-subtitle">코드 리뷰와 분석을 통해 더 나은 코드를 작성해보세요</p>
+        <div className="freeboard-header-row">
+          <div className="freeboard-header-text">
+            <h1 className="freeboard-title">코드게시판</h1>
+            <p className="freeboard-subtitle">
+              코드 리뷰와 분석을 통해 더 나은 코드를 작성해보세요
+            </p>
+          </div>
+
+          <div className="freeboard-header-actions">
+            
+            
+            {/* 코드분석 내역 버튼 (기존) */}
+            <button
+              className="analysis-list-btn" // 기존 클래스 유지
+              onClick={handleAnalysisListClick}
+              title="코드 분석 내역 보기" // title 추가
+            >
+              {/* 요청하신 글쓰기/편집 아이콘 SVG */}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              코드분석 내역
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="freeboard-controls">
@@ -392,13 +420,6 @@ const CodeboardList = () => {
         </>
       )}
 
-      <button className="floating-write-btn" onClick={handleWriteClick}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" 
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        분석하기
-      </button>
     </div>
   );
 };
