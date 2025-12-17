@@ -2,7 +2,7 @@ import {createRoot} from "react-dom/client";
 import "./index.css";
 import {ThemeProvider} from "./context/theme/ThemeProvider";
 import LoginProvider from "./context/login/LoginProvider";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
 // 레이아웃 및 메인
 import Layout from "./components/layout/mainLayout/Layout";
 import Main from "./pages/Main";
@@ -87,13 +87,13 @@ createRoot(document.getElementById("root")).render(
             <Route path="signup" element={<SignUp/>}/>
 
             {/* 마이페이지 */}
-            <Route path="mypage" element={<MyPageLayout />}>
-              <Route index element={<Navigate to="profile" replace />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="billing" element={<BillingPage />} />
-              <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="daily-mission" element={<DailyMission />} />
-              <Route path="algo-history" element={<MySubmissions />} />
+            <Route path="mypage" element={<MyPageLayout/>}>
+              <Route index element={<Navigate to="profile" replace/>}/>
+              <Route path="profile" element={<ProfilePage/>}/>
+              <Route path="billing" element={<BillingPage/>}/>
+              <Route path="dashboard" element={<DashboardPage/>}/>
+              <Route path="daily-mission" element={<DailyMission/>}/>
+              <Route path="algo-history" element={<MySubmissions/>}/>
             </Route>
 
             {/* 관리자 */}
@@ -101,24 +101,20 @@ createRoot(document.getElementById("root")).render(
               <Route index element={<Navigate to="stats" replace/>}/>
               <Route path="stats" element={<AdminStatsDashboard/>}/>
               <Route path="users" element={<AdminUsers/>}/>
-              <Route path="userboards" element={<AdminUserBoards />} />
+              <Route path="userboards" element={<AdminUserBoards/>}/>
             </Route>
 
             {/* 자유게시판 - 리스트를 레이아웃으로 */}
-            <Route path="freeboard" element={<FreeboardList/>} />
-            <Route path="freeboard/write" element={<FreeboardWrite/>} />
-            <Route path="freeboard/edit/:id" element={<FreeboardEdit/>} />
-            <Route path="freeboard/:id" element={<FreeboardDetail/>} />
-
+            <Route path="freeboard" element={<FreeboardList/>}/>
+            <Route path="freeboard/write" element={<FreeboardWrite/>}/>
+            <Route path="freeboard/edit/:id" element={<FreeboardEdit/>}/>
+            <Route path="freeboard/:id" element={<FreeboardDetail/>}/>
 
             {/* 코드게시판 - 리스트를 레이아웃으로 */}
-            <Route path="codeboard" element={<CodeboardList/>}>
-              <Route index element={<CodeboardList/>}/>
-              <Route path="write" element={<CodeboardWrite/>}/>
-              <Route path="write/:analysisId" element={<CodeboardWrite/>}/>
-              <Route path="edit/:id" element={<CodeboardEdit/>}/>
-              <Route path=":id" element={<CodeboardDetail/>}/>
-            </Route>
+            <Route path="codeboard" element={<CodeboardList/>}/>
+            <Route path="codeboard/write/:analysisId" element={<CodeboardWrite/>}/>
+            <Route path="codeboard/edit/:id" element={<CodeboardEdit/>}/>
+            <Route path="codeboard/:id" element={<CodeboardDetail/>}/>
 
             {/* 결제 */}
             <Route path="pricing" element={<PricingPage/>}/>

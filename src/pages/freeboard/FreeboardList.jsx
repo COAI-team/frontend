@@ -13,14 +13,14 @@ const FreeboardList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [viewType, setViewType] = useState('list');
 
-  // URL에서 파라미터 읽기 (단일 진실 공급원)
+  // URL에서 파라미터 읽기
   const keyword = searchParams.get('keyword') || '';
   const currentPage = Number(searchParams.get('page')) || 1;
   const pageSize = Number(searchParams.get('size')) || 10;
   const sortBy = searchParams.get('sort') || 'CREATED_AT';
   const sortDirection = searchParams.get('direction') || 'DESC';
 
-  // 검색 입력용 로컬 state (입력 중에는 URL 업데이트 안 함)
+  // 검색 입력용 로컬 state
   const [searchInput, setSearchInput] = useState(keyword);
 
   // URL 파라미터 업데이트 헬퍼 함수
@@ -35,7 +35,6 @@ const FreeboardList = () => {
       }
     });
 
-    // 조건이 바뀌면 페이지 초기화
     if (resetPage) {
       newParams.delete('page');
     }
@@ -47,6 +46,17 @@ const FreeboardList = () => {
   useEffect(() => {
     setSearchInput(keyword);
   }, [keyword]);
+
+  // 디바운스 검색
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== keyword) {
+        updateParams({ keyword: searchInput }, true);
+      }
+    }, 500); // 500ms 후 검색
+
+    return () => clearTimeout(timer);
+  }, [searchInput, keyword, updateParams]);
 
   // 게시글 목록 조회
   const fetchPosts = useCallback(async () => {
@@ -62,8 +72,6 @@ const FreeboardList = () => {
         }
       });
       
-      console.log('응답:', response.data);
-      
       const data = response.data.data || response.data;
       setPosts(data.content || []);
       setTotalPages(data.totalPages || 1);
@@ -74,14 +82,14 @@ const FreeboardList = () => {
     }
   }, [currentPage, pageSize, sortBy, sortDirection, keyword]);
 
-  // URL 파라미터가 변경될 때마다 게시글 조회
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  // 검색 폼 제출
+  // 검색 폼 제출 (엔터키)
   const handleSearch = (e) => {
     e.preventDefault();
+    // 즉시 검색
     updateParams({ keyword: searchInput }, true);
   };
 
@@ -102,7 +110,6 @@ const FreeboardList = () => {
 
   // 태그 클릭
   const handleTagClick = (tag) => {
-    // 새로운 params로 완전히 교체 (다른 조건 초기화)
     setSearchParams({ keyword: tag.trim() });
   };
 
@@ -143,8 +150,26 @@ const FreeboardList = () => {
   return (
     <div className="freeboard-list-container">
       <div className="freeboard-header">
-        <h1 className="freeboard-title">자유게시판</h1>
-        <p className="freeboard-subtitle">개발과 관련된 다양한 주제로 자유롭게 이야기를 나눠보세요</p>
+        <div className="freeboard-header-row">
+          <div className="freeboard-header-text">
+            <h1 className="freeboard-title">자유게시판</h1>
+            <p className="freeboard-subtitle">개발과 관련된 다양한 주제로 자유롭게 이야기를 나눠보세요</p>
+          </div>
+
+          <div className="freeboard-header-actions">
+            <button
+              className="write-post-btn"
+              onClick={handleWriteClick}
+              title="글쓰기"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              글쓰기
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="freeboard-controls">
@@ -390,14 +415,6 @@ const FreeboardList = () => {
           />
         </>
       )}
-
-      <button className="floating-write-btn" onClick={handleWriteClick}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        글쓰기
-      </button>
     </div>
   );
 };
