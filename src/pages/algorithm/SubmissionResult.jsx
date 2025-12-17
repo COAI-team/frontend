@@ -4,6 +4,7 @@ import { getSubmissionResult, completeMission, updateSharingStatus } from '../..
 import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 import { commitToGithub, getGithubSettings } from '../../service/github/GithubApi';
 import { AiFillGithub } from 'react-icons/ai';
+import { useLogin } from '../../context/login/useLogin';
 
 /**
  * 간단한 마크다운 렌더러 컴포넌트
@@ -168,6 +169,7 @@ const CodeBlock = ({ title, icon, content }) => {
 const SubmissionResult = () => {
   const { submissionId } = useParams();
   const navigate = useNavigate();
+  const { user } = useLogin();
 
   // 상태 관리
   const [submission, setSubmission] = useState(null);
@@ -241,11 +243,12 @@ const SubmissionResult = () => {
       // 🎯 채점 완료(AC) 시 바로 데일리 미션 완료 처리 (AI 완료 기다리지 않음)
       if (isJudgeComplete && data.judgeResult === 'AC' && !missionCompletedRef.current) {
         missionCompletedRef.current = true;
-        // TODO: 실제 로그인 구현 후 user.userId로 변경
-        const testUserId = 3; // 개발용 테스트 userId
-        console.log('🎯 미션 완료 API 호출 시작:', { missionType: 'PROBLEM_SOLVE', testUserId });
+        if (!user?.userId) {
+          console.warn('로그인되지 않은 상태에서 미션 완료 처리 스킵');
+        } else {
+        console.log('🎯 미션 완료 API 호출 시작:', { missionType: 'PROBLEM_SOLVE', userId: user.userId });
         try {
-          const missionResult = await completeMission('PROBLEM_SOLVE', testUserId);
+          const missionResult = await completeMission('PROBLEM_SOLVE', user.userId);
           console.log('🎯 미션 완료 API 응답 (전체):', JSON.stringify(missionResult, null, 2));
 
           // API 응답 구조 분석: 다양한 응답 패턴 처리
@@ -288,6 +291,7 @@ const SubmissionResult = () => {
         } catch (missionErr) {
           console.warn('미션 완료 처리 실패:', missionErr);
           setMissionStatus(prev => ({ ...prev, error: '미션 완료 처리 실패' }));
+        }
         }
       }
 
