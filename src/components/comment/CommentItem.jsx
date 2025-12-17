@@ -265,7 +265,7 @@ const authorBadgeStyle = {
                 {comment.userNickname}
               </span>
               {comment.isAuthor && (
-                <span style={authorBadgeStyle}>작성자</span>
+                <span style={authorBadgeStyle}>내가 쓴 댓글</span>
               )}
             </div>
 
