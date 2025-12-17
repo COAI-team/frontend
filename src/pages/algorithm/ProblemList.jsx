@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getProblems, DIFFICULTY_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/algorithmApi';
 import TopicSelector from '../../components/common/TopicSelector';
+import Pagination from '../../components/common/Pagination';
 import '../../styles/ProblemList.css';
 
 // 정렬 옵션
@@ -190,7 +191,7 @@ const ProblemList = () => {
             ))}
           </select>
           <Link to="/algorithm/problems/generate" className="ai-generate-btn">
-            🤖 AI 생성
+            문제 만들기
           </Link>
         </div>
 
@@ -270,44 +271,11 @@ const ProblemList = () => {
             </div>
 
             {/* 페이지네이션 */}
-            {pagination.totalPages > 1 && (
-              <div className="pagination">
-                <button
-                  onClick={() => handlePageChange(pagination.currentPage - 1)}
-                  disabled={!pagination.hasPrevious}
-                  className="page-btn"
-                >
-                  이전
-                </button>
-
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  const pageNum = Math.max(1, Math.min(
-                    pagination.totalPages - 4,
-                    Math.max(1, pagination.currentPage - 2)
-                  )) + i;
-
-                  if (pageNum > pagination.totalPages) return null;
-
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`page-btn ${pageNum === pagination.currentPage ? 'active' : ''}`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-
-                <button
-                  onClick={() => handlePageChange(pagination.currentPage + 1)}
-                  disabled={!pagination.hasNext}
-                  className="page-btn"
-                >
-                  다음
-                </button>
-              </div>
-            )}
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+            />
           </>
         )}
       </div>
