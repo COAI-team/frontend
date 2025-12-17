@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { getProblem } from '../../service/algorithm/algorithmApi';
 import SharedSolutions from './SharedSolutions';
 import '../../styles/ProblemDetail.css';
@@ -7,11 +7,12 @@ import '../../styles/ProblemDetail.css';
 const ProblemDetail = () => {
     const { problemId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [problem, setProblem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('description');
+    const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'description');
 
     // ===== 마크다운 렌더링 함수 =====
     const renderFormattedText = (text) => {

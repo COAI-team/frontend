@@ -482,27 +482,40 @@ const SubmissionResult = () => {
 
   // 공유하기
   const handleShare = async () => {
-    if (!submission) return;
+  if (!submission) return;
+  
+  // AC가 아니면 경고
+  if (submission.judgeResult !== 'AC') {
+    alert('통과한 문제만 공유가 가능합니다.');
+    return;
+  }
+  
+  setIsSharing(true);
+  
+  try {
+    const response = await updateSharingStatus(submission.submissionId, true);
     
-    setIsSharing(true);
-    
-    try {
-      const response = await updateSharingStatus(submission.submissionId, true);
+    if (response.error) {
+      alert(response.message || '공유 설정에 실패했습니다.');
+    } else {
+      setSubmission(prev => ({ ...prev, isShared: true }));
       
-      if (response.error) {
-        alert(response.message || '공유 설정에 실패했습니다.');
-      } else {
-        // 성공 시 submission 상태 업데이트
-        setSubmission(prev => ({ ...prev, isShared: true }));
-        alert('✅ 제출 결과를 공유했습니다!');
+      // 확인 다이얼로그
+      const goToSolutions = window.confirm('제출 결과를 공유했습니다! 확인하시겠습니까?');
+      
+      if (goToSolutions) {
+        navigate(`/algorithm/problems/${submission.problemId}`, { 
+          state: { activeTab: 'solutions' }
+        });
       }
-    } catch (error) {
-      console.error('공유하기 실패:', error);
-      alert('공유 설정 중 오류가 발생했습니다.');
-    } finally {
-      setIsSharing(false);
     }
-  };
+  } catch (error) {
+    console.error('공유하기 실패:', error);
+    alert('공유 설정 중 오류가 발생했습니다.');
+  } finally {
+    setIsSharing(false);
+  }
+};
 
   // 다시 풀기
   const handleRetry = () => {
@@ -664,11 +677,13 @@ const SubmissionResult = () => {
 
               <button
                 onClick={handleShare}
-                disabled={isSharing}
-                className={`px-4 py-2 rounded transition-colors ${isSharing
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-green-500 text-white hover:bg-green-600'
-                  }`}
+                disabled={isSharing || submission.judgeResult !== 'AC'}
+                className={`px-4 py-2 rounded transition-colors ${
+                  isSharing || submission.judgeResult !== 'AC'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-500 text-white hover:bg-green-600'
+                }`}
+                title={submission.judgeResult !== 'AC' ? '통과한 문제만 공유가 가능합니다.' : ''}
               >
                 {isSharing ? '공유 중...' : '📤 공유하기'}
               </button>
