@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { drawProblemFromPool, completeMission, getTopics } from '../../service/algorithm/AlgorithmApi';
 import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
+import { useLogin } from '../../context/login/useLogin';
 
 /**
  * AI 문제 생성 페이지
@@ -10,6 +11,7 @@ import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
  */
 const ProblemGenerator = () => {
   const navigate = useNavigate();
+  const { user } = useLogin();
 
   // ===== 상태 관리 =====
   const [formData, setFormData] = useState({
@@ -223,9 +225,11 @@ const ProblemGenerator = () => {
         setLoading(false);
 
         // 🎯 데일리 미션 완료 처리 (PROBLEM_GENERATE)
-        const testUserId = 3; // TODO: 실제 로그인 구현 후 user.userId로 변경
+        if (!user?.userId) {
+          console.warn('로그인되지 않은 상태에서 미션 완료 처리 스킵');
+        } else {
         try {
-          const missionResult = await completeMission('PROBLEM_GENERATE', testUserId);
+          const missionResult = await completeMission('PROBLEM_GENERATE', user.userId);
           console.log('🎯 미션 완료 API 응답:', JSON.stringify(missionResult, null, 2));
 
           const mResult = missionResult.data || missionResult;
@@ -280,6 +284,7 @@ const ProblemGenerator = () => {
             console.warn('미션 완료 처리 실패 (무시됨):', errorMessage || missionErr);
             setMissionStatus(prev => ({ ...prev, error: errorMessage || '미션 완료 처리 실패' }));
           }
+        }
         }
       },
 
@@ -731,6 +736,11 @@ const ProblemGenerator = () => {
                   초기화
                 </button>
               </div>
+
+              {/* AI 면책 조항 */}
+              <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
+                AI가 생성한 문제로 실수가 있을 수 있습니다. 기존 문제와 유사할 경우 이는 우연의 일치입니다.
+              </p>
             </form>
           </div>
 

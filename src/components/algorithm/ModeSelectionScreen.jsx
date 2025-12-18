@@ -139,7 +139,7 @@ const ModeSelectionScreen = ({
                   value={customTimeMinutes}
                   onChange={(e) =>
                     setCustomTimeMinutes(
-                      Math.max(1, Math.min(180, parseInt(e.target.value) || 30))
+                      Math.max(1, Math.min(180, Number.parseInt(e.target.value) || 30))
                     )
                   }
                   className="w-20 px-3 py-2 bg-zinc-700 rounded-lg text-center text-lg font-mono text-white"
@@ -174,7 +174,7 @@ const ModeSelectionScreen = ({
               disabled={!selectedMode}
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
                 selectedMode
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 cursor-pointer'
+                  ? 'bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 cursor-pointer'
                   : 'bg-zinc-700 text-gray-500 cursor-not-allowed'
               }`}
             >

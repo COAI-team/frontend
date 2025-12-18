@@ -1,18 +1,21 @@
-import { useTheme } from "../context/theme/useTheme";
-import { useEffect } from "react";
+import {useTheme} from "../context/theme/useTheme";
+import {useEffect} from "react";
 
 export function useApplyThemeClass() {
-    const { theme } = useTheme();
+  const {theme} = useTheme();
 
-    useEffect(() => {
-        if (theme === "dark") {
-            document.documentElement.classList.add("dark");
-            document.body.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-            document.body.classList.remove("dark");
-        }
-    }, [theme]);
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    const bodyElement = document.body;
 
-    return theme; // 🔥 theme 값을 반환
+    if (theme === "dark") {
+      htmlElement.classList.add("dark");
+      bodyElement.classList.add("dark");
+    } else {
+      htmlElement.classList.remove("dark");
+      bodyElement.classList.remove("dark");
+    }
+  }, [theme]);
+
+  return theme;
 }

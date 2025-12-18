@@ -304,7 +304,7 @@ const AnalysisPage = () => {
                                         <span className="font-medium text-gray-700">RAG (과거 이력 참조) 모드</span>
                                         <button 
                                             onClick={() => setUseRag(!useRag)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${useRag ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${useRag ? 'bg-indigo-600' : 'bg-gray-200'} cursor-pointer`}
                                         >
                                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useRag ? 'translate-x-6' : 'translate-x-1'}`} />
                                         </button>
@@ -332,7 +332,7 @@ const AnalysisPage = () => {
 
                         {/* 분석 결과 */}
                         {!isLoading && analysisResult && (
-                            <div className="rounded-lg shadow-sm border p-6 bg-white dark:bg-gray-800">
+                            <div className="rounded-lg shadow-sm border p-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-xl font-bold">
                                         분석 결과
@@ -426,17 +426,17 @@ const AnalysisPage = () => {
                                 </div>
 
                                 {resolvedAnalysisId && (
-                                    <div className="mt-6 pt-6 border-t flex justify-center gap-3">
+                                    <div className="mt-6 pt-6 border-t flex justify-center gap-3 ">
                                         <button
                                             onClick={() => window.location.href = '/codeAnalysis/new'}
-                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors cursor-pointer"
                                         >
                                             새로운 분석하기
                                         </button>
 
                                         <button
                                             onClick={() => navigate(`/codeboard/write/${resolvedAnalysisId}`)}
-                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors cursor-pointer"
                                         >
                                             분석결과 공유하기
                                         </button>

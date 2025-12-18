@@ -192,7 +192,7 @@ const AnalysisForm = ({ onSubmit, isLoading }) => {
             <button
                 type="submit"
                 disabled={isLoading || selectedTypes.length === 0}
-                className="w-full bg-indigo-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors shadow-md"
+                className="w-full bg-indigo-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors shadow-md cursor-pointer"
             >
                 {isLoading ? '분석 중...' : '분석 시작'}
             </button>
