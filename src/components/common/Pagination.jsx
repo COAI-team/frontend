@@ -76,7 +76,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
             key={number}
             onClick={() => onPageChange(number)}
             className={`
-              flex items-center justify-center min-w-[36px] h-9 px-3 rounded-md transition-all duration-150 cursor-pointer
+              flex items-center justify-center min-w-9 h-9 px-3 rounded-md transition-all duration-150 cursor-pointer
               ${currentPage === number
                 ? 'bg-blue-600 text-white font-medium dark:bg-[#3b4a5a]'
                 : 'bg-gray-200 hover:bg-gray-300 text-gray-700 hover:text-gray-900 dark:bg-[#1e293b] dark:hover:bg-[#2d3748] dark:text-gray-500 dark:hover:text-gray-400'

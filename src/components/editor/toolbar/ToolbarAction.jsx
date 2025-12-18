@@ -13,7 +13,7 @@ const checkIfHasRepresentative = (editor) => {
 };
 
 // 이미지 업로드
-export const addImage = async (editor) => {
+export const addImage = async (editor, showAlert) => {
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "image/*";
@@ -44,7 +44,7 @@ export const addImage = async (editor) => {
       formData.append("file", fileToUpload);
 
       const res = await axiosInstance.post(
-        "/upload/image",  
+        "/upload/image",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -66,21 +66,28 @@ export const addImage = async (editor) => {
         }
       });
 
-      if (loadingPos !== null) {
+      if (loadingPos === null) {
+        // 로딩 스피너를 못 찾으면 현재 위치에 삽입
+        const hasRepresentative = checkIfHasRepresentative(editor);
+        editor.chain().focus().setBlockImage({
+          src: url,
+          isRepresentative: !hasRepresentative
+        }).run();
+      } else {
         // 스피너 삭제하고 같은 위치에 이미지 삽입
         const hasRepresentative = checkIfHasRepresentative(editor);
-        
+
         editor
           .chain()
           .focus()
-          .deleteRange({ from: loadingPos, to: loadingPos + 1 })
+          .deleteRange({from: loadingPos, to: loadingPos + 1})
           .setTextSelection(loadingPos)
-          .setBlockImage({ 
+          .setBlockImage({
             src: url,
             isRepresentative: !hasRepresentative // 대표가 없으면 자동으로 설정
           })
           .run();
-        
+
         // 이미지 다음 위치로 커서 이동
         setTimeout(() => {
           const newPos = loadingPos + 1;
@@ -90,13 +97,6 @@ export const addImage = async (editor) => {
             .setTextSelection(newPos)
             .run();
         }, 0);
-      } else {
-        // 로딩 스피너를 못 찾으면 현재 위치에 삽입
-        const hasRepresentative = checkIfHasRepresentative(editor);
-        editor.chain().focus().setBlockImage({ 
-          src: url,
-          isRepresentative: !hasRepresentative
-        }).run();
       }
 
     } catch (err) {
@@ -116,7 +116,11 @@ export const addImage = async (editor) => {
           .run();
       }
 
-      alert(`이미지 업로드 실패: ${err.message}`);
+      showAlert({
+        type: "error",
+        title: "이미지 업로드 실패",
+        message: err.message ?? "이미지 업로드 중 오류가 발생했습니다.",
+      });
     }
   };
 };
@@ -125,7 +129,7 @@ export const addImage = async (editor) => {
 export const addLink = (editor) => {
   if (!editor) return;
 
-  const input = window.prompt("링크 주소를 입력하세요:");
+  const input = globalThis.prompt("링크 주소를 입력하세요:");
   if (!input) return;
 
   let url = input.trim();
@@ -163,17 +167,14 @@ export const addLink = (editor) => {
   editor.chain().focus().setLink({ href: url }).run();
 };
 
-// 링크 제거
-export const removeLink = (editor) => {
-  if (!editor) return;
-  editor.chain().focus().unsetLink().run();
-};
-
 // 링크 카드 삽입
-export const addLinkCard = async (editor) => {
+export const addLinkCard = async (
+  editor,
+  showAlert
+) => {
   if (!editor) return;
 
-  const input = window.prompt("링크 주소를 입력하세요:");
+  const input = globalThis.prompt("링크 주소를 입력하세요:");
   if (!input) return;
 
   let url = input.trim();
@@ -182,9 +183,7 @@ export const addLinkCard = async (editor) => {
   }
 
   try {
-    const res = await axiosInstance.post("/link/preview", {
-      url,
-    });
+    const res = await axiosInstance.post("/link/preview", { url });
 
     const data = res.data;
 
@@ -202,7 +201,11 @@ export const addLinkCard = async (editor) => {
         },
       })
       .run();
-  } catch (e) {
-    alert("링크 정보를 가져오지 못했습니다.");
+  } catch {
+    showAlert({
+      type: "error",
+      title: "링크 미리보기 실패",
+      message: "링크 정보를 가져오지 못했습니다.",
+    });
   }
 };

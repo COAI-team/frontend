@@ -1,35 +1,15 @@
 import axiosInstance from "../../server/AxiosConfig";
 
-// 채팅 메시지 보내기 (보호됨: POST /chat/messages)
+// ✅ 인터셉터가 토큰 자동 처리 → headers 불필요!
 export const sendChatMessage = async (payload) => {
-    try {
-        const token = localStorage.getItem("accessToken");
-        const res = await axiosInstance.post("/chat/messages", payload, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        return res.data;
-    } catch (err) {
-        console.error("❌ [sendChatMessage] 오류:", err);
-        return { error: err };
-    }
+  const res = await axiosInstance.post("/chat/messages", payload);
+  return res.data;
 };
 
-// 채팅 메시지 조회 (GET /chat/messages, 현재는 permitAll 이라 토큰 없어도 동작)
-export const getChatMessages = async (sessionId, limit, userId) => {
-    try {
-        const params = {
-            sessionId: sessionId?.toString() ?? "1",
-            limit: limit?.toString() ?? "50",
-            userId: userId?.toString() ?? ""
-        };
-
-        const res = await axiosInstance.get("/chat/messages", { params });
-
-        return res.data;
-    } catch (err) {
-        console.error("❌ [getChatMessages] 오류:", err);
-        return { error: err };
-    }
+// ✅ 기본값 + 자동 파라미터 처리
+export const getChatMessages = async (sessionId = "1", limit = "50", userId = "") => {
+  const res = await axiosInstance.get("/chat/messages", {
+    params: { sessionId, limit, userId }
+  });
+  return res.data;
 };

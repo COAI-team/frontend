@@ -1,50 +1,108 @@
-import {useState} from "react";
-import {InputRuleItemPropTypes} from "../../utils/propTypes";
+import { useState, useCallback, useMemo, memo } from "react";
+import { InputRuleItemPropTypes } from "../../utils/propTypes";
 import RuleItem from "./RuleItem";
-import {validateNameRules, validateNicknameRules} from "../../utils/validators";
+import { validateNameRules, validateNicknameRules } from "../../utils/validators";
 
-export default function InputField({label, id, value, onChange, ...rest}) {
-    const [isFocused, setIsFocused] = useState(false);
+const InputField = ({ label, id, value, onChange, ...rest }) => {
+  const [isFocused, setIsFocused] = useState(false);
 
-    const showRules = isFocused || value.length > 0;
+  // ✅ useMemo로 표시 조건 메모이제이션
+  const showRules = useMemo(() =>
+      isFocused || value.length > 0,
+    [isFocused, value.length]
+  );
 
-    const nameRules = id === "name" ? validateNameRules(value) : null;
-    const nicknameRules = id === "nickname" ? validateNicknameRules(value) : null;
+  // ✅ useMemo로 규칙 검사 메모이제이션
+  const nameRules = useMemo(() =>
+      id === "name" ? validateNameRules(value) : null,
+    [id, value]
+  );
 
-    return (
-        <div>
-            <label htmlFor={id} className="block text-sm font-medium dark:text-gray-100">
-                {label}
-            </label>
+  const nicknameRules = useMemo(() =>
+      id === "nickname" ? validateNicknameRules(value) : null,
+    [id, value]
+  );
 
-            <input
-                id={id}
-                value={value}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                onChange={onChange}
-                className="mt-2 block w-full rounded-md bg-white px-3 py-2
-          text-gray-900 outline outline-gray-300
-          focus:outline-indigo-600 dark:bg-white/5 dark:text-white"
-                {...rest}
-            />
+  // ✅ useCallback으로 이벤트 핸들러 메모이제이션
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
 
-            {/* 이름 규칙 */}
-            { id === "name" && showRules && (
-                <ul className="mt-2 text-xs space-y-1">
-                    <RuleItem ok={nameRules.noSpaceSpecial} text="공백과 특수문자를 사용할 수 없습니다." />
-                </ul>
-            )}
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+  }, []);
 
-            {/* 닉네임 규칙 */}
-            {id === "nickname" && showRules && (
-                <ul className="mt-2 text-xs space-y-1">
-                    <RuleItem ok={nicknameRules.hasValidLength} text="길이는 3~20자여야 합니다."/>
-                    <RuleItem ok={nicknameRules.isAllowedChars} text="영문, 숫자, '_', '-'만 가능합니다."/>
-                </ul>
-            )}
-        </div>
-    );
-}
+  // ✅ useMemo로 클래스명 메모이제이션
+  const inputClassName = useMemo(() =>
+      "mt-2 block w-full rounded-md bg-white px-3 py-2 text-gray-900 outline outline-gray-300 focus:outline-indigo-600 dark:bg-white/5 dark:text-white",
+    []
+  );
+
+  // ✅ useMemo로 유효성 검사 결과 메모이제이션
+  const isValid = useMemo(() => {
+    if (id === "name" && nameRules) {
+      return nameRules.noSpaceSpecial;
+    }
+    if (id === "nickname" && nicknameRules) {
+      return nicknameRules.hasValidLength && nicknameRules.isAllowedChars;
+    }
+    return true;
+  }, [id, nameRules, nicknameRules]);
+
+  // ✅ useMemo로 규칙 ID 메모이제이션
+  const rulesId = useMemo(() =>
+      `${id}-rules`,
+    [id]
+  );
+
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium dark:text-gray-100">
+        {label}
+      </label>
+
+      <input
+        id={id}
+        type="text"
+        value={value}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onChange={onChange}
+        className={inputClassName}
+        aria-invalid={value.length > 0 && !isValid}
+        aria-describedby={showRules ? rulesId : undefined}
+        {...rest}
+      />
+
+      {/* 이름 규칙 */}
+      {id === "name" && showRules && nameRules && (
+        <ul id={rulesId} className="mt-2 text-xs space-y-1">
+          <RuleItem
+            ok={nameRules.noSpaceSpecial}
+            text="공백과 특수문자를 사용할 수 없습니다."
+          />
+        </ul>
+      )}
+
+      {/* 닉네임 규칙 */}
+      {id === "nickname" && showRules && nicknameRules && (
+        <ul id={rulesId} className="mt-2 text-xs space-y-1">
+          <RuleItem
+            ok={nicknameRules.hasValidLength}
+            text="길이는 3~20자여야 합니다."
+          />
+          <RuleItem
+            ok={nicknameRules.isAllowedChars}
+            text="영문, 숫자, '_', '-'만 가능합니다."
+          />
+        </ul>
+      )}
+    </div>
+  );
+};
 
 InputField.propTypes = InputRuleItemPropTypes;
+
+export default memo(InputField);

@@ -181,7 +181,7 @@ const DashboardPage = () => {
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                             </button>
-                            <span className="font-mono font-bold min-w-[80px] text-center">
+                            <span className="font-mono font-bold min-w-20 text-center">
                                 {trends.data[currentMonthIndex]?.month || 'No Data'}
                             </span>
                             <button 
@@ -194,7 +194,7 @@ const DashboardPage = () => {
                         </div>
                     </div>
                     
-                    <div className="flex-1 flex items-center justify-center min-h-[250px] relative overflow-hidden rounded-lg p-2">
+                    <div className="flex-1 flex items-center justify-center min-h-62.5 relative overflow-hidden rounded-lg p-2">
                         {wordCloudData && wordCloudData.length > 0 ? (
                             <WordCloudChart 
                                 data={wordCloudData} 
@@ -214,7 +214,7 @@ const DashboardPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 {/* Detail View (Takes up 2 columns) */}
-                <div className="lg:col-span-2 dashboard-panel p-6 rounded-xl shadow-sm min-h-[400px]">
+                <div className="lg:col-span-2 dashboard-panel p-6 rounded-xl shadow-sm min-h-100">
                     <h2 className="dashboard-card-title mb-4">
                         {selectedPattern ? `Details: ${selectedPattern}` : "Select a pattern to view details"}
                     </h2>
