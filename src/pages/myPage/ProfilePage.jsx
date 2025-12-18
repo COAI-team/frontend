@@ -148,7 +148,7 @@ export default function ProfilePage() {
 
     showAlert({
       type: "success",
-      message: "프로필이 성공적으로 저장되었습니다.",
+      message: "GitHub 연결이 해제되었습니다.",
     });
     setGithubConnected(false);
   };
@@ -177,9 +177,9 @@ export default function ProfilePage() {
 
     if (!result || result.error) {
       showAlert({
-        type: "warning",
-        title: "회원 탈퇴 완료",
-        message: "탈퇴가 완료되었습니다. 90일 이내에 복구할 수 있습니다.",
+        type: "error", // warning -> error 수정 (저장 실패이므로)
+        title: "저장 실패",
+        message: "프로필 저장에 실패했습니다.",
       });
       return;
     }
@@ -470,7 +470,7 @@ export default function ProfilePage() {
             <button
               onClick={handleGetMcpToken}
               disabled={mcpLoading}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors cursor-pointer"
             >
               {mcpLoading ? '처리 중...' : '연결 설정 보기'}
             </button>
@@ -479,7 +479,7 @@ export default function ProfilePage() {
               <button
                 onClick={handleRegenerateMcpToken}
                 disabled={mcpLoading}
-                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors cursor-pointer"
               >
                 토큰 재생성
               </button>
@@ -496,57 +496,55 @@ export default function ProfilePage() {
       {showMcpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl p-6 relative animate-fade-in-up border border-gray-700">
-            <button
+            <button 
               onClick={() => setShowMcpModal(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-white"
+              className="absolute top-4 right-4 text-gray-500 hover:text-white cursor-pointer"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-
+            
             <h2 className="text-xl font-bold mb-4 text-indigo-400">⚡️ Connect CodeNose AI to Your IDE</h2>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
               Copy the configuration below and add it to your <code className="bg-gray-700 px-1 rounded">claude_desktop_config.json</code> file.
             </p>
 
             <div className="relative">
-                            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto font-mono border border-gray-700">
-                                {mcpConfigJson}
-                            </pre>
+              <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto font-mono border border-gray-700">
+                {mcpConfigJson}
+              </pre>
               <button
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(mcpConfigJson);
-
                     showAlert({
                       type: "success",
                       message: "클립보드에 복사되었습니다!",
                     });
                   } catch (err) {
                     console.error("Clipboard copy failed", err);
-
                     showAlert({
                       type: "error",
                       message: "클립보드 복사에 실패했습니다.",
                     });
                   }
                 }}
-                className="absolute top-2 right-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2 py-1 rounded transition-colors"
+                className="absolute top-2 right-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2 py-1 rounded transition-colors cursor-pointer"
               >
                 Copy
               </button>
             </div>
-
+            
             <div className="mt-4 flex items-center justify-between">
               <button
                 onClick={handleRegenerateMcpToken}
                 disabled={mcpLoading}
-                className="px-3 py-1 bg-orange-500 hover:bg-orange-400 text-white text-sm rounded transition-colors disabled:opacity-50"
+                className="px-3 py-1 bg-orange-500 hover:bg-orange-400 text-white text-sm rounded transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {mcpLoading ? '처리 중...' : '🔄 토큰 재생성'}
               </button>
-              <button
+              <button 
                 onClick={() => setShowMcpModal(false)}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors"
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -563,14 +561,14 @@ export default function ProfilePage() {
           <div className="flex justify-end">
             {isDeleted ? (
               <button
-                className="px-4 py-2 bg-green-100 text-green-600 rounded-md hover:bg-green-200"
+                className="px-4 py-2 bg-green-100 text-green-600 rounded-md hover:bg-green-200 cursor-pointer"
                 onClick={handleRestore}
               >
                 계정 복구하기
               </button>
             ) : (
               <button
-                className="px-4 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200"
+                className="px-4 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 cursor-pointer"
                 onClick={handleDeactivate}
               >
                 회원 탈퇴

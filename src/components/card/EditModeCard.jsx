@@ -230,7 +230,7 @@ const EditModeCard = ({
             className="text-sm font-medium">이메일</label>
           <input
             type="email"
-            className="mt-1 w-full border rounded-md px-4 py-2 bg-gray-100 cursor-not-allowed"
+            className="mt-1 w-full border rounded-md px-4 py-2 cursor-not-allowed"
             value={profile.email}
             readOnly
           />
@@ -249,33 +249,37 @@ const EditModeCard = ({
           />
         </div>
 
-        {/* GitHub Token */}
-        <div>
-          <div className="flex justify-between mb-1">
-            <label
-              htmlFor="githubToken"
-              className="text-sm font-medium">GitHub Token</label>
-            <button
-              type="button"
-              onClick={openTokenPage}
-              className="text-xs text-blue-600 underline"
-            >
-              토큰 발급받기
-            </button>
-          </div>
-          <input
-            type="password"
-            className="mt-1 w-full border rounded-md px-4 py-2"
-            value={profile.githubToken || ""}
-            onChange={handleGithubTokenChange}
-            placeholder={
-              profile.hasGithubToken
-                ? "토큰이 저장되어 있습니다 (수정하려면 입력)"
-                : "GitHub Personal Access Token"
-            }
-          />
-        </div>
-      </div>
+                {/* GitHub Token */}
+                <div>
+                    <div className="flex justify-between items-center mb-1">
+                        <label
+                            htmlFor="githubToken"
+                            className="text-sm font-medium text-gray-700"
+                        >
+                            GitHub Token
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => window.open('https://github.com/settings/tokens', '_blank')}
+                            className="text-xs text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                        >
+                            토큰 발급받기
+                        </button>
+                    </div>
+                    <input
+                        id="githubToken"
+                        type="password"
+                        className="mt-1 w-full border rounded-md px-4 py-2"
+                        value={profile.githubToken || ""}
+                        placeholder={profile.hasGithubToken ? "토큰이 저장되어 있습니다 (수정하려면 입력)" : "GitHub Personal Access Token (repo scope)"}
+                        onChange={(e) => setProfile(prev => ({...prev, githubToken: e.target.value}))}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                        * Private Repository 접근 및 API 호출 제한 해제를 위해 필요합니다. (repo 권한 필요)
+                    </p>
+                </div>
+            </div>
+        
 
       {/* 버튼 */}
       <div className="flex justify-end mt-8 gap-3">

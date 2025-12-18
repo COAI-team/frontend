@@ -93,7 +93,7 @@ const RepositorySelector = ({ onSelect, onSearch }) => {
                 />
                 <button 
                     onClick={handleManualSearch}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500 cursor-pointer"
                 >
                     Search
                 </button>

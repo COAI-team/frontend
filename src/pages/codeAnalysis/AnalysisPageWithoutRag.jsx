@@ -242,7 +242,7 @@ const AnalysisPageWithoutRag = () => {
 
                         {/* 분석 결과 */}
                         {!isLoading && analysisResult && (
-                            <div className="rounded-lg shadow-sm border p-6 bg-white dark:bg-gray-800">
+                            <div className="rounded-lg shadow-sm border p-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-xl font-bold">
                                         분석 결과 (No RAG)
