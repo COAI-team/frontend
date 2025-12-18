@@ -638,6 +638,26 @@ export const getUserLevel = async (userId) => {
     }
 };
 
+/**
+ * 일별 문제 풀이 수 조회 (GitHub 잔디 캘린더용)
+ * @param {number} userId - 사용자 ID (테스트용)
+ * @param {number} months - 조회할 개월 수 (기본 12)
+ */
+export const getContributions = async (userId, months = 12) => {
+    try {
+        const params = { months };
+        if (userId) params.testUserId = userId;
+        const res = await axiosInstance.get('/algo/missions/contributions', { params });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [getContributions] 요청 실패:', err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: '잔디 캘린더 데이터를 가져오는데 실패했습니다.' };
+    }
+};
+
 // ============== 문제 풀 (Pre-generation Pool) API ==============
 
 /**
@@ -843,6 +863,14 @@ export const TOPIC_OPTIONS = [
     { value: '문자열', label: '문자열' },
 ];
 
+/**
+ * 알고리즘 레벨 정보
+ *
+ * 변경사항 (2025-12-17): XP 기반 레벨 시스템으로 전환
+ * - minSolved 대신 requiredXp 사용 (XP 기반 레벨 산정)
+ * - 레벨 임계값: EMERALD(0), SAPPHIRE(300), RUBY(1000), DIAMOND(3000)
+ * - XP 획득: BRONZE=10, SILVER=25, GOLD=50, PLATINUM=100 (첫 정답 +50%)
+ */
 export const ALGO_LEVEL_INFO = {
     EMERALD: {
         name: '에메랄드',
@@ -851,7 +879,7 @@ export const ALGO_LEVEL_INFO = {
         textColor: 'text-emerald-700',
         borderColor: 'border-emerald-300',
         icon: '💎',
-        minSolved: 0,
+        requiredXp: 0,
         rewardPoints: 10
     },
     SAPPHIRE: {
@@ -861,8 +889,8 @@ export const ALGO_LEVEL_INFO = {
         textColor: 'text-blue-700',
         borderColor: 'border-blue-300',
         icon: '💠',
-        minSolved: 20,
-        rewardPoints: 20
+        requiredXp: 300,
+        rewardPoints: 15
     },
     RUBY: {
         name: '루비',
@@ -871,8 +899,8 @@ export const ALGO_LEVEL_INFO = {
         textColor: 'text-red-700',
         borderColor: 'border-red-300',
         icon: '🔴',
-        minSolved: 50,
-        rewardPoints: 30
+        requiredXp: 1000,
+        rewardPoints: 25
     },
     DIAMOND: {
         name: '다이아몬드',
@@ -881,8 +909,8 @@ export const ALGO_LEVEL_INFO = {
         textColor: 'text-cyan-700',
         borderColor: 'border-cyan-300',
         icon: '💎',
-        minSolved: 100,
-        rewardPoints: 50
+        requiredXp: 3000,
+        rewardPoints: 40
     }
 };
 

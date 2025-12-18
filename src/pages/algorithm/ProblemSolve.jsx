@@ -1394,32 +1394,81 @@ const ProblemSolve = () => {
                     testResult.error ? (
                       <span className="text-red-400">❌ {testResult.message}</span>
                     ) : (
-                      <div>
-                        <div className={`font-bold mb-2 ${testResult.overallResult === 'AC' ? 'text-green-400' : 'text-red-400'}`}>
-                          {testResult.overallResult === 'AC' ? '✅ 정답!' : `❌ ${testResult.overallResult}`}
-                          <span className="ml-2 text-gray-400 font-normal">
-                            ({testResult.passedCount}/{testResult.totalCount} 통과)
+                      <div className="space-y-3">
+                        {/* 상단: 간략한 결과 요약 */}
+                        <div className="flex items-center gap-3 pb-2 border-b border-zinc-700">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            testResult.overallResult === 'AC'
+                              ? 'bg-green-900/50 text-green-400 border border-green-700'
+                              : 'bg-red-900/50 text-red-400 border border-red-700'
+                          }`}>
+                            {testResult.overallResult === 'AC' ? '통과' : testResult.overallResult}
                           </span>
-                          {testResult.maxExecutionTime && (
-                            <span className="ml-2 text-gray-500 font-normal text-xs">
-                              실행시간: {testResult.maxExecutionTime}ms
+                          <span className="text-gray-500 text-xs">
+                            {testResult.passedCount}/{testResult.totalCount} 테스트 통과
+                          </span>
+                          {testResult.maxExecutionTime > 0 && (
+                            <span className="text-gray-600 text-xs">
+                              {testResult.maxExecutionTime}ms
                             </span>
                           )}
                         </div>
+
+                        {/* 각 테스트케이스 출력 */}
                         {testResult.testCaseResults?.map((tc, idx) => (
-                          <div key={idx} className="text-xs mt-1">
-                            <span className={tc.result === 'AC' ? 'text-green-400' : 'text-red-400'}>
-                              TC{tc.testCaseNumber}: {tc.result}
-                            </span>
-                            {tc.result !== 'AC' && tc.actualOutput && (
-                              <span className="text-gray-500 ml-2">
-                                출력: "{tc.actualOutput?.trim()}"
+                          <div key={idx} className="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/50">
+                            {/* TC 헤더 */}
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-gray-400 text-xs font-medium">테스트 {tc.testCaseNumber}</span>
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                                tc.result === 'AC'
+                                  ? 'bg-green-900/30 text-green-500'
+                                  : 'bg-red-900/30 text-red-500'
+                              }`}>
+                                {tc.result}
                               </span>
+                              {tc.executionTime && (
+                                <span className="text-gray-600 text-[10px]">{tc.executionTime}ms</span>
+                              )}
+                            </div>
+
+                            {/* 입력 */}
+                            {tc.input && (
+                              <div className="mb-2">
+                                <span className="text-gray-500 text-[10px] uppercase tracking-wide">입력</span>
+                                <pre className="mt-1 p-2 bg-zinc-900 rounded text-xs text-cyan-400 font-mono overflow-x-auto whitespace-pre-wrap">
+                                  {tc.input}
+                                </pre>
+                              </div>
                             )}
-                            {tc.errorMessage && (
-                              <pre className="text-red-300 mt-1 text-xs whitespace-pre-wrap bg-red-900/20 p-2 rounded">
-                                {tc.errorMessage}
+
+                            {/* 출력 (항상 표시) */}
+                            <div className="mb-2">
+                              <span className="text-gray-500 text-[10px] uppercase tracking-wide">출력</span>
+                              <pre className={`mt-1 p-2 bg-zinc-900 rounded text-xs font-mono overflow-x-auto whitespace-pre-wrap ${
+                                tc.actualOutput ? 'text-green-400' : 'text-gray-600 italic'
+                              }`}>
+                                {tc.actualOutput?.trim() || '(출력 없음)'}
                               </pre>
+                            </div>
+
+                            {/* 기대 출력 (틀렸을 때만 표시) */}
+                            {tc.result !== 'AC' && tc.expectedOutput && (
+                              <div className="mb-2">
+                                <span className="text-gray-500 text-[10px] uppercase tracking-wide">기대 출력</span>
+                                <pre className="mt-1 p-2 bg-zinc-900 rounded text-xs text-yellow-400 font-mono overflow-x-auto whitespace-pre-wrap">
+                                  {tc.expectedOutput}
+                                </pre>
+                              </div>
+                            )}
+
+                            {/* 에러 메시지 */}
+                            {tc.errorMessage && (
+                              <div className="mt-2 p-2 bg-red-900/20 rounded border border-red-900/50">
+                                <pre className="text-red-300 text-xs whitespace-pre-wrap">
+                                  {tc.errorMessage}
+                                </pre>
+                              </div>
                             )}
                           </div>
                         ))}
