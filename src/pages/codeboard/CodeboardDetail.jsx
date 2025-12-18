@@ -250,7 +250,7 @@ const CodeboardDetail = () => {
           display: 'grid', 
           gridTemplateColumns: board.analysisId ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr', 
           gap: '1.5rem',
-          overflow: 'hidden'
+          overflow: 'visible'
         }}>
           
           {/* 좌측 패널 - analysisId가 있으면 항상 영역 확보 */}
@@ -612,7 +612,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
       flexDirection: 'column', 
       gap: '1.5rem',
       minWidth: 0,
-      overflow: 'hidden'
+      overflow: 'visible'
     }}>
       {/* 코드 뷰어 */}
       <div style={{
