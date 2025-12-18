@@ -173,7 +173,7 @@ const CodeboardEdit = () => {
                             </button>
                             <span className={theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}>|</span>
                             <h1 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                ✏️ 코드리뷰 게시글 수정
+                                게시글 수정
                             </h1>
                         </div>
                     </div>
@@ -339,7 +339,7 @@ const CodeboardEdit = () => {
                     <div className="space-y-6">
                         <WriteEditor 
                             onSubmit={handleSubmit} 
-                            toolbarType="minimal"
+                            toolbarType="codeboard"
                             initialTitle={initialData.title}
                             initialContent={initialData.content}
                             initialTags={initialData.tags}

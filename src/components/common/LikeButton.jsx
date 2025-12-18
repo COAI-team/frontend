@@ -21,7 +21,6 @@ const LikeButton = ({
     const [isLoading, setIsLoading] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
 
-    // 다크모드 여부 판단
     const [isDark, setIsDark] = useState(false);
 
     useEffect(() => {
@@ -40,7 +39,6 @@ const LikeButton = ({
         return () => observer.disconnect();
     }, []);
 
-    // 로그인 체크
     useEffect(() => {
         const auth = getAuth();
         if (auth?.user) {
@@ -48,13 +46,11 @@ const LikeButton = ({
         }
     }, []);
 
-    // props 변경 시 동기화
     useEffect(() => {
         setIsLiked(initialIsLiked);
         setLikeCount(initialLikeCount);
     }, [initialIsLiked, initialLikeCount]);
 
-    // 좋아요 토글
     const handleLike = async (e) => {
         e.stopPropagation();
         
@@ -74,13 +70,15 @@ const LikeButton = ({
         setIsLoading(true);
         try {
             const response = await axiosInstance.post(`/like/${referenceType}/${referenceId}`);
-            const newIsLiked = response.data.data.isLiked;
-            const newLikeCount = newIsLiked ? likeCount + 1 : likeCount - 1;
+            
+            // 백엔드 응답 구조 변경: isLiked → liked, likeCount 추가
+            const responseData = response.data.data;
+            const newIsLiked = responseData.liked !== undefined ? responseData.liked : responseData.isLiked;
+            const newLikeCount = responseData.likeCount;
             
             setIsLiked(newIsLiked);
             setLikeCount(newLikeCount);
             
-            // 부모 컴포넌트에 변경 알림
             if (onChange) {
                 onChange(newIsLiked, newLikeCount);
             }
@@ -96,7 +94,6 @@ const LikeButton = ({
         }
     };
 
-    // 좋아요 누른 사용자 목록 조회
     const fetchLikeUsers = async () => {
         if (!showUsers || likeCount === 0) return;
         
@@ -104,7 +101,7 @@ const LikeButton = ({
             const response = await axiosInstance.get(`/like/${referenceType}/${referenceId}/users`, {
                 params: { limit: 10 }
             });
-            setLikeUsers(response.data.data.users);
+            setLikeUsers(response.data.data || []);
         } catch (error) {
             console.error('좋아요 사용자 목록 조회 실패:', error);
         }
@@ -168,13 +165,44 @@ const LikeButton = ({
             </button>
 
             {showTooltip && showUsers && likeCount > 0 && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50">
-                    <div className="bg-gray-900 text-white text-sm rounded-lg shadow-lg px-3 py-2 min-w-[200px] max-w-[300px]">
-                        <div className="font-semibold mb-2">좋아요 {likeCount}개</div>
+                <div style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '0',
+                    transform: 'none',
+                    marginBottom: '0.5rem',
+                    zIndex: 50
+                }}>
+                    <div style={{
+                        backgroundColor: '#111827',
+                        color: '#ffffff',
+                        fontSize: '0.875rem',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                        padding: '0.75rem',
+                        minWidth: '200px',
+                        maxWidth: '300px'
+                    }}>
+                        <div style={{ 
+                            fontWeight: '600', 
+                            marginBottom: '0.5rem' 
+                        }}>
+                            좋아요 {likeCount}개
+                        </div>
                         {likeUsers.length > 0 ? (
-                            <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.375rem',
+                                maxHeight: '200px',
+                                overflowY: 'auto'
+                            }}>
                                 {likeUsers.map((user, idx) => (
-                                    <div key={idx} className="flex items-center gap-2">
+                                    <div key={idx} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}>
                                         <div style={{
                                             width: '1.5rem',
                                             height: '1.5rem',
@@ -188,16 +216,35 @@ const LikeButton = ({
                                         }}>
                                             {user.userNickname ? user.userNickname.charAt(0).toUpperCase() : 'U'}
                                         </div>
-                                        <span className="text-xs">{user.userNickname}</span>
+                                        <span style={{ fontSize: '0.75rem' }}>
+                                            {user.userNickname}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-xs text-gray-400">로딩 중...</div>
+                            <div style={{ 
+                                fontSize: '0.75rem', 
+                                color: '#9ca3af' 
+                            }}>
+                                로딩 중...
+                            </div>
                         )}
                     </div>
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="border-8 border-transparent border-t-gray-900"></div>
+                    <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: '1rem',
+                        transform: 'none',
+                        marginTop: '-0.25rem'
+                    }}>
+                        <div style={{
+                            width: 0,
+                            height: 0,
+                            borderLeft: '8px solid transparent',
+                            borderRight: '8px solid transparent',
+                            borderTop: '8px solid #111827'
+                        }}></div>
                     </div>
                 </div>
             )}
