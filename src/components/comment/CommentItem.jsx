@@ -12,11 +12,18 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
   const [liked, setLiked] = useState(comment.isLiked || false);
   const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
   const [showMenu, setShowMenu] = useState(false);
+  const isLikingRef = useRef(false);
   const menuRef = useRef(null);
 
   const auth = getAuth();
   const currentUserId = auth?.userId;
   const isMyComment = currentUserId != null && comment.userId === currentUserId;
+
+  // liked 상태를 comment.isLiked와 동기화
+  useEffect(() => {
+    setLiked(comment.isLiked || false);
+    setLikeCount(comment.likeCount || 0);
+  }, [comment.isLiked, comment.likeCount]);
 
   // 메뉴 외부 클릭 감지
   useEffect(() => {
@@ -76,13 +83,34 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
   };
 
   const handleLike = async () => {
+    if (isLikingRef.current) return; // ref는 즉시 체크 가능
+    
+    isLikingRef.current = true; // 즉시 true로 설정
+    
+    // UI 즉시 업데이트
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikeCount(prev => newLiked ? prev + 1 : prev - 1);
+    
     try {
       const response = await axiosInstance.post(`/like/comment/${comment.commentId}`);
-      const { isLiked } = response.data;
-      setLiked(isLiked);
-      setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+      const { isLiked } = response.data.data || response.data;
+      
+      // 서버 응답과 다르면 동기화
+      if (isLiked !== newLiked) {
+        setLiked(isLiked);
+        setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+      }
     } catch (error) {
       console.error('좋아요 실패:', error);
+      // 실패시 롤백
+      setLiked(!newLiked);
+      setLikeCount(prev => newLiked ? prev - 1 : prev + 1);
+    } finally {
+      // 300ms 후 다시 클릭 가능
+      setTimeout(() => {
+        isLikingRef.current = false;
+      }, 300);
     }
   };
 
@@ -265,94 +293,73 @@ const authorBadgeStyle = {
                 {comment.userNickname}
               </span>
               {comment.isAuthor && (
-                <span style={authorBadgeStyle}>내가 쓴 댓글</span>
+                <span style={authorBadgeStyle}>내가 쓴</span>
               )}
             </div>
 
             {/* 더보기 메뉴 */}
-            <div style={{ position: 'relative' }} ref={menuRef}>
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                style={{
-                  padding: '0.25rem',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: isDark ? '#6b7280' : '#9ca3af',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="5" r="2"/>
-                  <circle cx="12" cy="12" r="2"/>
-                  <circle cx="12" cy="19" r="2"/>
-                </svg>
-              </button>
+            {isMyComment && (
+              <div style={{ position: 'relative' }} ref={menuRef}>
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  style={{
+                    padding: '0.25rem',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: isDark ? '#6b7280' : '#9ca3af',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <circle cx="12" cy="19" r="2"/>
+                  </svg>
+                </button>
 
-              {showMenu && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: '0.25rem',
-                  minWidth: '100px',
-                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
-                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                  borderRadius: '0.375rem',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  zIndex: 50,
-                  overflow: 'hidden'
-                }}>
-                  {isMyComment ? (
-                    <>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setIsEditing(true);
-                        }}
-                        style={{
-                          display: 'block',
-                          width: '100%',
-                          padding: '0.5rem 1rem',
-                          fontSize: '0.8125rem',
-                          textAlign: 'left',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: isDark ? '#e5e7eb' : '#374151',
-                          borderBottom: `1px solid ${isDark ? '#374151' : '#f3f4f6'}`
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                      >
-                        수정
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          handleDelete();
-                        }}
-                        style={{
-                          display: 'block',
-                          width: '100%',
-                          padding: '0.5rem 1rem',
-                          fontSize: '0.8125rem',
-                          textAlign: 'left',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: isDark ? '#fca5a5' : '#dc2626'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                      >
-                        삭제
-                      </button>
-                    </>
-                  ) : (
+                {showMenu && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '0.25rem',
+                    minWidth: '100px',
+                    backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                    border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                    borderRadius: '0.375rem',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    zIndex: 50,
+                    overflow: 'hidden'
+                  }}>
                     <button
-                      onClick={handleReport}
+                      onClick={() => {
+                        setShowMenu(false);
+                        setIsEditing(true);
+                      }}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.8125rem',
+                        textAlign: 'left',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: isDark ? '#e5e7eb' : '#374151',
+                        borderBottom: `1px solid ${isDark ? '#374151' : '#f3f4f6'}`
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    >
+                      수정
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleDelete();
+                      }}
                       style={{
                         display: 'block',
                         width: '100%',
@@ -367,12 +374,12 @@ const authorBadgeStyle = {
                       onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
                       onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                     >
-                      신고하기
+                      삭제
                     </button>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 댓글 내용 */}
@@ -395,12 +402,15 @@ const authorBadgeStyle = {
               {formatDate(comment.createdAt)}
             </span>
 
-            <button
-              onClick={() => setShowReplyForm(!showReplyForm)}
-              style={actionButtonStyle}
-            >
-              답글쓰기
-            </button>
+            {/* 대댓글에는 답글쓰기 버튼 숨김 */}
+            {!isReply && (
+              <button
+                onClick={() => setShowReplyForm(!showReplyForm)}
+                style={actionButtonStyle}
+              >
+                답글쓰기
+              </button>
+            )}
 
             <button
               onClick={handleLike}

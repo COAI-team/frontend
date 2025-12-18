@@ -469,9 +469,11 @@ const CodeboardDetail = () => {
               padding: '1rem 0',
               marginTop: '2rem',
               paddingTop: '2rem',
-              borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
+              borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+              flexWrap: 'wrap', 
+               gap: '1rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', minWidth: 0 }}>
                 <LikeButton
                   referenceType="codeboard"
                   referenceId={Number(id)}
@@ -487,7 +489,8 @@ const CodeboardDetail = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  color: isDark ? '#9ca3af' : '#4b5563'
+                  color: isDark ? '#9ca3af' : '#4b5563',
+                  minWidth: 0
                 }}>
                   <MessageCircle size={20} />
                   <span style={{ fontSize: '0.875rem' }}>댓글</span>
@@ -495,7 +498,7 @@ const CodeboardDetail = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', minWidth: 0 }}>
                 <button 
                   onClick={handleShare}
                   style={{
