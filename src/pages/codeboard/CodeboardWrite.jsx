@@ -132,7 +132,7 @@ const CodeboardWrite = () => {
                             </button>
                             <span className={theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}>|</span>
                             <h1 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                💬 코드리뷰 게시글 작성
+                                게시글 작성
                             </h1>
                         </div>
                     </div>
@@ -297,7 +297,7 @@ const CodeboardWrite = () => {
                     <div className="space-y-6">
                         <WriteEditor 
                         onSubmit={handleSubmit} 
-                        toolbarType="minimal"
+                        toolbarType="codeboard"
                         />
                     </div>
                 </div>
