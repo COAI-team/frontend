@@ -59,7 +59,7 @@ export default function ViewModeCard({ profile, maskEmail, onEdit, subscriptionI
             <div className="flex justify-end mt-8">
                 <button
                     onClick={onEdit}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 cursor-pointer"
                 >
                     수정
                 </button>

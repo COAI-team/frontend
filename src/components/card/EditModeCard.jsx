@@ -171,7 +171,7 @@ export default function EditModeCard({
                         <button
                             type="button"
                             onClick={() => window.open('https://github.com/settings/tokens', '_blank')}
-                            className="text-xs text-blue-600 hover:text-blue-800 underline"
+                            className="text-xs text-blue-600 hover:text-blue-800 underline cursor-pointer"
                         >
                             토큰 발급받기
                         </button>
@@ -194,7 +194,7 @@ export default function EditModeCard({
             <div className="flex justify-end mt-8 gap-3">
                 <button
                     onClick={onCancel}
-                    className="px-6 py-2 border rounded-md hover:bg-gray-100"
+                    className="px-6 py-2 border rounded-md hover:bg-gray-100 cursor-pointer"
                 >
                     취소
                 </button>
@@ -204,7 +204,7 @@ export default function EditModeCard({
                     disabled={!isNameValid || !isNicknameValid}
                     className={`px-6 py-2 rounded-md text-white ${
                         isNameValid && isNicknameValid
-                            ? "bg-blue-600 hover:bg-blue-500"
+                            ? "bg-blue-600 hover:bg-blue-500 cursor-pointer"
                             : "bg-gray-400 cursor-not-allowed"
                     }`}
                 >
