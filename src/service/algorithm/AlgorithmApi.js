@@ -786,7 +786,7 @@ export const getPoolStatus = async () => {
 // ============== 상수 정의 ==============
 
 export const DIFFICULTY_OPTIONS = [
-    { value: '', label: '전체', color: 'gray' },
+    { value: '', label: '난이도 전체', color: 'gray' },
     { value: 'BRONZE', label: '브론즈', color: 'amber' },
     { value: 'SILVER', label: '실버', color: 'gray' },
     { value: 'GOLD', label: '골드', color: 'yellow' },
