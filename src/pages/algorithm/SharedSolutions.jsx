@@ -35,17 +35,32 @@ const SharedSolutions = ({ problemId }) => {
       console.log('API 응답:', response);
       
       if (response.error) {
-        throw new Error(response.message || '공유된 풀이를 불러오는데 실패했습니다.');
+        // 권한 에러 특별 처리
+        if (response.code === 'FORBIDDEN') {
+          setError('이 문제를 먼저 풀어야 다른 사람의 풀이를 볼 수 있습니다. 💪');
+        } else if (response.code === 'UNAUTHORIZED') {
+          setError('로그인이 필요한 서비스입니다.');
+        } else {
+          setError(response.message || '공유된 풀이를 불러오는데 실패했습니다.');
+        }
+        return;
       }
       
       const pageData = response.data || response;
-      
       setSolutions(pageData.content || []);
       setTotalPages(pageData.totalPages || 0);
       
     } catch (err) {
       console.error('공유 풀이 조회 실패:', err);
-      setError(err.message || '공유된 풀이를 불러오는데 실패했습니다.');
+      
+      // HTTP 상태 코드로 판단
+      if (err.response?.status === 403) {
+        setError('이 문제를 먼저 풀어야 다른 사람의 풀이를 볼 수 있습니다. 💪');
+      } else if (err.response?.status === 401) {
+        setError('로그인이 필요한 서비스입니다.');
+      } else {
+        setError(err.message || '공유된 풀이를 불러오는데 실패했습니다.');
+      }
     } finally {
       setLoading(false);
     }
