@@ -79,6 +79,9 @@ const ProblemSolve = () => {
   // [Debug] 시선 추적 디버그 모드 상태
   const [eyeTrackingDebugMode, setEyeTrackingDebugMode] = useState(false);
 
+  // [집중도 게이지] 실시간 집중도 점수 표시
+  const [showFocusGauge, setShowFocusGauge] = useState(false);
+
   // 추적기 타입 선택 (WebGazer / MediaPipe)
   const [selectedTrackerType, setSelectedTrackerType] = useState(TRACKER_TYPES.MEDIAPIPE);
 
@@ -93,6 +96,8 @@ const ProblemSolve = () => {
     detectedFaces: []
   });
   const drowsyViolationRecordedRef = useRef(false); // 졸음 위반 중복 기록 방지
+  const [livenessWarning, setLivenessWarning] = useState(false); // 깜빡임 없음 경고 (사진/영상 감지)
+  const livenessViolationRecordedRef = useRef(false); // 깜빡임 없음 위반 중복 기록 방지
 
   // [Phase 2] NO_FACE 경고 상태
   const [noFaceState, setNoFaceState] = useState({
@@ -284,6 +289,19 @@ const ProblemSolve = () => {
       drowsyViolationRecordedRef.current = false;
     }
   }, [drowsinessState.isDrowsy, selectedMode, selectedTrackerType, recordViolation]);
+
+  // 깜빡임 없음 위반 (MediaPipe only, Liveness 검증) - 중복 기록 방지
+  useEffect(() => {
+    if (livenessWarning && selectedMode === 'FOCUS' && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE) {
+      if (!livenessViolationRecordedRef.current) {
+        livenessViolationRecordedRef.current = true;
+        recordViolation('NO_BLINK_SUSTAINED');
+      }
+    } else if (!livenessWarning) {
+      // 경고 상태가 해제되면 플래그 리셋
+      livenessViolationRecordedRef.current = false;
+    }
+  }, [livenessWarning, selectedMode, selectedTrackerType, recordViolation]);
 
   // 기본 모드에서 타이머 설정 변경 시 timeLeft 업데이트 (시작 전에만)
   useEffect(() => {
@@ -825,6 +843,14 @@ const ProblemSolve = () => {
     }
   }, []);
 
+  // MediaPipe 전용 콜백: 깜빡임 없음 경고 (Liveness 검증)
+  const handleLivenessWarningChange = useCallback((isWarning) => {
+    setLivenessWarning(isWarning);
+    if (isWarning) {
+      console.log('👁️ Liveness warning: No blink detected for 30+ seconds');
+    }
+  }, []);
+
   // [Debug] 시선 추적 디버그 모드 토글 핸들러
   const handleToggleEyeTrackingDebug = useCallback(() => {
     if (eyeTrackerRef.current?.toggleDebugMode) {
@@ -888,7 +914,7 @@ const ProblemSolve = () => {
               {/* 모드 선택으로 돌아가기 버튼 */}
               <button
                 onClick={handleBackToModeSelection}
-                className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-1"
+                className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
               >
                 ← 모드 선택
               </button>
@@ -988,6 +1014,28 @@ const ProblemSolve = () => {
                     }
                   </span>
                 )}
+
+                {/* 집중도 게이지 토글 - 집중 모드 + MediaPipe + 추적 준비 완료 시 */}
+                {selectedMode === 'FOCUS' && eyeTrackingReady && selectedTrackerType === 'mediapipe' && (
+                  <div className="relative group ml-3">
+                    <button
+                      onClick={() => setShowFocusGauge(prev => !prev)}
+                      className={`w-8 h-8 rounded-lg text-base transition-all flex items-center justify-center ${
+                        showFocusGauge
+                          ? 'bg-emerald-600/80 text-white ring-1 ring-emerald-400 shadow-lg shadow-emerald-500/20 cursor-pointer'
+                          : 'bg-zinc-700/80 text-gray-400 hover:bg-zinc-600 hover:text-white cursor-pointer'
+                      }`}
+                    >
+                      {showFocusGauge ? '🚨' : '🚨'}
+                    </button>
+                    {/* 호버 툴팁 - 아래에 표시 */}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-zinc-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-zinc-700 z-50">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-zinc-900"></div>
+                      집중도 게이지 {showFocusGauge ? '숨기기' : '보기'}
+                      <div className="text-gray-400 mt-0.5">실시간 집중 정도를 확인</div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 타이머 컨트롤 - 기본 모드에서만 수동 제어 가능 */}
@@ -1002,7 +1050,7 @@ const ProblemSolve = () => {
                           timerMode === 'TIMER'
                             ? 'bg-yellow-600 text-white'
                             : 'text-gray-400 hover:text-white'
-                        }`}
+                        } cursor-pointer`}
                       >
                         ⏱️ 타이머
                       </button>
@@ -1012,7 +1060,7 @@ const ProblemSolve = () => {
                           timerMode === 'STOPWATCH'
                             ? 'bg-cyan-600 text-white'
                             : 'text-gray-400 hover:text-white'
-                        }`}
+                        } cursor-pointer`}
                       >
                         ⏱️ 스톱워치
                       </button>
@@ -1023,7 +1071,7 @@ const ProblemSolve = () => {
                   {!isTimerRunning ? (
                     <button
                       onClick={handleStartTimer}
-                      className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700 text-white"
+                      className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700 text-white cursor-pointer"
                     >
                       시작
                     </button>
@@ -1264,8 +1312,31 @@ const ProblemSolve = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded" title="복사">📋</button>
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded" title="전체화면">⛶</button>
+                <div className="relative group">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(code);
+                        // 복사 성공 시 버튼 텍스트 임시 변경
+                        const btn = document.getElementById('copyCodeBtn');
+                        if (btn) {
+                          btn.textContent = '✓';
+                          setTimeout(() => { btn.textContent = '📋'; }, 1500);
+                        }
+                      } catch (err) {
+                        console.error('복사 실패:', err);
+                      }
+                    }}
+                    id="copyCodeBtn"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded cursor-pointer"
+                  >
+                    📋
+                  </button>
+                  {/* 호버 툴팁 */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 bg-zinc-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-zinc-700 z-50">
+                    복사
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1362,11 +1433,11 @@ const ProblemSolve = () => {
 
               {/* 하단 버튼 */}
               <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
-                <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white">
+                <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white cursor-pointer">
                   초기화
                 </button>
                 <button onClick={handleTestRun} disabled={isRunning}
-                  className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2">
+                  className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2 cursor-pointer">
                   {isRunning ? (
                     <>
                       <span className="animate-spin">⚙️</span>
@@ -1377,7 +1448,7 @@ const ProblemSolve = () => {
                   )}
                 </button>
                 <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
-                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2">
+                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2 cursor-pointer">
                   {isSubmitting ? '제출 중...' : '✓ 제출 후 채점하기'}
                 </button>
               </div>
@@ -1400,6 +1471,11 @@ const ProblemSolve = () => {
           onNoFaceStateChange={setNoFaceState}
           onDrowsinessStateChange={handleDrowsinessStateChange}
           onMultipleFacesDetected={handleMultipleFacesDetected}
+          onLivenessWarningChange={handleLivenessWarningChange}
+          skipCalibration={true}
+          showFocusGauge={showFocusGauge}
+          focusGaugePosition="right-center"
+          focusGaugeCompact={false}
         />
       )}
 
@@ -1424,6 +1500,8 @@ const ProblemSolve = () => {
         // [MediaPipe] 다중 인물 감지 경고 props
         showMultipleFacesWarning={multipleFacesState.faceCount > 1 && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE}
         multipleFacesCount={multipleFacesState.faceCount}
+        // [MediaPipe] 깜빡임 없음 경고 props (Liveness 검증)
+        showLivenessWarning={livenessWarning && selectedTrackerType === TRACKER_TYPES.MEDIAPIPE}
       />
 
       {/* [Phase 2] 패널티 알림 */}

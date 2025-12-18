@@ -64,17 +64,15 @@ const AnalysisPage = () => {
     }, [useRag]);
 
     // Smart Suggestion Logic (Move to onSearch handler)
-    const handleOwnerSearch = (owner) => {
-        if (!owner || !user) return;
+    const handleOwnerSearch = (owner, isOwnRepo) => {
+        if (!owner) return;
         
-        // Assumption: owner matches user.nickname or name
-        const isMyRepo = owner.toLowerCase() === (user.nickname || user.name || user.githubId || "").toLowerCase();
-        
-        if (isMyRepo) {
-            setUseRag(true);
-        } else {
+        // isOwnRepo: RepositorySelector에서 사용자의 githubId와 비교한 결과
+        // 본인 레포일 경우만 RAG 활성화 유지, 다른 사용자면 noRAG로 전환
+        if (!isOwnRepo) {
             setUseRag(false);
         }
+        // 사용자가 자유롭게 토글할 수 있도록, 본인 레포일 때는 기존 상태 유지
     };
 
 

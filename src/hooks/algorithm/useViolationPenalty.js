@@ -37,15 +37,17 @@ const PENALTY_CONFIG = {
 
   // 위반 유형별 가중치
   VIOLATION_WEIGHTS: {
-    FULLSCREEN_EXIT: 1,
-    TAB_SWITCH: 1,
-    MOUSE_LEAVE: 0.5, // 마우스 이탈은 경미한 위반
-    GAZE_AWAY: 0.5,   // 시선 이탈도 경미한 위반
-    NO_FACE: 1,
-    NO_FACE_SUSTAINED: 2, // 지속적 얼굴 미검출은 심각한 위반
-    SLEEPING: 2,      // 졸음도 심각한 위반
-    MASK_DETECTED: 1,
-    MULTIPLE_FACES: 2,
+    FULLSCREEN_EXIT: 1.5,    // 의도적 행위, 부정행위 가능성
+    TAB_SWITCH: 2,           // 가장 심각 - 다른 탭에서 답 찾기 가능
+    MOUSE_LEAVE: 0.3,        // 무심코 발생 가능, 경미한 위반
+    GAZE_AWAY: 0.5,          // 시선 이탈 - 집중도 문제
+    NO_FACE: 0.5,            // 단순 얼굴 미검출은 카메라 문제일 수 있음
+    NO_FACE_SUSTAINED: 2.5,  // 지속적 얼굴 미검출 - 자리 이탈/대리 시험 의심
+    SLEEPING: 1.5,           // 졸음 - 부정행위는 아니지만 집중도 문제
+    DROWSINESS_DETECTED: 1.5, // 졸음 감지 (SLEEPING과 동일)
+    MASK_DETECTED: 2,        // 본인 확인 불가 - 대리 시험 의심
+    MULTIPLE_FACES: 3,       // 가장 심각 - 대리 시험/조력자 존재
+    NO_BLINK_SUSTAINED: 2,   // 30초간 깜빡임 없음 - 사진/영상 사용 의심 (Liveness 검증 실패)
     // DEVTOOLS_OPEN 제거됨 - 위반 기록 없이 콘텐츠 차단만 적용
   }
 };

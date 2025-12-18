@@ -42,7 +42,7 @@ const ModeSelectionScreen = ({
             </div>
             <button
               onClick={onNavigateBack}
-              className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"
+              className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm cursor-pointer"
             >
               목록으로
             </button>
@@ -120,8 +120,8 @@ const ModeSelectionScreen = ({
                     onClick={() => setCustomTimeMinutes(time)}
                     className={`px-5 py-2 rounded-lg font-semibold transition-all ${
                       customTimeMinutes === time
-                        ? 'bg-purple-600 text-white ring-2 ring-purple-400'
-                        : 'bg-zinc-700 hover:bg-zinc-600 text-gray-300'
+                        ? 'bg-purple-600 text-white ring-2 ring-purple-400 cursor-pointer'
+                        : 'bg-zinc-700 hover:bg-zinc-600 text-gray-300 cursor-pointer'
                     }`}
                   >
                     {time}분
@@ -174,7 +174,7 @@ const ModeSelectionScreen = ({
               disabled={!selectedMode}
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
                 selectedMode
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 cursor-pointer'
                   : 'bg-zinc-700 text-gray-500 cursor-not-allowed'
               }`}
             >
