@@ -1,9 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
-import { axiosInstance } from '../../server/AxiosConfig';
+import React, {useState, useRef, useEffect} from 'react';
+import {axiosInstance} from '../../server/AxiosConfig';
 import CommentForm from './CommentForm';
-import { getAuth } from '../../utils/auth/token';
+import {getAuth} from '../../utils/auth/token';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
-export default function CommentItem({ comment, onCommentUpdated, isReply = false, isDark }) {
+export default function CommentItem({comment, onCommentUpdated, isReply = false, isDark}) {
+  const {alert, showAlert, closeAlert} = useAlert();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -36,7 +39,11 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
 
   const handleUpdate = async () => {
     if (!editContent.trim()) {
-      alert('댓글 내용을 입력해주세요.');
+      showAlert({
+        type: 'warning',
+        title: '입력 필요',
+        message: '댓글 내용을 입력해주세요.'
+      });
       return;
     }
 
@@ -49,7 +56,11 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
       onCommentUpdated();
     } catch (error) {
       console.error('댓글 수정 실패:', error);
-      alert('댓글 수정에 실패했습니다.');
+      showAlert({
+        type: 'error',
+        title: '수정 실패',
+        message: '댓글 수정에 실패했습니다.'
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -63,7 +74,11 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
       onCommentUpdated();
     } catch (error) {
       console.error('삭제 실패:', error);
-      alert(`${isReply ? '답글' : '댓글'} 삭제에 실패했습니다.`);
+      showAlert({
+        type: "error",
+        title: "삭제 실패",
+        message: `${isReply ? "답글" : "댓글"} 삭제에 실패했습니다.`,
+      });
     }
   };
 
@@ -71,14 +86,18 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
     setShowMenu(false);
     if (confirm('이 댓글을 신고하시겠습니까?')) {
       // TODO: 신고 API 연동
-      alert('신고가 접수되었습니다.');
+      showAlert({
+        type: 'success',
+        title: '신고 완료',
+        message: '신고가 접수되었습니다.'
+      });
     }
   };
 
   const handleLike = async () => {
     try {
       const response = await axiosInstance.post(`/like/comment/${comment.commentId}`);
-      const { isLiked } = response.data;
+      const {isLiked} = response.data;
       setLiked(isLiked);
       setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
     } catch (error) {
@@ -95,18 +114,18 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
-    }).replace(/\. /g, '.').replace(/\.$/, '');
+    }).replaceAll('. ', '.').replace(/\.$/, '');
   };
 
-const authorBadgeStyle = {
-  marginLeft: '0.375rem',
-  padding: '0.125rem 0.375rem',
-  fontSize: '0.625rem',
-  fontWeight: '500',
-  borderRadius: '0.25rem',
-  backgroundColor: isDark ? 'rgba(96, 165, 250, 0.2)' : '#dbeafe',
-  color: isDark ? '#60a5fa' : '#2563eb'
-};
+  const authorBadgeStyle = {
+    marginLeft: '0.375rem',
+    padding: '0.125rem 0.375rem',
+    fontSize: '0.625rem',
+    fontWeight: '500',
+    borderRadius: '0.25rem',
+    backgroundColor: isDark ? 'rgba(96, 165, 250, 0.2)' : '#dbeafe',
+    color: isDark ? '#60a5fa' : '#2563eb'
+  };
 
   const actionButtonStyle = {
     fontSize: '0.75rem',
@@ -120,7 +139,7 @@ const authorBadgeStyle = {
   // 수정 모드
   if (isEditing) {
     return (
-      <div style={{ padding: isReply ? '0.75rem 0' : '1rem 0' }}>
+      <div style={{padding: isReply ? '0.75rem 0' : '1rem 0'}}>
         <div style={{
           border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
           borderRadius: '0.5rem',
@@ -138,7 +157,7 @@ const authorBadgeStyle = {
           </div>
 
           {/* 텍스트 입력 */}
-          <div style={{ padding: '0 1rem' }}>
+          <div style={{padding: '0 1rem'}}>
             <textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
@@ -165,20 +184,37 @@ const authorBadgeStyle = {
             justifyContent: 'space-between',
             padding: '0.5rem 1rem 0.75rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button type="button" style={{ padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer', color: isDark ? '#9ca3af' : '#6b7280' }}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+              <button type="button" style={{
+                padding: '0.25rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: isDark ? '#9ca3af' : '#6b7280'
+              }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
                 </svg>
               </button>
-              <button type="button" style={{ padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer', color: isDark ? '#9ca3af' : '#6b7280' }}>
+              <button type="button" style={{
+                padding: '0.25rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: isDark ? '#9ca3af' : '#6b7280'
+              }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                  <line x1="9" y1="9" x2="9.01" y2="9"/>
+                  <line x1="15" y1="9" x2="15.01" y2="9"/>
                 </svg>
               </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
               <button
                 type="button"
                 onClick={() => {
@@ -208,8 +244,8 @@ const authorBadgeStyle = {
                   borderRadius: '0.25rem',
                   border: 'none',
                   backgroundColor: 'transparent',
-                  color: isUpdating || !editContent.trim() 
-                    ? (isDark ? '#4b5563' : '#9ca3af') 
+                  color: isUpdating || !editContent.trim()
+                    ? (isDark ? '#4b5563' : '#9ca3af')
                     : (isDark ? '#60a5fa' : '#2563eb'),
                   cursor: isUpdating || !editContent.trim() ? 'default' : 'pointer'
                 }}
@@ -225,10 +261,10 @@ const authorBadgeStyle = {
 
   return (
     <div>
-      <div style={{ 
-        display: 'flex', 
-        gap: '0.75rem', 
-        padding: isReply ? '0.75rem 0' : '1rem 0' 
+      <div style={{
+        display: 'flex',
+        gap: '0.75rem',
+        padding: isReply ? '0.75rem 0' : '1rem 0'
       }}>
         {/* 아바타 */}
         <div style={{
@@ -248,17 +284,17 @@ const authorBadgeStyle = {
         </div>
 
         {/* 콘텐츠 */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{flex: 1, minWidth: 0}}>
           {/* 닉네임 & 작성자 뱃지 */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '0.25rem' 
+            marginBottom: '0.25rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ 
-                fontSize: isReply ? '0.8125rem' : '0.875rem', 
+            <div style={{display: 'flex', alignItems: 'center'}}>
+              <span style={{
+                fontSize: isReply ? '0.8125rem' : '0.875rem',
                 fontWeight: '600',
                 color: isDark ? '#f3f4f6' : '#111827'
               }}>
@@ -270,7 +306,7 @@ const authorBadgeStyle = {
             </div>
 
             {/* 더보기 메뉴 */}
-            <div style={{ position: 'relative' }} ref={menuRef}>
+            <div style={{position: 'relative'}} ref={menuRef}>
               <button
                 onClick={() => setShowMenu(!showMenu)}
                 style={{
@@ -376,7 +412,7 @@ const authorBadgeStyle = {
           </div>
 
           {/* 댓글 내용 */}
-          <p style={{ 
+          <p style={{
             fontSize: isReply ? '0.8125rem' : '0.875rem',
             lineHeight: '1.6',
             whiteSpace: 'pre-wrap',
@@ -387,10 +423,10 @@ const authorBadgeStyle = {
           </p>
 
           {/* 액션 버튼들 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ 
-              fontSize: '0.75rem', 
-              color: isDark ? '#6b7280' : '#9ca3af' 
+          <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+            <span style={{
+              fontSize: '0.75rem',
+              color: isDark ? '#6b7280' : '#9ca3af'
             }}>
               {formatDate(comment.createdAt)}
             </span>
@@ -409,20 +445,21 @@ const authorBadgeStyle = {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.25rem',
-                color: liked 
-                  ? (isDark ? '#f87171' : '#ef4444') 
+                color: liked
+                  ? (isDark ? '#f87171' : '#ef4444')
                   : (isDark ? '#6b7280' : '#9ca3af')
               }}
             >
-              <svg 
-                width="14" 
-                height="14" 
-                viewBox="0 0 24 24" 
-                fill={liked ? 'currentColor' : 'none'} 
-                stroke="currentColor" 
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill={liked ? 'currentColor' : 'none'}
+                stroke="currentColor"
                 strokeWidth="2"
               >
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                <path
+                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
               </svg>
               {likeCount > 0 && <span>{likeCount}</span>}
             </button>
@@ -446,19 +483,19 @@ const authorBadgeStyle = {
                 color: isDark ? '#60a5fa' : '#2563eb'
               }}
             >
-              <svg 
-                style={{ 
-                  width: '0.875rem', 
-                  height: '0.875rem', 
-                  transition: 'transform 0.2s', 
-                  transform: showReplies ? 'rotate(180deg)' : 'rotate(0deg)' 
+              <svg
+                style={{
+                  width: '0.875rem',
+                  height: '0.875rem',
+                  transition: 'transform 0.2s',
+                  transform: showReplies ? 'rotate(180deg)' : 'rotate(0deg)'
                 }}
-                fill="none" 
-                viewBox="0 0 24 24" 
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth={2.5}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
               </svg>
               답글 {comment.replies.length}개 {showReplies ? '접기' : '보기'}
             </button>
@@ -468,7 +505,7 @@ const authorBadgeStyle = {
 
       {/* 답글 작성 폼 */}
       {showReplyForm && (
-        <div style={{ marginLeft: '3rem', marginBottom: '0.75rem' }}>
+        <div style={{marginLeft: '3rem', marginBottom: '0.75rem'}}>
           <CommentForm
             boardId={comment.boardId}
             boardType={comment.boardType}
@@ -485,22 +522,33 @@ const authorBadgeStyle = {
 
       {/* 답글 목록 */}
       {!isReply && showReplies && comment.replies && comment.replies.length > 0 && (
-        <div style={{ marginLeft: '3rem' }}>
+        <div style={{marginLeft: '3rem'}}>
           {comment.replies.map((reply, index) => (
             <div key={reply.commentId}>
               <CommentItem
-                comment={{ ...reply, boardId: comment.boardId, boardType: comment.boardType }}
+                comment={{...reply, boardId: comment.boardId, boardType: comment.boardType}}
                 onCommentUpdated={onCommentUpdated}
                 isReply={true}
                 isDark={isDark}
               />
               {index < comment.replies.length - 1 && (
-                <div style={{ borderTop: `1px solid ${isDark ? '#1f2937' : '#f3f4f6'}` }} />
+                <div style={{borderTop: `1px solid ${isDark ? '#1f2937' : '#f3f4f6'}`}}/>
               )}
             </div>
           ))}
         </div>
       )}
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
     </div>
   );
 }

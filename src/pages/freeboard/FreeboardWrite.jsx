@@ -1,12 +1,14 @@
-import React from "react";
-import { axiosInstance } from "../../server/AxiosConfig";
-import { useNavigate } from "react-router-dom";
+import {axiosInstance} from "../../server/AxiosConfig";
+import {useNavigate} from "react-router-dom";
 import WriteEditor from "../../components/editor/WriteEditor";
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
 const FreeboardWrite = () => {
+  const {alert, showAlert, closeAlert} = useAlert();
   const navigate = useNavigate();
 
-  const handleSubmit = ({ title, content, representImage, tags }) => {
+  const handleSubmit = ({title, content, representImage, tags}) => {
 
     const blocks = [{
       id: `block-${Date.now()}`,
@@ -31,7 +33,12 @@ const FreeboardWrite = () => {
       })
       .then((response) => {
         console.log("응답:", response.data);
-        alert("게시글이 등록되었습니다.");
+        showAlert({
+          type: 'success',
+          title: '등록 완료',
+          message: '게시글이 등록되었습니다.'
+        });
+
         navigate("/freeboard");
       })
       .catch((err) => {
@@ -50,11 +57,22 @@ const FreeboardWrite = () => {
         maxWidth: '900px',
         margin: '0 auto'
       }}>
-        <WriteEditor 
-          onSubmit={handleSubmit} 
+        <WriteEditor
+          onSubmit={handleSubmit}
           toolbarType="full"
         />
       </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
     </div>
   );
 };

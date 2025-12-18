@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
-import { signup, sendEmailCode, verifyEmailCode } from "../../service/user/User";
+import {useState, useRef, useEffect} from "react";
+import {signup, sendEmailCode, verifyEmailCode} from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
-import { useNavigate } from "react-router-dom";
-import { useTheme } from "../../context/theme/useTheme";
+import {useAlert} from "../../hooks/common/useAlert";
+import {useNavigate} from "react-router-dom";
+import {useTheme} from "../../context/theme/useTheme";
 
 import ProfileUpload from "../../components/signup/ProfileUpload";
 import SignUpForm from "../../components/signup/SignUpForm";
@@ -15,10 +16,11 @@ import {
   validatePasswordRules,
 } from "../../utils/validators";
 
-import { createFormData } from "../../utils/forms/createFormData";
+import {createFormData} from "../../utils/forms/createFormData";
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const {alert, showAlert, closeAlert} = useAlert();
 
   /* 입력 값 */
   const [name, setName] = useState("");
@@ -51,19 +53,6 @@ export default function SignUp() {
   const [loadingVerifyEmail, setLoadingVerifyEmail] = useState(false);
   const [loadingSignup, setLoadingSignup] = useState(false);
 
-  /* 모달 */
-  const [alertModal, setAlertModal] = useState({
-    open: false,
-    type: "success",
-    title: "",
-    message: "",
-    onConfirm: null,
-  });
-
-  const showAlert = (type, title, message, onConfirm = null) => {
-    setAlertModal({ open: true, type, title, message, onConfirm });
-  };
-
   // 공통 로딩 헬퍼
   const withLoading = async (setLoading, fn) => {
     setLoading(true);
@@ -76,32 +65,58 @@ export default function SignUp() {
 
   /* 이메일 발송 */
   const handleSendEmail = async () => {
-    if (emailError) return showAlert("error", "이메일 오류", emailError);
-    if (!email) return showAlert("warning", "입력 필요", "이메일을 입력해주세요.");
+    if (emailError) {
+      showAlert({
+        type: "error",
+        title: "이메일 오류",
+        message: emailError,
+      });
+      return;
+    }
+
+    if (!email) {
+      showAlert({
+        type: "warning",
+        title: "입력 필요",
+        message: "이메일을 입력해주세요.",
+      });
+      return;
+    }
 
     await withLoading(setLoadingSendEmail, async () => {
       const result = await sendEmailCode(email);
 
       if (result && result.error) {
-        showAlert("error", "발송 실패", "인증번호 발송 실패!");
+        showAlert({
+          type: "error",
+          title: "발송 실패",
+          message: "인증번호 발송 실패!",
+        });
         return;
       }
 
       // 서버에서 expireAt(타임스탬프)를 내려준다고 가정
       startTimer(result.expireAt);
       setIsVerified(false);
-      showAlert("success", "전송 완료", "인증번호가 발송되었습니다.");
+
+      showAlert({
+        type: "success",
+        title: "전송 완료",
+        message: "인증번호가 발송되었습니다.",
+      });
     });
   };
 
   /* 인증 확인 */
   const handleVerifyCode = async () => {
-    if (!email || !code)
-      return showAlert(
-        "warning",
-        "입력 필요",
-        "이메일과 인증번호를 입력해주세요."
-      );
+    if (!email || !code) {
+      showAlert({
+        type: "warning",
+        title: "입력 필요",
+        message: "이메일과 인증번호를 입력해주세요.",
+      });
+      return;
+    }
 
     await withLoading(setLoadingVerifyEmail, async () => {
       const result = await verifyEmailCode(email, code);
@@ -115,12 +130,20 @@ export default function SignUp() {
         }
         setRemainingTime(null);
 
-        showAlert("success", "인증 완료", "이메일 인증 성공!");
+        showAlert({
+          type: "success",
+          title: "인증 완료",
+          message: "이메일 인증 성공!",
+        });
         return;
       }
 
       setIsVerified(false);
-      showAlert("error", "인증 실패", "인증번호가 올바르지 않습니다.");
+      showAlert({
+        type: "error",
+        title: "인증 실패",
+        message: "인증번호가 올바르지 않습니다.",
+      });
     });
   };
 
@@ -196,7 +219,7 @@ export default function SignUp() {
   }, []);
 
   /* 테마 */
-  const { theme } = useTheme();
+  const {theme} = useTheme();
   const uploadBtn = theme === "light" ? "bg-[#04BDF2]" : "bg-[#CC67FA]";
   const sendEmailBtn = "bg-[#2DD4BF]";
   const verifyBtn = theme === "light" ? "bg-[#CC67FA]" : "bg-[#FFFA99]";
@@ -273,12 +296,12 @@ export default function SignUp() {
       </div>
 
       <AlertModal
-        open={alertModal.open}
-        onClose={() => setAlertModal((p) => ({ ...p, open: false }))}
-        onConfirm={alertModal.onConfirm || undefined}
-        type={alertModal.type}
-        title={alertModal.title}
-        message={alertModal.message}
+        open={alert.open}
+        onClose={closeAlert}
+        onConfirm={alert.onConfirm}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
       />
     </div>
   );

@@ -7,6 +7,8 @@ import "../../styles/FreeboardDetail.css";
 import CommentSection from "../../components/comment/CommentSection";
 import LikeButton from '../../components/button/LikeButton';
 import FreeboardContent from './FreeboardContent';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
 const FreeboardDetail = () => {
   const { id } = useParams();
@@ -18,6 +20,9 @@ const FreeboardDetail = () => {
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Alert 훅
+  const {alert, showAlert, closeAlert} = useAlert();
 
   useEffect(() => {
     const auth = getAuth();
@@ -76,20 +81,29 @@ const FreeboardDetail = () => {
         setCommentCount(responseData.commentCount || 0);
       } catch (err) {
         console.error("게시글 불러오기 실패:", err);
-        alert("게시글을 불러오는데 실패했습니다.");
+        showAlert({
+          type: 'error',
+          title: '불러오기 실패',
+          message: '게시글을 불러오는데 실패했습니다.'
+        });
       }
     };
 
     fetchBoard();
-  }, [id]);
+  }, [alert, id, showAlert]);
 
   const handleTagClick = (tag) => {
     navigate(`/freeboard?keyword=${encodeURIComponent(tag)}`);
   };
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert('링크가 복사되었습니다.');
+    navigator.clipboard.writeText(globalThis.location.href);
+
+    showAlert({
+      type: 'success',
+      title: '복사 완료',
+      message: '링크가 클립보드에 복사되었습니다.'
+    });
   };
 
   const handleReport = () => {
@@ -238,18 +252,31 @@ const FreeboardDetail = () => {
               </button>
               <button
                 onClick={() => {
-                  if (window.confirm("정말 삭제하시겠습니까?")) {
-                    axiosInstance
-                      .delete(`/freeboard/${id}`)
-                      .then(() => {
-                        alert("삭제되었습니다.");
-                        navigate("/freeboard");
-                      })
-                      .catch((err) => {
-                        console.error("삭제 실패:", err);
-                        alert("삭제에 실패했습니다.");
-                      });
-                  }
+                  showAlert({
+                    type: 'warning',
+                    title: '삭제 확인',
+                    message: '정말 삭제하시겠습니까?',
+                    onConfirm: async () => {
+                      try {
+                        await axiosInstance.delete(`/freeboard/${id}`);
+
+                        showAlert({
+                          type: 'success',
+                          title: '삭제 완료',
+                          message: '게시글이 삭제되었습니다.',
+                          onConfirm: () => navigate('/freeboard')
+                        });
+                      } catch (err) {
+                        console.error('삭제 실패:', err);
+
+                        showAlert({
+                          type: 'error',
+                          title: '삭제 실패',
+                          message: '게시글 삭제에 실패했습니다.'
+                        });
+                      }
+                    }
+                  });
                 }}
                 style={{
                   padding: "0.625rem 1.25rem",
@@ -439,6 +466,17 @@ const FreeboardDetail = () => {
           onCommentCountChange={handleCommentCountChange}
         />
       </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
     </div>
   );
 };

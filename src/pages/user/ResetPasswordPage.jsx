@@ -2,7 +2,8 @@
 
 import {useEffect, useState, useMemo, useCallback} from "react";
 import {useSearchParams, useNavigate} from "react-router-dom";
-import AlertModal from "../../components/modal/AlertModal";
+import AlertModal from "../../components/modal/AlertModal"
+import { useAlert } from "../../hooks/common/useAlert";
 import {
   validateResetToken,
   confirmPasswordReset,
@@ -32,6 +33,7 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
 
   const token = searchParams.get("token");
+  const { alert, showAlert, closeAlert } = useAlert();
 
   const [valid, setValid] = useState(null);
   const [newPassword, setNewPassword] = useState("");
@@ -51,14 +53,6 @@ export default function ResetPasswordPage() {
     [newPassword, confirmPassword]
   );
 
-  const [alert, setAlert] = useState({
-    open: false,
-    type: "success",
-    title: "",
-    message: "",
-    onConfirm: null,
-  });
-
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
   useEffect(() => {
@@ -73,58 +67,55 @@ export default function ResetPasswordPage() {
         setValid(resp.success);
       } catch (err) {
         console.error("비밀번호 변경 실패:", err);
-        setAlert(prev => ({
-          ...prev,
-          open: true,
+        showAlert({
           type: "error",
           title: "변경 실패",
           message: err?.response?.data?.message || "오류가 발생했습니다.",
-        }));
+        });
       }
     }
     validate();
-  }, [token]);
+  }, [showAlert, token]);
 
   const handleSubmit = useCallback(async () => {
     if (passwordError) {
-      return setAlert({
-        open: true,
+      showAlert({
         type: "warning",
         title: "비밀번호 규칙 불충족",
         message: passwordError,
       });
+      return;
     }
 
     if (!isPasswordMatch) {
-      return setAlert({
-        open: true,
+      showAlert({
         type: "warning",
         title: "비밀번호 불일치",
         message: "비밀번호가 서로 일치하지 않습니다.",
       });
+      return;
     }
 
     try {
       setLoadingSubmit(true);
       await confirmPasswordReset(token, newPassword);
-      setLoadingSubmit(false);
-      setAlert({
-        open: true,
+
+      showAlert({
         type: "success",
         title: "변경 완료",
         message: "비밀번호가 성공적으로 변경되었습니다.",
         onConfirm: () => navigate("/signin"),
       });
     } catch (err) {
-      setLoadingSubmit(false);
-      setAlert({
-        open: true,
+      showAlert({
         type: "error",
         title: "변경 실패",
         message: err?.response?.data?.message || "오류가 발생했습니다.",
       });
+    } finally {
+      setLoadingSubmit(false);
     }
-  }, [passwordError, isPasswordMatch, token, newPassword, navigate]);
+  }, [passwordError, isPasswordMatch, token, newPassword, navigate, showAlert]);
 
   if (valid === null) {
     return (
@@ -269,7 +260,7 @@ export default function ResetPasswordPage() {
 
       <AlertModal
         open={alert.open}
-        onClose={() => setAlert((prev) => ({...prev, open: false}))}
+        onClose={closeAlert}
         onConfirm={alert.onConfirm}
         type={alert.type}
         title={alert.title}

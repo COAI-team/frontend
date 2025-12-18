@@ -1,9 +1,9 @@
-// SignIn.jsx - 최적화 API 완벽 호환
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import { useContext, useState, useMemo, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { login as apiLogin } from "../../service/user/User";
 import AlertModal from "../../components/modal/AlertModal";
+import { useAlert } from "../../hooks/common/useAlert";
 import ResetPasswordModal from "../../components/modal/ResetPasswordModal";
 import { LoginContext } from "../../context/login/LoginContext";
 import LoadingButton from "../../components/button/LoadingButton";
@@ -18,13 +18,8 @@ export default function SignIn() {
     setIsAlertOpen,
   } = useContext(LoginContext);
   const { theme } = useTheme();
+  const { alert, showAlert, closeAlert } = useAlert();
   const [resetModalOpen, setResetModalOpen] = useState(false);
-  const [alertModal, setAlertModal] = useState({
-    open: false,
-    type: "success",
-    title: "",
-    message: "",
-  });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -64,8 +59,7 @@ export default function SignIn() {
     // ✅ 입력 검증
     if (!email || !password) {
       setIsLoading(false);
-      setAlertModal({
-        open: true,
+      showAlert({
         type: "warning",
         title: "입력이 필요합니다",
         message: "이메일과 비밀번호를 모두 입력해주세요.",
@@ -81,8 +75,7 @@ export default function SignIn() {
       setLoginResult(result);
       loginContextLogin(result, true);
 
-      setAlertModal({
-        open: true,
+      showAlert({
         type: "success",
         title: "로그인 성공",
         message: "환영합니다!",
@@ -97,8 +90,7 @@ export default function SignIn() {
         error.response?.data?.error ||
         "로그인에 실패했습니다.";
 
-      setAlertModal({
-        open: true,
+      showAlert({
         type: "error",
         title: "로그인 실패",
         message: errorMessage,
@@ -107,7 +99,7 @@ export default function SignIn() {
       // ✅ 로딩 상태 확실 종료
       setIsLoading(false);
     }
-  }, [navigate, redirect, loginContextLogin, setLoginResult, setIsAlertOpen]);
+  }, [showAlert, setLoginResult, loginContextLogin, setIsAlertOpen, navigate, redirect]);
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -225,12 +217,12 @@ export default function SignIn() {
       </div>
 
       <AlertModal
-        open={alertModal.open}
-        onClose={() => setAlertModal((prev) => ({ ...prev, open: false }))}
-        onConfirm={alertModal.onConfirm}
-        type={alertModal.type}
-        title={alertModal.title}
-        message={alertModal.message}
+        open={alert.open}
+        onClose={closeAlert}
+        onConfirm={alert.onConfirm}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
       />
 
       <ResetPasswordModal

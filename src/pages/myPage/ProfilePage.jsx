@@ -12,6 +12,7 @@ import {fetchSubscriptions} from "../../service/payment/PaymentApi";
 import {useLogin} from "../../context/login/useLogin";
 import {useNavigate} from "react-router-dom";
 import AlertModal from "../../components/modal/AlertModal";
+import { useAlert } from "../../hooks/common/useAlert";
 import ViewModeCard from "../../components/card/ViewModeCard";
 import EditModeCard from "../../components/card/EditModeCard";
 import GitHubAutoCommitSettings from "../../components/github/GitHubAutoCommitSettings";
@@ -20,11 +21,10 @@ import axiosInstance from "../../server/AxiosConfig";
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { accessToken, setUser } = useLogin();
+  const { alert, showAlert, closeAlert } = useAlert();
   const [editMode, setEditMode] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMsg, setModalMsg] = useState("");
 
   const [profile, setProfile] = useState({
     name: "",
@@ -47,11 +47,6 @@ export default function ProfilePage() {
   const [showMcpModal, setShowMcpModal] = useState(false);
   const [mcpToken, setMcpToken] = useState(null);
   const [mcpLoading, setMcpLoading] = useState(false);
-
-  const openModal = (msg) => {
-    setModalMsg(msg);
-    setModalOpen(true);
-  };
 
   const maskEmail = (email) => {
     if (!email?.includes("@")) return email;
@@ -144,11 +139,17 @@ export default function ProfilePage() {
     const res = await disconnectGithub();
 
     if (res.error) {
-      openModal("❌ GitHub 연결 해제 실패");
+      showAlert({
+        type: "error",
+        message: "GitHub 연결 해제에 실패했습니다.",
+      });
       return;
     }
 
-    openModal("🔌 GitHub 연결이 해제되었습니다.");
+    showAlert({
+      type: "success",
+      message: "프로필이 성공적으로 저장되었습니다.",
+    });
     setGithubConnected(false);
   };
 
@@ -175,11 +176,18 @@ export default function ProfilePage() {
     });
 
     if (!result || result.error) {
-      openModal("❌ 프로필 저장 실패");
+      showAlert({
+        type: "warning",
+        title: "회원 탈퇴 완료",
+        message: "탈퇴가 완료되었습니다. 90일 이내에 복구할 수 있습니다.",
+      });
       return;
     }
 
-    openModal("✅ 프로필 저장 성공!");
+    showAlert({
+      type: "success",
+      message: "프로필이 성공적으로 저장되었습니다.",
+    });
 
     setUser({
       userName: result.user.userName,
@@ -206,12 +214,22 @@ export default function ProfilePage() {
 
   const confirmDeactivate = async () => {
     const res = await deactivateUser(accessToken);
+
     if (res.error) {
-      openModal("❌ 탈퇴 처리 중 오류");
+      showAlert({
+        type: "error",
+        title: "탈퇴 실패",
+        message: "탈퇴 처리 중 오류가 발생했습니다.",
+      });
       return;
     }
 
-    openModal("😢 탈퇴가 완료되었습니다. 90일 동안 복구 가능합니다.");
+    showAlert({
+      type: "warning",
+      title: "회원 탈퇴 완료",
+      message: "탈퇴가 완료되었습니다. 90일 이내에 계정을 복구할 수 있습니다.",
+    });
+
     setIsDeleted(true);
     setUser(null);
   };
@@ -219,12 +237,22 @@ export default function ProfilePage() {
   /** 🔥 계정 복구 */
   const handleRestore = async () => {
     const res = await restoreUser(accessToken);
+
     if (res.error) {
-      openModal("❌ 계정 복구 실패");
+      showAlert({
+        type: "error",
+        title: "계정 복구 실패",
+        message: "계정을 복구하는 데 실패했습니다.",
+      });
       return;
     }
 
-    openModal("🎉 계정이 복구되었습니다!");
+    showAlert({
+      type: "success",
+      title: "계정 복구 완료",
+      message: "계정이 성공적으로 복구되었습니다.",
+    });
+
     setIsDeleted(false);
   };
 
@@ -232,12 +260,18 @@ export default function ProfilePage() {
   const handleGetMcpToken = async () => {
     try {
       setMcpLoading(true);
-      const res = await axiosInstance.post('/api/mcp/token');
+
+      const res = await axiosInstance.post("/api/mcp/token");
       setMcpToken(res.data.mcpToken);
       setShowMcpModal(true);
     } catch (err) {
       console.error("Failed to issue MCP token", err);
-      openModal("❌ MCP 토큰 발급 실패");
+
+      showAlert({
+        type: "error",
+        title: "MCP 토큰 발급 실패",
+        message: "MCP 토큰을 발급하는 데 실패했습니다.",
+      });
     } finally {
       setMcpLoading(false);
     }
@@ -247,12 +281,23 @@ export default function ProfilePage() {
   const handleRegenerateMcpToken = async () => {
     try {
       setMcpLoading(true);
-      const res = await axiosInstance.put('/api/mcp/token/regenerate');
+
+      const res = await axiosInstance.put("/api/mcp/token/regenerate");
       setMcpToken(res.data.mcpToken);
-      openModal("✅ MCP 토큰이 재생성되었습니다. 기존 연결은 더 이상 작동하지 않습니다.");
+
+      showAlert({
+        type: "success",
+        title: "MCP 토큰 재생성 완료",
+        message: "MCP 토큰이 재생성되었습니다. 기존 연결은 더 이상 작동하지 않습니다.",
+      });
     } catch (err) {
       console.error("Failed to regenerate MCP token", err);
-      openModal("❌ MCP 토큰 재생성 실패");
+
+      showAlert({
+        type: "error",
+        title: "MCP 토큰 재생성 실패",
+        message: "MCP 토큰을 재생성하는 데 실패했습니다.",
+      });
     } finally {
       setMcpLoading(false);
     }
@@ -468,9 +513,22 @@ export default function ProfilePage() {
                                 {mcpConfigJson}
                             </pre>
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(mcpConfigJson);
-                  openModal("📋 클립보드에 복사되었습니다!");
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(mcpConfigJson);
+
+                    showAlert({
+                      type: "success",
+                      message: "클립보드에 복사되었습니다!",
+                    });
+                  } catch (err) {
+                    console.error("Clipboard copy failed", err);
+
+                    showAlert({
+                      type: "error",
+                      message: "클립보드 복사에 실패했습니다.",
+                    });
+                  }
                 }}
                 className="absolute top-2 right-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2 py-1 rounded transition-colors"
               >
@@ -535,11 +593,12 @@ export default function ProfilePage() {
 
       {/* 일반 알림 모달 */}
       <AlertModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="알림"
-        message={modalMsg}
-        confirmText="확인"
+        open={alert.open}
+        onClose={closeAlert}
+        onConfirm={alert.onConfirm}
+        type={alert.type}
+        title={alert.title || "알림"}
+        message={alert.message}
       />
     </div>
   );
