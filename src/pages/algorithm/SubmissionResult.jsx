@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubmissionResult, completeMission, updateSharingStatus } from '../../service/algorithm/AlgorithmApi';
-import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 import { commitToGithub, getGithubSettings } from '../../service/github/GithubApi';
 import { AiFillGithub } from 'react-icons/ai';
 import { useLogin } from '../../context/login/useLogin';
@@ -481,8 +480,8 @@ const SubmissionResult = () => {
     }
   };
 
-  // 파싱된 문제 섹션 (커스텀 훅으로 메모이제이션)
-  const parsedSections = useParsedProblem(submission?.problemDescription);
+  // 구조화된 문제 섹션 존재 여부 (백엔드에서 직접 제공)
+  const hasStructuredSections = submission?.inputFormat || submission?.outputFormat || submission?.constraints;
 
   // 공유하기
   const handleShare = async () => {
@@ -867,13 +866,13 @@ const SubmissionResult = () => {
                   </div>
 
                   {/* 구조화된 문제 내용 */}
-                  {parsedSections && (parsedSections.description || parsedSections.input || parsedSections.output) ? (
+                  {hasStructuredSections ? (
                     <div className="space-y-4">
                       {/* 문제 설명 */}
                       <SectionCard
                         title="문제 설명"
                         icon="📝"
-                        content={parsedSections.description}
+                        content={submission.problemDescription}
                         bgColor="bg-gray-50"
                       />
 
@@ -882,13 +881,13 @@ const SubmissionResult = () => {
                         <SectionCard
                           title="입력"
                           icon="📥"
-                          content={parsedSections.input}
+                          content={submission.inputFormat}
                           bgColor="bg-blue-50 dark:bg-blue-900/20"
                         />
                         <SectionCard
                           title="출력"
                           icon="📤"
-                          content={parsedSections.output}
+                          content={submission.outputFormat}
                           bgColor="bg-green-50 dark:bg-green-900/20"
                         />
                       </div>
@@ -897,28 +896,28 @@ const SubmissionResult = () => {
                       <SectionCard
                         title="제한사항"
                         icon="⚠️"
-                        content={parsedSections.constraints}
+                        content={submission.constraints}
                         bgColor="bg-yellow-50 dark:bg-yellow-900/20"
                       />
 
-                      {/* 예제 입출력 */}
-                      {(parsedSections.exampleInput || parsedSections.exampleOutput) && (
+                      {/* 예제 입출력 (첫 번째 테스트케이스에서 가져옴) */}
+                      {submission.testCaseResults && submission.testCaseResults.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <CodeBlock
                             title="예제 입력"
                             icon="📝"
-                            content={parsedSections.exampleInput}
+                            content={submission.testCaseResults[0]?.input}
                           />
                           <CodeBlock
                             title="예제 출력"
                             icon="✅"
-                            content={parsedSections.exampleOutput}
+                            content={submission.testCaseResults[0]?.expectedOutput}
                           />
                         </div>
                       )}
                     </div>
                   ) : (
-                    /* 파싱 실패 시 원본 출력 */
+                    /* 구조화된 필드가 없을 시 원본 출력 */
                     <div className="prose prose-sm max-w-none dark:prose-invert">
                       <div className="text-sub whitespace-pre-wrap leading-relaxed bg-panel p-4 rounded-lg">
                         {renderFormattedText(submission.problemDescription)}
