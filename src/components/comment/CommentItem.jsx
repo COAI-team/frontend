@@ -83,9 +83,9 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
   };
 
   const handleLike = async () => {
-    if (isLikingRef.current) return; // ref는 즉시 체크 가능
+    if (isLikingRef.current) return;
     
-    isLikingRef.current = true; // 즉시 true로 설정
+    isLikingRef.current = true;
     
     // UI 즉시 업데이트
     const newLiked = !liked;
@@ -94,12 +94,18 @@ export default function CommentItem({ comment, onCommentUpdated, isReply = false
     
     try {
       const response = await axiosInstance.post(`/like/comment/${comment.commentId}`);
-      const { isLiked } = response.data.data || response.data;
+      
+      // 백엔드 응답 구조 변경: isLiked → liked, likeCount 추가
+      const responseData = response.data.data || response.data;
+      const serverLiked = responseData.liked !== undefined ? responseData.liked : responseData.isLiked;
+      const serverLikeCount = responseData.likeCount;
       
       // 서버 응답과 다르면 동기화
-      if (isLiked !== newLiked) {
-        setLiked(isLiked);
-        setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+      if (serverLiked !== undefined) {
+        setLiked(serverLiked);
+      }
+      if (serverLikeCount !== undefined) {
+        setLikeCount(serverLikeCount);
       }
     } catch (error) {
       console.error('좋아요 실패:', error);

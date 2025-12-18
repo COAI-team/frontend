@@ -2,13 +2,10 @@ import axiosInstance from "../../server/AxiosConfig";
 
 /**
  * 알고리즘 소셜 기능 API
- * - 공유된 풀이 조회
- * - 좋아요
- * - 댓글
  */
 
 /**
- * 문제별 공유된 제출 목록 조회 (다른 사람의 풀이)
+ * 문제별 공유된 제출 목록 조회
  */
 export const getSharedSubmissions = async (problemId, page = 1, size = 20, sortBy = 'latest', language = '') => {
   try {
@@ -22,7 +19,7 @@ export const getSharedSubmissions = async (problemId, page = 1, size = 20, sortB
       params.language = language;
     }
     
-    const response = await axiosInstance.get(`/algo/problems/${problemId}/submissions/shared`, { params });
+    const response = await axiosInstance.get(`/algo/problems/${problemId}/solutions`, { params });
     return response.data;
   } catch (error) {
     console.error('❌ [getSharedSubmissions] 공유 제출 조회 실패:', error);
@@ -44,11 +41,14 @@ export const toggleLike = async (submissionId) => {
 };
 
 /**
- * 댓글 조회
+ * 댓글 조회 (커서 기반)
  */
-export const getComments = async (submissionId) => {
+export const getComments = async (submissionId, cursor = null, size = 20) => {
   try {
-    const response = await axiosInstance.get(`/algo/submissions/${submissionId}/comments`);
+    const params = { size };
+    if (cursor) params.cursor = cursor;
+    
+    const response = await axiosInstance.get(`/algo/submissions/${submissionId}/comments`, { params });
     return response.data;
   } catch (error) {
     console.error('❌ [getComments] 댓글 조회 실패:', error);
@@ -59,9 +59,12 @@ export const getComments = async (submissionId) => {
 /**
  * 댓글 작성
  */
-export const createComment = async (submissionId, content) => {
+export const createComment = async (submissionId, content, parentCommentId = null) => {
   try {
-    const response = await axiosInstance.post(`/algo/submissions/${submissionId}/comments`, { content });
+    const response = await axiosInstance.post(`/algo/submissions/${submissionId}/comments`, {
+      content,
+      parentCommentId
+    });
     return response.data;
   } catch (error) {
     console.error('❌ [createComment] 댓글 작성 실패:', error);

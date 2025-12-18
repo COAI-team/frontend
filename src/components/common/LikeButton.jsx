@@ -21,7 +21,6 @@ const LikeButton = ({
     const [isLoading, setIsLoading] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
 
-    // 다크모드 여부 판단
     const [isDark, setIsDark] = useState(false);
 
     useEffect(() => {
@@ -40,7 +39,6 @@ const LikeButton = ({
         return () => observer.disconnect();
     }, []);
 
-    // 로그인 체크
     useEffect(() => {
         const auth = getAuth();
         if (auth?.user) {
@@ -48,13 +46,11 @@ const LikeButton = ({
         }
     }, []);
 
-    // props 변경 시 동기화
     useEffect(() => {
         setIsLiked(initialIsLiked);
         setLikeCount(initialLikeCount);
     }, [initialIsLiked, initialLikeCount]);
 
-    // 좋아요 토글
     const handleLike = async (e) => {
         e.stopPropagation();
         
@@ -74,13 +70,15 @@ const LikeButton = ({
         setIsLoading(true);
         try {
             const response = await axiosInstance.post(`/like/${referenceType}/${referenceId}`);
-            const newIsLiked = response.data.data.isLiked;
-            const newLikeCount = newIsLiked ? likeCount + 1 : likeCount - 1;
+            
+            // 백엔드 응답 구조 변경: isLiked → liked, likeCount 추가
+            const responseData = response.data.data;
+            const newIsLiked = responseData.liked !== undefined ? responseData.liked : responseData.isLiked;
+            const newLikeCount = responseData.likeCount;
             
             setIsLiked(newIsLiked);
             setLikeCount(newLikeCount);
             
-            // 부모 컴포넌트에 변경 알림
             if (onChange) {
                 onChange(newIsLiked, newLikeCount);
             }
@@ -96,7 +94,6 @@ const LikeButton = ({
         }
     };
 
-    // 좋아요 누른 사용자 목록 조회
     const fetchLikeUsers = async () => {
         if (!showUsers || likeCount === 0) return;
         
@@ -104,7 +101,7 @@ const LikeButton = ({
             const response = await axiosInstance.get(`/like/${referenceType}/${referenceId}/users`, {
                 params: { limit: 10 }
             });
-            setLikeUsers(response.data.data.users);
+            setLikeUsers(response.data.data || []);
         } catch (error) {
             console.error('좋아요 사용자 목록 조회 실패:', error);
         }
