@@ -1,9 +1,10 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {useParams, useNavigate} from 'react-router-dom';
-import {getSubmissionResult, completeMission, updateSharingStatus} from '../../service/algorithm/AlgorithmApi';
-import {useParsedProblem} from '../../hooks/algorithm/useParsedProblem';
-import {commitToGithub, getGithubSettings} from '../../service/github/GithubApi';
-import {AiFillGithub} from 'react-icons/ai';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getSubmissionResult, completeMission, updateSharingStatus } from '../../service/algorithm/AlgorithmApi';
+import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
+import { commitToGithub, getGithubSettings } from '../../service/github/GithubApi';
+import { AiFillGithub } from 'react-icons/ai';
+import { useLogin } from '../../context/login/useLogin';
 import AlertModal from "../../components/modal/AlertModal";
 import {useAlert} from "../../hooks/common/useAlert";
 
@@ -173,6 +174,7 @@ const CodeBlock = ({title, icon, content}) => {
 const SubmissionResult = () => {
   const {submissionId} = useParams();
   const navigate = useNavigate();
+  const { user } = useLogin();
 
   // Alert 훅
   const {alert, showAlert, closeAlert} = useAlert();
@@ -249,11 +251,12 @@ const SubmissionResult = () => {
       // 🎯 채점 완료(AC) 시 바로 데일리 미션 완료 처리 (AI 완료 기다리지 않음)
       if (isJudgeComplete && data.judgeResult === 'AC' && !missionCompletedRef.current) {
         missionCompletedRef.current = true;
-        // TODO: 실제 로그인 구현 후 user.userId로 변경
-        const testUserId = 3; // 개발용 테스트 userId
-        console.log('🎯 미션 완료 API 호출 시작:', {missionType: 'PROBLEM_SOLVE', testUserId});
+        if (!user?.userId) {
+          console.warn('로그인되지 않은 상태에서 미션 완료 처리 스킵');
+        } else {
+        console.log('🎯 미션 완료 API 호출 시작:', { missionType: 'PROBLEM_SOLVE', userId: user.userId });
         try {
-          const missionResult = await completeMission('PROBLEM_SOLVE', testUserId);
+          const missionResult = await completeMission('PROBLEM_SOLVE', user.userId);
           console.log('🎯 미션 완료 API 응답 (전체):', JSON.stringify(missionResult, null, 2));
 
           // API 응답 구조 분석: 다양한 응답 패턴 처리
@@ -296,6 +299,7 @@ const SubmissionResult = () => {
         } catch (error_) {
           console.warn('미션 완료 처리 실패:', error_);
           setMissionStatus(prev => ({...prev, error: '미션 완료 처리 실패'}));
+        }
         }
       }
 
@@ -743,6 +747,29 @@ const SubmissionResult = () => {
                     <p className="text-green-100 text-xs">보상 포인트</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* 🏆 획득 XP 배너 (AC 제출 시에만 표시) */}
+          {submission.judgeResult === 'AC' && submission.earnedXp > 0 && (
+            <div className="bg-linear-to-r from-purple-500 to-indigo-600 rounded-lg shadow-lg p-4 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">✨</span>
+                  <div>
+                    <h3 className="font-bold text-lg">경험치 획득!</h3>
+                    <p className="text-purple-100 text-sm">
+                      {submission.isFirstSolve ? '🎉 첫 정답 보너스 1.5배 적용!' : '문제를 정답 처리하여 XP를 획득했습니다'}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold">+{submission.earnedXp} XP</p>
+                  <p className="text-purple-100 text-xs">
+                    {submission.isFirstSolve ? '첫 정답 보너스' : '문제 풀이 보상'}
+                  </p>
+                </div>
               </div>
             </div>
           )}

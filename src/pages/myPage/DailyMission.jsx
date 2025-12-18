@@ -5,6 +5,7 @@ import {
     getUsageInfo,
     getUserLevel,
     getSolveBonusStatus,
+    getContributions,
     MISSION_TYPE_INFO,
     DIFFICULTY_OPTIONS
 } from '../../service/algorithm/AlgorithmApi';
@@ -30,6 +31,7 @@ const DailyMission = () => {
     const [missions, setMissions] = useState([]);
     const [usageInfo, setUsageInfo] = useState(null);
     const [userLevel, setUserLevel] = useState(null);
+    const [contributions, setContributions] = useState([]);  // 잔디 캘린더용
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [lastUpdated, setLastUpdated] = useState(null);
@@ -92,16 +94,18 @@ const DailyMission = () => {
             console.log('📡 [DailyMission] 데이터 로딩 시작 - userId:', userId);
 
             // 병렬로 데이터 로딩 (testUserId 전달)
-            const [missionsResult, usageResult, levelResult] = await Promise.all([
+            const [missionsResult, usageResult, levelResult, contributionsResult] = await Promise.all([
                 getTodayMissions(userId),
                 getUsageInfo(userId),
-                getUserLevel(userId)
+                getUserLevel(userId),
+                getContributions(userId, 12)  // 12개월치 잔디 데이터
             ]);
 
             console.log('📊 [DailyMission] API 응답:', {
                 missions: missionsResult,
                 usage: usageResult,
-                level: levelResult
+                level: levelResult,
+                contributions: contributionsResult
             });
 
             // 미션 데이터 설정
@@ -127,6 +131,14 @@ const DailyMission = () => {
             } else {
                 console.log('✅ [DailyMission] 레벨 데이터:', levelResult.data);
                 setUserLevel(levelResult.data);
+            }
+
+            // 잔디 캘린더 데이터 설정
+            if (contributionsResult.error) {
+                console.warn('잔디 캘린더 로딩 실패:', contributionsResult.message);
+            } else {
+                console.log('✅ [DailyMission] 잔디 캘린더 데이터:', contributionsResult.data);
+                setContributions(contributionsResult.data || []);
             }
 
             setLastUpdated(new Date());
@@ -269,6 +281,219 @@ const DailyMission = () => {
 
                             {/* 사용량 정보 */}
                             <UsageDisplay usageInfo={usageInfo} />
+                        </div>
+
+                        {/* 🌱 GitHub 스타일 잔디 캘린더 */}
+                        <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 mb-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-lg font-semibold text-main flex items-center gap-2">
+                                    🌱 문제 풀이 기록
+                                </h2>
+                                <span className="text-sm text-muted">
+                                    {new Date().getFullYear()}년
+                                </span>
+                            </div>
+
+                            {/* 잔디 캘린더 그리드 - 클릭 이벤트 버블링 차단 */}
+                            <div className="overflow-x-auto" onClick={(e) => e.stopPropagation()}>
+                                <div className="min-w-[720px]">
+                                    {(() => {
+                                        // 로컬 날짜 포맷 함수 (timezone 문제 해결: toISOString()은 UTC 반환)
+                                        const formatLocalDate = (date) => {
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            return `${year}-${month}-${day}`;
+                                        };
+
+                                        // 날짜별 데이터를 Map으로 변환
+                                        const dataMap = new Map();
+                                        contributions.forEach(item => {
+                                            // solveDate 필드 처리 (다양한 형식 지원)
+                                            const dateStr = item.solveDate?.split?.('T')[0] || String(item.solveDate);
+                                            const count = Number(item.solveCount) || 0;
+                                            dataMap.set(dateStr, count);
+                                        });
+
+                                        // 디버깅: 날짜 매칭 확인
+                                        console.log('📅 캘린더 dataMap:', Object.fromEntries(dataMap));
+
+                                        // 올해 1월 1일부터 12월 31일까지 표시
+                                        const currentYear = new Date().getFullYear();
+                                        const startDate = new Date(currentYear, 0, 1);  // 1월 1일
+                                        const endDate = new Date(currentYear, 11, 31);  // 12월 31일
+                                        const today = new Date();
+
+                                        const weeks = [];
+                                        let currentWeek = [];
+
+                                        // 월 라벨 위치 계산용
+                                        const monthPositions = [];
+                                        let lastMonth = -1;
+
+                                        // 1월 1일의 요일에 따라 첫 주 패딩 추가
+                                        const firstDayOfWeek = startDate.getDay();
+                                        if (firstDayOfWeek !== 0) {
+                                            for (let j = 0; j < firstDayOfWeek; j++) {
+                                                currentWeek.push({ empty: true });
+                                            }
+                                        }
+
+                                        // 1월 1일부터 12월 31일까지 순회
+                                        const currentDate = new Date(startDate);
+                                        while (currentDate <= endDate) {
+                                            // 로컬 날짜 형식 사용 (toISOString은 UTC로 변환되어 날짜 불일치 발생)
+                                            const dateStr = formatLocalDate(currentDate);
+                                            const count = dataMap.get(dateStr) || 0;
+                                            const dayOfWeek = currentDate.getDay();
+                                            const month = currentDate.getMonth();
+                                            const isFuture = currentDate > today;
+
+                                            currentWeek.push({
+                                                date: dateStr,
+                                                count,
+                                                month,
+                                                day: currentDate.getDate(),
+                                                isFuture
+                                            });
+
+                                            // 토요일이면 주 완료
+                                            if (dayOfWeek === 6) {
+                                                // 해당 주의 첫 날짜 기준으로 월 위치 기록
+                                                const weekFirstDay = currentWeek.find(d => !d.empty);
+                                                if (weekFirstDay && weekFirstDay.month !== lastMonth) {
+                                                    monthPositions.push({ month: weekFirstDay.month, weekIdx: weeks.length });
+                                                    lastMonth = weekFirstDay.month;
+                                                }
+                                                weeks.push(currentWeek);
+                                                currentWeek = [];
+                                            }
+
+                                            currentDate.setDate(currentDate.getDate() + 1);
+                                        }
+
+                                        // 마지막 주 처리
+                                        if (currentWeek.length > 0) {
+                                            // 마지막 주 패딩 (토요일까지 채우기)
+                                            while (currentWeek.length < 7) {
+                                                currentWeek.push({ empty: true });
+                                            }
+                                            const weekFirstDay = currentWeek.find(d => !d.empty);
+                                            if (weekFirstDay && weekFirstDay.month !== lastMonth) {
+                                                monthPositions.push({ month: weekFirstDay.month, weekIdx: weeks.length });
+                                            }
+                                            weeks.push(currentWeek);
+                                        }
+
+                                        // 색상 결정 함수
+                                        const getColor = (count, isFuture) => {
+                                            if (isFuture) return 'bg-gray-50 dark:bg-gray-800';
+                                            if (count === 0) return 'bg-gray-100 dark:bg-gray-700';
+                                            if (count === 1) return 'bg-green-200 dark:bg-green-900';
+                                            if (count === 2) return 'bg-green-300 dark:bg-green-700';
+                                            if (count <= 4) return 'bg-green-400 dark:bg-green-600';
+                                            return 'bg-green-500 dark:bg-green-500';
+                                        };
+
+                                        // 월 이름
+                                        const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
+                                        // 총 풀이 수 및 활동일 계산 (올해 데이터만)
+                                        const yearStart = `${currentYear}-01-01`;
+                                        const yearEnd = `${currentYear}-12-31`;
+                                        const thisYearData = contributions.filter(c => {
+                                            const d = c.solveDate?.split?.('T')[0] || String(c.solveDate);
+                                            return d >= yearStart && d <= yearEnd;
+                                        });
+                                        const activeDays = thisYearData.filter(c => (Number(c.solveCount) || 0) > 0).length;
+
+                                        // 툴팁 포맷 함수 (중복 제외 문제 수 표시)
+                                        const formatTooltip = (day) => {
+                                            if (day.empty) return '';
+                                            const month = day.month + 1;
+                                            const dayNum = day.day;
+                                            if (day.isFuture) return `${month}월 ${dayNum}일`;
+                                            if (day.count === 0) return `${month}월 ${dayNum}일: 풀이 없음`;
+                                            return `${month}월 ${dayNum}일: ${day.count}개 문제 정답 (중복 제외)`;
+                                        };
+
+                                        return (
+                                            <>
+                                                {/* 월 라벨 - 동적 위치 */}
+                                                <div className="flex mb-2 text-xs text-muted relative h-4" style={{ marginLeft: '24px' }}>
+                                                    {monthPositions.map((pos, idx) => (
+                                                        <span
+                                                            key={idx}
+                                                            className="absolute"
+                                                            style={{ left: `${pos.weekIdx * 13}px` }}
+                                                        >
+                                                            {monthNames[pos.month]}
+                                                        </span>
+                                                    ))}
+                                                </div>
+
+                                                {/* 요일 라벨 + 잔디 그리드 */}
+                                                <div className="flex">
+                                                    {/* 요일 라벨 */}
+                                                    <div className="flex flex-col text-xs text-muted mr-2 justify-around h-[88px] w-[16px]">
+                                                        <span>월</span>
+                                                        <span>수</span>
+                                                        <span>금</span>
+                                                    </div>
+
+                                                    {/* 잔디 그리드 */}
+                                                    <div className="flex gap-[2px]">
+                                                        {weeks.map((week, weekIdx) => (
+                                                            <div key={weekIdx} className="flex flex-col gap-[2px]">
+                                                                {week.map((day, dayIdx) => (
+                                                                    <div
+                                                                        key={dayIdx}
+                                                                        className={`w-[11px] h-[11px] rounded-[2px] cursor-default group relative ${
+                                                                            day.empty ? 'bg-transparent' : getColor(day.count, day.isFuture)
+                                                                        }`}
+                                                                    >
+                                                                        {/* CSS 툴팁 (네이티브 title 대체 - 작은 요소에서 더 잘 보임) */}
+                                                                        {!day.empty && (
+                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1
+                                                                                bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900
+                                                                                text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100
+                                                                                pointer-events-none transition-opacity duration-150 z-50 shadow-lg">
+                                                                                {formatTooltip(day)}
+                                                                                {/* 툴팁 화살표 */}
+                                                                                <div className="absolute top-full left-1/2 -translate-x-1/2
+                                                                                    border-4 border-transparent border-t-gray-900 dark:border-t-gray-100" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* 통계 + 범례 */}
+                                                <div className="mt-4 pt-4 border-t dark:border-gray-700 flex items-center justify-between text-sm">
+                                                    {/* 통계 (좌측) */}
+                                                    <div className="text-muted">
+                                                        올해 활동일 <span className="font-bold text-main">{activeDays}</span>일
+                                                    </div>
+
+                                                    {/* 범례 (우측) */}
+                                                    <div className="flex items-center gap-1 text-xs text-muted">
+                                                        <span>적음</span>
+                                                        <div className="w-[11px] h-[11px] rounded-[2px] bg-gray-100 dark:bg-gray-700"></div>
+                                                        <div className="w-[11px] h-[11px] rounded-[2px] bg-green-200 dark:bg-green-900"></div>
+                                                        <div className="w-[11px] h-[11px] rounded-[2px] bg-green-300 dark:bg-green-700"></div>
+                                                        <div className="w-[11px] h-[11px] rounded-[2px] bg-green-400 dark:bg-green-600"></div>
+                                                        <div className="w-[11px] h-[11px] rounded-[2px] bg-green-500 dark:bg-green-500"></div>
+                                                        <span>많음</span>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
                         </div>
 
                         {/* 미션 진행 상황 */}
