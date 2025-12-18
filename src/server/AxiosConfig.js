@@ -117,10 +117,12 @@ axiosInstance.interceptors.response.use(
     }
 
     // ✅ 권한 에러 처리
-    if ((status === 401 || status === 403) && !isPublicGetRequest(originalConfig)) {
-      const skipRedirect = originalConfig._skipAuthRedirect ||
+    if (status === 401 && !isPublicGetRequest(originalConfig)) {
+      const skipRedirect =
+        originalConfig._skipAuthRedirect ||
         originalConfig.headers['X-Skip-Auth-Redirect'] === 'true';
 
+      // 🔐 진짜 인증 만료만 로그인 이동
       if (!skipRedirect && !globalThis.location.pathname.startsWith('/signin')) {
         removeAuth();
         const redirectUrl = encodeURIComponent(
