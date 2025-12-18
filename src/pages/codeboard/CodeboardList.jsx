@@ -179,7 +179,7 @@ const CodeboardList = () => {
   };
 
   const handleAnalysisListClick = () => {
-    navigate("/analysis");
+    navigate("/codeAnalysis");
   };
 
   return (

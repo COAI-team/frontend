@@ -33,6 +33,8 @@ const WriteEditor = ({
   initialTitle = "",
   initialContent = "",
   initialTags = [],
+  boardType,
+  toolbarType,
 }) => {
   const [title, setTitle] = useState(initialTitle);
   const [tags, setTags] = useState(initialTags);
@@ -269,6 +271,7 @@ const WriteEditor = ({
           insertCodeBlock={insertCodeBlock}
           theme={currentTheme}
           onToggleSticker={() => setShowStickerPicker((v) => !v)}
+          boardType={boardType || (toolbarType === "codeboard" || toolbarType === "minimal" ? "codeboard" : "freeboard")}
         />
 
         {showStickerPicker && (

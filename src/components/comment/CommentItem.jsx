@@ -1,12 +1,9 @@
-import React, {useState, useRef, useEffect} from 'react';
-import {axiosInstance} from '../../server/AxiosConfig';
+import { useState, useRef, useEffect } from 'react';
+import { axiosInstance } from '../../server/AxiosConfig';
 import CommentForm from './CommentForm';
-import {getAuth} from '../../utils/auth/token';
-import AlertModal from "../../components/modal/AlertModal";
-import {useAlert} from "../../hooks/common/useAlert";
+import { getAuth } from '../../utils/auth/token';
 
-export default function CommentItem({comment, onCommentUpdated, isReply = false, isDark}) {
-  const {alert, showAlert, closeAlert} = useAlert();
+export default function CommentItem({ comment, onCommentUpdated, isReply = false, isDark }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -15,11 +12,18 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
   const [liked, setLiked] = useState(comment.isLiked || false);
   const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
   const [showMenu, setShowMenu] = useState(false);
+  const isLikingRef = useRef(false);
   const menuRef = useRef(null);
 
   const auth = getAuth();
   const currentUserId = auth?.userId;
   const isMyComment = currentUserId != null && comment.userId === currentUserId;
+
+  // liked 상태를 comment.isLiked와 동기화
+  useEffect(() => {
+    setLiked(comment.isLiked || false);
+    setLikeCount(comment.likeCount || 0);
+  }, [comment.isLiked, comment.likeCount]);
 
   // 메뉴 외부 클릭 감지
   useEffect(() => {
@@ -39,11 +43,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
 
   const handleUpdate = async () => {
     if (!editContent.trim()) {
-      showAlert({
-        type: 'warning',
-        title: '입력 필요',
-        message: '댓글 내용을 입력해주세요.'
-      });
+      alert('댓글 내용을 입력해주세요.');
       return;
     }
 
@@ -56,11 +56,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
       onCommentUpdated();
     } catch (error) {
       console.error('댓글 수정 실패:', error);
-      showAlert({
-        type: 'error',
-        title: '수정 실패',
-        message: '댓글 수정에 실패했습니다.'
-      });
+      alert('댓글 수정에 실패했습니다.');
     } finally {
       setIsUpdating(false);
     }
@@ -74,11 +70,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
       onCommentUpdated();
     } catch (error) {
       console.error('삭제 실패:', error);
-      showAlert({
-        type: "error",
-        title: "삭제 실패",
-        message: `${isReply ? "답글" : "댓글"} 삭제에 실패했습니다.`,
-      });
+      alert(`${isReply ? '답글' : '댓글'} 삭제에 실패했습니다.`);
     }
   };
 
@@ -86,22 +78,45 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
     setShowMenu(false);
     if (confirm('이 댓글을 신고하시겠습니까?')) {
       // TODO: 신고 API 연동
-      showAlert({
-        type: 'success',
-        title: '신고 완료',
-        message: '신고가 접수되었습니다.'
-      });
+      alert('신고가 접수되었습니다.');
     }
   };
 
   const handleLike = async () => {
+    if (isLikingRef.current) return;
+
+    isLikingRef.current = true;
+
+    // UI 즉시 업데이트
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikeCount(prev => newLiked ? prev + 1 : prev - 1);
+
     try {
       const response = await axiosInstance.post(`/like/comment/${comment.commentId}`);
-      const {isLiked} = response.data;
-      setLiked(isLiked);
-      setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+
+      // 백엔드 응답 구조 변경: isLiked → liked, likeCount 추가
+      const responseData = response.data.data || response.data;
+      const serverLiked = responseData.liked !== undefined ? responseData.liked : responseData.isLiked;
+      const serverLikeCount = responseData.likeCount;
+
+      // 서버 응답과 다르면 동기화
+      if (serverLiked !== undefined) {
+        setLiked(serverLiked);
+      }
+      if (serverLikeCount !== undefined) {
+        setLikeCount(serverLikeCount);
+      }
     } catch (error) {
       console.error('좋아요 실패:', error);
+      // 실패시 롤백
+      setLiked(!newLiked);
+      setLikeCount(prev => newLiked ? prev - 1 : prev + 1);
+    } finally {
+      // 300ms 후 다시 클릭 가능
+      setTimeout(() => {
+        isLikingRef.current = false;
+      }, 300);
     }
   };
 
@@ -114,7 +129,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
-    }).replaceAll('. ', '.').replace(/\.$/, '');
+    }).replace(/\. /g, '.').replace(/\.$/, '');
   };
 
   const authorBadgeStyle = {
@@ -139,7 +154,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
   // 수정 모드
   if (isEditing) {
     return (
-      <div style={{padding: isReply ? '0.75rem 0' : '1rem 0'}}>
+      <div style={{ padding: isReply ? '0.75rem 0' : '1rem 0' }}>
         <div style={{
           border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
           borderRadius: '0.5rem',
@@ -157,7 +172,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
           </div>
 
           {/* 텍스트 입력 */}
-          <div style={{padding: '0 1rem'}}>
+          <div style={{ padding: '0 1rem' }}>
             <textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
@@ -184,37 +199,20 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
             justifyContent: 'space-between',
             padding: '0.5rem 1rem 0.75rem'
           }}>
-            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-              <button type="button" style={{
-                padding: '0.25rem',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: isDark ? '#9ca3af' : '#6b7280'
-              }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button type="button" style={{ padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer', color: isDark ? '#9ca3af' : '#6b7280' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <circle cx="8.5" cy="8.5" r="1.5"/>
-                  <polyline points="21 15 16 10 5 21"/>
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                 </svg>
               </button>
-              <button type="button" style={{
-                padding: '0.25rem',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: isDark ? '#9ca3af' : '#6b7280'
-              }}>
+              <button type="button" style={{ padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer', color: isDark ? '#9ca3af' : '#6b7280' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                  <line x1="9" y1="9" x2="9.01" y2="9"/>
-                  <line x1="15" y1="9" x2="15.01" y2="9"/>
+                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
                 </svg>
               </button>
             </div>
 
-            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -284,7 +282,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
         </div>
 
         {/* 콘텐츠 */}
-        <div style={{flex: 1, minWidth: 0}}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           {/* 닉네임 & 작성자 뱃지 */}
           <div style={{
             display: 'flex',
@@ -292,7 +290,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
             justifyContent: 'space-between',
             marginBottom: '0.25rem'
           }}>
-            <div style={{display: 'flex', alignItems: 'center'}}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
               <span style={{
                 fontSize: isReply ? '0.8125rem' : '0.875rem',
                 fontWeight: '600',
@@ -301,94 +299,73 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
                 {comment.userNickname}
               </span>
               {comment.isAuthor && (
-                <span style={authorBadgeStyle}>작성자</span>
+                <span style={authorBadgeStyle}>내가 쓴</span>
               )}
             </div>
 
             {/* 더보기 메뉴 */}
-            <div style={{position: 'relative'}} ref={menuRef}>
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                style={{
-                  padding: '0.25rem',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: isDark ? '#6b7280' : '#9ca3af',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="5" r="2"/>
-                  <circle cx="12" cy="12" r="2"/>
-                  <circle cx="12" cy="19" r="2"/>
-                </svg>
-              </button>
+            {isMyComment && (
+              <div style={{ position: 'relative' }} ref={menuRef}>
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  style={{
+                    padding: '0.25rem',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: isDark ? '#6b7280' : '#9ca3af',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <circle cx="12" cy="19" r="2"/>
+                  </svg>
+                </button>
 
-              {showMenu && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: '0.25rem',
-                  minWidth: '100px',
-                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
-                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                  borderRadius: '0.375rem',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  zIndex: 50,
-                  overflow: 'hidden'
-                }}>
-                  {isMyComment ? (
-                    <>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setIsEditing(true);
-                        }}
-                        style={{
-                          display: 'block',
-                          width: '100%',
-                          padding: '0.5rem 1rem',
-                          fontSize: '0.8125rem',
-                          textAlign: 'left',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: isDark ? '#e5e7eb' : '#374151',
-                          borderBottom: `1px solid ${isDark ? '#374151' : '#f3f4f6'}`
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                      >
-                        수정
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          handleDelete();
-                        }}
-                        style={{
-                          display: 'block',
-                          width: '100%',
-                          padding: '0.5rem 1rem',
-                          fontSize: '0.8125rem',
-                          textAlign: 'left',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: isDark ? '#fca5a5' : '#dc2626'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                      >
-                        삭제
-                      </button>
-                    </>
-                  ) : (
+                {showMenu && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '0.25rem',
+                    minWidth: '100px',
+                    backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                    border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                    borderRadius: '0.375rem',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    zIndex: 50,
+                    overflow: 'hidden'
+                  }}>
                     <button
-                      onClick={handleReport}
+                      onClick={() => {
+                        setShowMenu(false);
+                        setIsEditing(true);
+                      }}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.8125rem',
+                        textAlign: 'left',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: isDark ? '#e5e7eb' : '#374151',
+                        borderBottom: `1px solid ${isDark ? '#374151' : '#f3f4f6'}`
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    >
+                      수정
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleDelete();
+                      }}
                       style={{
                         display: 'block',
                         width: '100%',
@@ -403,12 +380,12 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
                       onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? '#374151' : '#f9fafb'}
                       onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                     >
-                      신고하기
+                      삭제
                     </button>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 댓글 내용 */}
@@ -423,7 +400,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
           </p>
 
           {/* 액션 버튼들 */}
-          <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span style={{
               fontSize: '0.75rem',
               color: isDark ? '#6b7280' : '#9ca3af'
@@ -431,12 +408,15 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
               {formatDate(comment.createdAt)}
             </span>
 
-            <button
-              onClick={() => setShowReplyForm(!showReplyForm)}
-              style={actionButtonStyle}
-            >
-              답글쓰기
-            </button>
+            {/* 대댓글에는 답글쓰기 버튼 숨김 */}
+            {!isReply && (
+              <button
+                onClick={() => setShowReplyForm(!showReplyForm)}
+                style={actionButtonStyle}
+              >
+                답글쓰기
+              </button>
+            )}
 
             <button
               onClick={handleLike}
@@ -458,8 +438,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
                 stroke="currentColor"
                 strokeWidth="2"
               >
-                <path
-                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
               </svg>
               {likeCount > 0 && <span>{likeCount}</span>}
             </button>
@@ -495,7 +474,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
                 stroke="currentColor"
                 strokeWidth={2.5}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
               답글 {comment.replies.length}개 {showReplies ? '접기' : '보기'}
             </button>
@@ -505,7 +484,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
 
       {/* 답글 작성 폼 */}
       {showReplyForm && (
-        <div style={{marginLeft: '3rem', marginBottom: '0.75rem'}}>
+        <div style={{ marginLeft: '3rem', marginBottom: '0.75rem' }}>
           <CommentForm
             boardId={comment.boardId}
             boardType={comment.boardType}
@@ -522,33 +501,22 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
 
       {/* 답글 목록 */}
       {!isReply && showReplies && comment.replies && comment.replies.length > 0 && (
-        <div style={{marginLeft: '3rem'}}>
+        <div style={{ marginLeft: '3rem' }}>
           {comment.replies.map((reply, index) => (
             <div key={reply.commentId}>
               <CommentItem
-                comment={{...reply, boardId: comment.boardId, boardType: comment.boardType}}
+                comment={{ ...reply, boardId: comment.boardId, boardType: comment.boardType }}
                 onCommentUpdated={onCommentUpdated}
                 isReply={true}
                 isDark={isDark}
               />
               {index < comment.replies.length - 1 && (
-                <div style={{borderTop: `1px solid ${isDark ? '#1f2937' : '#f3f4f6'}`}}/>
+                <div style={{ borderTop: `1px solid ${isDark ? '#1f2937' : '#f3f4f6'}` }} />
               )}
             </div>
           ))}
         </div>
       )}
-      <AlertModal
-        open={alert.open}
-        type={alert.type}
-        title={alert.title}
-        message={alert.message}
-        onConfirm={() => {
-          closeAlert();
-          alert.onConfirm?.();
-        }}
-        onClose={closeAlert}
-      />
     </div>
   );
 }
