@@ -73,6 +73,21 @@ export const createComment = async (submissionId, content, parentCommentId = nul
 };
 
 /**
+ * 댓글 수정
+ */
+export const updateComment = async (commentId, content) => {
+  try {
+    const response = await axiosInstance.put(`/algo/submissions/comments/${commentId}`, {
+      content
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ [updateComment] 댓글 수정 실패:', error);
+    return { error: true, message: error.response?.data?.message || '댓글 수정에 실패했습니다.' };
+  }
+};
+
+/**
  * 댓글 삭제
  */
 export const deleteComment = async (commentId) => {

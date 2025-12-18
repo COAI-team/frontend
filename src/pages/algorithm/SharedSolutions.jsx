@@ -4,6 +4,7 @@ import {
   toggleLike as toggleSubmissionLike, 
   getComments as getSubmissionComments, 
   createComment as createSubmissionComment, 
+  updateComment as updateSubmissionComment,
   deleteComment as deleteSubmissionComment 
 } from '../../service/algorithm/AlgorithmSocialApi';
 
@@ -312,6 +313,10 @@ const SolutionDetail = ({ solution, onLike }) => {
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
 
+  // 댓글 수정 상태 추가
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingContent, setEditingContent] = useState('');
+
   // 댓글 불러오기
   useEffect(() => {
     if (activeTab === 'comments') {
@@ -334,6 +339,43 @@ const SolutionDetail = ({ solution, onLike }) => {
       console.error('댓글 조회 중 오류:', err);
     } finally {
       setLoadingComments(false);
+    }
+  };
+
+  // 댓글 수정 시작
+  const handleCommentEdit = (comment) => {
+    setEditingCommentId(comment.commentId);
+    setEditingContent(comment.content);
+  };
+
+  // 댓글 수정 취소
+  const handleCommentEditCancel = () => {
+    setEditingCommentId(null);
+    setEditingContent('');
+  };
+
+  // 댓글 수정 저장
+  const handleCommentEditSubmit = async (commentId) => {
+    if (!editingContent.trim()) {
+      alert('댓글 내용을 입력해주세요.');
+      return;
+    }
+
+    try {
+      const response = await updateSubmissionComment(commentId, editingContent);  // 이제 정의됨!
+      
+      if (response.error) {
+        console.error('댓글 수정 실패:', response.message);
+        alert('댓글 수정에 실패했습니다.');
+        return;
+      }
+      
+      setEditingCommentId(null);
+      setEditingContent('');
+      fetchComments(); // 댓글 목록 새로고침
+    } catch (err) {
+      console.error('댓글 수정 중 오류:', err);
+      alert('댓글 수정에 실패했습니다.');
     }
   };
 
@@ -519,36 +561,87 @@ const SolutionDetail = ({ solution, onLike }) => {
         )}
 
         {activeTab === 'comments' && (
-          <div>
-            <div className="comments-list">
-              {loadingComments ? (
-                <div className="comments-loading">댓글을 불러오는 중...</div>
-              ) : comments.length === 0 ? (
-                <div className="comments-empty">
-                  첫 댓글을 작성해보세요!
-                </div>
-              ) : (
-                comments.map((comment) => (
+        <div>
+          <div className="comments-list">
+            {loadingComments ? (
+              <div className="comments-loading">댓글을 불러오는 중...</div>
+            ) : comments.length === 0 ? (
+              <div className="comments-empty">
+                첫 댓글을 작성해보세요!
+              </div>
+            ) : (
+              comments.map((comment) => (
                   <div key={comment.commentId} className="comment-item">
-                    <div className="comment-header">
-                      <span className="comment-username">
-                        {comment.userNickname || '익명'}
-                      </span>
-                      <span className="comment-date">
-                        {formatDate(comment.createdAt)}
-                      </span>
-                      {comment.isAuthor && (
-                        <button
-                          onClick={() => handleCommentDelete(comment.commentId)}
-                          className="comment-delete-button"
-                        >
-                          삭제
-                        </button>
-                      )}
-                    </div>
-                    <p className="comment-content">
-                      {comment.content}
-                    </p>
+                    {/* 수정 모드 */}
+                    {editingCommentId === comment.commentId ? (
+                      <>
+                        <div className="comment-header">
+                          <div className="comment-user-info">
+                            <span className="comment-username">
+                              {comment.userNickname || '익명'}
+                            </span>
+                          </div>
+                        </div>
+                        <textarea
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          className="comment-edit-textarea"
+                          rows={3}
+                          autoFocus
+                        />
+                        <div className="comment-edit-actions">
+                          <button
+                            onClick={handleCommentEditCancel}
+                            className="comment-action-button comment-cancel-button"
+                          >
+                            취소
+                          </button>
+                          <button
+                            onClick={() => handleCommentEditSubmit(comment.commentId)}
+                            className="comment-action-button comment-save-button"
+                            disabled={!editingContent.trim()}
+                          >
+                            저장
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      /* 일반 모드 */
+                      <>
+                        <div className="comment-header">
+                          <div className="comment-user-info">
+                            <span className="comment-username">
+                              {comment.userNickname || '익명'}
+                            </span>
+                            <span className="comment-date">
+                              {formatDate(comment.createdAt)}
+                            </span>
+                          </div>
+                          
+                          {comment.isAuthor && (
+                            <div className="comment-actions">
+                              <button
+                                onClick={() => handleCommentEdit(comment)}
+                                className="comment-action-button comment-edit-button"
+                                title="수정"
+                              >
+                                수정
+                              </button>
+                              <button
+                                onClick={() => handleCommentDelete(comment.commentId)}
+                                className="comment-action-button comment-delete-button"
+                                title="삭제"
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <p className="comment-content">
+                          {comment.content}
+                        </p>
+                      </>
+                    )}
                   </div>
                 ))
               )}
