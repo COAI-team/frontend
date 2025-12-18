@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { getProblem } from '../../service/algorithm/algorithmApi';
 import SharedSolutions from './SharedSolutions';
+import { extractPureDescription, renderFormattedText } from '../../components/algorithm/problem/markdownUtils';
 import '../../styles/ProblemDetail.css';
 
 const ProblemDetail = () => {
@@ -13,105 +14,6 @@ const ProblemDetail = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'description');
-
-    // ===== 문제 설명에서 순수 스토리 부분만 추출 =====
-    const extractPureDescription = (text) => {
-        if (!text) return null;
-
-        // "**입력**" 패턴이 있으면 그 앞부분만 추출
-        const inputPatterns = [
-            /\*\*입력\*\*/,      // **입력**
-            /\*\*입력 형식\*\*/, // **입력 형식**
-            /\n입력\n/,          // 입력 (줄바꿈으로 구분)
-            /\n입력:/,           // 입력:
-        ];
-
-        for (const pattern of inputPatterns) {
-            const match = text.search(pattern);
-            if (match !== -1) {
-                // "**입력**" 앞부분만 추출하고 마지막 빈 줄 제거
-                return text.substring(0, match).trim();
-            }
-        }
-
-        // 패턴이 없으면 전체 텍스트 반환
-        return text;
-    };
-
-    // ===== 마크다운 렌더링 함수 =====
-    const renderFormattedText = (text) => {
-        if (!text) return null;
-
-        const lines = text.split('\n');
-
-        return (
-            <div className="formatted-text">
-                {lines.map((line, lineIndex) => {
-                    // 빈 줄 처리
-                    if (!line.trim()) {
-                        return <div key={lineIndex} className="formatted-text-empty" />;
-                    }
-
-                    // 리스트 아이템 (- 또는 * 로 시작)
-                    const listMatch = line.match(/^(\s*)([-*])\s+(.*)$/);
-                    if (listMatch) {
-                        const [, indent, , content] = listMatch;
-                        const indentLevel = Math.floor(indent.length / 2);
-                        return (
-                            <div key={lineIndex} className="formatted-list-item" style={{ marginLeft: `${indentLevel * 16}px` }}>
-                                <span className="formatted-text-bullet">•</span>
-                                <span>{renderInlineFormatting(content)}</span>
-                            </div>
-                        );
-                    }
-
-                    // 숫자 리스트 (1. 2. 3. 등)
-                    const numListMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
-                    if (numListMatch) {
-                        const [, indent, num, content] = numListMatch;
-                        const indentLevel = Math.floor(indent.length / 2);
-                        return (
-                            <div key={lineIndex} className="formatted-list-item" style={{ marginLeft: `${indentLevel * 16}px` }}>
-                                <span className="formatted-text-number">{num}.</span>
-                                <span>{renderInlineFormatting(content)}</span>
-                            </div>
-                        );
-                    }
-
-                    // 일반 줄
-                    return <div key={lineIndex} className="formatted-text-line">{renderInlineFormatting(line)}</div>;
-                })}
-            </div>
-        );
-    };
-
-    // 인라인 포맷팅 처리 (**bold**, `code`)
-    const renderInlineFormatting = (text) => {
-        if (!text) return null;
-
-        const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-
-        return parts.map((part, index) => {
-            // **bold** 패턴
-            if (part.startsWith('**') && part.endsWith('**')) {
-                return (
-                    <strong key={index} className="formatted-bold">
-                        {part.slice(2, -2)}
-                    </strong>
-                );
-            }
-            // `code` 패턴
-            if (part.startsWith('`') && part.endsWith('`')) {
-                return (
-                    <code key={index} className="formatted-code">
-                        {part.slice(1, -1)}
-                    </code>
-                );
-            }
-            // 일반 텍스트
-            return <span key={index}>{part}</span>;
-        });
-    };
 
     useEffect(() => {
         const fetchProblem = async () => {
