@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../server/AxiosConfig';
 import { getAuth } from '../../utils/auth/token';
 import { useNavigate } from 'react-router-dom';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
 const LikeButton = ({
                       referenceType,
@@ -14,6 +16,7 @@ const LikeButton = ({
                       onChange
                     }) => {
   const navigate = useNavigate();
+  const {alert, showAlert, closeAlert} = useAlert();
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [likeUsers, setLikeUsers] = useState([]);
@@ -85,9 +88,17 @@ const LikeButton = ({
     } catch (error) {
       console.error('좋아요 처리 실패:', error);
       if (error.response?.data?.message === '좋아요 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.') {
-        alert('좋아요 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.');
+        showAlert({
+          type: "warning",
+          title: "잠시만요",
+          message: "좋아요 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.",
+        });
       } else {
-        alert('좋아요 처리에 실패했습니다.');
+        showAlert({
+          type: "error",
+          title: "오류",
+          message: "좋아요 처리에 실패했습니다.",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -248,6 +259,14 @@ const LikeButton = ({
           </div>
         </div>
       )}
+      <AlertModal
+        open={alert.open}
+        onClose={closeAlert}
+        onConfirm={alert.onConfirm}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+      />
     </div>
   );
 };

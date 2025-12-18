@@ -5,11 +5,14 @@ import axiosInstance from '../../server/AxiosConfig';
 import WriteEditor from '../../components/editor/WriteEditor';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
 import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
 const CodeboardEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const {alert, showAlert, closeAlert} = useAlert();
 
   // 게시글 상태
   const [post, setPost] = useState(null);
@@ -119,13 +122,21 @@ const CodeboardEdit = () => {
       })
       .then((response) => {
         console.log("✅ 수정 응답:", response.data);
-        alert("게시글이 수정되었습니다.");
+        showAlert({
+          type: "success",
+          title: "수정 완료",
+          message: "게시글이 수정되었습니다.",
+        });
         navigate(`/codeboard/${id}`);
       })
       .catch((err) => {
         console.error("수정 실패:", err);
         console.error("에러 상세:", err.response?.data);
-        alert("게시글 수정에 실패했습니다.");
+        showAlert({
+          type: "error",
+          title: "수정 실패",
+          message: "게시글 수정에 실패했습니다.",
+        });
       });
   };
 
@@ -197,7 +208,11 @@ const CodeboardEdit = () => {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(fileContent);
-                      alert('코드가 복사되었습니다.');
+                      showAlert({
+                        type: "success",
+                        title: "복사 완료",
+                        message: "코드가 클립보드에 복사되었습니다.",
+                      });
                     }}
                     className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}
                   >
@@ -348,6 +363,14 @@ const CodeboardEdit = () => {
           </div>
         </div>
       </div>
+      <AlertModal
+        open={alert.open}
+        onClose={closeAlert}
+        onConfirm={alert.onConfirm}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+      />
     </div>
   );
 };
