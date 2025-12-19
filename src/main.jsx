@@ -43,7 +43,7 @@ import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
 import MistakeReportPage from "./pages/myPage/MistakeReportPage";
 
 // 코드게시판
-import CodeboardList from "./pages/codeboard/codeboardList";
+import CodeboardList from "./pages/codeboard/CodeboardList";
 import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
 import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
 import CodeboardEdit from "./pages/codeboard/CodeboardEdit";
