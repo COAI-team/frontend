@@ -429,21 +429,34 @@ const CodeboardDetail = () => {
               color: isDark ? '#9ca3af' : '#4b5563'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{
-                  width: '2rem',
-                  height: '2rem',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.875rem',
-                  backgroundColor: isDark ? '#374151' : '#d1d5db',
-                  color: isDark ? '#e5e7eb' : '#1f2937'
-                }}>
-                  {board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'}
-                </div>
-                <span>{board.userNickname || '익명'}</span>
+              <div style={{
+                width: '2rem',
+                height: '2rem',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.875rem',
+                backgroundColor: isDark ? '#374151' : '#d1d5db',
+                color: isDark ? '#e5e7eb' : '#1f2937',
+                overflow: 'hidden'
+              }}>
+                {board.userImage ? (
+                  <img 
+                    src={board.userImage} 
+                    alt={board.userNickname}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                ) : (
+                  board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'
+                )}
               </div>
+              <span>{board.userNickname || '익명'}</span>
+            </div>
               <span>·</span>
               <span>{formatDate(board.codeboardCreatedAt)}</span>
               <span>·</span>
