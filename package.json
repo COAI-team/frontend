@@ -13,6 +13,7 @@
     "cert": "npm run cert:key && npm run cert:cert"
   },
   "dependencies": {
+    "@echarts-readymade/wordcloud": "^1.2.0",
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
     "@mediapipe/tasks-vision": "^20230920.0.0",
@@ -39,11 +40,10 @@
     "date-fns": "^4.1.0",
     "devtools-detect": "^4.0.2",
     "echarts": "^6.0.0",
-    "echarts-wordcloud": "^2.1.0",
     "highlight.js": "^11.11.1",
     "lowlight": "^3.3.0",
-    "lucide-react": "^0.561.0",
-    "next": "^16.0.10",
+    "lucide-react": "^0.562.0",
+    "next": "^16.1.0",
     "next-themes": "^0.4.6",
     "prismjs": "^1.30.0",
     "prop-types": "^15.8.1",

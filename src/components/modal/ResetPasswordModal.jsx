@@ -98,6 +98,7 @@ export default function ResetPasswordModal({open, onClose}) {
         title: "이메일 발송 완료",
         message: "비밀번호 재설정 링크가 이메일로 전송되었습니다.",
         onConfirm: () => {
+          setEmail("");
           setAlert(prev => ({...prev, open: false}));
           onClose();
         }
@@ -190,7 +191,7 @@ export default function ResetPasswordModal({open, onClose}) {
 
           <div className="flex-1">
             <LoadingButton
-              text="비밀번호 재설정 메일 받기"
+              text="비번 재설정 메일 받기"
               isLoading={loadingReset}
               onClick={handleSubmit}
               className="px-4 py-2 rounded-md text-sm font-semibold text-white w-full"
