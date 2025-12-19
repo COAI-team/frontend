@@ -271,7 +271,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker, boardType = 
 
         <Divider />
 
-        <ToolbarButton title="AI 분석 결과" label="AI 분석" isDark={isDark}>
+        <ToolbarButton title="파일 업로드" label="파일업로드" isDark={isDark}>
           <Upload size={18} />
         </ToolbarButton>
       </div>
