@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { getProblems, DIFFICULTY_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/algorithmApi';
+import { getProblems, DIFFICULTY_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/AlgorithmApi';
 import TopicSelector from '../../components/common/TopicSelector';
 import Pagination from '../../components/common/Pagination';
 import AlgorithmListStats from '../../components/algorithm/AlgorithmListStats';
