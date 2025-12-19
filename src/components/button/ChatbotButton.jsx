@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import {AiOutlineMessage, AiOutlineClose, AiFillRobot, AiOutlineArrowDown} from "react-icons/ai";
 import {LoginContext} from "../../context/login/LoginContext";
 import {sendChatMessage, getChatMessages} from "../../service/chat/Chatbot.js";
-import { MarkdownComponents } from "../common/MarkdownConfig.js";
+import { MarkdownComponents } from "../common/markdownConfig.js";
 import { useNavigate } from "react-router-dom";
 
 const BILLING_KEYWORDS = [
