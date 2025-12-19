@@ -349,9 +349,21 @@ const CodeboardList = () => {
                     <div className="post-footer">
                       <div className="post-user-info">
                         <div className="user-avatar">
-                          <span className="user-initial">
-                            {post.userNickname?.charAt(0) || 'U'}
-                          </span>
+                          {post.userImage ? (
+                            <img 
+                              src={post.userImage} 
+                              alt={post.userNickname}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
+                            <span className="user-initial">
+                              {post.userNickname?.charAt(0) || 'U'}
+                            </span>
+                          )}
                         </div>
                         <span className="user-nickname">{post.userNickname || 'User'}</span>
                       </div>
@@ -419,9 +431,21 @@ const CodeboardList = () => {
                     <div className="card-header">
                       <div className="card-user-info">
                         <div className="user-avatar">
-                          <span className="user-initial">
-                            {post.userNickname?.charAt(0) || 'U'}
-                          </span>
+                          {post.userImage ? (
+                            <img 
+                              src={post.userImage} 
+                              alt={post.userNickname}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
+                            <span className="user-initial">
+                              {post.userNickname?.charAt(0) || 'U'}
+                            </span>
+                          )}
                         </div>
                         <span className="user-nickname">{post.userNickname || 'User'}</span>
                       </div>
