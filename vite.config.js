@@ -4,11 +4,9 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import monacoPkg from "vite-plugin-monaco-editor";
+import { monacoEditorPlugin } from "vite-plugin-monaco-editor";
 import fs from "node:fs";
 import path from "node:path";
-
-const { monacoEditorPlugin } = monacoPkg;
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
