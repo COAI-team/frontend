@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm';
+import monacoEditorPlugin from "vite-plugin-monaco-editor-esm";
 
 const rootDir = new URL(".", import.meta.url).pathname;
 
@@ -14,7 +14,6 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       monacoEditorPlugin({
         languageWorkers: [
-          "editorWorkerService",
           "typescript",
           "json",
           "css",
@@ -27,26 +26,15 @@ export default defineConfig(({ mode }) => {
       global: "window",
     },
 
-    // Add these sections to fix worker resolution
-    optimizeDeps: {
-      include: [
-        'monaco-editor/esm/vs/editor/editor.worker',
-        'monaco-editor/esm/vs/editor/editorWorkerService.js',
-        'monaco-editor/esm/vs/language/typescript/ts.worker',
-        'monaco-editor/esm/vs/language/json/json.worker',
-        'monaco-editor/esm/vs/language/css/css.worker',
-        'monaco-editor/esm/vs/language/html/html.worker',
-      ]
-    },
-
+    // ✅ Monaco는 chunk 분리만 하면 충분
     build: {
       rollupOptions: {
         output: {
           manualChunks: {
-            monaco: ['monaco-editor']
-          }
-        }
-      }
+            monaco: ["monaco-editor"],
+          },
+        },
+      },
     },
 
     server: {
