@@ -14,10 +14,10 @@ export default defineConfig(({ mode }) => {
             global: 'window'
         },
         server: {
-            https: {
-                key: fs.readFileSync(path.resolve(import.meta.dirname, "localhost-key.pem")),
-                cert: fs.readFileSync(path.resolve(import.meta.dirname, "localhost-cert.pem")),
-            },
+            // https: {
+            //     key: fs.readFileSync(path.resolve(import.meta.dirname, "localhost-key.pem")),
+            //     cert: fs.readFileSync(path.resolve(import.meta.dirname, "localhost-cert.pem")),
+            // },
             proxy: {
                 "^/(api|analysis|users)": {
                     target: env.VITE_PROXY_URL || "http://localhost:9443",
