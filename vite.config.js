@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm';
 
-// ✅ process 없이 root 계산
 const rootDir = new URL(".", import.meta.url).pathname;
 
 export default defineConfig(({ mode }) => {
@@ -15,9 +14,9 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       monacoEditorPlugin({
         languageWorkers: [
+          "editorWorkerService",  // ✅ Must be first - base worker
+          "typescript",           // ✅ Handles both typescript and javascript
           "json",
-          "typescript",
-          "javascript",
           "css",
           "html",
         ],
