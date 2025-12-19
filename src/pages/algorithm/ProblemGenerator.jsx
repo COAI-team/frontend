@@ -49,7 +49,7 @@ const ProblemGenerator = () => {
     { category: '자료구조', topics: [{ value: 'HASH', displayName: '해시' }, { value: 'STACK_QUEUE', displayName: '스택/큐' }, { value: 'HEAP', displayName: '힙/우선순위 큐' }, { value: 'TREE', displayName: '트리' }] },
     { category: '탐색', topics: [{ value: 'DFS_BFS', displayName: 'DFS/BFS' }, { value: 'BRUTE_FORCE', displayName: '완전탐색' }, { value: 'BACKTRACKING', displayName: '백트래킹' }, { value: 'BINARY_SEARCH', displayName: '이분탐색' }, { value: 'GRAPH_SHORTEST_PATH', displayName: '그래프/최단경로' }] },
     { category: '최적화', topics: [{ value: 'GREEDY', displayName: '그리디' }, { value: 'DP', displayName: '동적 프로그래밍(DP)' }] },
-    { category: '구현', topics: [{ value: 'IMPLEMENTATION', displayName: '구현/시뮬레이션' }, { value: 'SORTING', displayName: '정렬' }, { value: 'STRING', displayName: '문자열 처리' }, { value: 'TWO_POINTER', displayName: '투포인터/슬라이딩 윈도우' }] },
+    { category: '구현', topics: [{ value: 'IMPLEMENTATION', displayName: '구현/시뮬레이션' }, { value: 'SORTING', displayName: '정렬' }, { value: 'STRING', displayName: '문자열 처리' }, { value: 'TWO_POINTER', displayName: '투포인터' }] },
   ]);
   const [topicsLoading, setTopicsLoading] = useState(false);
 

@@ -1,4 +1,5 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
+import hljs from 'highlight.js';
 import {
   getSharedSubmissions,
   toggleLike as toggleSubmissionLike,
@@ -22,6 +23,45 @@ const SharedSolutions = ({problemId}) => {
   const [sortBy, setSortBy] = useState('latest');
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const pageSize = 20;
+
+  // 다크모드 감지
+  const [isDark, setIsDark] = useState(() => 
+    document.documentElement.classList.contains('dark')
+  );
+
+  // highlight.js 테마 관리
+  useEffect(() => {
+    const loadHljsTheme = (darkMode) => {
+      document.querySelectorAll('link[data-hljs-theme-shared]').forEach(el => el.remove());
+      
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.dataset.hljsThemeShared = 'true';
+      link.href = darkMode 
+        ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css'
+        : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+      document.head.appendChild(link);
+    };
+
+    const checkDarkMode = () => {
+      const darkMode = document.documentElement.classList.contains('dark');
+      setIsDark(darkMode);
+      loadHljsTheme(darkMode);
+    };
+    
+    checkDarkMode();
+    
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => {
+      observer.disconnect();
+      document.querySelectorAll('link[data-hljs-theme-shared]').forEach(el => el.remove());
+    };
+  }, []);
 
   useEffect(() => {
     fetchSolutions(currentPage);
@@ -309,16 +349,51 @@ const SharedSolutions = ({problemId}) => {
 };
 
 const SolutionDetail = ({solution, onLike}) => {
-
   const {alert, showAlert, closeAlert} = useAlert();
   const [activeTab, setActiveTab] = useState('code');
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
-
-  // 댓글 수정 상태 추가
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
+  
+  const codeBlockRef = useRef(null);
+
+  // 언어 매핑 함수
+  const getLanguageClass = (languageName) => {
+    const languageMap = {
+      'Python': 'python',
+      'JavaScript': 'javascript',
+      'TypeScript': 'typescript',
+      'Java': 'java',
+      'C++': 'cpp',
+      'C#': 'csharp',
+      'Go': 'go',
+      'Rust': 'rust',
+      'Kotlin': 'kotlin',
+      'Swift': 'swift',
+      'SQLite': 'sql',
+      'SQL': 'sql'
+    };
+    
+    return languageMap[languageName] || 'plaintext';
+  };
+
+  // 코드 하이라이팅 적용
+  useEffect(() => {
+    if (activeTab === 'code' && codeBlockRef.current) {
+      const timer = setTimeout(() => {
+        const codeElement = codeBlockRef.current.querySelector('code');
+        if (codeElement) {
+          codeElement.classList.remove('hljs');
+          delete codeElement.dataset.highlighted;
+          hljs.highlightElement(codeElement);
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, solution.sourceCode]);
 
   // 댓글 불러오기
   useEffect(() => {
@@ -369,7 +444,7 @@ const SolutionDetail = ({solution, onLike}) => {
     }
 
     try {
-      const response = await updateSubmissionComment(commentId, editingContent);  // 이제 정의됨!
+      const response = await updateSubmissionComment(commentId, editingContent);
 
       if (response.error) {
         console.error('댓글 수정 실패:', response.message);
@@ -383,7 +458,7 @@ const SolutionDetail = ({solution, onLike}) => {
 
       setEditingCommentId(null);
       setEditingContent('');
-      fetchComments(); // 댓글 목록 새로고침
+      fetchComments();
     } catch (err) {
       console.error('댓글 수정 중 오류:', err);
       showAlert({
@@ -408,7 +483,7 @@ const SolutionDetail = ({solution, onLike}) => {
       }
 
       setNewComment('');
-      fetchComments(); // 댓글 목록 새로고침
+      fetchComments();
     } catch (err) {
       console.error('댓글 작성 중 오류:', err);
     }
@@ -425,7 +500,7 @@ const SolutionDetail = ({solution, onLike}) => {
         return;
       }
 
-      fetchComments(); // 댓글 목록 새로고침
+      fetchComments();
     } catch (err) {
       console.error('댓글 삭제 중 오류:', err);
     }
@@ -513,9 +588,13 @@ const SolutionDetail = ({solution, onLike}) => {
       <div className="solution-tab-content">
         {activeTab === 'code' && (
           <div>
-            <pre className="solution-code-block">
-              <code>{solution.sourceCode}</code>
-            </pre>
+            <div ref={codeBlockRef}>
+              <pre className="solution-code-block">
+                <code className={`language-${getLanguageClass(solution.language || solution.languageName)}`}>
+                  {solution.sourceCode || '// 코드 없음'}
+                </code>
+              </pre>
+            </div>
 
             <div className="solution-like-section">
               <button
@@ -589,7 +668,6 @@ const SolutionDetail = ({solution, onLike}) => {
               ) : (
                 comments.map((comment) => (
                   <div key={comment.commentId} className="comment-item">
-                    {/* 수정 모드 */}
                     {editingCommentId === comment.commentId ? (
                       <>
                         <div className="comment-header">
@@ -623,7 +701,6 @@ const SolutionDetail = ({solution, onLike}) => {
                         </div>
                       </>
                     ) : (
-                      /* 일반 모드 */
                       <>
                         <div className="comment-header">
                           <div className="comment-user-info">
@@ -695,7 +772,6 @@ const SolutionDetail = ({solution, onLike}) => {
   );
 };
 
-// formatDate 함수를 컴포넌트 외부로 이동
 const formatDate = (dateValue) => {
   if (!dateValue) return '-';
 
