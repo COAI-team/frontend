@@ -9,7 +9,7 @@ import {
 import {useResizableLayout, useVerticalResizable} from '../../hooks/algorithm/useResizableLayout';
 import {useFocusViolationDetection} from '../../hooks/algorithm/useFocusViolationDetection';
 import {useParsedProblem} from '../../hooks/algorithm/useParsedProblem';
-import {startProblemSolve, submitCode, runTestCode} from '../../service/algorithm/algorithmApi';
+import {startProblemSolve, submitCode, runTestCode} from '../../service/algorithm/AlgorithmApi';
 import EyeTracker, {TRACKER_TYPES} from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';

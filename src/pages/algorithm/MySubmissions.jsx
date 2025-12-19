@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getMySubmissions } from "../../service/algorithm/algorithmApi";
+import { getMySubmissions } from "../../service/algorithm/AlgorithmApi";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
