@@ -4,15 +4,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import monacoPkg from "vite-plugin-monaco-editor";
-import fs from "node:fs";
-import path from "node:path";
-
-// 🔑 CJS → ESM 안전 변환
-const monacoEditorPlugin =
-  monacoPkg?.monacoEditorPlugin ??
-  monacoPkg?.default ??
-  monacoPkg;
+import MonacoEditorPlugin from "vite-plugin-monaco-editor";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -21,7 +13,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
-      monacoEditorPlugin({
+      MonacoEditorPlugin({
         languageWorkers: [
           "json",
           "typescript",
