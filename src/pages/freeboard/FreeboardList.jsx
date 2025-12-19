@@ -292,9 +292,13 @@ const FreeboardList = () => {
                     <div className="post-footer">
                       <div className="post-user-info">
                         <div className="user-avatar">
-                          <span className="user-initial">
-                            {post.userNickname?.charAt(0) || 'U'}
-                          </span>
+                          {post.userImage ? (
+                            <img src={post.userImage} alt={post.userNickname} />
+                          ) : (
+                            <span className="user-initial">
+                              {post.userNickname?.charAt(0) || 'U'}
+                            </span>
+                          )}
                         </div>
                         <span className="user-nickname">{post.userNickname || 'User'}</span>
                       </div>
@@ -350,9 +354,13 @@ const FreeboardList = () => {
                     <div className="card-header">
                       <div className="card-user-info">
                         <div className="user-avatar">
-                          <span className="user-initial">
-                            {post.userNickname?.charAt(0) || 'U'}
-                          </span>
+                          {post.userImage ? (
+                            <img src={post.userImage} alt={post.userNickname} />
+                          ) : (
+                            <span className="user-initial">
+                              {post.userNickname?.charAt(0) || 'U'}
+                            </span>
+                          )}
                         </div>
                         <span className="user-nickname">{post.userNickname || 'User'}</span>
                       </div>
