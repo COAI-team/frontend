@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import MyPageSidebar from "./MyPageSidebar";
+import MyPageSidebar from "./MyPageSideBar";
 import { useLogin } from "../../../context/login/useLogin";
 import AlertModal from "../../modal/AlertModal";
 
