@@ -204,6 +204,16 @@ const ModeSelectionScreen = ({
 };
 
 /**
+ * 위반 항목 표시 헬퍼 컴포넌트
+ */
+const ViolationItem = ({ text, points }) => (
+  <div className="flex items-center gap-2 text-gray-400">
+    <span className="text-red-400">•</span>
+    <span>{text} ({points}점)</span>
+  </div>
+);
+
+/**
  * 집중 모드 주의사항 안내 컴포넌트
  */
 const FocusModeWarning = () => (
@@ -212,28 +222,51 @@ const FocusModeWarning = () => (
       <span>&#9888;&#65039;</span> 집중 모드 주의사항
     </h3>
 
-    <div className="mb-4">
-      <h4 className="text-gray-300 font-semibold mb-2">위반으로 기록되는 행위:</h4>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-        <div className="flex items-center gap-2 text-gray-400">
-          <span className="text-red-400">&#8226;</span>
-          <span>전체화면 이탈</span>
-          <span className="text-amber-400 text-xs">(1점)</span>
+    {/* 위반 항목 2x2 그리드 */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      {/* 심각한 위반 (2.5~3점) */}
+      <div>
+        <h4 className="text-red-400 font-semibold mb-2">
+          심각한 위반 (2.5~3점)
+        </h4>
+        <div className="space-y-1 text-sm ml-4">
+          <ViolationItem text="여러 얼굴 감지" points="3" />
+          <ViolationItem text="얼굴 미검출 지속 (15초 이상)" points="2.5" />
         </div>
-        <div className="flex items-center gap-2 text-gray-400">
-          <span className="text-red-400">&#8226;</span>
-          <span>다른 탭/창으로 전환</span>
-          <span className="text-amber-400 text-xs">(1점)</span>
+      </div>
+
+      {/* 중간 위반 (1.5점) */}
+      <div>
+        <h4 className="text-yellow-400 font-semibold mb-2">
+          중간 위반 (1.5점)
+        </h4>
+        <div className="space-y-1 text-sm ml-4">
+          <ViolationItem text="전체화면 이탈" points="1.5" />
+          <ViolationItem text="졸음 감지" points="1.5" />
         </div>
-        <div className="flex items-center gap-2 text-gray-400">
-          <span className="text-red-400">&#8226;</span>
-          <span>마우스 화면 밖 이동</span>
-          <span className="text-amber-400 text-xs">(0.5점)</span>
+      </div>
+
+      {/* 높은 위반 (2점) */}
+      <div>
+        <h4 className="text-orange-400 font-semibold mb-2">
+          높은 위반 (2점)
+        </h4>
+        <div className="space-y-1 text-sm ml-4">
+          <ViolationItem text="다른 탭/창 전환" points="2" />
+          <ViolationItem text="눈 깜빡임 없음 (30초 이상)" points="2" />
+          <ViolationItem text="마스크 감지" points="2" />
         </div>
-        <div className="flex items-center gap-2 text-gray-400">
-          <span className="text-red-400">&#8226;</span>
-          <span>얼굴 미검출 (15초+)</span>
-          <span className="text-amber-400 text-xs">(2점)</span>
+      </div>
+
+      {/* 경미한 위반 (0.3~0.5점) */}
+      <div>
+        <h4 className="text-gray-400 font-semibold mb-2">
+          경미한 위반 (0.3~0.5점)
+        </h4>
+        <div className="space-y-1 text-sm ml-4">
+          <ViolationItem text="시선 이탈" points="0.5" />
+          <ViolationItem text="얼굴 미검출 (5~15초)" points="0.5" />
+          <ViolationItem text="마우스 화면 밖 이동" points="0.3" />
         </div>
       </div>
     </div>
