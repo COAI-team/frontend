@@ -1,19 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getProblems, DIFFICULTY_OPTIONS, PAGE_SIZE_OPTIONS } from '../../service/algorithm/algorithmApi';
 import TopicSelector from '../../components/common/TopicSelector';
 import Pagination from '../../components/common/Pagination';
 import '../../styles/ProblemList.css';
 
-// 정렬 옵션
-const SORT_OPTIONS = [
-  { value: 'latest', label: '최신순' },
-  { value: 'mostSolved', label: '푼 사람 많은 순' },
-  { value: 'highAccuracy', label: '정답률 높은 순' },
-  { value: 'lowAccuracy', label: '정답률 낮은 순' },
-];
-
-// 풀이 상태 옵션
 const SOLVED_OPTIONS = [
   { value: '', label: '풀이 상태' },
   { value: 'solved', label: '푼 문제' },
@@ -21,23 +12,12 @@ const SOLVED_OPTIONS = [
 ];
 
 const ProblemList = () => {
-  // ===== 상태 관리 =====
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // 필터 및 페이징 상태
-  const [filters, setFilters] = useState({
-    difficulty: '',
-    topic: '',
-    keyword: '',
-    solved: '',
-    sort: 'latest',
-    page: 1,
-    size: 10
-  });
-
-  // 페이지네이션 정보
   const [pagination, setPagination] = useState({
     totalCount: 0,
     totalPages: 0,
@@ -46,15 +26,66 @@ const ProblemList = () => {
     hasPrevious: false
   });
 
-  const navigate = useNavigate();
+  // URL에서 파라미터 읽기
+  const keyword = searchParams.get('keyword') || '';
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const pageSize = Number(searchParams.get('size')) || 10;
+  const difficulty = searchParams.get('difficulty') || '';
+  const topic = searchParams.get('topic') || '';
+  const solved = searchParams.get('solved') || '';
 
-  // ===== 데이터 로딩 =====
-  const loadProblems = useCallback(async (filterParams = filters) => {
+  // 검색 입력용 로컬 state
+  const [searchInput, setSearchInput] = useState(keyword);
+
+  // URL 파라미터 업데이트 헬퍼 함수
+  const updateParams = useCallback((updates, resetPage = false) => {
+    const newParams = new URLSearchParams(searchParams);
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === '') {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, String(value));
+      }
+    });
+
+    if (resetPage) {
+      newParams.delete('page');
+    }
+
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
+
+  // URL keyword 변경 시 검색 입력창 동기화
+  useEffect(() => {
+    setSearchInput(keyword);
+  }, [keyword]);
+
+  // 디바운스 검색
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== keyword) {
+        updateParams({ keyword: searchInput }, true);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput, keyword, updateParams]);
+
+  // 문제 목록 조회
+  const fetchProblems = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const result = await getProblems(filterParams);
+      const result = await getProblems({
+        page: currentPage,
+        size: pageSize,
+        difficulty,
+        topic,
+        keyword,
+        solved
+      });
 
       if (result.error) {
         setError(result.message || '문제 목록을 불러오는데 실패했습니다.');
@@ -77,30 +108,27 @@ const ProblemList = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [currentPage, pageSize, difficulty, topic, keyword, solved]);
 
+  // URL 파라미터가 변경될 때마다 문제 조회
   useEffect(() => {
-    loadProblems();
-  }, [loadProblems]);
+    fetchProblems();
+  }, [fetchProblems]);
 
-  // ===== 이벤트 핸들러 =====
+  // 필터 변경
   const handleFilterChange = (key, value) => {
-    const newFilters = { ...filters, [key]: value, page: 1 };
-    setFilters(newFilters);
-    loadProblems(newFilters);
+    updateParams({ [key]: value }, true);
   };
 
+  // 페이지 변경
   const handlePageChange = (newPage) => {
-    const newFilters = { ...filters, page: newPage };
-    setFilters(newFilters);
-    loadProblems(newFilters);
+    updateParams({ page: newPage });
   };
 
   const handleProblemClick = (problemId) => {
     navigate(`/algorithm/problems/${problemId}`);
   };
 
-  // 난이도 클래스 반환
   const getDifficultyClass = (difficulty) => {
     const classes = {
       BRONZE: 'difficulty-bronze',
@@ -111,43 +139,48 @@ const ProblemList = () => {
     return classes[difficulty] || '';
   };
 
-  // ===== 렌더링 =====
+  const getTopicDisplayName = (tags) => {
+    if (!tags) return '-';
+    
+    try {
+      // JSON 배열 형태인 경우
+      if (tags.startsWith('[')) {
+        const parsedTags = JSON.parse(tags);
+        return parsedTags[0] || '-';
+      }
+      // 쉼표로 구분된 문자열인 경우
+      const tagArray = tags.split(',').map(t => t.trim());
+      return tagArray[0] || '-';
+    } catch (e) {
+      return tags.split(',')[0]?.trim() || '-';
+    }
+  };
+
   return (
     <div className="problem-list-container">
       <div>
-        {/* 페이지 헤더 */}
         <div className="problem-header">
           <h1 className="problem-title">알고리즘 문제</h1>
           <p className="problem-subtitle">다양한 알고리즘 문제를 만들고 풀어보세요</p>
         </div>
 
-        {/* 주제 필터 탭 */}
         <div className="topic-filter-section">
           <TopicSelector 
-            selectedTopic={filters.topic}
+            selectedTopic={topic}
             onTopicSelect={(topic) => handleFilterChange('topic', topic)}
           />
         </div>
 
-        {/* 검색 및 필터 섹션 */}
         <div className="problem-controls">
           <input
             type="text"
             placeholder="문제 검색..."
-            value={filters.keyword}
-            onChange={(e) => {
-              const newFilters = { ...filters, keyword: e.target.value, page: 1 };
-              setFilters(newFilters);
-            }}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                loadProblems(filters);
-              }
-            }}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="search-input"
           />
           <select
-            value={filters.solved}
+            value={solved}
             onChange={(e) => handleFilterChange('solved', e.target.value)}
             className="filter-select"
           >
@@ -158,7 +191,7 @@ const ProblemList = () => {
             ))}
           </select>
           <select
-            value={filters.difficulty}
+            value={difficulty}
             onChange={(e) => handleFilterChange('difficulty', e.target.value)}
             className="filter-select"
           >
@@ -169,18 +202,7 @@ const ProblemList = () => {
             ))}
           </select>
           <select
-            value={filters.sort}
-            onChange={(e) => handleFilterChange('sort', e.target.value)}
-            className="filter-select"
-          >
-            {SORT_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filters.size}
+            value={pageSize}
             onChange={(e) => handleFilterChange('size', parseInt(e.target.value))}
             className="filter-select"
           >
@@ -195,7 +217,6 @@ const ProblemList = () => {
           </Link>
         </div>
 
-        {/* 로딩 상태 */}
         {loading && (
           <div className="loading-container">
             <div className="loading-spinner"></div>
@@ -203,7 +224,6 @@ const ProblemList = () => {
           </div>
         )}
 
-        {/* 에러 상태 */}
         {error && (
           <div className="error-container">
             <p className="error-title">오류가 발생했습니다</p>
@@ -211,7 +231,6 @@ const ProblemList = () => {
           </div>
         )}
 
-        {/* 문제 목록 테이블 */}
         {!loading && !error && (
           <>
             <div className="problem-table-container">
@@ -222,7 +241,7 @@ const ProblemList = () => {
                     <th style={{width: '60px'}}>번호</th>
                     <th>제목</th>
                     <th style={{width: '100px'}}>난이도</th>
-                    <th style={{width: '80px'}}>유형</th>
+                    <th style={{width: '180px'}}>유형</th>
                     <th style={{width: '80px'}}>제출수</th>
                     <th style={{width: '80px'}}>정답률</th>
                   </tr>
@@ -252,7 +271,7 @@ const ProblemList = () => {
                           )}
                         </td>
                         <td>
-                          {(pagination.currentPage - 1) * filters.size + index + 1}
+                          {(pagination.currentPage - 1) * pageSize + index + 1}
                         </td>
                         <td style={{textAlign: 'left'}}>
                           {problem.algoProblemTitle}
@@ -260,9 +279,9 @@ const ProblemList = () => {
                         <td className={getDifficultyClass(problem.algoProblemDifficulty)}>
                           {problem.algoProblemDifficulty}
                         </td>
-                        <td>-</td>
-                        <td>{problem.solveCount || 0}</td>
-                        <td>-</td>
+                        <td>{getTopicDisplayName(problem.algoProblemTags)}</td>
+                        <td>{problem.totalSubmissions || 0}</td>
+                        <td>{problem.accuracy ? `${problem.accuracy}%` : '0%'}</td>
                       </tr>
                     ))
                   )}
@@ -270,7 +289,6 @@ const ProblemList = () => {
               </table>
             </div>
 
-            {/* 페이지네이션 */}
             <Pagination
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
