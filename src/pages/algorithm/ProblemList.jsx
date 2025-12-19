@@ -139,6 +139,23 @@ const ProblemList = () => {
     return classes[difficulty] || '';
   };
 
+  const getTopicDisplayName = (tags) => {
+    if (!tags) return '-';
+    
+    try {
+      // JSON 배열 형태인 경우
+      if (tags.startsWith('[')) {
+        const parsedTags = JSON.parse(tags);
+        return parsedTags[0] || '-';
+      }
+      // 쉼표로 구분된 문자열인 경우
+      const tagArray = tags.split(',').map(t => t.trim());
+      return tagArray[0] || '-';
+    } catch (e) {
+      return tags.split(',')[0]?.trim() || '-';
+    }
+  };
+
   return (
     <div className="problem-list-container">
       <div>
@@ -224,7 +241,7 @@ const ProblemList = () => {
                     <th style={{width: '60px'}}>번호</th>
                     <th>제목</th>
                     <th style={{width: '100px'}}>난이도</th>
-                    <th style={{width: '80px'}}>유형</th>
+                    <th style={{width: '180px'}}>유형</th>
                     <th style={{width: '80px'}}>제출수</th>
                     <th style={{width: '80px'}}>정답률</th>
                   </tr>
@@ -262,9 +279,9 @@ const ProblemList = () => {
                         <td className={getDifficultyClass(problem.algoProblemDifficulty)}>
                           {problem.algoProblemDifficulty}
                         </td>
-                        <td>-</td>
-                        <td>{problem.solveCount || 0}</td>
-                        <td>-</td>
+                        <td>{getTopicDisplayName(problem.algoProblemTags)}</td>
+                        <td>{problem.totalSubmissions || 0}</td>
+                        <td>{problem.accuracy ? `${problem.accuracy}%` : '0%'}</td>
                       </tr>
                     ))
                   )}
