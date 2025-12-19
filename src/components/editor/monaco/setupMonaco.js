@@ -1,6 +1,6 @@
 import * as monaco from "monaco-editor";
 
-self.MonacoEnvironment = {
+globalThis.MonacoEnvironment = {
   getWorker(_, label) {
     if (label === "json") {
       return new Worker(
