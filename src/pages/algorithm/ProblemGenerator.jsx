@@ -457,7 +457,7 @@ const ProblemGenerator = () => {
                       key={option.value}
                       type="button"
                       onClick={() => handleInputChange('difficulty', option.value)}
-                      className={`p-4 rounded-lg border-2 transition-all ${formData.difficulty === option.value
+                      className={`p-4 rounded-lg border transition-all ${formData.difficulty === option.value
                         ? `${getDifficultyColorClass(option.value)} border-current`
                         : 'border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500'
                         }`}
@@ -478,7 +478,7 @@ const ProblemGenerator = () => {
                   <button
                     type="button"
                     onClick={() => handleInputChange('problemType', 'ALGORITHM')}
-                    className={`p-4 rounded-lg border-2 transition-all ${
+                    className={`p-4 rounded-lg border transition-all ${
                       formData.problemType === 'ALGORITHM'
                         ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500'
                         : 'border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 bg-panel'
@@ -490,7 +490,7 @@ const ProblemGenerator = () => {
                   <button
                     type="button"
                     disabled
-                    className="p-4 rounded-lg border-2 border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 opacity-60 cursor-not-allowed relative"
+                    className="p-4 rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 opacity-60 cursor-not-allowed relative"
                   >
                     <div className="font-semibold text-gray-400 dark:text-gray-500">SQL</div>
                     <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">데이터베이스 쿼리 문제</div>
@@ -514,7 +514,7 @@ const ProblemGenerator = () => {
                         key={topic}
                         type="button"
                         onClick={() => handleTopicSuggestionClick(topic)}
-                        className={`px-4 py-2 text-sm rounded-lg border-2 transition-all ${
+                        className={`px-4 py-2 text-sm rounded-lg border transition-all ${
                           formData.topic === topic
                             ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500 font-semibold'
                             : 'bg-panel border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 text-sub'
@@ -542,10 +542,10 @@ const ProblemGenerator = () => {
                               key={topic.value}
                               type="button"
                               onClick={() => handleTopicSuggestionClick(topic.displayName)}
-                              className={`px-3 py-1.5 text-sm rounded-lg border-2 transition-all ${
+                              className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
                                 formData.topic === topic.displayName
-                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500 font-semibold'
-                                  : 'bg-panel border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 text-sub'
+                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-black dark:text-blue-300 border-blue-500 font-semibold'
+                                  : 'bg-panel border-[#e5e7eb] dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 text-sub'
                               }`}
                             >
                               {topic.displayName}
@@ -578,10 +578,10 @@ const ProblemGenerator = () => {
                       key={theme.value}
                       type="button"
                       onClick={() => handleInputChange('storyTheme', formData.storyTheme === theme.value ? '' : theme.value)}
-                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                      className={`p-3 rounded-lg border transition-all text-left ${
                         formData.storyTheme === theme.value
-                          ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-500'
-                          : 'border-gray-200 dark:border-zinc-600 hover:border-purple-300 dark:hover:border-purple-600 bg-panel'
+                          ? 'bg-purple-50 dark:bg-purple-900/30 text-black dark:text-purple-300 border-purple-500'
+                          : 'border-[#e5e7eb] dark:border-zinc-600 hover:border-purple-300 dark:hover:border-purple-600 bg-panel'
                       }`}
                     >
                       <div className={`font-semibold text-sm ${formData.storyTheme !== theme.value ? 'text-main' : ''}`}>
@@ -640,7 +640,7 @@ const ProblemGenerator = () => {
                   type="button"
                   onClick={handleReset}
                   disabled={loading}
-                  className="px-6 py-3 border border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700 disabled:opacity-50 rounded-md font-semibold transition-colors dark:text-gray-300"
+                  className="px-6 py-3 border border-[#e5e7eb] dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700 disabled:opacity-50 rounded-md font-semibold transition-colors text-black dark:text-gray-300"
                 >
                   초기화
                 </button>
