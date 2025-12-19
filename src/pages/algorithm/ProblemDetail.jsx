@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {Link, useLocation, useParams} from 'react-router-dom';
-import {getProblem} from '../../service/algorithm/algorithmApi';
+import {getProblem} from '../../service/algorithm/AlgorithmApi';
 import SharedSolutions from './SharedSolutions';
 import '../../styles/ProblemDetail.css';
 
