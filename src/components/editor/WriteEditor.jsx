@@ -325,9 +325,11 @@ const WriteEditor = ({
             backgroundColor: isDark ? "rgb(31,41,55)" : "rgb(229,231,235)",
             color: isDark ? "rgb(209,213,219)" : "rgb(55,65,81)",
             borderRadius: "0.5rem",
-            border: "1px solid",
+            border: "none",
             cursor: "pointer",
           }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? "rgb(55,65,81)" : "rgb(209,213,219)"}
+          onMouseLeave={(e) => e.target.style.backgroundColor = isDark ? "rgb(31,41,55)" : "rgb(229,231,235)"}
         >
           취소
         </button>
@@ -362,13 +364,15 @@ const WriteEditor = ({
           }}
           style={{
             padding: "0.625rem 2rem",
-            backgroundColor: "#ec4899",
+            backgroundColor: "#3b82f6",
             color: "white",
             borderRadius: "0.5rem",
             border: "none",
             fontWeight: "bold",
             cursor: "pointer",
           }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = "#2563eb"}
+          onMouseLeave={(e) => e.target.style.backgroundColor = "#3b82f6"}
         >
           {mode === "edit" ? "수정하기" : "발행하기"}
         </button>

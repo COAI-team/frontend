@@ -2,11 +2,8 @@ import {useState, useRef, useEffect} from 'react';
 import {axiosInstance} from '../../server/AxiosConfig';
 import CommentForm from './CommentForm';
 import {getAuth} from '../../utils/auth/token';
-import AlertModal from "../../components/modal/AlertModal";
-import {useAlert} from "../../hooks/common/useAlert";
 
-export default function CommentItem({comment, onCommentUpdated, isReply = false, isDark}) {
-  const {alert, showAlert, closeAlert} = useAlert();
+export default function CommentItem({comment, onCommentUpdated, isReply = false, isDark, currentUserId}) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -18,9 +15,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
   const isLikingRef = useRef(false);
   const menuRef = useRef(null);
 
-  const auth = getAuth();
-  const currentUserId = auth?.userId;
-  const isMyComment = currentUserId != null && comment.userId === currentUserId;
+  const isMyComment = currentUserId != null && comment.userId != null && Number(currentUserId) === Number(comment.userId);
 
   // liked 상태를 comment.isLiked와 동기화
   useEffect(() => {
@@ -46,11 +41,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
 
   const handleUpdate = async () => {
     if (!editContent.trim()) {
-      showAlert({
-        type: "warning",
-        title: "입력 필요",
-        message: "댓글 내용을 입력해주세요.",
-      });
+      alert('댓글 내용을 입력해주세요.');
       return;
     }
 
@@ -63,11 +54,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
       onCommentUpdated();
     } catch (error) {
       console.error('댓글 수정 실패:', error);
-      showAlert({
-        type: "error",
-        title: "수정 실패",
-        message: "댓글 수정에 실패했습니다.",
-      });
+      alert('댓글 수정에 실패했습니다.');
     } finally {
       setIsUpdating(false);
     }
@@ -81,11 +68,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
       onCommentUpdated();
     } catch (error) {
       console.error('삭제 실패:', error);
-      showAlert({
-        type: "error",
-        title: "삭제 실패",
-        message: `${isReply ? '답글' : '댓글'} 삭제에 실패했습니다.`,
-      });
+      alert(`${isReply ? '답글' : '댓글'} 삭제에 실패했습니다.`);
     }
   };
 
@@ -542,14 +525,6 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
           ))}
         </div>
       )}
-      <AlertModal
-        open={alert.open}
-        onClose={closeAlert}
-        onConfirm={alert.onConfirm}
-        type={alert.type}
-        title={alert.title}
-        message={alert.message}
-      />
     </div>
   );
 }

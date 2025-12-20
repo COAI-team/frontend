@@ -12,6 +12,24 @@ const FreeboardEdit = () => {
 
   const [loading, setLoading] = useState(true);
   const [initialData, setInitialData] = useState(null);
+  const [isDark, setIsDark] = useState(false);
+
+  // 다크모드 감지
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+
+    checkDarkMode();
+
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const fetchFreeboard = async () => {
@@ -128,11 +146,11 @@ const FreeboardEdit = () => {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#101828',
-      padding: '2rem 1rem'
-    }}>
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: isDark ? '#101828' : '#F9FAFB',
+        padding: '2rem 1rem'
+      }}>
       <div style={{
         maxWidth: '900px',
         margin: '0 auto'
