@@ -172,10 +172,11 @@ html.dark .badge-tag {
 
 .solve-button {
   padding: 0.75rem 1.5rem;
-  background-color: #3b82f6;
+  background: linear-gradient(to right, #3b82f6, #6366f1);
   color: white;
   border-radius: 0.5rem;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 1.125rem;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.2s;
   display: flex;
@@ -187,7 +188,7 @@ html.dark .badge-tag {
 }
 
 .solve-button:hover {
-  background-color: #2563eb;
+  background: linear-gradient(to right, #2563eb, #4f46e5);
 }
 
 .problem-meta {

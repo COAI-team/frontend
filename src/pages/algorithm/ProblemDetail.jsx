@@ -123,7 +123,7 @@ const ProblemDetail = () => {
                                 to={`/algorithm/problems/${problemId}/solve`}
                                 className="solve-button"
                             >
-                                <span>🚀 문제 풀기</span>
+                                🚀 문제 풀기
                             </Link>
                         </div>
                     </div>

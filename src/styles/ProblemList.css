@@ -88,7 +88,7 @@
 /* AI 생성 버튼 */
 .ai-generate-btn {
   padding: 10px 20px;
-  background: var(--primary-color);
+  background: linear-gradient(to right, #3b82f6, #6366f1);
   color: white;
   border: none;
   border-radius: 8px;
@@ -103,7 +103,7 @@
 }
 
 .ai-generate-btn:hover {
-  background: var(--primary-hover);
+  background: linear-gradient(to right, #2563eb, #4f46e5);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
