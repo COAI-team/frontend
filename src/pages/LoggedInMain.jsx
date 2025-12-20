@@ -13,6 +13,45 @@ import {
 } from "react-icons/fa";
 
 export default function LoggedInMain({ user, userStats, popularPosts, loading, onPostClick }) {
+    // 시간대별 환영 메시지
+    const getTimeBasedGreeting = (name) => {
+        const hour = new Date().getHours();
+        const displayName = name || "Master Coder";
+
+        if (hour >= 6 && hour < 12) {
+            // 오전 (06~12시)
+            return {
+                greeting: "좋은 아침입니다,",
+                message: `오늘 첫 번째 로직 설계로 성장의 발판을 마련해 보세요. 🚀`,
+                name: displayName
+            };
+        } else if (hour >= 12 && hour < 18) {
+            // 오후 (12~18시)
+            return {
+                greeting: "나른한 오후를 깨우는 도전!",
+                message: `더 효율적인 코드를 향한 한계에 도전해 볼까요?`,
+                name: displayName
+            };
+        } else if (hour >= 18 && hour < 24) {
+            // 저녁 (18~00시)
+            return {
+                greeting: "오늘의 노력은 기록으로 남습니다.",
+                message: `오늘 분석한 코드가 내일의 강력한 무기가 될 거예요.`,
+                name: displayName
+            };
+        } else {
+            // 심야 (00~06시)
+            return {
+                greeting: "모두가 멈춘 시간,",
+                message: `이 고요한 몰입이 당신을 특별한 개발자로 만듭니다.`,
+                name: displayName,
+                suffix: "은 나아가고 있군요."
+            };
+        }
+    };
+
+    const greetingData = getTimeBasedGreeting(user?.nickname);
+
     // Animation Variants
     const container = {
         hidden: { opacity: 0 },
@@ -60,20 +99,15 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                     className="mb-10 flex flex-col lg:flex-row items-end justify-between gap-6"
                 >
                     <div>
-                        <motion.div 
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="flex items-center gap-2 mb-3 text-xs font-bold tracking-widest text-indigo-500 uppercase bg-white dark:bg-indigo-900/30 px-3 py-1 rounded-full w-fit shadow-sm"
-                        >
-                            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                            Developer Console
-                        </motion.div>
-                        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                            Welcome back, <br className="hidden md:block"/>
+                        <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                            {greetingData.greeting} <br className="hidden md:block"/>
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 drop-shadow-sm">
-                                {user?.nickname || "Master Coder"}
+                                {greetingData.name}
                             </span>
+                            <span className="text-slate-900 dark:text-white">님{greetingData.suffix || ""}</span>
+                            <p className="text-base md:text-lg font-medium text-slate-600 dark:text-slate-400 mt-3">
+                                {greetingData.message}
+                            </p>
                         </h1>
                     </div>
                     
