@@ -4,13 +4,13 @@ const GitHubLoginButton = () => {
   // ✅ useCallback으로 함수 메모이제이션
   const handleGitHubLogin = useCallback(() => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-    const redirectUri = `${globalThis.location.origin}/oauth/github/callback`;
+    // const redirectUri = `${globalThis.location.origin}/oauth/github/callback`;
 
-    globalThis.location.href = `https://github.com/login/oauth/authorize` +
+    globalThis.location.href =
+      "https://github.com/login/oauth/authorize" +
       `?client_id=${clientId}` +
-      `&redirect_uri=${redirectUri}` +
       `&scope=read:user user:email`;
-  }, []); // 빈 의존성 배열 - 환경변수는 변경되지 않음
+  }, []);
 
   // ✅ useMemo로 클래스명 메모이제이션 (선택사항 - 정적이므로 효과 미미)
   const buttonClassName = useMemo(() =>
