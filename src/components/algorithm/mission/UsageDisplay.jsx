@@ -98,10 +98,10 @@ const UsageDisplay = ({ usageInfo }) => {
                                 일일 무료 사용량을 모두 사용했습니다.
                             </p>
                             <Link
-                                to="/pages/payment/pricing"
+                                to="/pricing"
                                 className="text-sm text-yellow-600 hover:text-yellow-800 font-medium underline mt-1 inline-block"
                             >
-                                프리미엄으로 업그레이드 →
+                                구독권 업그레이드 →
                             </Link>
                         </div>
                     )}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import TrackerSelector from './eye-tracking/TrackerSelector';
 
 /**
@@ -9,6 +10,8 @@ import TrackerSelector from './eye-tracking/TrackerSelector';
  * - 모드별 기능 안내
  * - 집중 모드 선택 시 타이머 설정 UI 표시
  * - 집중 모드 선택 시 추적기 선택 UI 표시 (TrackerSelector)
+ * - 구독 상태에 따른 모드 제한 (집중 모드는 Pro 전용)
+ * - 사용량 초과 시 모드 선택 비활성화
  */
 const ModeSelectionScreen = ({
   problem,
@@ -22,8 +25,16 @@ const ModeSelectionScreen = ({
   setCustomTimeMinutes,
   // 추적기 선택 props (집중 모드용)
   selectedTrackerType,
-  setSelectedTrackerType
+  setSelectedTrackerType,
+  // 구독 및 사용량 제한 props
+  subscriptionTier = 'FREE',
+  isUsageLimitExceeded = false,
+  usageInfo = null
 }) => {
+  // 집중 모드는 Pro 전용
+  const isFocusModeAvailable = subscriptionTier === 'PRO';
+  // 학습 모드는 Basic, Pro 사용 가능
+  const isLearnModeAvailable = subscriptionTier === 'BASIC' || subscriptionTier === 'PRO';
   // 타이머 프리셋 옵션
   const timePresets = [15, 30, 45, 60];
   return (
@@ -53,6 +64,22 @@ const ModeSelectionScreen = ({
       {/* Body */}
       <div className="container mx-auto px-6 py-12">
         <div className="max-w-5xl mx-auto">
+          {/* 사용량 초과 경고 */}
+          {isUsageLimitExceeded && (
+            <div className="mb-6 p-4 bg-amber-900/30 border border-amber-600/50 rounded-xl">
+              <div className="flex items-center gap-3 text-amber-400 mb-2">
+                <span className="text-2xl">⚠️</span>
+                <span className="font-bold text-lg">일일 무료 사용량을 모두 사용했습니다</span>
+              </div>
+              <Link
+                to="/pricing"
+                className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 font-medium underline"
+              >
+                구독권 구매하러 가기 →
+              </Link>
+            </div>
+          )}
+
           {/* Mode cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <ModeCard
@@ -65,9 +92,11 @@ const ModeSelectionScreen = ({
                 { text: '타이머/시선 추적 없음', enabled: false }
               ]}
               isSelected={selectedMode === 'LEARN'}
-              onClick={() => setSelectedMode('LEARN')}
+              onClick={() => !isUsageLimitExceeded && isLearnModeAvailable && setSelectedMode('LEARN')}
               selectedBorderClass="border-green-500 bg-green-900/20"
               note="Basic / Pro 구독에서만 이용 가능합니다."
+              disabled={isUsageLimitExceeded || !isLearnModeAvailable}
+              disabledReason={isUsageLimitExceeded ? '사용량 초과' : !isLearnModeAvailable ? 'Basic/Pro 전용' : null}
             />
 
             <ModeCard
@@ -80,8 +109,10 @@ const ModeSelectionScreen = ({
                 { text: '시선 추적 없음', enabled: false }
               ]}
               isSelected={selectedMode === 'BASIC'}
-              onClick={() => setSelectedMode('BASIC')}
+              onClick={() => !isUsageLimitExceeded && setSelectedMode('BASIC')}
               selectedBorderClass="border-blue-500 bg-blue-900/20"
+              disabled={isUsageLimitExceeded}
+              disabledReason={isUsageLimitExceeded ? '사용량 초과' : null}
             />
 
             <ModeCard
@@ -94,9 +125,12 @@ const ModeSelectionScreen = ({
                 { text: '집중도 모니터링', enabled: true }
               ]}
               isSelected={selectedMode === 'FOCUS'}
-              onClick={() => setSelectedMode('FOCUS')}
+              onClick={() => !isUsageLimitExceeded && isFocusModeAvailable && setSelectedMode('FOCUS')}
               selectedBorderClass="border-purple-500 bg-purple-900/20"
-              note="* 침대/소파는 권장 안함 (정서 집중 목적)"
+              note={isFocusModeAvailable ? "* 침대/소파는 권장 안함 (정서 집중 목적)" : null}
+              disabled={isUsageLimitExceeded || !isFocusModeAvailable}
+              disabledReason={isUsageLimitExceeded ? '사용량 초과' : !isFocusModeAvailable ? 'Pro 전용 기능' : null}
+              proOnly={!isFocusModeAvailable}
             />
           </div>
 
@@ -168,33 +202,37 @@ const ModeSelectionScreen = ({
           <div className="mt-8 text-center">
             <button
               onClick={() => {
-                if (!selectedMode) return;
+                if (!selectedMode || isUsageLimitExceeded) return;
                 onStartSolving(selectedMode);
               }}
-              disabled={!selectedMode}
+              disabled={!selectedMode || isUsageLimitExceeded}
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
-                selectedMode
+                selectedMode && !isUsageLimitExceeded
                   ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 cursor-pointer'
                   : 'bg-zinc-700 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {selectedMode === 'FOCUS'
-                ? '집중 모드로 시작'
-                : selectedMode === 'BASIC'
-                  ? '기본 모드로 시작'
-                  : selectedMode === 'LEARN'
-                    ? '학습 모드로 이동'
-                    : '모드를 선택해주세요'}
+              {isUsageLimitExceeded
+                ? '사용량 초과'
+                : selectedMode === 'FOCUS'
+                  ? '집중 모드로 시작'
+                  : selectedMode === 'BASIC'
+                    ? '기본 모드로 시작'
+                    : selectedMode === 'LEARN'
+                      ? '학습 모드로 이동'
+                      : '모드를 선택해주세요'}
             </button>
 
             <p className="text-gray-500 text-sm mt-3">
-              {selectedMode === 'FOCUS'
-                ? `전체화면 모드로 전환되며 시선 추적이 활성화됩니다 (${customTimeMinutes}분)`
-                : selectedMode === 'BASIC'
-                  ? '풀이 화면에서 타이머 또는 스톱워치를 설정할 수 있습니다'
-                  : selectedMode === 'LEARN'
-                    ? '튜터와 함께 문제를 연습할 수 있습니다'
-                    : '모드를 선택하면 시작할 수 있습니다'}
+              {isUsageLimitExceeded
+                ? '일일 무료 사용량을 모두 사용했습니다. 구독권을 구매해주세요.'
+                : selectedMode === 'FOCUS'
+                  ? `전체화면 모드로 전환되며 시선 추적이 활성화됩니다 (${customTimeMinutes}분)`
+                  : selectedMode === 'BASIC'
+                    ? '풀이 화면에서 타이머 또는 스톱워치를 설정할 수 있습니다'
+                    : selectedMode === 'LEARN'
+                      ? '튜터와 함께 문제를 연습할 수 있습니다'
+                      : '모드를 선택하면 시작할 수 있습니다'}
             </p>
           </div>
         </div>
@@ -309,16 +347,28 @@ const ModeCard = ({
   isSelected,
   onClick,
   selectedBorderClass,
-  note
+  note,
+  disabled = false,
+  disabledReason = null,
+  proOnly = false
 }) => (
   <div
-    onClick={onClick}
-    className={`p-6 rounded-xl cursor-pointer transition-all border-2 ${
-      isSelected
-        ? selectedBorderClass
-        : 'border-zinc-700 bg-zinc-800 hover:border-zinc-500'
+    onClick={disabled ? undefined : onClick}
+    className={`p-6 rounded-xl transition-all border-2 relative ${
+      disabled
+        ? 'border-zinc-700 bg-zinc-800/50 opacity-60 cursor-not-allowed'
+        : isSelected
+          ? `${selectedBorderClass} cursor-pointer`
+          : 'border-zinc-700 bg-zinc-800 hover:border-zinc-500 cursor-pointer'
     }`}
   >
+    {/* Pro 전용 배지 */}
+    {proOnly && (
+      <div className="absolute top-2 right-2 px-2 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">
+        PRO
+      </div>
+    )}
+
     <div className="text-center mb-4">
       <span className="text-4xl">{icon}</span>
     </div>
@@ -335,6 +385,15 @@ const ModeCard = ({
       ))}
     </ul>
     {note && <p className="text-xs text-purple-400 mt-3 text-center">{note}</p>}
+
+    {/* 비활성화 사유 표시 */}
+    {disabled && disabledReason && (
+      <div className="mt-3 text-center">
+        <span className="inline-block px-3 py-1 bg-red-900/30 text-red-400 text-xs rounded-full border border-red-700/50">
+          {disabledReason}
+        </span>
+      </div>
+    )}
   </div>
 );
 

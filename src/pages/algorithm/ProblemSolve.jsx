@@ -4,7 +4,8 @@ import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
 import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolationDetection';
-import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
+import { startProblemSolve, submitCode, runTestCode, getUsageInfo } from '../../service/algorithm/algorithmApi';
+import { useLogin } from '../../context/login/useLogin';
 import EyeTracker, { TRACKER_TYPES } from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
@@ -30,6 +31,7 @@ import '../../styles/ProblemDetail.css';
 const ProblemSolve = () => {
   const { problemId } = useParams();
   const navigate = useNavigate();
+  const { user } = useLogin();
   const editorRef = useRef(null);
   const eyeTrackerRef = useRef(null); // 시선 추적 ref
   const handleSubmitRef = useRef(null); // 자동 제출용 ref (stale closure 방지)
@@ -42,6 +44,12 @@ const ProblemSolve = () => {
   const [problem, setProblem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // 구독 및 사용량 제한 상태
+  const [usageInfo, setUsageInfo] = useState(null);
+  const rawTier = user?.subscriptionTier;
+  const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
+  const isUsageLimitExceeded = usageInfo && !usageInfo.isSubscriber && usageInfo.remaining <= 0;
 
   // ========== 모드 선택 관련 상태 ==========
   const [showModeSelection, setShowModeSelection] = useState(true); // 모드 선택 화면 표시 여부
@@ -537,6 +545,22 @@ const ProblemSolve = () => {
     }
   }, [problemId]);
 
+  // 사용량 정보 조회
+  useEffect(() => {
+    const fetchUsageInfo = async () => {
+      if (!user?.userId) return;
+      try {
+        const response = await getUsageInfo(user.userId);
+        if (response.data) {
+          setUsageInfo(response.data);
+        }
+      } catch (err) {
+        console.error('사용량 조회 실패:', err);
+      }
+    };
+    fetchUsageInfo();
+  }, [user?.userId]);
+
   // 타이머 효과 - 시간 기반 계산 (브라우저 스로틀링 방지)
   // 백그라운드 탭에서도 정확한 시간 계산을 위해 Date.now() 사용
   useEffect(() => {
@@ -849,6 +873,10 @@ const ProblemSolve = () => {
         setCustomTimeMinutes={setCustomTimeMinutes}
         selectedTrackerType={selectedTrackerType}
         setSelectedTrackerType={setSelectedTrackerType}
+        // 구독 및 사용량 제한 props
+        subscriptionTier={subscriptionTier}
+        isUsageLimitExceeded={isUsageLimitExceeded}
+        usageInfo={usageInfo}
       />
     );
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { drawProblemFromPool, completeMission, getTopics } from '../../service/algorithm/AlgorithmApi';
+import { useNavigate, Link } from 'react-router-dom';
+import { drawProblemFromPool, completeMission, getTopics, getUsageInfo } from '../../service/algorithm/AlgorithmApi';
 import { useLogin } from '../../context/login/useLogin';
 import { extractPureDescription, renderFormattedText } from '../../components/algorithm/problem/markdownUtils';
 import '../../styles/ProblemDetail.css';
@@ -44,6 +44,16 @@ const ProblemGenerator = () => {
   const [displayedText, setDisplayedText] = useState('');
   const [typingComplete, setTypingComplete] = useState(false);
   const typingRef = useRef(null);
+
+  // 사용량 제한 상태
+  const [usageInfo, setUsageInfo] = useState(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+
+  // 구독 상태 확인
+  const rawTier = user?.subscriptionTier;
+  const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
+  const isSubscriber = subscriptionTier !== 'FREE';
+  const isUsageLimitExceeded = usageInfo && !usageInfo.isSubscriber && usageInfo.remaining <= 0;
 
   // 토픽 목록 상태 (백엔드에서 가져옴)
   const [topicCategories, setTopicCategories] = useState([
@@ -109,6 +119,27 @@ const ProblemGenerator = () => {
 
     fetchTopics();
   }, []);
+
+  // ===== 사용량 정보 조회 =====
+  useEffect(() => {
+    const fetchUsageInfo = async () => {
+      if (!user?.userId) {
+        setUsageLoading(false);
+        return;
+      }
+      try {
+        const response = await getUsageInfo(user.userId);
+        if (response.data) {
+          setUsageInfo(response.data);
+        }
+      } catch (err) {
+        console.error('사용량 조회 실패:', err);
+      } finally {
+        setUsageLoading(false);
+      }
+    };
+    fetchUsageInfo();
+  }, [user?.userId]);
 
   // ===== 타이핑 효과 =====
   useEffect(() => {
@@ -619,18 +650,42 @@ const ProblemGenerator = () => {
                 </div>
               )}
 
+              {/* 사용량 초과 경고 */}
+              {isUsageLimitExceeded && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 mb-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="font-semibold">일일 무료 사용량을 모두 사용했습니다.</span>
+                  </div>
+                  <Link
+                    to="/pricing"
+                    className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 font-medium underline"
+                  >
+                    구독권 구매하러 가기 →
+                  </Link>
+                </div>
+              )}
+
               {/* 버튼 그룹 */}
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-md font-semibold transition-colors flex items-center justify-center gap-2"
+                  disabled={loading || isUsageLimitExceeded}
+                  className={`flex-1 px-6 py-3 rounded-md font-semibold transition-colors flex items-center justify-center gap-2 ${
+                    isUsageLimitExceeded
+                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white'
+                  }`}
                 >
                   {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                       <span>AI가 문제를 생성하는 중...</span>
                     </>
+                  ) : isUsageLimitExceeded ? (
+                    <span>사용량 초과</span>
                   ) : (
                     <span>문제 생성하기</span>
                   )}
