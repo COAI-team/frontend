@@ -650,6 +650,24 @@ const ProblemGenerator = () => {
                 </div>
               )}
 
+              {/* 비회원 경고 */}
+              {!user?.userId && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 mb-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="font-semibold">지금 가입하고 나만의 알고리즘 문제를 생성해보세요!</span>
+                  </div>
+                  <Link
+                    to="/signup"
+                    className="inline-flex items-center gap-1 text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 font-medium underline"
+                  >
+                    회원가입하러 가기 →
+                  </Link>
+                </div>
+              )}
+
               {/* 사용량 초과 경고 */}
               {isUsageLimitExceeded && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
@@ -672,9 +690,9 @@ const ProblemGenerator = () => {
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  disabled={loading || isUsageLimitExceeded}
+                  disabled={loading || isUsageLimitExceeded || !user?.userId}
                   className={`flex-1 px-6 py-3 rounded-md font-semibold transition-colors flex items-center justify-center gap-2 ${
-                    isUsageLimitExceeded
+                    isUsageLimitExceeded || !user?.userId
                       ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                       : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white'
                   }`}
@@ -684,6 +702,8 @@ const ProblemGenerator = () => {
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                       <span>AI가 문제를 생성하는 중...</span>
                     </>
+                  ) : !user?.userId ? (
+                    <span>로그인 필요</span>
                   ) : isUsageLimitExceeded ? (
                     <span>사용량 초과</span>
                   ) : (
