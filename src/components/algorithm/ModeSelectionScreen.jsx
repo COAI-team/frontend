@@ -29,7 +29,6 @@ const ModeSelectionScreen = ({
   // 구독 및 사용량 제한 props
   subscriptionTier = 'FREE',
   isUsageLimitExceeded = false,
-  usageInfo = null
 }) => {
   // 집중 모드는 Pro 전용
   const isFocusModeAvailable = subscriptionTier === 'PRO';
