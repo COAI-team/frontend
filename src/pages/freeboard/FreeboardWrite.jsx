@@ -52,17 +52,17 @@ const FreeboardWrite = () => {
       })
       .then((response) => {
         console.log("응답:", response.data);
-        showAlert({
-          type: 'success',
-          title: '등록 완료',
-          message: '게시글이 등록되었습니다.'
-        });
-
-        navigate("/freeboard");
+        const freeboardId = response.data.data.freeboardId;
+        navigate(`/freeboard/${freeboardId}`);
       })
       .catch((err) => {
         console.error("등록 실패:", err);
         console.error("에러 상세:", err.response?.data);
+        showAlert({
+          type: 'error',
+          title: '등록 실패',
+          message: '게시글 등록에 실패했습니다.'
+        });
       });
   };
 
