@@ -78,6 +78,8 @@ const ProblemSolve = () => {
   const [timerMode, setTimerMode] = useState('TIMER'); // 'TIMER' (카운트다운) | 'STOPWATCH' (스톱워치)
   const [elapsedTime, setElapsedTime] = useState(0); // 스톱워치용 경과 시간
   const [isTimerHovered, setIsTimerHovered] = useState(false); // 타이머 hover 상태 (시간 편집용)
+  const [editingTimeValue, setEditingTimeValue] = useState(''); // 편집 중인 시간 문자열
+  const [isEditingTime, setIsEditingTime] = useState(false); // 시간 편집 중 여부
 
   // 실행 결과 상태
   const [testResult, setTestResult] = useState(null);
@@ -809,6 +811,10 @@ const ProblemSolve = () => {
     return styles[diff] || 'bg-gray-700/50 text-gray-400 border-gray-600';
   };
 
+  const getProblemTypeBadgeClass = (type) => {
+    return type === 'SQL' ? 'badge-database' : 'badge-algorithm';
+};
+
   // 구조화된 문제 섹션 존재 여부 (백엔드에서 직접 제공)
   const hasStructuredSections = problem?.inputFormat || problem?.outputFormat || problem?.constraints || problem?.sampleTestCases?.length > 0;
 
@@ -981,57 +987,98 @@ const ProblemSolve = () => {
                   {selectedMode === 'BASIC' ? (timerMode === 'TIMER' ? '타이머' : '스톱워치') : '남은 시간'}
                 </span>
 
-                {/* 기본 모드 + 타이머 + 실행 전: hover 시 시간 직접 편집 */}
+                {/* 기본 모드 + 타이머 + 실행 전: hover 시 시간 편집 (시:분만, 초는 00 고정) */}
                 {selectedMode === 'BASIC' && timerMode === 'TIMER' && !isTimerRunning ? (
                   <div
                     className="relative"
-                    onMouseEnter={() => setIsTimerHovered(true)}
-                    onMouseLeave={() => setIsTimerHovered(false)}
+                    onMouseEnter={() => {
+                      setIsTimerHovered(true);
+                      if (!isEditingTime) {
+                        // 시:분만 편집 (HH:MM 형식)
+                        const hours = Math.floor(timeLeft / 3600);
+                        const mins = Math.floor((timeLeft % 3600) / 60);
+                        setEditingTimeValue(`${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      // 편집 중이면 값 적용
+                      if (isEditingTime) {
+                        const match = editingTimeValue.match(/^(\d{1,2}):(\d{1,2})$/);
+                        if (match) {
+                          const hours = Math.min(3, parseInt(match[1]) || 0);
+                          const mins = Math.min(59, parseInt(match[2]) || 0);
+                          const totalSeconds = Math.max(0, Math.min(10800, hours * 3600 + mins * 60));
+                          setTimeLeft(totalSeconds);
+                          setCustomTimeMinutes(hours * 60 + mins);
+                        }
+                        setIsEditingTime(false);
+                      }
+                      setIsTimerHovered(false);
+                    }}
                   >
-                    {/* 고정 너비 컨테이너로 떨림 방지 */}
-                    <div className={`w-28 text-center font-mono text-lg px-2 py-1 rounded transition-all ${
+                    <div className={`text-center font-mono text-lg px-2 py-1 rounded transition-all w-32 ${
                       isTimerHovered
                         ? 'bg-zinc-600 ring-2 ring-yellow-500/50'
                         : 'bg-zinc-700/50 hover:bg-zinc-700'
                     }`}>
                       {isTimerHovered ? (
-                        <input
-                          type="text"
-                          value={formatTime(timeLeft)}
-                          onChange={(e) => {
-                            // HH:MM:SS 형식에서 총 초로 변환
-                            const parts = e.target.value.split(':').map(p => Number.parseInt(p) || 0);
-                            let totalSeconds = 0;
-                            if (parts.length === 3) {
-                              totalSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
-                            } else if (parts.length === 2) {
-                              totalSeconds = parts[0] * 60 + parts[1];
-                            } else {
-                              totalSeconds = parts[0] * 60;
-                            }
-                            // 최대 3시간 (10800초) 제한
-                            totalSeconds = Math.max(60, Math.min(10800, totalSeconds));
-                            setCustomTimeMinutes(Math.ceil(totalSeconds / 60));
-                            setTimeLeft(totalSeconds);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              setIsTimerHovered(false);
-                            }
-                          }}
-                          className="w-full bg-transparent text-yellow-400 text-center outline-none font-mono text-lg"
-                          autoFocus
-                        />
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="text"
+                            value={isEditingTime ? editingTimeValue : (() => {
+                              const hours = Math.floor(timeLeft / 3600);
+                              const mins = Math.floor((timeLeft % 3600) / 60);
+                              return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+                            })()}
+                            onFocus={() => {
+                              setIsEditingTime(true);
+                              const hours = Math.floor(timeLeft / 3600);
+                              const mins = Math.floor((timeLeft % 3600) / 60);
+                              setEditingTimeValue(`${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`);
+                            }}
+                            onChange={(e) => {
+                              // 숫자와 콜론만 허용, 최대 5자 (HH:MM)
+                              const value = e.target.value.replace(/[^0-9:]/g, '').slice(0, 5);
+                              setEditingTimeValue(value);
+                            }}
+                            onBlur={() => {
+                              const match = editingTimeValue.match(/^(\d{1,2}):(\d{1,2})$/);
+                              if (match) {
+                                const hours = Math.min(3, parseInt(match[1]) || 0);
+                                const mins = Math.min(59, parseInt(match[2]) || 0);
+                                const totalSeconds = Math.max(0, Math.min(10800, hours * 3600 + mins * 60));
+                                setTimeLeft(totalSeconds);
+                                setCustomTimeMinutes(hours * 60 + mins);
+                              }
+                              setIsEditingTime(false);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const match = editingTimeValue.match(/^(\d{1,2}):(\d{1,2})$/);
+                                if (match) {
+                                  const hours = Math.min(3, parseInt(match[1]) || 0);
+                                  const mins = Math.min(59, parseInt(match[2]) || 0);
+                                  const totalSeconds = Math.max(0, Math.min(10800, hours * 3600 + mins * 60));
+                                  setTimeLeft(totalSeconds);
+                                  setCustomTimeMinutes(hours * 60 + mins);
+                                }
+                                setIsEditingTime(false);
+                                e.target.blur();
+                              }
+                            }}
+                            className="w-14 bg-transparent text-yellow-400 text-center outline-none font-mono text-lg"
+                          />
+                          <span className="text-gray-500 font-mono text-lg">:00</span>
+                        </div>
                       ) : (
-                        <span className="text-yellow-400 cursor-pointer" title="클릭하여 시간 수정">
+                        <span className="text-yellow-400 cursor-pointer" title="마우스를 올려 시간 수정">
                           {formatTime(timeLeft)}
                         </span>
                       )}
                     </div>
                     {isTimerHovered && (
-                      <div
-                        className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-xs text-gray-500 whitespace-nowrap">
-                        최대 3시간 (03:00:00)
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-xs text-gray-500 whitespace-nowrap">
+                        최대 3시간 (03:00)
                       </div>
                     )}
                   </div>
@@ -1193,6 +1240,9 @@ const ProblemSolve = () => {
                 <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
                   {problem?.difficulty || 'N/A'}
                 </span>
+                <span className={`badge ${getProblemTypeBadgeClass(problem.problemType)}`}>
+                    {problem.problemType === 'SQL' ? 'DATABASE' : 'ALGORITHM'}
+                </span>
                 {/* 문제 태그 - ProblemDetail.jsx와 동일한 스타일 */}
                 {problem?.algoProblemTags && (() => {
                   try {
@@ -1206,13 +1256,6 @@ const ProblemSolve = () => {
                     return <span className="badge badge-tag">{problem.algoProblemTags}</span>;
                   }
                 })()}
-                <span className="px-3 py-1 rounded-full text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-700">
-                  ⏱ 시간제한: {problem?.timeLimit || 1000}ms
-                </span>
-                <span
-                  className="px-3 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700">
-                  💾 메모리제한: {problem?.memoryLimit || 256}MB
-                </span>
               </div>
 
               {/* 구조화된 문제 내용 - 백엔드에서 직접 제공된 필드 사용 */}
@@ -1366,8 +1409,8 @@ const ProblemSolve = () => {
                 {/* 선택된 언어의 제한 정보 표시 (작게) */}
                 {problem?.availableLanguages && (
                   <span className="text-xs text-gray-500 ml-2">
-                    (⏱ {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.timeLimit}ms /
-                    💾 {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.memoryLimit}MB)
+                    (⏱ 시간제한: {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.timeLimit}ms /
+                    💾 메모리제한: {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.memoryLimit}MB)
                   </span>
                 )}
               </div>
