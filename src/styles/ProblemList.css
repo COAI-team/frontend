@@ -16,6 +16,13 @@
   padding: 0 1rem;
 }
 
+.problem-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
 .problem-title {
   font-size: 2rem;
   font-weight: 700;
@@ -42,8 +49,8 @@
 }
 
 .search-input {
-  flex: 1;
-  min-width: 200px;
+  flex: 2;
+  min-width: 300px;
   padding: 10px 16px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -87,12 +94,12 @@
 
 /* AI 생성 버튼 */
 .ai-generate-btn {
-  padding: 10px 20px;
+  padding: 12px 24px;
   background: linear-gradient(to right, #3b82f6, #6366f1);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -100,6 +107,7 @@
   gap: 8px;
   white-space: nowrap;
   transition: all 0.2s;
+  height: 3.0rem;
 }
 
 .ai-generate-btn:hover {
