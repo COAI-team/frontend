@@ -163,7 +163,7 @@ const ProblemDetail = () => {
                 </div>
 
                 {/* 탭 컨텐츠 */}
-                {activeTab === 'description' ? (
+                {activeTab === 'description' && (
                     <div className="problem-content-area">
                         {/* 구조화된 필드가 있는지 확인 */}
                         {(problem.inputFormat || problem.outputFormat || problem.constraints ||
@@ -264,7 +264,9 @@ const ProblemDetail = () => {
                             </div>
                         )}
                     </div>
-                ) : (
+                )}
+
+                {activeTab === 'solutions' && (
                     <SharedSolutions problemId={problemId} />
                 )}
 

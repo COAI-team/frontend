@@ -291,6 +291,7 @@ html.dark .tab-button.active {
   color: var(--text-secondary);
   line-height: 1.75;
   white-space: pre-wrap;
+  padding-left: 1.625rem;
 }
 
 /* 문제 설명 섹션 */
