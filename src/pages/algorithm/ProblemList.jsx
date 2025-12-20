@@ -28,6 +28,21 @@ const ProblemList = () => {
   const { user, hydrated } = useLogin();
   const isLoggedIn = !!user;
 
+  // 사이드바 열림/닫힘 상태 (localStorage에서 복원)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('problemListSidebarOpen');
+    return saved === 'true'; // 기본값: 닫힘(false)
+  });
+
+  // 사이드바 상태 변경 시 localStorage에 저장
+  const toggleSidebar = () => {
+    setIsSidebarOpen(prev => {
+      const newState = !prev;
+      localStorage.setItem('problemListSidebarOpen', String(newState));
+      return newState;
+    });
+  };
+
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -424,17 +439,37 @@ const ProblemList = () => {
           )}
         </div>
 
+        {/* 미니멀 화살표 토글 (사이드바가 닫혀있을 때) */}
+        {!isSidebarOpen && (
+          <button
+            onClick={toggleSidebar}
+            className="sidebar-toggle-minimal"
+            title="오늘의 미션 열기"
+          >
+            <span className="sidebar-toggle-arrow">‹</span>
+          </button>
+        )}
+
         {/* 사이드바 - 오늘의 미션 */}
-        <aside className="problem-list-sidebar">
+        <aside className={`problem-list-sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
           {/* 미션 진행률 */}
           <div className="sidebar-section">
             <div className="sidebar-section-header">
               <h2 className="sidebar-title">오늘의 미션</h2>
-              {isLoggedIn && (
-                <span className="sidebar-subtitle">
-                  {completedCount} / {totalMissions} 완료
-                </span>
-              )}
+              <div className="sidebar-header-right">
+                {isLoggedIn && (
+                  <span className="sidebar-subtitle">
+                    {completedCount} / {totalMissions} 완료
+                  </span>
+                )}
+                <button
+                  onClick={toggleSidebar}
+                  className="sidebar-close-btn"
+                  title="사이드바 닫기"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {!isLoggedIn ? (
