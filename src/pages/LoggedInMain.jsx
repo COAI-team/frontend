@@ -198,7 +198,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                         
                         <div className="p-6 pb-2">
                              <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800 dark:text-white">
-                                <FaLaptopCode className="text-indigo-500"/> Creation Hub
+                                <FaLaptopCode className="text-indigo-500"/> 바로 시작하기
                              </h2>
                         </div>
 
@@ -212,8 +212,8 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                         <FaSearch />
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 mb-1 transition-colors">AI Code Analysis</h3>
-                                        <p className="text-slate-500 dark:text-gray-400 text-sm font-medium group-hover:text-indigo-500/80 dark:group-hover:text-indigo-300/80">Deep scan for bugs & smells</p>
+                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 mb-1 transition-colors">AI 코드 분석</h3>
+                                        <p className="text-slate-500 dark:text-gray-400 text-sm font-medium group-hover:text-indigo-500/80 dark:group-hover:text-indigo-300/80">버그와 코드 스멜, AI가 찾아드립니다</p>
                                     </div>
                                 </div>
                                 <div className="relative z-10 w-12 h-12 rounded-full border-2 border-indigo-200 dark:border-indigo-700 flex items-center justify-center group-hover:bg-indigo-500 group-hover:border-indigo-500 group-hover:text-white transition-all">
@@ -230,8 +230,8 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                         <FaBrain />
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 mb-1 transition-colors">Algorithm Arena</h3>
-                                        <p className="text-slate-500 dark:text-gray-400 text-sm font-medium group-hover:text-emerald-500/80 dark:group-hover:text-emerald-300/80">Solve problems & Rank up</p>
+                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 mb-1 transition-colors">알고리즘 풀이</h3>
+                                        <p className="text-slate-500 dark:text-gray-400 text-sm font-medium group-hover:text-emerald-500/80 dark:group-hover:text-emerald-300/80">AI가 만든 문제로 실력 UP</p>
                                     </div>
                                 </div>
                                 <div className="relative z-10 w-12 h-12 rounded-full border-2 border-emerald-200 dark:border-emerald-700 flex items-center justify-center group-hover:bg-emerald-500 group-hover:border-emerald-500 group-hover:text-white transition-all">
