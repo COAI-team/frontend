@@ -6,7 +6,7 @@ import {useTheme} from "../../../context/theme/useTheme";
 import MobileNav from "../../navbar/MobileNav";
 import MobileMenuButton from "../../button/MobileMenuButton";
 import Logo from "../../navbar/Logo";
-import {NavLinks} from "../../navbar/NavLinks";
+import NavLinks from "../../navbar/NavLinks";
 import RightActions from "../../navbar/RightActions";
 
 const initialNavigation = [
@@ -52,14 +52,13 @@ export default function Navbar() {
         );
     };
 
-    // Walking Moai Render State
     // localStorage 접근은 안전하게 try-catch가 없으므로, SSR환경이 아니라고 가정
-    const [showMoai, setShowMoai] = useState(() => {
-        if (typeof globalThis.window !== 'undefined') {
-            return JSON.parse(localStorage.getItem("walkingMoai") ?? "true");
-        }
-        return true;
-    });
+  const [showMoai, setShowMoai] = useState(() => {
+    if (globalThis.window === undefined) {
+      return true;
+    }
+    return JSON.parse(localStorage.getItem("walkingMoai") ?? "true");
+  });
 
     useEffect(() => {
         const handleStorageChange = () => {
@@ -88,7 +87,7 @@ export default function Navbar() {
             {showMoai && (
                 <div className="header-banner-area">
                     {Array.from({
-                        length: Math.max(1, parseInt(localStorage.getItem("moaiCount") ?? "1")),
+                      length: Math.max(1, Number.parseInt(localStorage.getItem("moaiCount") ?? "1")),
                     }).map((_, i) => {
                         // 인덱스를 시드로 사용하는 유사 랜덤
                         const seed = i * 1337;

@@ -9,9 +9,12 @@ import CommentSection from '../../components/comment/CommentSection';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
 import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
 import { processCodeBlocks, applyHighlighting } from '../../utils/codeBlockUtils';
-import LikeButton from '../../components/common/LikeButton';
+import LikeButton from '../../components/button/LikeButton';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
 const CodeboardDetail = () => {
+  const {alert, showAlert, closeAlert} = useAlert();
   const { id } = useParams();
   const navigate = useNavigate();
   const [board, setBoard] = useState(null);
@@ -49,7 +52,7 @@ const CodeboardDetail = () => {
       
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.setAttribute('data-hljs-theme', 'true');
+      link.dataset.hljsTheme = 'true';
       link.href = darkMode 
         ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css'
         : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
@@ -158,8 +161,8 @@ const CodeboardDetail = () => {
             params: { path: data.filePath }
           });
           setFileContent(contentRes.data.content);
-        } catch (contentErr) {
-          console.error("Failed to load file content:", contentErr);
+        } catch (error_) {
+          console.error("Failed to load file content:", error_);
           setFileContent("// 파일 내용을 불러올 수 없습니다.");
         }
       }
@@ -181,8 +184,13 @@ const CodeboardDetail = () => {
   };
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert('링크가 복사되었습니다.');
+    navigator.clipboard.writeText(globalThis.location.href);
+
+    showAlert({
+      type: 'success',
+      title: '복사 완료',
+      message: '링크가 클립보드에 복사되었습니다.'
+    });
   };
 
   const handleReport = () => {
@@ -250,7 +258,7 @@ const CodeboardDetail = () => {
           display: 'grid', 
           gridTemplateColumns: board.analysisId ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr', 
           gap: '1.5rem',
-          overflow: 'hidden'
+          overflow: 'visible'
         }}>
           
           {/* 좌측 패널 - analysisId가 있으면 항상 영역 확보 */}
@@ -367,25 +375,40 @@ const CodeboardDetail = () => {
                   </button>
                   <button
                     onClick={() => {
-                      if (window.confirm("정말 삭제하시겠습니까?")) {
-                        axiosInstance
-                          .delete(`/codeboard/${id}`)
-                          .then(() => {
-                            alert("삭제되었습니다.");
-                            navigate("/codeboard");
-                          })
-                          .catch((err) => {
-                            console.error("삭제 실패:", err);
-                            alert("삭제에 실패했습니다.");
-                          });
-                      }
+                      showAlert({
+                        type: 'warning',
+                        title: '게시글 삭제',
+                        message: '정말 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.',
+                        onConfirm: async () => {
+                          try {
+                            await axiosInstance.delete(`/codeboard/${id}`);
+
+                            showAlert({
+                              type: 'success',
+                              title: '삭제 완료',
+                              message: '게시글이 삭제되었습니다.',
+                              onConfirm: () => navigate('/codeboard')
+                            });
+                          } catch (err) {
+                            console.error('삭제 실패:', err);
+
+                            showAlert({
+                              type: 'error',
+                              title: '삭제 실패',
+                              message: '게시글 삭제에 실패했습니다.'
+                            });
+                          }
+                        }
+                      });
                     }}
                     style={{
                       padding: '0.625rem 1.25rem',
                       borderRadius: '0.5rem',
                       fontSize: '1rem',
                       fontWeight: '500',
-                      backgroundColor: isDark ? 'rgba(127, 29, 29, 0.3)' : 'rgba(220, 38, 38, 0.1)',
+                      backgroundColor: isDark
+                        ? 'rgba(127, 29, 29, 0.3)'
+                        : 'rgba(220, 38, 38, 0.1)',
                       color: isDark ? '#fca5a5' : '#dc2626',
                       border: 'none',
                       cursor: 'pointer'
@@ -406,21 +429,34 @@ const CodeboardDetail = () => {
               color: isDark ? '#9ca3af' : '#4b5563'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{
-                  width: '2rem',
-                  height: '2rem',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.875rem',
-                  backgroundColor: isDark ? '#374151' : '#d1d5db',
-                  color: isDark ? '#e5e7eb' : '#1f2937'
-                }}>
-                  {board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'}
-                </div>
-                <span>{board.userNickname || '익명'}</span>
+              <div style={{
+                width: '2rem',
+                height: '2rem',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.875rem',
+                backgroundColor: isDark ? '#374151' : '#d1d5db',
+                color: isDark ? '#e5e7eb' : '#1f2937',
+                overflow: 'hidden'
+              }}>
+                {board.userImage ? (
+                  <img 
+                    src={board.userImage} 
+                    alt={board.userNickname}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                ) : (
+                  board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'
+                )}
               </div>
+              <span>{board.userNickname || '익명'}</span>
+            </div>
               <span>·</span>
               <span>{formatDate(board.codeboardCreatedAt)}</span>
               <span>·</span>
@@ -469,9 +505,11 @@ const CodeboardDetail = () => {
               padding: '1rem 0',
               marginTop: '2rem',
               paddingTop: '2rem',
-              borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
+              borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+              flexWrap: 'wrap', 
+               gap: '1rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', minWidth: 0 }}>
                 <LikeButton
                   referenceType="codeboard"
                   referenceId={Number(id)}
@@ -487,7 +525,8 @@ const CodeboardDetail = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  color: isDark ? '#9ca3af' : '#4b5563'
+                  color: isDark ? '#9ca3af' : '#4b5563',
+                  minWidth: 0
                 }}>
                   <MessageCircle size={20} />
                   <span style={{ fontSize: '0.875rem' }}>댓글</span>
@@ -495,7 +534,7 @@ const CodeboardDetail = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', minWidth: 0 }}>
                 <button 
                   onClick={handleShare}
                   style={{
@@ -543,11 +582,23 @@ const CodeboardDetail = () => {
           </div>
         </div>
       </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
     </div>
   );
 };
 
 const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
+  const { alert, showAlert, closeAlert } = useAlert();
   const codeViewerRef = useRef(null);
   
   const parseJSON = (data) => {
@@ -593,7 +644,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
     const timer = setTimeout(() => {
       codeViewerRef.current.querySelectorAll('pre code').forEach((block) => {
         block.classList.remove('hljs');
-        block.removeAttribute('data-highlighted');
+        delete block.dataset.highlighted;
         hljs.highlightElement(block);
       });
     }, 100);
@@ -609,7 +660,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
       flexDirection: 'column', 
       gap: '1.5rem',
       minWidth: 0,
-      overflow: 'hidden'
+      overflow: 'visible'
     }}>
       {/* 코드 뷰어 */}
       <div style={{
@@ -643,7 +694,12 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
           <button
             onClick={() => {
               navigator.clipboard.writeText(fileContent);
-              alert('코드가 복사되었습니다.');
+
+              showAlert({
+                type: 'success',
+                title: '복사 완료',
+                message: '코드가 클립보드에 복사되었습니다.'
+              });
             }}
             style={{
               display: 'flex',
@@ -810,6 +866,17 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
           </div>
         </div>
       </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
     </div>
   );
 };

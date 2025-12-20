@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
+import {useParams, useNavigate} from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
@@ -14,6 +14,8 @@ import ConfirmModal from '../../components/algorithm/ConfirmModal';
 import { useViolationPenalty } from '../../hooks/algorithm/useViolationPenalty';
 import { useApplyThemeClass } from '../../hooks/useApplyThemeClass';
 import { extractPureDescription, renderFormattedText } from '../../components/algorithm/problem/markdownUtils';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 import '../../styles/ProblemDetail.css';
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
@@ -29,7 +31,7 @@ import '../../styles/ProblemDetail.css';
  * - 기본 모드: 수동 타이머 시작
  */
 const ProblemSolve = () => {
-  const { problemId } = useParams();
+  const {problemId} = useParams();
   const navigate = useNavigate();
   const { user } = useLogin();
   const editorRef = useRef(null);
@@ -40,6 +42,9 @@ const ProblemSolve = () => {
   // 테마 적용 (이 페이지는 Layout 밖에 있어서 직접 호출 필요)
   useApplyThemeClass();
 
+  // 커스텀 Alert 훅
+  const { alert, showAlert, closeAlert } = useAlert();
+  
   // 문제 데이터 상태
   const [problem, setProblem] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -202,7 +207,7 @@ const ProblemSolve = () => {
     }
     // 타이머 모드 또는 집중 모드: startTime 기준
     if (!startTime) return 0;
-    return Math.floor((new Date() - startTime) / 1000);
+    return Math.floor((Date.now() - startTime) / 1000);
   }, [startTime, selectedMode, timerMode, elapsedTime]);
 
   // ========== 모드 선택 및 시작 핸들러 ==========
@@ -379,7 +384,7 @@ const ProblemSolve = () => {
       confirmText: '나가기',
       cancelText: '취소',
       onConfirm: async () => {
-        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setConfirmModal(prev => ({...prev, isOpen: false}));
 
         // 시선 추적 세션 종료 (handleSubmit과 동일한 패턴)
         if (eyeTrackingEnabled && eyeTrackerRef.current) {
@@ -405,7 +410,7 @@ const ProblemSolve = () => {
         setTestResult(null);
       },
       onCancel: () => {
-        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setConfirmModal(prev => ({...prev, isOpen: false}));
       }
     });
   }, [timeLeft, eyeTrackingEnabled]);
@@ -417,13 +422,13 @@ const ProblemSolve = () => {
       const handlePopState = (e) => {
         e.preventDefault();
         // 히스토리에 다시 추가하여 페이지 이탈 방지
-        window.history.pushState(null, '', window.location.href);
+        globalThis.history.pushState(null, '', globalThis.location.href);
         handleBackToModeSelection();
       };
 
       // 키보드 뒤로가기 (Cmd+[ 또는 Ctrl+[)
       const handleKeyDown = (e) => {
-        // Mac: Cmd+[, Windows/Linux: Ctrl+[
+        // Mac: Cmd+[, globalThiss/Linux: Ctrl+[
         if (e.key === '[' && (e.metaKey || e.ctrlKey)) {
           e.preventDefault();
           handleBackToModeSelection();
@@ -431,14 +436,14 @@ const ProblemSolve = () => {
       };
 
       // 히스토리에 현재 상태 추가 (뒤로가기 시 popstate 트리거용)
-      window.history.pushState(null, '', window.location.href);
+      globalThis.history.pushState(null, '', globalThis.location.href);
 
-      window.addEventListener('popstate', handlePopState);
-      window.addEventListener('keydown', handleKeyDown);
+      globalThis.addEventListener('popstate', handlePopState);
+      globalThis.addEventListener('keydown', handleKeyDown);
 
       return () => {
-        window.removeEventListener('popstate', handlePopState);
-        window.removeEventListener('keydown', handleKeyDown);
+        globalThis.removeEventListener('popstate', handlePopState);
+        globalThis.removeEventListener('keydown', handleKeyDown);
       };
     }
   }, [showModeSelection, solvingStarted, handleBackToModeSelection]);
@@ -447,7 +452,11 @@ const ProblemSolve = () => {
   // 변경: solveMode, monitoringSessionId 추가
   const handleSubmit = useCallback(async () => {
     if (!code.trim()) {
-      alert('코드를 작성해주세요!');
+      showAlert({
+        type: 'warning',
+        title: '코드 없음',
+        message: '코드를 작성한 후 제출해주세요.'
+      });
       return;
     }
 
@@ -477,18 +486,26 @@ const ProblemSolve = () => {
       });
 
       if (res.error) {
-        alert(`제출 실패: ${res.message}`);
+        showAlert({
+          type: 'error',
+          title: '제출 실패',
+          message: res.message || '코드 제출에 실패했습니다.'
+        });
       } else {
         const responseData = res.Data || res.data || res;
         const submissionId = responseData?.algosubmissionId || responseData?.submissionId;
         navigate(`/algorithm/submissions/${submissionId}`);
       }
     } catch {
-      alert('코드 제출 중 오류가 발생했습니다.');
+      showAlert({
+        type: 'error',
+        title: '오류 발생',
+        message: '코드 제출 중 오류가 발생했습니다.'
+      });
     } finally {
       setIsSubmitting(false);
     }
-  }, [code, problemId, selectedLanguageId, navigate, getElapsedTime, eyeTrackingEnabled, solveMode, monitoringSessionId, timeLeft]);
+  }, [code, monitoringSessionId, solveMode, eyeTrackingEnabled, showAlert, timeLeft, problemId, selectedLanguageId, getElapsedTime, alert, navigate]);
 
   // [Phase 2] handleSubmit ref 업데이트 (자동 제출용)
   useEffect(() => {
@@ -615,12 +632,12 @@ const ProblemSolve = () => {
               confirmText: '제출하기',
               cancelText: '계속 풀기',
               onConfirm: () => {
-                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                setConfirmModal(prev => ({...prev, isOpen: false}));
                 handleSubmit();
               },
               onCancel: () => {
                 // 타이머 비활성화하고 계속 풀기
-                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                setConfirmModal(prev => ({...prev, isOpen: false}));
                 setTimerEndTime(null);
               }
             });
@@ -697,7 +714,7 @@ const ProblemSolve = () => {
           const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[langName] || langName;
           setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
         }
-        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setConfirmModal(prev => ({...prev, isOpen: false}));
       }
     });
   };
@@ -705,7 +722,11 @@ const ProblemSolve = () => {
   // 코드 테스트 실행
   const handleTestRun = async () => {
     if (!code.trim()) {
-      alert('코드를 작성해주세요!');
+      showAlert({
+        type: 'warning',
+        title: '입력 필요',
+        message: '코드를 작성해주세요!'
+      });
       return;
     }
 
@@ -736,7 +757,7 @@ const ProblemSolve = () => {
       setRunProgress(100);
 
       if (res.error || (res.code && res.code !== '0000')) {
-        setTestResult({ error: true, message: res.message || '테스트 실행 실패' });
+        setTestResult({error: true, message: res.message || '테스트 실행 실패'});
       } else {
         setTestResult(res.Data || res.data || res);
       }
@@ -744,7 +765,7 @@ const ProblemSolve = () => {
       clearInterval(progressInterval);
       setRunProgress(0);
       console.error('테스트 실행 오류:', err);
-      setTestResult({ error: true, message: '테스트 실행 중 오류가 발생했습니다.' });
+      setTestResult({error: true, message: '테스트 실행 중 오류가 발생했습니다.'});
     } finally {
       setTimeout(() => {
         setIsRunning(false);
@@ -755,7 +776,7 @@ const ProblemSolve = () => {
 
   // 에디터 마운트
   const handleEditorMount = (editor, monaco) => {
-    editorRef.current = { editor, monaco };
+    editorRef.current = {editor, monaco};
   };
 
   // 코드 초기화 (커스텀 모달 사용 - 전체화면 유지)
@@ -772,7 +793,7 @@ const ProblemSolve = () => {
           const templateKey = LANGUAGE_NAME_TO_TEMPLATE_KEY[selectedLanguage] || selectedLanguage;
           setCode(codeTemplates[templateKey] || codeTemplates['default'] || '// 코드를 작성하세요');
         }
-        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setConfirmModal(prev => ({...prev, isOpen: false}));
       }
     });
   };
@@ -865,7 +886,8 @@ const ProblemSolve = () => {
     return (
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
+          <div
+            className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
           <p className="text-gray-400">문제를 불러오는 중...</p>
         </div>
       </div>
@@ -878,7 +900,8 @@ const ProblemSolve = () => {
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 text-xl mb-4">⚠️ {error}</p>
-          <button onClick={() => navigate('/algorithm')} className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+          <button onClick={() => navigate('/algorithm')}
+                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
             문제 목록으로
           </button>
         </div>
@@ -914,7 +937,7 @@ const ProblemSolve = () => {
   return (
     <div className="h-screen bg-zinc-900 text-gray-100 flex flex-col overflow-hidden">
       {/* 헤더 */}
-      <div className="bg-zinc-800 border-b border-zinc-700 flex-shrink-0">
+      <div className="bg-zinc-800 border-b border-zinc-700 shrink-0">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -926,7 +949,8 @@ const ProblemSolve = () => {
                 ← 모드 선택
               </button>
               <div>
-                <h1 className="text-xl font-bold text-white">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
+                <h1
+                  className="text-xl font-bold text-white">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
                 <p className="text-sm text-gray-400 mt-1">
                   맞힌사람 {problem?.successCount || 0} • 제출 {problem?.totalAttempts || 0}
                 </p>
@@ -951,7 +975,8 @@ const ProblemSolve = () => {
 
               {/* 타이머/스톱워치 표시 */}
               <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${isTimerRunning ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>
+                <span
+                  className={`w-2 h-2 rounded-full ${isTimerRunning ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>
                 <span className="text-sm">
                   {selectedMode === 'BASIC' ? (timerMode === 'TIMER' ? '타이머' : '스톱워치') : '남은 시간'}
                 </span>
@@ -975,7 +1000,7 @@ const ProblemSolve = () => {
                           value={formatTime(timeLeft)}
                           onChange={(e) => {
                             // HH:MM:SS 형식에서 총 초로 변환
-                            const parts = e.target.value.split(':').map(p => parseInt(p) || 0);
+                            const parts = e.target.value.split(':').map(p => Number.parseInt(p) || 0);
                             let totalSeconds = 0;
                             if (parts.length === 3) {
                               totalSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
@@ -1004,7 +1029,8 @@ const ProblemSolve = () => {
                       )}
                     </div>
                     {isTimerHovered && (
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-xs text-gray-500 whitespace-nowrap">
+                      <div
+                        className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-xs text-gray-500 whitespace-nowrap">
                         최대 3시간 (03:00:00)
                       </div>
                     )}
@@ -1036,8 +1062,10 @@ const ProblemSolve = () => {
                       {showFocusGauge ? '🚨' : '🚨'}
                     </button>
                     {/* 호버 툴팁 - 아래에 표시 */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-zinc-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-zinc-700 z-50">
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-zinc-900"></div>
+                    <div
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-zinc-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-zinc-700 z-50">
+                      <div
+                        className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-zinc-900"></div>
                       집중도 게이지 {showFocusGauge ? '숨기기' : '보기'}
                       <div className="text-gray-400 mt-0.5">실시간 집중 정도를 확인</div>
                     </div>
@@ -1075,19 +1103,19 @@ const ProblemSolve = () => {
                   )}
 
                   {/* 시작/일시정지/재개 버튼 */}
-                  {!isTimerRunning ? (
-                    <button
-                      onClick={handleStartTimer}
-                      className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700 text-white cursor-pointer"
-                    >
-                      시작
-                    </button>
-                  ) : (
+                  {isTimerRunning ? (
                     <button
                       onClick={handleToggleTimer}
                       className="px-3 py-1 rounded text-sm bg-red-600 hover:bg-red-700 text-white"
                     >
                       일시정지
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleStartTimer}
+                      className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700 text-white cursor-pointer"
+                    >
+                      시작
                     </button>
                   )}
 
@@ -1123,7 +1151,8 @@ const ProblemSolve = () => {
               }`}>
                 {selectedTrackerType === 'mediapipe' ? 'MediaPipe' : 'WebGazer'}
               </span>
-              <span className={`flex items-center gap-1.5 text-sm font-medium ${eyeTrackingReady ? 'text-green-400' : 'text-yellow-400'}`}>
+              <span
+                className={`flex items-center gap-1.5 text-sm font-medium ${eyeTrackingReady ? 'text-green-400' : 'text-yellow-400'}`}>
                 {eyeTrackingReady && (
                   <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
                 )}
@@ -1155,7 +1184,7 @@ const ProblemSolve = () => {
         <div className="flex h-full gap-1">
 
           {/* 왼쪽: 문제 설명 */}
-          <div className="bg-zinc-800 rounded-lg overflow-auto" style={{ width: `${leftPanelWidth}%` }}>
+          <div className="bg-zinc-800 rounded-lg overflow-auto" style={{width: `${leftPanelWidth}%`}}>
             <div className="p-6">
               <h2 className="text-lg font-bold text-white mb-4">문제 설명</h2>
 
@@ -1180,7 +1209,8 @@ const ProblemSolve = () => {
                 <span className="px-3 py-1 rounded-full text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-700">
                   ⏱ 시간제한: {problem?.timeLimit || 1000}ms
                 </span>
-                <span className="px-3 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700">
+                <span
+                  className="px-3 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700">
                   💾 메모리제한: {problem?.memoryLimit || 256}MB
                 </span>
               </div>
@@ -1311,7 +1341,7 @@ const ProblemSolve = () => {
           {/* 오른쪽: 에디터 + 실행결과 */}
           <div
             className="bg-zinc-800 rounded-lg flex flex-col overflow-hidden"
-            style={{ width: `${100 - leftPanelWidth}%` }}
+            style={{width: `${100 - leftPanelWidth}%`}}
             ref={editorContainerRef}
           >
             {/* 에디터 헤더 */}
@@ -1351,7 +1381,9 @@ const ProblemSolve = () => {
                         const btn = document.getElementById('copyCodeBtn');
                         if (btn) {
                           btn.textContent = '✓';
-                          setTimeout(() => { btn.textContent = '📋'; }, 1500);
+                          setTimeout(() => {
+                            btn.textContent = '📋';
+                          }, 1500);
                         }
                       } catch (err) {
                         console.error('복사 실패:', err);
@@ -1363,7 +1395,8 @@ const ProblemSolve = () => {
                     📋
                   </button>
                   {/* 호버 툴팁 */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 bg-zinc-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-zinc-700 z-50">
+                  <div
+                    className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 bg-zinc-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-zinc-700 z-50">
                     복사
                   </div>
                 </div>
@@ -1371,7 +1404,7 @@ const ProblemSolve = () => {
             </div>
 
             {/* ✅ 에디터 영역 (수직 리사이저블) */}
-            <div style={{ height: `${editorHeight}%` }} className="min-h-0">
+            <div style={{height: `${editorHeight}%`}} className="min-h-0">
               <CodeEditor
                 language={selectedLanguage}
                 value={code}
@@ -1394,7 +1427,7 @@ const ProblemSolve = () => {
             </div>
 
             {/* ✅ 실행결과 영역 (수직 리사이저블) */}
-            <div style={{ height: `${100 - editorHeight}%` }} className="flex flex-col min-h-0">
+            <div style={{height: `${100 - editorHeight}%`}} className="flex flex-col min-h-0">
               <div className="p-3 bg-zinc-850 flex-1 overflow-auto">
                 <p className="text-sm text-gray-400 mb-2">실행결과</p>
 
@@ -1407,8 +1440,8 @@ const ProblemSolve = () => {
                     </div>
                     <div className="w-full bg-gray-300 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
-                        style={{ width: `${runProgress}%` }}
+                        className="h-full bg-linear-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                        style={{width: `${runProgress}%`}}
                       />
                     </div>
                   </div>
@@ -1511,12 +1544,13 @@ const ProblemSolve = () => {
               </div>
 
               {/* 하단 버튼 */}
-              <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
+              <div
+                className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
                 <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white cursor-pointer">
                   초기화
                 </button>
                 <button onClick={handleTestRun} disabled={isRunning}
-                  className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2 cursor-pointer">
+                        className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2 cursor-pointer">
                   {isRunning ? (
                     <>
                       <span className="animate-spin">⚙️</span>
@@ -1527,7 +1561,7 @@ const ProblemSolve = () => {
                   )}
                 </button>
                 <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
-                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2 cursor-pointer">
+                        className="px-6 py-2 bg-linear-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2 cursor-pointer">
                   {isSubmitting ? '제출 중...' : '✓ 제출 후 채점하기'}
                 </button>
               </div>
@@ -1596,9 +1630,22 @@ const ProblemSolve = () => {
         title={confirmModal.title}
         message={confirmModal.message}
         onConfirm={confirmModal.onConfirm}
-        onCancel={confirmModal.onCancel || (() => setConfirmModal(prev => ({ ...prev, isOpen: false })))}
+        onCancel={confirmModal.onCancel || (() => setConfirmModal(prev => ({...prev, isOpen: false})))}
         confirmText={confirmModal.confirmText}
         cancelText={confirmModal.cancelText}
+      />
+
+      {/* 🔔 AlertModal (단순 알림 전용) */}
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
       />
     </div>
   );

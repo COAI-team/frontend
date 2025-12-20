@@ -1,245 +1,89 @@
 import axiosInstance from "../../server/AxiosConfig";
 
-// 로그인
-export const login = async (payload) => {
-    try {
-        console.log("📨 [login] 요청 시작:", payload);
-        const res = await axiosInstance.post("/users/login", payload);
-        console.log("✅ [login] 응답 성공:", res.data);
-        return res.data;
-    } catch (err) {
-        console.error("❌ [login] 요청 실패:", err);
-        return {error: err};
-    }
+// ✅ FormData 공통 헬퍼 (중복 제거)
+const createFormData = (payload) => {
+  const formData = new FormData();
+  if (payload.name !== undefined) formData.append("userName", payload.name);
+  if (payload.nickname !== undefined) formData.append("userNickname", payload.nickname);
+  if (payload.image instanceof File) formData.append("image", payload.image);
+  if (payload.githubId !== undefined) formData.append("githubId", payload.githubId);
+  if (payload.githubToken !== undefined) formData.append("githubToken", payload.githubToken);
+  return formData;
 };
 
-// 회원가입
-export const signup = async (payload) => {
-    try {
-        const res = await axiosInstance.post("/users/register", payload, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
-        });
-        return res.data;
+// ✅ 기본 API (인터셉터가 토큰 + 에러 처리)
+export const login = (payload) =>
+  axiosInstance.post("/users/login", payload).then(res => res.data);
 
-    } catch (err) {
-        console.error("❌ [signup] 서버 오류:", err);
+export const signup = (payload) =>
+  axiosInstance.post("/users/register", payload).then(res => res.data);
 
-        // 서버가 보낸 메시지를 우선 반영
-        return {
-            error: true,
-            status: err.response?.status,
-            message: err.response?.data?.message
-                || err.response?.data?.error
-                || "알 수 없는 에러가 발생했습니다."
-        };
-    }
+export const getUserInfo = () =>
+  axiosInstance.get("/users/me", {
+    headers: {"X-Skip-Auth-Redirect": "true"},
+    _skipAuthRedirect: true
+  }).then(res => res.data);
+
+export const deactivateUser = () =>
+  axiosInstance.delete("/users/me").then(res => res.data);
+
+export const restoreUser = () =>
+  axiosInstance.put("/users/me/restore").then(res => res.data);
+
+// ✅ 이메일 API
+export const sendEmailCode = (email) =>
+  axiosInstance.post("/email/send", `email=${email}`, {
+    headers: {"Content-Type": "application/x-www-form-urlencoded"}
+  }).then(res => res.data);
+
+export const verifyEmailCode = (email, code) =>
+  axiosInstance.post(`/email/verify?email=${email}&code=${code}`).then(res => res.data);
+
+// ✅ 비밀번호 재설정
+export const requestPasswordReset = (email) =>
+  axiosInstance.post("/users/password/reset/request", { email }).then(res => res.data);
+
+export const validateResetToken = (token) =>
+  axiosInstance.get(`/users/password/reset/validate?token=${token}`).then(res => res.data);
+
+export const confirmPasswordReset = (token, newPassword) =>
+  axiosInstance.post("/users/password/reset/confirm", {
+    token,
+    newUserPw: newPassword
+  }).then(res => res.data);
+
+// ✅ 회원 정보 수정 (FormData 최적화)
+export const updateMyInfo = (payload) =>
+  axiosInstance.put("/users/me", createFormData(payload)).then(res => res.data);
+
+// ✅ GitHub API
+export const loginWithGithub = async (code, mode) => {
+  try {
+    const query = mode ? `?code=${code}&mode=${mode}` : `?code=${code}`;
+    const response = await axiosInstance.get(`/auth/github/callback${query}`, {
+      _skipAuthRedirect: true
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ [GitHub Login] 오류:", error);
+
+    return {
+      error: {
+        message: error.response?.data?.message || error.message || "GitHub 로그인에 실패했습니다.",
+        response: error.response,
+        status: error.response?.status
+      }
+    };
+  }
 };
 
-// 유저 정보 가져오기 (accessToken 검증 포함)
-export const getUserInfo = async () => {
-    try {
-        const res = await axiosInstance.get("/users/me", {
-            headers: {"X-Skip-Auth-Redirect": "true"},
-            _skipAuthRedirect: true,
-        });
-        if (res?.data?.error) {
-            throw res.data.error;
-        }
-        return res.data;
-    } catch (err) {
-        console.error("❌ getUserInfo 오류:", err);
-        throw err;
-    }
-};
+export const getGithubUserInfo = () =>
+  axiosInstance.get("/auth/github/user", {
+    headers: {"X-Skip-Auth-Redirect": "true"}
+  }).then(res => res.data);
 
-// 이메일 인증번호 발송
-export const sendEmailCode = async (email) => {
-    try {
-        const params = new URLSearchParams();
-        params.append("email", email);
+export const disconnectGithub = () =>
+  axiosInstance.post("/auth/github/disconnect", {}).then(res => res.data);
 
-        const res = await axiosInstance.post("/email/send", params, {
-            headers: {"Content-Type": "application/x-www-form-urlencoded"},
-        });
-
-        return res.data;
-    } catch (err) {
-        return {error: err};
-    }
-};
-
-// 이메일 인증번호 확인
-export const verifyEmailCode = async (email, code) => {
-    try {
-        const res = await axiosInstance.post(
-            `/email/verify?email=${email}&code=${code}`
-        );
-        return res.data;
-    } catch (err) {
-        return {error: err};
-    }
-};
-
-// 비밀번호 재설정 이메일 요청
-export const requestPasswordReset = async (email) => {
-    try {
-        const res = await axiosInstance.post("/users/password/reset/request", {
-            email,
-        });
-        return res.data;
-    } catch (err) {
-        return {error: err};
-    }
-};
-
-// 토큰 검증
-export const validateResetToken = async (token) => {
-    try {
-        const res = await axiosInstance.get(
-            `/users/password/reset/validate?token=${token}`
-        );
-        return res.data;
-    } catch (err) {
-        return {error: err};
-    }
-};
-
-// 비밀번호 재설정
-export const confirmPasswordReset = async (token, newPassword) => {
-    try {
-        const res = await axiosInstance.post("/users/password/reset/confirm", {
-            token,
-            newUserPw: newPassword,
-        });
-        return res.data;
-    } catch (err) {
-        return {error: err};
-    }
-};
-
-// 회원 정보 수정
-export const updateMyInfo = async (payload) => {
-    try {
-        const formData = new FormData();
-
-        formData.append("userName", payload.name ?? "");
-        formData.append("userNickname", payload.nickname ?? "");
-
-        // 파일이 있을 때만 추가
-        if (payload.image instanceof File) {
-            formData.append("image", payload.image);
-        }
-
-        if (payload.githubId !== undefined) formData.append("githubId", payload.githubId);
-        if (payload.githubToken !== undefined) formData.append("githubToken", payload.githubToken);
-
-        const res = await axiosInstance.put("/users/me", formData, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-            },
-        });
-
-        return res.data;
-    } catch (err) {
-        console.error("❌ updateMyInfo error:", err.response?.data);
-        return {error: true, detail: err.response?.data};
-    }
-};
-
-// 회원 탈퇴 (accessToken 제거)
-export const deactivateUser = async () => {
-    try {
-        const res = await axiosInstance.delete("/users/me");
-        return res.data;
-    } catch (err) {
-        console.error(err);
-        return {error: true};
-    }
-};
-
-// 계정 복구 (accessToken 제거)
-export const restoreUser = async () => {
-    try {
-        const res = await axiosInstance.put("/users/me/restore");
-        return res.data;
-    } catch (err) {
-        console.error(err);
-        return {error: true};
-    }
-};
-
-// GitHub OAuth 콜백에 mode까지 전달하도록 수정
-export const loginWithGithub = async (code, mode = null) => {
-    try {
-        const query = mode ? `?code=${code}&mode=${mode}` : `?code=${code}`;
-        const res = await axiosInstance.get(`/auth/github/callback${query}`);
-        return res.data;
-    } catch (err) {
-        console.error("❌ [GitHub Login] 오류:", err);
-        return {error: err};
-    }
-};
-
-// GitHub 연동 정보 조회
-export const getGithubUserInfo = async () => {
-    try {
-        console.log("📨 [getGithubUserInfo] 요청 시작");
-        const res = await axiosInstance.get("/auth/github/user", {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                "X-Skip-Auth-Redirect": "true",
-            },
-            _skipAuthRedirect: true,
-        });
-
-        console.log("✅ [getGithubUserInfo] 성공:", res.data);
-
-        return res.data;
-    } catch (err) {
-        console.error("❌ [getGithubUserInfo] 요청 실패:", err);
-        return {error: err};
-    }
-};
-
-// GitHub 계정 연동 해제
-export const disconnectGithub = async () => {
-    try {
-        const res = await axiosInstance.post(
-            "/auth/github/disconnect",
-            {},
-            {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-            }
-        );
-        return res.data;
-    } catch (err
-        ) {
-        console.error("❌ [GitHub Disconnect] 오류:", err);
-        return {error: err};
-    }
-};
-
-// GitHub 계정 연동
-export const linkGithubAccount = async (gitHubUser) => {
-    try {
-        const res = await axiosInstance.post(
-            "/users/github/link",
-            gitHubUser,
-            {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-            }
-        );
-
-        return res.data;
-
-    } catch (err) {
-        console.error("❌ [GitHub Link] 오류:", err);
-        return {error: err};
-    }
-};
+export const linkGithubAccount = (gitHubUser) =>
+  axiosInstance.post("/users/github/link", gitHubUser).then(res => res.data);

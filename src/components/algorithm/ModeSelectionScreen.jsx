@@ -192,7 +192,7 @@ const ModeSelectionScreen = ({
                   value={customTimeMinutes}
                   onChange={(e) =>
                     setCustomTimeMinutes(
-                      Math.max(1, Math.min(180, parseInt(e.target.value) || 30))
+                      Math.max(1, Math.min(180, Number.parseInt(e.target.value) || 30))
                     )
                   }
                   className="w-20 px-3 py-2 bg-zinc-700 rounded-lg text-center text-lg font-mono text-white"

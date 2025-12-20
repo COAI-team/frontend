@@ -1,0 +1,177 @@
+.algorithm-list-stats-container {
+  max-width: 1200px;
+  margin: 3rem auto;
+  padding: 2rem;
+}
+
+.stats-header {
+  text-align: left;
+  margin-bottom: 3rem;
+}
+
+.stats-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.stats-subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.stat-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  min-height: 140px;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--card-color);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: slideIn 0.6s ease forwards;
+  animation-delay: 0.2s;
+}
+
+@keyframes slideIn {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.stat-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  border-color: var(--card-color);
+}
+
+.stat-background-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 0%, var(--card-color) 100%);
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+.stat-content {
+  text-align: center;
+  z-index: 1;
+}
+
+.stat-value {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 0.75rem;
+}
+
+.stat-suffix {
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 0.25rem;
+}
+
+.stat-label {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* 로딩 상태 */
+.algorithm-stats-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--primary-color, #3b82f6);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.algorithm-stats-loading p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .algorithm-list-stats-container {
+    padding: 1rem;
+    margin: 2rem auto;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    padding: 2rem 1.5rem;
+    min-height: 120px;
+  }
+
+  .stat-value {
+    font-size: 2.5rem;
+  }
+}
+
+/* 다크모드 */
+html.dark {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --border-color: #374151;
+  --primary-color: #3b82f6;
+}
+
+/* 라이트모드 */
+html:not(.dark) {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
+  --primary-color: #3b82f6;
+}

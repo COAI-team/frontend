@@ -45,7 +45,7 @@ const CodeAnalysisMain = () => {
         if (userId) {
             loadHistory();
         }
-    }, [userId]); // userId가 변경되면(로드되면) 실행
+    }, [isLogin, loading, userId]); // userId가 변경되면(로드되면) 실행
 
     const handleCardClick = (analysisId) => {
         navigate(`/codeAnalysis/${analysisId}`);

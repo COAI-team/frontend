@@ -60,7 +60,7 @@ const ViolationWarnings = ({
 
       {/* 전체화면 이탈 경고 */}
       {showFullscreenWarning && (
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/90 z-9999 flex items-center justify-center">
           <div className="bg-red-900 p-8 rounded-xl text-center max-w-md shadow-2xl">
             <span className="text-6xl">⚠️</span>
             <h2 className="text-2xl font-bold mt-4 text-white">전체화면을 유지해주세요!</h2>
@@ -78,7 +78,7 @@ const ViolationWarnings = ({
 
       {/* 탭 전환 경고 */}
       {showTabSwitchWarning && (
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/90 z-9999 flex items-center justify-center">
           <div className="bg-orange-900 p-8 rounded-xl text-center max-w-md shadow-2xl">
             <span className="text-6xl">🚫</span>
             <h2 className="text-2xl font-bold mt-4 text-white">다른 창으로 이동하지 마세요!</h2>
@@ -98,7 +98,7 @@ const ViolationWarnings = ({
 
       {/* [Phase 2] 개발자도구 열기 경고 - 콘텐츠 차단 (위반 기록 없음) */}
       {showDevtoolsWarning && (
-        <div className="fixed inset-0 bg-zinc-900 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 bg-zinc-900 z-9999 flex items-center justify-center">
           <div className="text-center max-w-lg p-8">
             <div className="w-24 h-24 mx-auto mb-6 bg-zinc-800 rounded-full flex items-center justify-center">
               <span className="text-5xl">🔒</span>
@@ -153,14 +153,15 @@ const ViolationWarnings = ({
 
       {/* [Phase 2] NO_FACE 경고 (얼굴 미검출 경고) - 얼굴 감지 시 자동 닫힘 */}
       {showNoFaceWarning && (
+
         <div
-          className="fixed left-1/2 transform -translate-x-1/2 z-[9998] animate-bounce"
+          className="fixed left-1/2 transform -translate-x-1/2 z-9998 animate-bounce"
           style={{ top: getToastTopPosition(showMouseLeaveWarning ? toastIndex++ : toastIndex++) }}
         >
           <div className={`p-4 rounded-xl shadow-2xl border-2 ${
             noFaceProgress >= 1
-              ? 'bg-gradient-to-r from-red-900/95 to-rose-900/95 border-red-500'
-              : 'bg-gradient-to-r from-orange-900/95 to-amber-900/95 border-orange-500'
+              ? 'bg-linear-to-r from-red-900/95 to-rose-900/95 border-red-500'
+              : 'bg-linear-to-r from-orange-900/95 to-amber-900/95 border-orange-500'
           }`}>
             <div className="flex items-center gap-3">
               <span className="text-4xl">
@@ -211,12 +212,12 @@ const ViolationWarnings = ({
       {/* [MediaPipe] 졸음 감지 경고 - 주황색 (눈 뜨면 자동 닫힘) */}
       {showDrowsinessWarning && (
         <div
-          className="fixed left-1/2 transform -translate-x-1/2 z-[9998]"
+          className="fixed left-1/2 transform -translate-x-1/2 z-9998"
           style={{ top: getToastTopPosition(
             (showMouseLeaveWarning ? 1 : 0) + (showNoFaceWarning ? 1 : 0) + toastIndex++
           ) }}
         >
-          <div className="bg-gradient-to-r from-amber-900/95 to-orange-900/95 p-4 rounded-xl shadow-2xl border-2 border-amber-500 animate-pulse">
+          <div className="bg-linear-to-r from-amber-900/95 to-orange-900/95 p-4 rounded-xl shadow-2xl border-2 border-amber-500 animate-pulse">
             <div className="flex items-center gap-3">
               <span className="text-4xl">😴</span>
               <div>
@@ -233,7 +234,7 @@ const ViolationWarnings = ({
                   {/* 졸음 레벨 바 */}
                   <div className="w-48 h-2 bg-gray-700 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-yellow-500 to-red-500 transition-all duration-300"
+                      className="h-full bg-linear-to-r from-yellow-500 to-red-500 transition-all duration-300"
                       style={{ width: `${Math.min(drowsinessPerclos * 100, 100)}%` }}
                     />
                   </div>
@@ -250,14 +251,14 @@ const ViolationWarnings = ({
       {/* [MediaPipe] 다중 인물 감지 경고 - 빨간색 (1명 되면 자동 닫힘) */}
       {showMultipleFacesWarning && multipleFacesCount > 1 && (
         <div
-          className="fixed left-1/2 transform -translate-x-1/2 z-[9998]"
+          className="fixed left-1/2 transform -translate-x-1/2 z-9998"
           style={{ top: getToastTopPosition(
             (showMouseLeaveWarning ? 1 : 0) +
             (showNoFaceWarning ? 1 : 0) +
             (showDrowsinessWarning ? 1 : 0) + toastIndex++
           ) }}
         >
-          <div className="bg-gradient-to-r from-red-900/95 to-pink-900/95 p-4 rounded-xl shadow-2xl border-2 border-red-500 animate-pulse">
+          <div className="bg-linear-to-r from-red-900/95 to-pink-900/95 p-4 rounded-xl shadow-2xl border-2 border-red-500 animate-pulse">
             <div className="flex items-center gap-3">
               <span className="text-4xl">👥</span>
               <div>
@@ -282,7 +283,7 @@ const ViolationWarnings = ({
       {/* [MediaPipe] 깜빡임 없음 경고 (Liveness 검증) - 보라색 (깜빡임 감지 시 자동 닫힘) */}
       {showLivenessWarning && (
         <div
-          className="fixed left-1/2 transform -translate-x-1/2 z-[9998]"
+          className="fixed left-1/2 transform -translate-x-1/2 z-9998"
           style={{ top: getToastTopPosition(
             (showMouseLeaveWarning ? 1 : 0) +
             (showNoFaceWarning ? 1 : 0) +
@@ -290,7 +291,7 @@ const ViolationWarnings = ({
             (showMultipleFacesWarning && multipleFacesCount > 1 ? 1 : 0) + toastIndex++
           ) }}
         >
-          <div className="bg-gradient-to-r from-purple-900/95 to-indigo-900/95 p-4 rounded-xl shadow-2xl border-2 border-purple-500 animate-pulse">
+          <div className="bg-linear-to-r from-purple-900/95 to-indigo-900/95 p-4 rounded-xl shadow-2xl border-2 border-purple-500 animate-pulse">
             <div className="flex items-center gap-3">
               <span className="text-4xl">👁️</span>
               <div>

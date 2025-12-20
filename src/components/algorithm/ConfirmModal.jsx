@@ -16,7 +16,7 @@ const ConfirmModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-[9998] flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/70 z-9998 flex items-center justify-center">
       <div className="bg-zinc-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl border border-zinc-700">
         <h3 className="text-lg font-bold text-white mb-2">{title || '확인'}</h3>
         <p className="text-gray-300 mb-6 whitespace-pre-line">{message}</p>

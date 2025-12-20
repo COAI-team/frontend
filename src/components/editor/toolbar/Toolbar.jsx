@@ -22,10 +22,9 @@ import { ToolbarButton } from "./ToolbarButton";
 import { addImage, addLink, addLinkCard } from "./ToolbarAction";
 import { TableButton, TableToolbar } from "./TableButton";
 
-const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker }) => {
+const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker, boardType = "freeboard" }) => {
   const [isTableActive, setIsTableActive] = useState(false);
 
-  // useCallback으로 함수 메모이제이션
   const checkTableActive = useCallback(() => {
     if (!editor) return false;
     return editor.isActive("table");
@@ -34,15 +33,12 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker }) => {
   useEffect(() => {
     if (!editor) return;
 
-    // 초기 상태 설정
     setIsTableActive(checkTableActive());
 
-    // 이벤트 핸들러
     const handleUpdate = () => {
       setIsTableActive(checkTableActive());
     };
 
-    // 필요한 이벤트만 구독
     editor.on("selectionUpdate", handleUpdate);
     editor.on("transaction", handleUpdate);
 
@@ -55,12 +51,13 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker }) => {
   if (!editor) return null;
 
   const isDark = theme === "dark";
+  const isCodeboard = boardType === "codeboard";
 
   const Divider = () => (
     <div
       style={{
         width: "1px",
-        height: "2rem",
+        height: isCodeboard ? "1.25rem" : "2rem",
         backgroundColor: isDark
           ? "rgba(75, 85, 99, 0.6)"
           : "rgba(209, 213, 219, 0.8)",
@@ -69,6 +66,138 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker }) => {
     />
   );
 
+  // 코드게시판용 간소화 툴바
+  if (isCodeboard) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.25rem",  // 0.4rem -> 0.25rem
+          flexWrap: "wrap",
+          backgroundColor: isDark
+            ? "rgba(31, 41, 55, 0.5)"
+            : "rgba(249, 250, 251, 0.9)",
+          padding: "0.5rem 0.75rem",  // 0.9rem 1rem -> 0.5rem 0.75rem
+          borderRadius: "0.5rem",  // 0.75rem -> 0.5rem
+          border: `1px solid ${
+            isDark ? "rgba(75, 85, 99, 0.5)" : "rgba(229, 231, 235, 0.8)"
+          }`,
+        }}
+      >
+        <ToolbarButton
+          onClick={insertCodeBlock}
+          title="코드 작성"
+          isDark={isDark}
+        >
+          <Code size={16} />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton
+          onClick={onToggleSticker}
+          title="스티커"
+          isDark={isDark}
+        >
+          <Smile size={16} />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
+          active={editor.isActive("heading", { level: 1 })}
+          title="제목 1"
+          isDark={isDark}
+        >
+          <Heading1 size={16} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+          active={editor.isActive("heading", { level: 2 })}
+          title="제목 2"
+          isDark={isDark}
+        >
+          <Heading2 size={16} />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          active={editor.isActive("bold")}
+          title="굵게"
+          isDark={isDark}
+        >
+          <Bold size={16} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          active={editor.isActive("italic")}
+          title="기울임"
+          isDark={isDark}
+        >
+          <Italic size={16} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          active={editor.isActive("strike")}
+          title="취소선"
+          isDark={isDark}
+        >
+          <Strikethrough size={16} />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          active={editor.isActive("bulletList")}
+          title="글머리 기호"
+          isDark={isDark}
+        >
+          <List size={16} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          active={editor.isActive("orderedList")}
+          title="번호 매기기"
+          isDark={isDark}
+        >
+          <ListOrdered size={16} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          active={editor.isActive("blockquote")}
+          title="인용구"
+          isDark={isDark}
+        >
+          <Quote size={16} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() => addLink(editor)}
+          active={editor.isActive("link")}
+          title="텍스트 링크"
+          isDark={isDark}
+        >
+          <LinkIcon size={16} />
+        </ToolbarButton>
+      </div>
+    );
+  }
+
+  // 자유게시판용 기존 툴바 (기존 코드 전체)
   return (
     <div
       style={{
@@ -142,7 +271,7 @@ const Toolbar = ({ editor, insertCodeBlock, theme, onToggleSticker }) => {
 
         <Divider />
 
-        <ToolbarButton title="AI 분석 결과" label="AI 분석" isDark={isDark}>
+        <ToolbarButton title="파일 업로드" label="파일업로드" isDark={isDark}>
           <Upload size={18} />
         </ToolbarButton>
       </div>

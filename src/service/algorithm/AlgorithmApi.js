@@ -40,24 +40,30 @@ export const getSolveBonusStatus = async (problemId) => {
 export const getProblems = async (params = {}) => {
     try {
         const queryParams = new URLSearchParams();
-        const { page = 1, size = 10, difficulty, source, keyword, topic, problemType, solved } = params;  // solved 추가
+        const { 
+            page = 1,  // 프론트엔드는 1-based
+            size = 10, 
+            difficulty, 
+            keyword, 
+            topic,
+            solved
+        } = params;
 
-        queryParams.append('page', page);
+        // 백엔드는 0-based이므로 page - 1 전송
+        queryParams.append('page', page - 1);
         queryParams.append('size', size);
         if (difficulty) queryParams.append('difficulty', difficulty);
-        if (source) queryParams.append('source', source);
-        if (keyword) queryParams.append('keyword', keyword);
-        if (topic) queryParams.append('topic', topic);
-        if (problemType) queryParams.append('problemType', problemType);
-        if (solved) queryParams.append('solved', solved);  // solved 파라미터 추가
+        if (keyword && keyword.trim()) queryParams.append('keyword', keyword.trim());
+        if (topic) queryParams.append('tags', topic);
+        if (solved) queryParams.append('solved', solved);
 
         const res = await axiosInstance.get(`/algo/problems?${queryParams}`);
-
         console.log('✅ [getProblems] 응답:', res.data);
-
         return res.data;
     } catch (err) {
         console.error("❌ [getProblems] 요청 실패:", err);
+        console.error("❌ 에러 데이터:", err.response?.data);
+        
         if (err.response?.data) {
             return { error: true, code: err.response.data.code, message: err.response.data.message };
         }
@@ -448,6 +454,37 @@ export const healthCheck = async () => {
     }
 };
 
+/**
+ * 문제 통계 정보 조회
+ * GET /api/algo/problems/statistics
+ * 
+ * @returns {Object} 통계 데이터
+ * - totalProblems: 전체 문제 수
+ * - solvedProblems: 내가 푼 문제 수
+ * - averageAccuracy: 평균 정답률
+ * - totalAttempts: 총 응시자 (누적 풀이 횟수)
+ */
+export const getAlgorithmStatistics = async () => {
+    try {
+        const res = await axiosInstance.get('/algo/problems/statistics');
+        console.log('✅ [getAlgorithmStatistics] 응답:', res.data);
+        return res.data.data || res.data;
+    } catch (err) {
+        console.error("❌ [getAlgorithmStatistics] 요청 실패:", err);
+        if (err.response?.data) {
+            return { 
+                error: true, 
+                code: err.response.data.code, 
+                message: err.response.data.message 
+            };
+        }
+        return { 
+            error: true, 
+            message: "통계 정보를 가져오는데 실패했습니다." 
+        };
+    }
+};
+
 // ============== 모니터링 API ==============
 
 /**
@@ -815,7 +852,7 @@ export const getPoolStatus = async () => {
 // ============== 상수 정의 ==============
 
 export const DIFFICULTY_OPTIONS = [
-    { value: '', label: '전체', color: 'gray' },
+    { value: '', label: '난이도 전체', color: 'gray' },
     { value: 'BRONZE', label: '브론즈', color: 'amber' },
     { value: 'SILVER', label: '실버', color: 'gray' },
     { value: 'GOLD', label: '골드', color: 'yellow' },
