@@ -20,7 +20,7 @@ const UsageDisplay = ({ usageInfo }) => {
         );
     }
 
-    const { generateCount, solveCount, totalUsage, remaining, isSubscriber } = usageInfo;
+    const { generateCount, solveCount, analysisCount = 0, totalUsage, remaining, isSubscriber } = usageInfo;
     const dailyLimit = 3; // 무료 사용자 일일 한도
     const usagePercent = isSubscriber ? 0 : Math.min((totalUsage / dailyLimit) * 100, 100);
 
@@ -72,7 +72,7 @@ const UsageDisplay = ({ usageInfo }) => {
                     </div>
 
                     {/* 사용량 상세 */}
-                    <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="grid grid-cols-3 gap-3 text-center">
                         <div className="bg-gray-50 rounded-md p-3">
                             <div className="text-2xl font-bold text-blue-600">
                                 {generateCount}
@@ -89,6 +89,14 @@ const UsageDisplay = ({ usageInfo }) => {
                                 문제 풀이
                             </div>
                         </div>
+                        <div className="bg-gray-50 rounded-md p-3">
+                            <div className="text-2xl font-bold text-purple-600">
+                                {analysisCount}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                                코드 분석
+                            </div>
+                        </div>
                     </div>
 
                     {/* 한도 초과 시 구독 안내 */}
@@ -101,7 +109,7 @@ const UsageDisplay = ({ usageInfo }) => {
                                 to="/pricing"
                                 className="text-sm text-yellow-600 hover:text-yellow-800 font-medium underline mt-1 inline-block"
                             >
-                                구독권 업그레이드 →
+                                구독권 업그레이드하러 가기 →
                             </Link>
                         </div>
                     )}
