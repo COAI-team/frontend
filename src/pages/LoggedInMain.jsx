@@ -1,18 +1,75 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
-import { 
-    FaChartLine, 
-    FaArrowRight, 
+import { Link, useNavigate } from "react-router-dom";
+import {
+    FaChartLine,
+    FaArrowRight,
     FaFire,
     FaCrown,
     FaRegSmileBeam,
     FaBrain,
     FaLaptopCode,
-    FaSearch
+    FaSearch,
+    FaCheck
 } from "react-icons/fa";
+import { getUserLevel, getTodayMissions, MISSION_TYPE_INFO, ALGO_LEVEL_INFO } from "../service/algorithm/AlgorithmApi";
 
 export default function LoggedInMain({ user, userStats, popularPosts, loading, onPostClick }) {
+    // 사용자 레벨 및 미션 상태
+    const [userLevel, setUserLevel] = useState(null);
+    const [missions, setMissions] = useState([]);
+    const [missionLoading, setMissionLoading] = useState(true);
+
+    // 데이터 로딩
+    const loadUserData = useCallback(async () => {
+        if (!user?.userId) {
+            setMissionLoading(false);
+            return;
+        }
+
+        try {
+            setMissionLoading(true);
+            const [levelResult, missionsResult] = await Promise.all([
+                getUserLevel(user.userId),
+                getTodayMissions(user.userId)
+            ]);
+
+            if (!levelResult.error && levelResult.data) {
+                setUserLevel(levelResult.data);
+            }
+
+            if (!missionsResult.error && missionsResult.data) {
+                setMissions(missionsResult.data);
+            }
+        } catch (err) {
+            console.error('LoggedInMain 데이터 로딩 실패:', err);
+        } finally {
+            setMissionLoading(false);
+        }
+    }, [user?.userId]);
+
+    useEffect(() => {
+        loadUserData();
+    }, [loadUserData]);
+
+    // 미션 진행률 계산
+    const completedCount = missions.filter(m => m.completed).length;
+    const totalMissions = missions.length;
+
+    const navigate = useNavigate();
+
+    // 미션 클릭 핸들러
+    const handleMissionClick = (mission) => {
+        if (mission.completed) return;
+
+        const typeInfo = MISSION_TYPE_INFO[mission.missionType];
+        if (mission.missionType === 'PROBLEM_GENERATE') {
+            navigate(typeInfo.link);
+        } else if (mission.missionType === 'PROBLEM_SOLVE' && mission.problemId) {
+            navigate(`${typeInfo.linkPrefix}${mission.problemId}`);
+        }
+    };
+
     // 시간대별 환영 메시지
     const getTimeBasedGreeting = (name) => {
         const hour = new Date().getHours();
@@ -116,13 +173,13 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                         <div className="px-6 py-3 bg-white/80 dark:bg-white/5 rounded-2xl backdrop-blur-md border border-white/40 dark:border-white/20 shadow-lg flex flex-col items-center min-w-[100px]">
                             <span className="text-xs text-slate-400 font-bold uppercase">Rank</span>
                             <span className="text-xl font-bold text-slate-800 dark:text-white">
-                                {userStats?.level?.rankName || "Newbie"}
+                                {ALGO_LEVEL_INFO[userLevel?.algoLevel]?.name || userStats?.level?.rankName || "Newbie"}
                             </span>
                         </div>
                         <div className="px-6 py-3 bg-white/80 dark:bg-white/5 rounded-2xl backdrop-blur-md border border-white/40 dark:border-white/20 shadow-lg flex flex-col items-center min-w-[100px]">
                             <span className="text-xs text-slate-400 font-bold uppercase">EXP</span>
                             <span className="text-xl font-bold text-indigo-500">
-                                {userStats?.exp?.toLocaleString() || 0}
+                                {(userLevel?.totalXp ?? userStats?.exp ?? 0).toLocaleString()}
                             </span>
                         </div>
                     </div>
@@ -207,25 +264,77 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                         </div>
                     </motion.div>
 
-                    {/* Block C: Streak / Goals - Spans 1 col */}
-                    <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] overflow-hidden shadow-lg group bg-gradient-to-br from-indigo-500 to-blue-600">
-                        <Link to="/mypage/daily-mission" className="absolute inset-0 z-20"></Link>
-                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-30"></div>
-                        
-                        <div className="relative z-10 p-8 h-full flex flex-col justify-between text-white">
-                            <div className="flex justify-between items-start">
-                                <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl">
-                                    <FaFire className="text-xl text-yellow-300" />
+                    {/* Block C: Daily Mission - Spans 1 col */}
+                    <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] overflow-hidden shadow-lg bg-gradient-to-br from-indigo-500 to-blue-600">
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-30 pointer-events-none"></div>
+
+                        <div className="relative z-10 p-6 h-full flex flex-col text-white">
+                            {/* 헤더 + 진행률 바 */}
+                            <div className="mb-3">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-2 bg-white/20 backdrop-blur-md rounded-lg">
+                                            <FaFire className="text-sm text-yellow-300" />
+                                        </div>
+                                        <span className="text-xs font-bold">DAILY MISSION</span>
+                                    </div>
+                                    <span className="text-xs font-medium opacity-80">{completedCount}/{totalMissions}</span>
                                 </div>
-                                <span className="text-xs font-bold bg-white/20 px-2 py-1 rounded-lg backdrop-blur-md">WEEKLY GOAL</span>
-                            </div>
-                            <div>
-                                <div className="text-4xl font-black mb-1">12 <span className="text-lg font-medium opacity-80">problems</span></div>
-                                <div className="w-full bg-black/20 h-2 rounded-full overflow-hidden">
-                                    <div className="bg-yellow-400 h-full w-[70%]"></div>
+                                {/* 진행률 바 */}
+                                <div className="w-full bg-black/20 h-1.5 rounded-full overflow-hidden">
+                                    <div
+                                        className="bg-yellow-400 h-full transition-all duration-500"
+                                        style={{ width: totalMissions > 0 ? `${(completedCount / totalMissions) * 100}%` : '0%' }}
+                                    ></div>
                                 </div>
-                                <p className="text-xs mt-2 opacity-80">You're on fire! Keep going.</p>
                             </div>
+
+                            {missionLoading ? (
+                                <div className="flex-1 flex items-center justify-center">
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex flex-col overflow-hidden">
+                                    {/* 미션 목록 */}
+                                    <div className="space-y-2 flex-1 overflow-y-auto">
+                                        {missions.length === 0 ? (
+                                            <div className="text-xs opacity-70 text-center py-4">오늘의 미션이 없습니다</div>
+                                        ) : (
+                                            missions.map((mission, idx) => {
+                                                const typeInfo = MISSION_TYPE_INFO[mission.missionType] || {};
+                                                return (
+                                                    <div
+                                                        key={mission.missionId || idx}
+                                                        onClick={() => handleMissionClick(mission)}
+                                                        className={`flex items-center gap-2 p-2 rounded-lg transition-all ${
+                                                            mission.completed
+                                                                ? 'bg-white/10 opacity-60 cursor-default'
+                                                                : 'bg-white/10 hover:bg-white/20 cursor-pointer'
+                                                        }`}
+                                                    >
+                                                        <span className={`w-5 h-5 flex items-center justify-center rounded-full text-xs ${
+                                                            mission.completed ? 'bg-green-400/40' : 'bg-white/20'
+                                                        }`}>
+                                                            {mission.completed ? <FaCheck className="text-[10px]" /> : typeInfo.icon?.charAt(0) || '📋'}
+                                                        </span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <span className={`text-xs font-medium truncate block ${mission.completed ? 'line-through' : ''}`}>
+                                                                {typeInfo.name || mission.missionType}
+                                                            </span>
+                                                            {mission.problemTitle && (
+                                                                <span className="text-[10px] opacity-70 truncate block">{mission.problemTitle}</span>
+                                                            )}
+                                                        </div>
+                                                        <span className={`text-[10px] font-bold ${mission.completed ? 'text-green-300' : 'text-yellow-300'}`}>
+                                                            +{mission.rewardPoints}P
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
 
