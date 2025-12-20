@@ -41,10 +41,10 @@ export default function SignIn() {
   // ✅ GitHub OAuth 로그인
   const handleGitHubLogin = useCallback(() => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-    const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
-    globalThis.location.href = `https://github.com/login/oauth/authorize` +
+
+    globalThis.location.href =
+      "https://github.com/login/oauth/authorize" +
       `?client_id=${clientId}` +
-      `&redirect_uri=${redirectUri}` +
       `&scope=read:user user:email`;
   }, []);
 
