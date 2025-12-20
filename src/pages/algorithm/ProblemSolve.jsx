@@ -1233,29 +1233,30 @@ const ProblemSolve = () => {
           {/* 왼쪽: 문제 설명 */}
           <div className="bg-zinc-800 rounded-lg overflow-auto" style={{width: `${leftPanelWidth}%`}}>
             <div className="p-6">
-              <h2 className="text-lg font-bold text-white mb-4">문제 설명</h2>
-
-              {/* 제한 정보 표시 */}
-              <div className="flex flex-wrap gap-3 mb-6">
-                <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
-                  {problem?.difficulty || 'N/A'}
-                </span>
-                <span className={`badge ${getProblemTypeBadgeClass(problem.problemType)}`}>
-                    {problem.problemType === 'SQL' ? 'DATABASE' : 'ALGORITHM'}
-                </span>
-                {/* 문제 태그 - ProblemDetail.jsx와 동일한 스타일 */}
-                {problem?.algoProblemTags && (() => {
-                  try {
-                    const tags = JSON.parse(problem.algoProblemTags);
-                    return tags.map((tag, idx) => (
-                      <span key={idx} className="badge badge-tag">
-                        {tag}
-                      </span>
-                    ));
-                  } catch {
-                    return <span className="badge badge-tag">{problem.algoProblemTags}</span>;
-                  }
-                })()}
+              {/* 문제 설명 제목 + 제한 정보 (같은 줄) */}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-bold text-white">문제 설명</h2>
+                <div className="flex flex-wrap gap-2 justify-end">
+                  <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
+                    {problem?.difficulty || 'N/A'}
+                  </span>
+                  <span className={`badge ${getProblemTypeBadgeClass(problem.problemType)}`}>
+                      {problem.problemType === 'SQL' ? 'DATABASE' : 'ALGORITHM'}
+                  </span>
+                  {/* 문제 태그 - ProblemDetail.jsx와 동일한 스타일 */}
+                  {problem?.algoProblemTags && (() => {
+                    try {
+                      const tags = JSON.parse(problem.algoProblemTags);
+                      return tags.map((tag, idx) => (
+                        <span key={idx} className="badge badge-tag">
+                          {tag}
+                        </span>
+                      ));
+                    } catch {
+                      return <span className="badge badge-tag">{problem.algoProblemTags}</span>;
+                    }
+                  })()}
+                </div>
               </div>
 
               {/* 구조화된 문제 내용 - 백엔드에서 직접 제공된 필드 사용 */}
