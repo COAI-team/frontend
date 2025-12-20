@@ -6,8 +6,6 @@ import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
 // 레이아웃 및 메인
 import Layout from "./components/layout/mainLayout/Layout";
 import Main from "./pages/Main";
-
-// 결제 관련
 import PricingPage from "./pages/payment/PricingPage";
 import PaymentPage from "./pages/payment/PaymentPage";
 import PaymentSuccess from "./pages/payment/PaymentSuccess";
