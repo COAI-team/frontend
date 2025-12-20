@@ -161,12 +161,17 @@ const ProblemList = () => {
     <div className="problem-list-container">
       <div>
         <div className="problem-header">
-          <h1 className="problem-title">알고리즘 문제</h1>
+          <div className="problem-header-row">
+            <h1 className="problem-title">알고리즘 문제</h1>
+            <Link to="/algorithm/problems/generate" className="ai-generate-btn">
+            🚀 나만의 문제 만들러 가기 → 
+            </Link>
+          </div>
           <p className="problem-subtitle">다양한 알고리즘 문제를 만들고 풀어보세요</p>
         </div>
 
         <div className="topic-filter-section">
-          <TopicSelector 
+          <TopicSelector
             selectedTopic={topic}
             onTopicSelect={(topic) => handleFilterChange('topic', topic)}
           />
@@ -213,9 +218,6 @@ const ProblemList = () => {
               </option>
             ))}
           </select>
-          <Link to="/algorithm/problems/generate" className="ai-generate-btn">
-            문제 만들기
-          </Link>
         </div>
 
         {loading && (
