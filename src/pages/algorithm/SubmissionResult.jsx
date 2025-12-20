@@ -678,18 +678,31 @@ const SubmissionResult = () => {
                 </button>
               )}
 
-              <button
-                onClick={handleShare}
-                disabled={isSharing || submission.judgeResult !== 'AC'}
-                className={`px-4 py-2 rounded transition-colors ${
-                  isSharing || submission.judgeResult !== 'AC'
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-green-500 text-white hover:bg-green-600'
-                }`}
-                title={submission.judgeResult !== 'AC' ? '통과한 문제만 공유가 가능합니다.' : ''}
-              >
-                {isSharing ? '공유 중...' : '📤 공유하기'}
-              </button>
+              {submission.isShared ? (
+                // 이미 공유된 경우: 공유한 내용 보러가기
+                <button
+                  onClick={() => navigate(`/algorithm/problems/${submission.problemId}`, {
+                    state: { activeTab: 'solutions' }
+                  })}
+                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors"
+                >
+                  📤 공유한 내용 보러가기
+                </button>
+              ) : (
+                // 미공유인 경우: 공유하기 버튼
+                <button
+                  onClick={handleShare}
+                  disabled={isSharing || submission.judgeResult !== 'AC'}
+                  className={`px-4 py-2 rounded transition-colors ${
+                    isSharing || submission.judgeResult !== 'AC'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                  }`}
+                  title={submission.judgeResult !== 'AC' ? '통과한 문제만 공유가 가능합니다.' : ''}
+                >
+                  {isSharing ? '공유 중...' : '📤 공유하기'}
+                </button>
+              )}
             </div>
           </div>
         </div>
