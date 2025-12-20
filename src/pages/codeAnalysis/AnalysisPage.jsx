@@ -7,6 +7,7 @@ import BranchSelector from '../../components/github/BranchSelector';
 import FileTree from '../../components/github/FileTree';
 import AnalysisForm from '../../components/github/AnalysisForm';
 import { saveFile, analyzeStoredFile, getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
+import { getUsageInfo } from '../../service/algorithm/algorithmApi';
 import AnalysisLoading from '../../components/codeAnalysis/AnalysisLoading';
 import axiosInstance from '../../server/AxiosConfig';
 import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
@@ -49,6 +50,12 @@ const AnalysisPage = () => {
     // RAG Toggle State
     const [useRag, setUseRag] = useState(true);
     const [ragMessage, setRagMessage] = useState("");
+
+    // 사용량 제한 상태
+    const [usageInfo, setUsageInfo] = useState(null);
+    const rawTier = user?.subscriptionTier;
+    const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
+    const isUsageLimitExceeded = usageInfo && !usageInfo.isSubscriber && usageInfo.remaining <= 0;
     
     // RAG Message Logic
     useEffect(() => {
@@ -66,7 +73,7 @@ const AnalysisPage = () => {
     // Smart Suggestion Logic (Move to onSearch handler)
     const handleOwnerSearch = (owner, isOwnRepo) => {
         if (!owner) return;
-        
+
         // isOwnRepo: RepositorySelector에서 사용자의 githubId와 비교한 결과
         // 본인 레포일 경우만 RAG 활성화 유지, 다른 사용자면 noRAG로 전환
         if (!isOwnRepo) {
@@ -75,6 +82,21 @@ const AnalysisPage = () => {
         // 사용자가 자유롭게 토글할 수 있도록, 본인 레포일 때는 기존 상태 유지
     };
 
+    // 사용량 정보 조회
+    useEffect(() => {
+        const fetchUsageInfo = async () => {
+            if (!user?.userId) return;
+            try {
+                const response = await getUsageInfo(user.userId);
+                if (response.data) {
+                    setUsageInfo(response.data);
+                }
+            } catch (err) {
+                console.error('사용량 조회 실패:', err);
+            }
+        };
+        fetchUsageInfo();
+    }, [user?.userId]);
 
     // Load existing analysis if ID is present
     useEffect(() => {
@@ -318,7 +340,7 @@ const AnalysisPage = () => {
                                     </div>
                                 </div>
 
-                                <AnalysisForm onSubmit={handleAnalysisSubmit} isLoading={isLoading} />
+                                <AnalysisForm onSubmit={handleAnalysisSubmit} isLoading={isLoading} disabled={isUsageLimitExceeded} />
                                 {error && (
                                     <div className="mt-4 p-3 bg-red-50 text-red-700 rounded border border-red-200">
                                         {error}

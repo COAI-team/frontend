@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { drawProblemFromPool, completeMission, getTopics } from '../../service/algorithm/AlgorithmApi';
-import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
+import { useNavigate, Link } from 'react-router-dom';
+import { drawProblemFromPool, completeMission, getTopics, getUsageInfo } from '../../service/algorithm/AlgorithmApi';
 import { useLogin } from '../../context/login/useLogin';
+import { extractPureDescription, renderFormattedText } from '../../components/algorithm/problem/markdownUtils';
+import '../../styles/ProblemDetail.css';
 
 /**
  * AI 문제 생성 페이지
@@ -43,6 +44,16 @@ const ProblemGenerator = () => {
   const [displayedText, setDisplayedText] = useState('');
   const [typingComplete, setTypingComplete] = useState(false);
   const typingRef = useRef(null);
+
+  // 사용량 제한 상태
+  const [usageInfo, setUsageInfo] = useState(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+
+  // 구독 상태 확인
+  const rawTier = user?.subscriptionTier;
+  const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
+  const isSubscriber = subscriptionTier !== 'FREE';
+  const isUsageLimitExceeded = usageInfo && !usageInfo.isSubscriber && usageInfo.remaining <= 0;
 
   // 토픽 목록 상태 (백엔드에서 가져옴)
   const [topicCategories, setTopicCategories] = useState([
@@ -108,6 +119,27 @@ const ProblemGenerator = () => {
 
     fetchTopics();
   }, []);
+
+  // ===== 사용량 정보 조회 =====
+  useEffect(() => {
+    const fetchUsageInfo = async () => {
+      if (!user?.userId) {
+        setUsageLoading(false);
+        return;
+      }
+      try {
+        const response = await getUsageInfo(user.userId);
+        if (response.data) {
+          setUsageInfo(response.data);
+        }
+      } catch (err) {
+        console.error('사용량 조회 실패:', err);
+      } finally {
+        setUsageLoading(false);
+      }
+    };
+    fetchUsageInfo();
+  }, [user?.userId]);
 
   // ===== 타이핑 효과 =====
   useEffect(() => {
@@ -209,10 +241,16 @@ const ProblemGenerator = () => {
         console.log('✅ [Pool SSE] 문제 전달 완료:', data);
 
         // 서버 응답 데이터를 컴포넌트 상태에 맞게 변환
+        // DB 필드를 직접 매핑 (파싱 대신 개별 컬럼 사용)
         const problemData = {
           problemId: data.problemId,
           title: data.title,
-          description: data.description,
+          description: data.description,  // algoProblemDescription
+          inputFormat: data.inputFormat,  // DB의 INPUT_FORMAT 컬럼
+          outputFormat: data.outputFormat,  // DB의 OUTPUT_FORMAT 컬럼
+          constraints: data.constraints,  // DB의 CONSTRAINTS 컬럼
+          algoProblemTags: data.algoProblemTags,  // DB의 ALGO_PROBLEM_TAGS 컬럼
+          testcases: data.testcases,  // 예제 테스트케이스 (isSample=true)
           difficulty: data.difficulty,
           testCaseCount: data.testCaseCount,
           generationTime: data.generationTime,  // LLM이 문제 생성하는데 걸린 시간
@@ -370,114 +408,16 @@ const ProblemGenerator = () => {
     return colors[difficulty] || 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600';
   };
 
-  // 파싱된 문제 섹션 (커스텀 훅으로 메모이제이션)
-  const parsedSections = useParsedProblem(
-    typingComplete ? generatedProblem?.description : null
+  /**
+   * DB 필드에 구조화된 내용이 있는지 확인
+   * - DB에서 직접 가져온 inputFormat, outputFormat, constraints 등이 있으면 구조화 표시
+   */
+  const hasStructuredSections = generatedProblem && typingComplete && (
+    generatedProblem.inputFormat ||
+    generatedProblem.outputFormat ||
+    generatedProblem.constraints ||
+    (generatedProblem.testcases && generatedProblem.testcases.filter(tc => tc.isSample).length > 0)
   );
-
-  // ===== 마크다운 텍스트 파싱 함수 (개선) =====
-  const renderFormattedText = (text) => {
-    if (!text) return null;
-
-    // 여러 마크다운 패턴 처리: **bold**, `code`, - list items
-    const lines = text.split('\n');
-
-    return lines.map((line, lineIndex) => {
-      // 빈 줄 처리
-      if (!line.trim()) {
-        return <div key={lineIndex} className="h-2" />;
-      }
-
-      // 리스트 아이템 (- 또는 * 로 시작)
-      const listMatch = line.match(/^(\s*)([-*])\s+(.*)$/);
-      if (listMatch) {
-        const [, indent, , content] = listMatch;
-        const indentLevel = Math.floor(indent.length / 2);
-        return (
-          <div key={lineIndex} className="flex items-start gap-2" style={{ marginLeft: `${indentLevel * 16}px` }}>
-            <span className="text-muted mt-1">•</span>
-            <span>{renderInlineFormatting(content)}</span>
-          </div>
-        );
-      }
-
-      // 숫자 리스트 (1. 2. 3. 등)
-      const numListMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
-      if (numListMatch) {
-        const [, indent, num, content] = numListMatch;
-        const indentLevel = Math.floor(indent.length / 2);
-        return (
-          <div key={lineIndex} className="flex items-start gap-2" style={{ marginLeft: `${indentLevel * 16}px` }}>
-            <span className="text-muted font-medium min-w-[20px]">{num}.</span>
-            <span>{renderInlineFormatting(content)}</span>
-          </div>
-        );
-      }
-
-      // 일반 줄
-      return <div key={lineIndex}>{renderInlineFormatting(line)}</div>;
-    });
-  };
-
-  // 인라인 포맷팅 처리 (**bold**, `code`, ≤, ≥)
-  const renderInlineFormatting = (text) => {
-    if (!text) return null;
-
-    // **bold**, `code` 패턴 처리
-    const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-
-    return parts.map((part, index) => {
-      // **bold** 패턴
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return (
-          <strong key={index} className="font-bold text-main">
-            {part.slice(2, -2)}
-          </strong>
-        );
-      }
-      // `code` 패턴
-      if (part.startsWith('`') && part.endsWith('`')) {
-        return (
-          <code key={index} className="px-1.5 py-0.5 bg-gray-200 dark:bg-zinc-700 rounded text-sm font-mono text-red-600 dark:text-red-400">
-            {part.slice(1, -1)}
-          </code>
-        );
-      }
-      // 일반 텍스트
-      return <span key={index}>{part}</span>;
-    });
-  };
-
-  // ===== 섹션 렌더링 컴포넌트 =====
-  const SectionCard = ({ title, icon, content, bgColor = 'bg-panel' }) => {
-    if (!content) return null;
-    return (
-      <div className={`${bgColor} rounded-lg p-4 border border-gray-200 dark:border-zinc-700`}>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg">{icon}</span>
-          <h4 className="font-semibold text-main">{title}</h4>
-        </div>
-        <div className="text-sm text-sub whitespace-pre-wrap leading-relaxed">
-          {renderFormattedText(content)}
-        </div>
-      </div>
-    );
-  };
-
-  const CodeBlock = ({ title, icon, content }) => {
-    if (!content) return null;
-    return (
-      <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700">
-        <div className="flex items-center gap-2 px-4 py-2 bg-gray-800 border-b border-gray-700">
-          <span>{icon}</span>
-          <span className="text-sm font-medium text-gray-300">{title}</span>
-        </div>
-        <pre className="p-4 text-sm text-green-400 font-mono overflow-x-auto">
-          {content}
-        </pre>
-      </div>
-    );
-  };
 
   // ===== 렌더링 =====
   return (
@@ -548,7 +488,7 @@ const ProblemGenerator = () => {
                       key={option.value}
                       type="button"
                       onClick={() => handleInputChange('difficulty', option.value)}
-                      className={`p-4 rounded-lg border-2 transition-all ${formData.difficulty === option.value
+                      className={`p-4 rounded-lg border transition-all ${formData.difficulty === option.value
                         ? `${getDifficultyColorClass(option.value)} border-current`
                         : 'border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500'
                         }`}
@@ -569,7 +509,7 @@ const ProblemGenerator = () => {
                   <button
                     type="button"
                     onClick={() => handleInputChange('problemType', 'ALGORITHM')}
-                    className={`p-4 rounded-lg border-2 transition-all ${
+                    className={`p-4 rounded-lg border transition-all ${
                       formData.problemType === 'ALGORITHM'
                         ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500'
                         : 'border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 bg-panel'
@@ -581,7 +521,7 @@ const ProblemGenerator = () => {
                   <button
                     type="button"
                     disabled
-                    className="p-4 rounded-lg border-2 border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 opacity-60 cursor-not-allowed relative"
+                    className="p-4 rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 opacity-60 cursor-not-allowed relative"
                   >
                     <div className="font-semibold text-gray-400 dark:text-gray-500">SQL</div>
                     <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">데이터베이스 쿼리 문제</div>
@@ -605,7 +545,7 @@ const ProblemGenerator = () => {
                         key={topic}
                         type="button"
                         onClick={() => handleTopicSuggestionClick(topic)}
-                        className={`px-4 py-2 text-sm rounded-lg border-2 transition-all ${
+                        className={`px-4 py-2 text-sm rounded-lg border transition-all ${
                           formData.topic === topic
                             ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500 font-semibold'
                             : 'bg-panel border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 text-sub'
@@ -633,10 +573,10 @@ const ProblemGenerator = () => {
                               key={topic.value}
                               type="button"
                               onClick={() => handleTopicSuggestionClick(topic.displayName)}
-                              className={`px-3 py-1.5 text-sm rounded-lg border-2 transition-all ${
+                              className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
                                 formData.topic === topic.displayName
-                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-500 font-semibold'
-                                  : 'bg-panel border-gray-200 dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 text-sub'
+                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-black dark:text-blue-300 border-blue-500 font-semibold'
+                                  : 'bg-panel border-[#e5e7eb] dark:border-zinc-600 hover:border-gray-300 dark:hover:border-zinc-500 text-sub'
                               }`}
                             >
                               {topic.displayName}
@@ -669,10 +609,10 @@ const ProblemGenerator = () => {
                       key={theme.value}
                       type="button"
                       onClick={() => handleInputChange('storyTheme', formData.storyTheme === theme.value ? '' : theme.value)}
-                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                      className={`p-3 rounded-lg border transition-all text-left ${
                         formData.storyTheme === theme.value
-                          ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-500'
-                          : 'border-gray-200 dark:border-zinc-600 hover:border-purple-300 dark:hover:border-purple-600 bg-panel'
+                          ? 'bg-purple-50 dark:bg-purple-900/30 text-black dark:text-purple-300 border-purple-500'
+                          : 'border-[#e5e7eb] dark:border-zinc-600 hover:border-purple-300 dark:hover:border-purple-600 bg-panel'
                       }`}
                     >
                       <div className={`font-semibold text-sm ${formData.storyTheme !== theme.value ? 'text-main' : ''}`}>
@@ -710,18 +650,62 @@ const ProblemGenerator = () => {
                 </div>
               )}
 
+              {/* 비회원 경고 */}
+              {!user?.userId && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 mb-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="font-semibold">지금 가입하고 나만의 알고리즘 문제를 생성해보세요!</span>
+                  </div>
+                  <Link
+                    to="/signup"
+                    className="inline-flex items-center gap-1 text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 font-medium underline"
+                  >
+                    회원가입하러 가기 →
+                  </Link>
+                </div>
+              )}
+
+              {/* 사용량 초과 경고 */}
+              {isUsageLimitExceeded && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 mb-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="font-semibold">일일 무료 사용량을 모두 사용했습니다.</span>
+                  </div>
+                  <Link
+                    to="/pricing"
+                    className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 font-medium underline"
+                  >
+                    구독권 구매하러 가기 →
+                  </Link>
+                </div>
+              )}
+
               {/* 버튼 그룹 */}
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-md font-semibold transition-colors flex items-center justify-center gap-2"
+                  disabled={loading || isUsageLimitExceeded || !user?.userId}
+                  className={`flex-1 px-6 py-3 rounded-md font-semibold transition-colors flex items-center justify-center gap-2 ${
+                    isUsageLimitExceeded || !user?.userId
+                      ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white'
+                  }`}
                 >
                   {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                       <span>AI가 문제를 생성하는 중...</span>
                     </>
+                  ) : !user?.userId ? (
+                    <span>로그인 필요</span>
+                  ) : isUsageLimitExceeded ? (
+                    <span>사용량 초과</span>
                   ) : (
                     <span>문제 생성하기</span>
                   )}
@@ -731,7 +715,7 @@ const ProblemGenerator = () => {
                   type="button"
                   onClick={handleReset}
                   disabled={loading}
-                  className="px-6 py-3 border border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700 disabled:opacity-50 rounded-md font-semibold transition-colors dark:text-gray-300"
+                  className="px-6 py-3 border border-[#e5e7eb] dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700 disabled:opacity-50 rounded-md font-semibold transition-colors text-black dark:text-gray-300"
                 >
                   초기화
                 </button>
@@ -884,10 +868,23 @@ const ProblemGenerator = () => {
               <div className="space-y-4">
                 {/* 문제 제목 */}
                 <div className="border-b border-gray-200 dark:border-zinc-700 pb-4">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getDifficultyColorClass(generatedProblem.difficulty)}`}>
                       {generatedProblem.difficulty}
                     </span>
+                    {/* 문제 태그 - ProblemDetail.jsx와 동일한 스타일 */}
+                    {generatedProblem.algoProblemTags && (() => {
+                      try {
+                        const tags = JSON.parse(generatedProblem.algoProblemTags);
+                        return tags.map((tag, idx) => (
+                          <span key={idx} className="badge badge-tag">
+                            {tag}
+                          </span>
+                        ));
+                      } catch {
+                        return <span className="badge badge-tag">{generatedProblem.algoProblemTags}</span>;
+                      }
+                    })()}
                     <span className="text-sm text-muted">
                       문제 ID: #{generatedProblem.problemId}
                     </span>
@@ -895,59 +892,98 @@ const ProblemGenerator = () => {
                   <h3 className="text-2xl font-bold text-main">{generatedProblem.title}</h3>
                 </div>
 
-                {/* 구조화된 문제 내용 */}
-                {parsedSections ? (
-                  <div className="space-y-4">
-                    {/* 문제 설명 */}
-                    <SectionCard
-                      title="문제 설명"
-                      icon="📋"
-                      content={parsedSections.description}
-                      bgColor="bg-panel"
-                    />
+                {/* 구조화된 문제 내용 - ProblemDetail.jsx와 동일한 스타일 */}
+                {hasStructuredSections ? (
+                  <div className="problem-content-area">
+                    {/* 문제 설명 - description에서 입력/출력 앞부분만 추출 */}
+                    <div className="section-card section-description">
+                      <div className="section-header">
+                        <span className="section-icon">📋</span>
+                        <h2 className="section-title">문제 설명</h2>
+                      </div>
+                      <div className="section-content">
+                        {renderFormattedText(
+                          generatedProblem.inputFormat
+                            ? extractPureDescription(generatedProblem.description)
+                            : generatedProblem.description
+                        )}
+                      </div>
+                    </div>
 
                     {/* 입력/출력 그리드 */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <SectionCard
-                        title="입력"
-                        icon="📥"
-                        content={parsedSections.input}
-                        bgColor="bg-blue-50 dark:bg-blue-900/20"
-                      />
-                      <SectionCard
-                        title="출력"
-                        icon="📤"
-                        content={parsedSections.output}
-                        bgColor="bg-green-50 dark:bg-green-900/20"
-                      />
-                    </div>
+                    {(generatedProblem.inputFormat || generatedProblem.outputFormat) && (
+                      <div className="io-grid">
+                        {generatedProblem.inputFormat && (
+                          <div className="section-card section-input">
+                            <div className="section-header">
+                              <span className="section-icon">📥</span>
+                              <h2 className="section-title">입력</h2>
+                            </div>
+                            <div className="section-content">
+                              {renderFormattedText(generatedProblem.inputFormat)}
+                            </div>
+                          </div>
+                        )}
+                        {generatedProblem.outputFormat && (
+                          <div className="section-card section-output">
+                            <div className="section-header">
+                              <span className="section-icon">📤</span>
+                              <h2 className="section-title">출력</h2>
+                            </div>
+                            <div className="section-content">
+                              {renderFormattedText(generatedProblem.outputFormat)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* 제한사항 */}
-                    <SectionCard
-                      title="제한사항"
-                      icon="⚠️"
-                      content={parsedSections.constraints}
-                      bgColor="bg-yellow-50 dark:bg-yellow-900/20"
-                    />
+                    {generatedProblem.constraints && (
+                      <div className="section-card section-constraints">
+                        <div className="section-header">
+                          <span className="section-icon">⚠️</span>
+                          <h2 className="section-title">제한 사항</h2>
+                        </div>
+                        <div className="section-content">
+                          {renderFormattedText(generatedProblem.constraints)}
+                        </div>
+                      </div>
+                    )}
 
                     {/* 예제 입출력 */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <CodeBlock
-                        title="예제 입력"
-                        icon="📝"
-                        content={parsedSections.exampleInput}
-                      />
-                      <CodeBlock
-                        title="예제 출력"
-                        icon="✅"
-                        content={parsedSections.exampleOutput}
-                      />
-                    </div>
+                    {generatedProblem.testcases && generatedProblem.testcases.filter(tc => tc.isSample).length > 0 && (
+                      <div className="examples-section">
+                        <h2 className="section-title">예제 입출력</h2>
+                        <div className="examples-container">
+                          {generatedProblem.testcases.filter(tc => tc.isSample).map((tc, idx) => (
+                            <div key={idx} className="example-grid">
+                              <div className="example-item">
+                                <h3 className="example-label">📝 예제 입력 {idx + 1}</h3>
+                                <pre className="example-code">
+                                  {tc.inputData || tc.input}
+                                </pre>
+                              </div>
+                              <div className="example-item">
+                                <h3 className="example-label">✅ 예제 출력 {idx + 1}</h3>
+                                <pre className="example-code">
+                                  {tc.expectedOutput || tc.output}
+                                </pre>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  /* 파싱 실패 시 원본 출력 (마크다운 포맷팅 적용) */
-                  <div className="bg-panel rounded-lg p-4">
-                    <div className="text-sm text-sub whitespace-pre-wrap leading-relaxed">
+                  /* 섹션 구분 없는 경우: 전체 설명을 마크다운으로 출력 */
+                  <div className="section-card section-description">
+                    <div className="section-header">
+                      <span className="section-icon">📋</span>
+                      <h2 className="section-title">문제 설명</h2>
+                    </div>
+                    <div className="section-content">
                       {renderFormattedText(generatedProblem.description)}
                     </div>
                   </div>
