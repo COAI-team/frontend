@@ -29,6 +29,8 @@ const ModeSelectionScreen = ({
   // 구독 및 사용량 제한 props
   subscriptionTier = 'FREE',
   isUsageLimitExceeded = false,
+  // 로그인 여부 props
+  isLoggedIn = true,
 }) => {
   // 집중 모드는 Pro 전용
   const isFocusModeAvailable = subscriptionTier === 'PRO';
@@ -36,6 +38,8 @@ const ModeSelectionScreen = ({
   const isLearnModeAvailable = subscriptionTier === 'BASIC' || subscriptionTier === 'PRO';
   // 타이머 프리셋 옵션
   const timePresets = [15, 30, 45, 60];
+  // 비회원 여부
+  const isDisabled = isUsageLimitExceeded || !isLoggedIn;
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-100">
       {/* Header */}
@@ -63,8 +67,24 @@ const ModeSelectionScreen = ({
       {/* Body */}
       <div className="container mx-auto px-6 py-12">
         <div className="max-w-5xl mx-auto">
+          {/* 비회원 경고 */}
+          {!isLoggedIn && (
+            <div className="mb-6 p-4 bg-blue-900/30 border border-blue-600/50 rounded-xl">
+              <div className="flex items-center gap-3 text-blue-400 mb-2">
+                <span className="text-2xl">ℹ️</span>
+                <span className="font-bold text-lg">지금 가입하고 내가 만든 알고리즘 문제를 풀어보세요!</span>
+              </div>
+              <Link
+                to="/signup"
+                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-200 font-medium underline"
+              >
+                회원가입하러 가기 →
+              </Link>
+            </div>
+          )}
+
           {/* 사용량 초과 경고 */}
-          {isUsageLimitExceeded && (
+          {isLoggedIn && isUsageLimitExceeded && (
             <div className="mb-6 p-4 bg-amber-900/30 border border-amber-600/50 rounded-xl">
               <div className="flex items-center gap-3 text-amber-400 mb-2">
                 <span className="text-2xl">⚠️</span>
@@ -91,11 +111,11 @@ const ModeSelectionScreen = ({
                 { text: '타이머/시선 추적 없음', enabled: false }
               ]}
               isSelected={selectedMode === 'LEARN'}
-              onClick={() => !isUsageLimitExceeded && isLearnModeAvailable && setSelectedMode('LEARN')}
+              onClick={() => !isDisabled && isLearnModeAvailable && setSelectedMode('LEARN')}
               selectedBorderClass="border-green-500 bg-green-900/20"
               note="Basic / Pro 구독에서만 이용 가능합니다."
-              disabled={isUsageLimitExceeded || !isLearnModeAvailable}
-              disabledReason={isUsageLimitExceeded ? '사용량 초과' : !isLearnModeAvailable ? 'Basic/Pro 전용' : null}
+              disabled={isDisabled || !isLearnModeAvailable}
+              disabledReason={!isLoggedIn ? '로그인 필요' : isUsageLimitExceeded ? '사용량 초과' : !isLearnModeAvailable ? 'Basic/Pro 전용' : null}
             />
 
             <ModeCard
@@ -108,10 +128,10 @@ const ModeSelectionScreen = ({
                 { text: '시선 추적 없음', enabled: false }
               ]}
               isSelected={selectedMode === 'BASIC'}
-              onClick={() => !isUsageLimitExceeded && setSelectedMode('BASIC')}
+              onClick={() => !isDisabled && setSelectedMode('BASIC')}
               selectedBorderClass="border-blue-500 bg-blue-900/20"
-              disabled={isUsageLimitExceeded}
-              disabledReason={isUsageLimitExceeded ? '사용량 초과' : null}
+              disabled={isDisabled}
+              disabledReason={!isLoggedIn ? '로그인 필요' : isUsageLimitExceeded ? '사용량 초과' : null}
             />
 
             <ModeCard
@@ -124,11 +144,11 @@ const ModeSelectionScreen = ({
                 { text: '집중도 모니터링', enabled: true }
               ]}
               isSelected={selectedMode === 'FOCUS'}
-              onClick={() => !isUsageLimitExceeded && isFocusModeAvailable && setSelectedMode('FOCUS')}
+              onClick={() => !isDisabled && isFocusModeAvailable && setSelectedMode('FOCUS')}
               selectedBorderClass="border-purple-500 bg-purple-900/20"
               note={isFocusModeAvailable ? "* 침대/소파는 권장 안함 (정서 집중 목적)" : null}
-              disabled={isUsageLimitExceeded || !isFocusModeAvailable}
-              disabledReason={isUsageLimitExceeded ? '사용량 초과' : !isFocusModeAvailable ? 'Pro 전용 기능' : null}
+              disabled={isDisabled || !isFocusModeAvailable}
+              disabledReason={!isLoggedIn ? '로그인 필요' : isUsageLimitExceeded ? '사용량 초과' : !isFocusModeAvailable ? 'Pro 전용 기능' : null}
               proOnly={!isFocusModeAvailable}
             />
           </div>
@@ -201,37 +221,41 @@ const ModeSelectionScreen = ({
           <div className="mt-8 text-center">
             <button
               onClick={() => {
-                if (!selectedMode || isUsageLimitExceeded) return;
+                if (!selectedMode || isDisabled) return;
                 onStartSolving(selectedMode);
               }}
-              disabled={!selectedMode || isUsageLimitExceeded}
+              disabled={!selectedMode || isDisabled}
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
-                selectedMode && !isUsageLimitExceeded
+                selectedMode && !isDisabled
                   ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 cursor-pointer'
                   : 'bg-zinc-700 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {isUsageLimitExceeded
-                ? '사용량 초과'
-                : selectedMode === 'FOCUS'
-                  ? '집중 모드로 시작'
-                  : selectedMode === 'BASIC'
-                    ? '기본 모드로 시작'
-                    : selectedMode === 'LEARN'
-                      ? '학습 모드로 이동'
-                      : '모드를 선택해주세요'}
+              {!isLoggedIn
+                ? '로그인 필요'
+                : isUsageLimitExceeded
+                  ? '사용량 초과'
+                  : selectedMode === 'FOCUS'
+                    ? '집중 모드로 시작'
+                    : selectedMode === 'BASIC'
+                      ? '기본 모드로 시작'
+                      : selectedMode === 'LEARN'
+                        ? '학습 모드로 이동'
+                        : '모드를 선택해주세요'}
             </button>
 
             <p className="text-gray-500 text-sm mt-3">
-              {isUsageLimitExceeded
-                ? '일일 무료 사용량을 모두 사용했습니다. 구독권을 구매해주세요.'
-                : selectedMode === 'FOCUS'
-                  ? `전체화면 모드로 전환되며 시선 추적이 활성화됩니다 (${customTimeMinutes}분)`
-                  : selectedMode === 'BASIC'
-                    ? '풀이 화면에서 타이머 또는 스톱워치를 설정할 수 있습니다'
-                    : selectedMode === 'LEARN'
-                      ? '튜터와 함께 문제를 연습할 수 있습니다'
-                      : '모드를 선택하면 시작할 수 있습니다'}
+              {!isLoggedIn
+                ? '문제를 풀려면 로그인이 필요합니다. 회원가입 후 이용해주세요.'
+                : isUsageLimitExceeded
+                  ? '일일 무료 사용량을 모두 사용했습니다. 구독권을 구매해주세요.'
+                  : selectedMode === 'FOCUS'
+                    ? `전체화면 모드로 전환되며 시선 추적이 활성화됩니다 (${customTimeMinutes}분)`
+                    : selectedMode === 'BASIC'
+                      ? '풀이 화면에서 타이머 또는 스톱워치를 설정할 수 있습니다'
+                      : selectedMode === 'LEARN'
+                        ? '튜터와 함께 문제를 연습할 수 있습니다'
+                        : '모드를 선택하면 시작할 수 있습니다'}
             </p>
           </div>
         </div>

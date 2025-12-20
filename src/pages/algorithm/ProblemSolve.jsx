@@ -4,7 +4,7 @@ import CodeEditor from '../../components/algorithm/editor/CodeEditor';
 import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY } from '../../components/algorithm/editor/editorUtils';
 import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
 import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolationDetection';
-import { startProblemSolve, submitCode, runTestCode, getUsageInfo } from '../../service/algorithm/algorithmApi';
+import { startProblemSolve, submitCode, runTestCode, getUsageInfo, getProblem } from '../../service/algorithm/algorithmApi';
 import { useLogin } from '../../context/login/useLogin';
 import EyeTracker, { TRACKER_TYPES } from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
@@ -495,6 +495,9 @@ const ProblemSolve = () => {
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
+  // 로그인 여부 확인
+  const isLoggedIn = !!user?.userId;
+
   // 문제 데이터 로드
   useEffect(() => {
     const fetchProblem = async () => {
@@ -502,36 +505,60 @@ const ProblemSolve = () => {
       setError(null);
 
       try {
-        const res = await startProblemSolve(problemId);
-        console.log('📥 API 응답:', res);
+        // 비회원인 경우: 공개 API(getProblem)로 문제 데이터만 조회
+        // 회원인 경우: startProblemSolve API로 풀이 시작
+        if (!user?.userId) {
+          console.log('📥 비회원 - 문제 데이터만 조회');
+          const res = await getProblem(problemId);
 
-        if (res.error) {
-          setError(res.message);
-          return;
-        }
+          if (res.error) {
+            setError(res.message);
+            return;
+          }
 
-        const problemData = res.Data || res.data || res;
-        console.log('📋 문제 데이터:', problemData);
-        console.log('🔤 Available Languages:', problemData.availableLanguages);
+          const problemData = res.Data || res.data || res;
+          console.log('📋 문제 데이터 (비회원):', problemData);
 
-        setProblem(problemData);
-
-        // 기본 언어 설정 (languageId와 languageName 모두 설정)
-        // 변경사항 (2025-12-13): languageId 지원 추가, Python 3 → Python
-        if (problemData.problemType === 'SQL') {
-          setSelectedLanguage('SQL');
-          const sqlLang = problemData.availableLanguages?.find(l => l.languageName === 'SQL');
-          setSelectedLanguageId(sqlLang?.languageId || null);
+          // 문제 데이터 설정 (풀이는 시작하지 않음)
+          setProblem({
+            ...problemData,
+            problemId: problemData.algoProblemId,
+            title: problemData.algoProblemTitle,
+            description: problemData.algoProblemDescription,
+            difficulty: problemData.algoProblemDifficulty,
+          });
         } else {
-          // 기본 언어 설정 (Python)
-          setSelectedLanguage('Python');
-          const pythonLang = problemData.availableLanguages?.find(l => l.languageName === 'Python');
-          setSelectedLanguageId(pythonLang?.languageId || null);
+          // 회원인 경우: 기존 로직
+          const res = await startProblemSolve(problemId);
+          console.log('📥 API 응답:', res);
+
+          if (res.error) {
+            setError(res.message);
+            return;
+          }
+
+          const problemData = res.Data || res.data || res;
+          console.log('📋 문제 데이터:', problemData);
+          console.log('🔤 Available Languages:', problemData.availableLanguages);
+
+          setProblem(problemData);
+
+          // 기본 언어 설정 (languageId와 languageName 모두 설정)
+          // 변경사항 (2025-12-13): languageId 지원 추가, Python 3 → Python
+          if (problemData.problemType === 'SQL') {
+            setSelectedLanguage('SQL');
+            const sqlLang = problemData.availableLanguages?.find(l => l.languageName === 'SQL');
+            setSelectedLanguageId(sqlLang?.languageId || null);
+          } else {
+            // 기본 언어 설정 (Python)
+            setSelectedLanguage('Python');
+            const pythonLang = problemData.availableLanguages?.find(l => l.languageName === 'Python');
+            setSelectedLanguageId(pythonLang?.languageId || null);
+          }
+
+          setTimeLeft(30 * 60);
+          setStartTime(new Date());
         }
-
-        setTimeLeft(30 * 60);
-        setStartTime(new Date());
-
       } catch (err) {
         console.error('❌ 문제 로드 실패:', err);
         setError('문제를 불러오는데 실패했습니다.');
@@ -543,7 +570,7 @@ const ProblemSolve = () => {
     if (problemId) {
       fetchProblem();
     }
-  }, [problemId]);
+  }, [problemId, user?.userId]);
 
   // 사용량 정보 조회
   useEffect(() => {
@@ -877,6 +904,8 @@ const ProblemSolve = () => {
         subscriptionTier={subscriptionTier}
         isUsageLimitExceeded={isUsageLimitExceeded}
         usageInfo={usageInfo}
+        // 로그인 여부 props
+        isLoggedIn={isLoggedIn}
       />
     );
   }
