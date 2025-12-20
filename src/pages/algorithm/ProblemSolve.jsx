@@ -189,7 +189,7 @@ const ProblemSolve = () => {
     isResizing: isHorizontalResizing,
     handleResizeStart: handleHorizontalResizeStart,
     containerRef
-  } = useResizableLayout(35, 20, 60);
+  } = useResizableLayout(45, 20, 60);
 
   // ✅ 수직 리사이저 (에디터 | 실행결과)
   const {
