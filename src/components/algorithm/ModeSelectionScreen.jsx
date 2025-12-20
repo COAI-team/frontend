@@ -72,13 +72,13 @@ const ModeSelectionScreen = ({
             <div className="mb-6 p-4 bg-blue-900/30 border border-blue-600/50 rounded-xl">
               <div className="flex items-center gap-3 text-blue-400 mb-2">
                 <span className="text-2xl">ℹ️</span>
-                <span className="font-bold text-lg">지금 가입하고 내가 만든 알고리즘 문제를 풀어보세요!</span>
+                <span className="font-bold text-lg">로그인하고 내가 만든 알고리즘 문제의 정답을 맞춰보세요! 문제 풀면 AI가 준 피드백을 확인할 수 있습니다.</span>
               </div>
               <Link
-                to="/signup"
+                to={`/signin?redirect=${encodeURIComponent(`/algorithm/problems/${problemId}/solve`)}`}
                 className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-200 font-medium underline"
               >
-                회원가입하러 가기 →
+                로그인하러 가기 →
               </Link>
             </div>
           )}
@@ -91,7 +91,7 @@ const ModeSelectionScreen = ({
                 <span className="font-bold text-lg">일일 무료 사용량을 모두 사용했습니다</span>
               </div>
               <Link
-                to="/pricing"
+                to={`/pricing?redirect=${encodeURIComponent(`/algorithm/problems/${problemId}/solve`)}`}
                 className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 font-medium underline"
               >
                 구독권 구매하러 가기 →

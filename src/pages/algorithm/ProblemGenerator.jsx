@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { drawProblemFromPool, completeMission, getTopics, getUsageInfo } from '../../service/algorithm/AlgorithmApi';
 import { useLogin } from '../../context/login/useLogin';
 import { extractPureDescription, renderFormattedText } from '../../components/algorithm/problem/markdownUtils';
@@ -12,7 +12,11 @@ import '../../styles/ProblemDetail.css';
  */
 const ProblemGenerator = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useLogin();
+
+  // 현재 페이지 경로 (리다이렉트용)
+  const currentPath = location.pathname;
 
   // ===== 상태 관리 =====
   const [formData, setFormData] = useState({
@@ -657,13 +661,13 @@ const ProblemGenerator = () => {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="font-semibold">지금 가입하고 나만의 알고리즘 문제를 생성해보세요!</span>
+                    <span className="font-semibold">로그인하고 나만의 알고리즘 문제를 생성해보세요! AI가 만든 문제로 실력을 키워보세요.</span>
                   </div>
                   <Link
-                    to="/signup"
+                    to={`/signin?redirect=${encodeURIComponent(currentPath)}`}
                     className="inline-flex items-center gap-1 text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 font-medium underline"
                   >
-                    회원가입하러 가기 →
+                    로그인하러 가기 →
                   </Link>
                 </div>
               )}
@@ -678,7 +682,7 @@ const ProblemGenerator = () => {
                     <span className="font-semibold">일일 무료 사용량을 모두 사용했습니다.</span>
                   </div>
                   <Link
-                    to="/pricing"
+                    to={`/pricing?redirect=${encodeURIComponent(currentPath)}`}
                     className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 font-medium underline"
                   >
                     구독권 구매하러 가기 →
