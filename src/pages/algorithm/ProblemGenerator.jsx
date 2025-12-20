@@ -695,10 +695,10 @@ const ProblemGenerator = () => {
                 <button
                   type="submit"
                   disabled={loading || isUsageLimitExceeded || !user?.userId}
-                  className={`flex-1 px-6 py-3 rounded-md font-semibold transition-colors flex items-center justify-center gap-2 ${
+                  className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
                     isUsageLimitExceeded || !user?.userId
                       ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white'
+                      : 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/30 disabled:from-gray-400 disabled:to-gray-400'
                   }`}
                 >
                   {loading ? (
@@ -711,7 +711,7 @@ const ProblemGenerator = () => {
                   ) : isUsageLimitExceeded ? (
                     <span>사용량 초과</span>
                   ) : (
-                    <span>문제 생성하기</span>
+                    <span>🚀 문제 생성하기</span>
                   )}
                 </button>
 
