@@ -6,7 +6,6 @@ import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
 // 레이아웃 및 메인
 import Layout from "./components/layout/mainLayout/Layout";
 import Main from "./pages/Main";
-import MainExample2 from "./pages/MainExample2";
 import PricingPage from "./pages/payment/PricingPage";
 import PaymentPage from "./pages/payment/PaymentPage";
 import PaymentSuccess from "./pages/payment/PaymentSuccess";
@@ -80,7 +79,6 @@ createRoot(document.getElementById("root")).render(
           <Route path="/" element={<Layout/>}>
             {/* 메인 */}
             <Route index element={<Main/>}/>
-            <Route path="mainExample2" element={<MainExample2/>}/>
 
             {/* 로그인/회원가입 */}
             <Route path="signin" element={<SignIn/>}/>
