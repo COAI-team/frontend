@@ -12,6 +12,7 @@ import {
 import UsageDisplay from '../../components/algorithm/mission/UsageDisplay';
 import UserLevelBadge from '../../components/algorithm/mission/UserLevelBadge';
 import { useLogin } from '../../context/login/useLogin';
+import '../../styles/DailyMission.css';
 
 const DailyMission = () => {
     // ===== 로그인 상태 확인 =====
@@ -284,8 +285,8 @@ const DailyMission = () => {
                         </div>
 
                         {/* 🌱 GitHub 스타일 잔디 캘린더 */}
-                        <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 mb-6">
-                            <div className="flex items-center justify-between mb-4">
+                        <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 mb-6 grass-calendar-container">
+                            <div className="flex items-center justify-between mb-4 calendar-header pb-0">
                                 <h2 className="text-lg font-semibold text-main flex items-center gap-2">
                                     🌱 문제 풀이 기록
                                 </h2>
@@ -385,14 +386,14 @@ const DailyMission = () => {
                                             weeks.push(currentWeek);
                                         }
 
-                                        // 색상 결정 함수
-                                        const getColor = (count, isFuture) => {
-                                            if (isFuture) return 'bg-gray-50 dark:bg-gray-800';
-                                            if (count === 0) return 'bg-gray-100 dark:bg-gray-700';
-                                            if (count === 1) return 'bg-green-200 dark:bg-green-900';
-                                            if (count === 2) return 'bg-green-300 dark:bg-green-700';
-                                            if (count <= 4) return 'bg-green-400 dark:bg-green-600';
-                                            return 'bg-green-500 dark:bg-green-500';
+                                        // 색상 결정 함수 (CSS 클래스 사용)
+                                        const getGrassCellClass = (count, isFuture) => {
+                                            if (isFuture) return 'grass-cell-future';
+                                            if (count === 0) return 'grass-cell-empty';
+                                            if (count === 1) return 'grass-cell-level1';
+                                            if (count === 2) return 'grass-cell-level2';
+                                            if (count <= 4) return 'grass-cell-level3';
+                                            return 'grass-cell-level4';
                                         };
 
                                         // 월 이름
@@ -449,7 +450,7 @@ const DailyMission = () => {
                                                                     <div
                                                                         key={dayIdx}
                                                                         className={`w-[11px] h-[11px] rounded-[2px] cursor-default group relative ${
-                                                                            day.empty ? 'bg-transparent' : getColor(day.count, day.isFuture)
+                                                                            day.empty ? 'bg-transparent' : getGrassCellClass(day.count, day.isFuture)
                                                                         }`}
                                                                     >
                                                                         {/* CSS 툴팁 (네이티브 title 대체 - 작은 요소에서 더 잘 보임) */}
@@ -481,11 +482,11 @@ const DailyMission = () => {
                                                     {/* 범례 (우측) */}
                                                     <div className="flex items-center gap-1 text-xs text-muted">
                                                         <span>적음</span>
-                                                        <div className="w-[11px] h-[11px] rounded-[2px] bg-gray-100 dark:bg-gray-700"></div>
-                                                        <div className="w-[11px] h-[11px] rounded-[2px] bg-green-200 dark:bg-green-900"></div>
-                                                        <div className="w-[11px] h-[11px] rounded-[2px] bg-green-300 dark:bg-green-700"></div>
-                                                        <div className="w-[11px] h-[11px] rounded-[2px] bg-green-400 dark:bg-green-600"></div>
-                                                        <div className="w-[11px] h-[11px] rounded-[2px] bg-green-500 dark:bg-green-500"></div>
+                                                        <div className="legend-cell-empty"></div>
+                                                        <div className="legend-cell-level1"></div>
+                                                        <div className="legend-cell-level2"></div>
+                                                        <div className="legend-cell-level3"></div>
+                                                        <div className="legend-cell-level4"></div>
                                                         <span>많음</span>
                                                     </div>
                                                 </div>

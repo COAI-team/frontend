@@ -1,0 +1,175 @@
+/* DailyMission.css - 데일리 미션 페이지 스타일 */
+
+/* ===== 라이트모드 캘린더 컨테이너 ===== */
+html:not(.dark) .grass-calendar-container {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+html:not(.dark) .grass-calendar-container .calendar-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .grass-calendar-container .calendar-footer {
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ===== 라이트모드 잔디 셀 (Soft Colors) ===== */
+/* 미래 날짜 */
+html:not(.dark) .grass-cell-future {
+  background-color: #f9fafb !important;  /* gray-50 */
+  border: 1px solid #e5e7eb;             /* gray-200 */
+}
+
+/* 풀이 없음 (count = 0) */
+html:not(.dark) .grass-cell-empty {
+  background-color: #f3f4f6 !important;  /* gray-100 */
+  border: 1px solid #e5e7eb;             /* gray-200 */
+}
+
+/* 1문제 (연한 초록) */
+html:not(.dark) .grass-cell-level1 {
+  background-color: #dcfce7 !important;  /* green-100 */
+  border: 1px solid #86efac;             /* green-300 */
+}
+
+/* 2문제 */
+html:not(.dark) .grass-cell-level2 {
+  background-color: #bbf7d0 !important;  /* green-200 */
+  border: 1px solid #4ade80;             /* green-400 */
+}
+
+/* 3-4문제 */
+html:not(.dark) .grass-cell-level3 {
+  background-color: #86efac !important;  /* green-300 */
+  border: 1px solid #22c55e;             /* green-500 */
+}
+
+/* 5문제 이상 */
+html:not(.dark) .grass-cell-level4 {
+  background-color: #4ade80 !important;  /* green-400 */
+  border: 1px solid #16a34a;             /* green-600 */
+}
+
+/* ===== 다크모드 잔디 셀 (기존 스타일 유지) ===== */
+html.dark .grass-cell-future {
+  background-color: #1f2937 !important;
+}
+
+html.dark .grass-cell-empty {
+  background-color: #374151 !important;
+}
+
+html.dark .grass-cell-level1 {
+  background-color: #14532d !important;
+}
+
+html.dark .grass-cell-level2 {
+  background-color: #15803d !important;
+}
+
+html.dark .grass-cell-level3 {
+  background-color: #16a34a !important;
+}
+
+html.dark .grass-cell-level4 {
+  background-color: #22c55e !important;
+}
+
+/* ===== 공통 잔디 셀 스타일 ===== */
+.grass-cell-future,
+.grass-cell-empty,
+.grass-cell-level1,
+.grass-cell-level2,
+.grass-cell-level3,
+.grass-cell-level4 {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  cursor: default;
+}
+
+/* ===== 라이트모드 범례 셀 ===== */
+html:not(.dark) .legend-cell-empty {
+  background-color: #f3f4f6 !important;  /* gray-100 */
+  border: 1px solid #e5e7eb;
+}
+
+html:not(.dark) .legend-cell-level1 {
+  background-color: #dcfce7 !important;  /* green-100 */
+  border: 1px solid #86efac;
+}
+
+html:not(.dark) .legend-cell-level2 {
+  background-color: #bbf7d0 !important;  /* green-200 */
+  border: 1px solid #4ade80;
+}
+
+html:not(.dark) .legend-cell-level3 {
+  background-color: #86efac !important;  /* green-300 */
+  border: 1px solid #22c55e;
+}
+
+html:not(.dark) .legend-cell-level4 {
+  background-color: #4ade80 !important;  /* green-400 */
+  border: 1px solid #16a34a;
+}
+
+/* 다크모드 범례 */
+html.dark .legend-cell-empty {
+  background-color: #374151 !important;
+}
+
+html.dark .legend-cell-level1 {
+  background-color: #14532d !important;
+}
+
+html.dark .legend-cell-level2 {
+  background-color: #15803d !important;
+}
+
+html.dark .legend-cell-level3 {
+  background-color: #16a34a !important;
+}
+
+html.dark .legend-cell-level4 {
+  background-color: #22c55e !important;
+}
+
+/* 공통 범례 셀 스타일 */
+.legend-cell-empty,
+.legend-cell-level1,
+.legend-cell-level2,
+.legend-cell-level3,
+.legend-cell-level4 {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+}
+
+/* ===== 라이트모드 미션 진행 컨테이너 ===== */
+html:not(.dark) .mission-progress-container {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== 라이트모드 미션 카드 ===== */
+html:not(.dark) .mission-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+html:not(.dark) .mission-card:hover:not(.mission-completed) {
+  border-color: #93c5fd;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+html:not(.dark) .mission-card.mission-completed {
+  opacity: 0.7;
+}
