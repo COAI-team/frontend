@@ -1,0 +1,129 @@
+/* MediaPipeTracker.css - 시선 추적 컴포넌트 스타일 */
+
+/* ===== 에러 상태 박스 ===== */
+/* 라이트모드 */
+html:not(.dark) .mediapipe-error-box {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+html:not(.dark) .mediapipe-error-box strong {
+  color: #b91c1c;
+}
+
+html:not(.dark) .mediapipe-error-box p {
+  color: #7f1d1d;
+}
+
+/* 다크모드 */
+html.dark .mediapipe-error-box {
+  background-color: #fee;
+  color: #c33;
+}
+
+html.dark .mediapipe-error-box p {
+  color: #c33;
+}
+
+/* ===== 자동 캘리브레이션 화면 ===== */
+/* 라이트모드 */
+html:not(.dark) .mediapipe-auto-calibration {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+  color: #1f2937;
+}
+
+html:not(.dark) .mediapipe-auto-calibration .calibration-title {
+  color: #1f2937;
+}
+
+html:not(.dark) .mediapipe-auto-calibration .calibration-subtitle {
+  color: #6b7280;
+}
+
+html:not(.dark) .mediapipe-auto-calibration .calibration-progress-text {
+  color: #6b7280;
+}
+
+html:not(.dark) .mediapipe-auto-calibration .calibration-progress-bg {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+html:not(.dark) .mediapipe-auto-calibration .calibration-ring-bg {
+  stroke: rgba(0, 0, 0, 0.15);
+}
+
+/* 다크모드 */
+html.dark .mediapipe-auto-calibration {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  color: white;
+}
+
+html.dark .mediapipe-auto-calibration .calibration-title {
+  color: white;
+}
+
+html.dark .mediapipe-auto-calibration .calibration-subtitle {
+  color: #94a3b8;
+}
+
+html.dark .mediapipe-auto-calibration .calibration-progress-text {
+  color: #94a3b8;
+}
+
+html.dark .mediapipe-auto-calibration .calibration-progress-bg {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+html.dark .mediapipe-auto-calibration .calibration-ring-bg {
+  stroke: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== 캘리브레이션 준비 중 화면 ===== */
+/* 라이트모드 */
+html:not(.dark) .mediapipe-calibration-loading {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #f5f3ff 100%);
+  color: #1f2937;
+}
+
+html:not(.dark) .mediapipe-calibration-loading .loading-spinner {
+  border-color: rgba(0, 0, 0, 0.1);
+  border-top-color: #8b5cf6;
+}
+
+html:not(.dark) .mediapipe-calibration-loading .loading-text {
+  color: #1f2937;
+}
+
+html:not(.dark) .mediapipe-calibration-loading .loading-subtext {
+  color: #6b7280;
+}
+
+/* 다크모드 */
+html.dark .mediapipe-calibration-loading {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+  color: white;
+}
+
+html.dark .mediapipe-calibration-loading .loading-spinner {
+  border-color: rgba(255, 255, 255, 0.2);
+  border-top-color: #8b5cf6;
+}
+
+html.dark .mediapipe-calibration-loading .loading-text {
+  color: white;
+}
+
+html.dark .mediapipe-calibration-loading .loading-subtext {
+  color: #a5b4fc;
+}
+
+/* ===== 공통 애니메이션 ===== */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
