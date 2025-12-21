@@ -1,0 +1,501 @@
+/* ProblemSolve.css - 문제 풀이 페이지 스타일 */
+
+/* ===== 라이트모드 전체 페이지 ===== */
+html:not(.dark) .problem-solve-page {
+  background-color: #f8fafc;  /* slate-50 */
+  color: #1f2937;             /* gray-800 */
+}
+
+/* ===== 라이트모드 헤더 ===== */
+html:not(.dark) .problem-solve-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .problem-solve-header .header-title {
+  color: #1f2937;
+}
+
+html:not(.dark) .problem-solve-header .header-subtitle {
+  color: #6b7280;
+}
+
+html:not(.dark) .problem-solve-header .header-back-btn {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .problem-solve-header .header-back-btn:hover {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+/* ===== 라이트모드 모드 배지 ===== */
+html:not(.dark) .mode-badge-basic {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+html:not(.dark) .mode-badge-focus {
+  background-color: #a855f7;
+  color: #ffffff;
+}
+
+/* ===== 라이트모드 타이머 섹션 ===== */
+html:not(.dark) .timer-display {
+  color: #ca8a04;  /* yellow-600 */
+}
+
+html:not(.dark) .timer-display-danger {
+  color: #dc2626;  /* red-600 */
+}
+
+html:not(.dark) .timer-display-stopwatch {
+  color: #0891b2;  /* cyan-600 */
+}
+
+html:not(.dark) .timer-mode-toggle {
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .timer-mode-toggle .timer-mode-btn {
+  color: #6b7280;
+}
+
+html:not(.dark) .timer-mode-toggle .timer-mode-btn:hover {
+  color: #1f2937;
+}
+
+html:not(.dark) .timer-mode-toggle .timer-mode-btn-active-timer {
+  background-color: #ca8a04;
+  color: #ffffff;
+}
+
+html:not(.dark) .timer-mode-toggle .timer-mode-btn-active-stopwatch {
+  background-color: #0891b2;
+  color: #ffffff;
+}
+
+html:not(.dark) .timer-edit-container {
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .timer-edit-container:hover {
+  background-color: #e5e7eb;
+  border-color: #ca8a04;
+}
+
+html:not(.dark) .timer-edit-input {
+  background-color: transparent;
+  color: #ca8a04;
+}
+
+/* ===== 라이트모드 집중도 게이지 토글 ===== */
+html:not(.dark) .focus-gauge-toggle {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .focus-gauge-toggle:hover {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+html:not(.dark) .focus-gauge-toggle-active {
+  background-color: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+/* ===== 라이트모드 타이머 컨트롤 버튼 ===== */
+html:not(.dark) .timer-start-btn {
+  background-color: #22c55e;
+  color: #ffffff;
+}
+
+html:not(.dark) .timer-start-btn:hover {
+  background-color: #16a34a;
+}
+
+html:not(.dark) .timer-pause-btn {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+html:not(.dark) .timer-pause-btn:hover {
+  background-color: #dc2626;
+}
+
+html:not(.dark) .timer-reset-btn {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .timer-reset-btn:hover {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+/* ===== 라이트모드 집중 모드 상태 바 ===== */
+html:not(.dark) .focus-status-bar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .focus-status-bar .tracker-status-container {
+  background-color: #f3f4f6;
+  border: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .focus-status-bar .tracker-badge-mediapipe {
+  background-color: #f3e8ff;
+  color: #7c3aed;
+}
+
+html:not(.dark) .focus-status-bar .tracker-badge-webgazer {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+html:not(.dark) .focus-status-bar .tracker-status-ready {
+  color: #16a34a;
+}
+
+html:not(.dark) .focus-status-bar .tracker-status-pending {
+  color: #ca8a04;
+}
+
+html:not(.dark) .focus-status-bar .debug-btn {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .focus-status-bar .debug-btn:hover {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+html:not(.dark) .focus-status-bar .debug-btn-active {
+  background-color: #22c55e;
+  color: #ffffff;
+  border-color: #22c55e;
+}
+
+/* ===== 라이트모드 문제 설명 패널 ===== */
+html:not(.dark) .problem-panel {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .problem-panel .panel-title {
+  color: #1f2937;
+}
+
+/* ===== 라이트모드 에디터 패널 ===== */
+html:not(.dark) .editor-panel {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .editor-panel .editor-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .editor-panel .language-select {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .editor-panel .limit-info {
+  color: #6b7280;
+}
+
+html:not(.dark) .editor-panel .copy-btn {
+  color: #6b7280;
+}
+
+html:not(.dark) .editor-panel .copy-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* ===== 라이트모드 리사이저 ===== */
+html:not(.dark) .resizer-horizontal,
+html:not(.dark) .resizer-vertical {
+  background-color: #e2e8f0;
+}
+
+html:not(.dark) .resizer-horizontal:hover,
+html:not(.dark) .resizer-vertical:hover {
+  background-color: #a855f7;
+}
+
+html:not(.dark) .resizer-handle {
+  background-color: #9ca3af;
+}
+
+/* ===== 라이트모드 실행 결과 영역 ===== */
+html:not(.dark) .execution-result-area {
+  background-color: #f9fafb;
+}
+
+html:not(.dark) .execution-result-area .result-label {
+  color: #6b7280;
+}
+
+html:not(.dark) .execution-result-area .result-container {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+/* 프로그레스 바 */
+html:not(.dark) .execution-result-area .progress-bar-bg {
+  background-color: #e5e7eb;
+}
+
+html:not(.dark) .execution-result-area .progress-bar-fill {
+  background: linear-gradient(to right, #a855f7, #ec4899);
+}
+
+/* 테스트 결과 요약 */
+html:not(.dark) .execution-result-area .result-summary {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .execution-result-area .result-badge-pass {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+html:not(.dark) .execution-result-area .result-badge-fail {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+/* 테스트케이스 카드 */
+html:not(.dark) .execution-result-area .testcase-card {
+  background-color: #f9fafb;
+  border: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .execution-result-area .testcase-header {
+  color: #6b7280;
+}
+
+html:not(.dark) .execution-result-area .testcase-badge-ac {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+html:not(.dark) .execution-result-area .testcase-badge-fail {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+html:not(.dark) .execution-result-area .testcase-time {
+  color: #9ca3af;
+}
+
+/* 입출력 코드 블록 */
+html:not(.dark) .execution-result-area .code-block {
+  background-color: #f3f4f6;
+  border: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .execution-result-area .code-block-input {
+  color: #0891b2;
+}
+
+html:not(.dark) .execution-result-area .code-block-output {
+  color: #16a34a;
+}
+
+html:not(.dark) .execution-result-area .code-block-expected {
+  color: #ca8a04;
+}
+
+/* 에러 메시지 */
+html:not(.dark) .execution-result-area .error-block {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+}
+
+/* 실행 중 상태 */
+html:not(.dark) .execution-result-area .running-status {
+  color: #ca8a04;
+}
+
+/* 기본 힌트 텍스트 */
+html:not(.dark) .execution-result-area .hint-text {
+  color: #6b7280;
+}
+
+/* ===== 라이트모드 하단 버튼 영역 ===== */
+html:not(.dark) .action-buttons-container {
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .action-buttons-container .reset-btn {
+  color: #6b7280;
+}
+
+html:not(.dark) .action-buttons-container .reset-btn:hover {
+  color: #1f2937;
+}
+
+html:not(.dark) .action-buttons-container .run-btn {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .action-buttons-container .run-btn:hover {
+  background-color: #e5e7eb;
+}
+
+html:not(.dark) .action-buttons-container .run-btn:disabled {
+  background-color: #e5e7eb;
+  color: #9ca3af;
+}
+
+html:not(.dark) .action-buttons-container .submit-btn {
+  background: linear-gradient(to right, #a855f7, #ec4899);
+  color: #ffffff;
+}
+
+html:not(.dark) .action-buttons-container .submit-btn:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+}
+
+/* ===== 라이트모드 로딩/에러 상태 ===== */
+html:not(.dark) .problem-solve-loading {
+  background-color: #f8fafc;
+}
+
+html:not(.dark) .problem-solve-loading .loading-spinner {
+  border-color: #a855f7;
+  border-top-color: transparent;
+}
+
+html:not(.dark) .problem-solve-loading .loading-text {
+  color: #6b7280;
+}
+
+html:not(.dark) .problem-solve-error {
+  background-color: #f8fafc;
+}
+
+html:not(.dark) .problem-solve-error .error-text {
+  color: #dc2626;
+}
+
+html:not(.dark) .problem-solve-error .error-btn {
+  background-color: #a855f7;
+  color: #ffffff;
+}
+
+html:not(.dark) .problem-solve-error .error-btn:hover {
+  background-color: #9333ea;
+}
+
+/* ===== 라이트모드 난이도 배지 ===== */
+html:not(.dark) .difficulty-badge-bronze {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
+}
+
+html:not(.dark) .difficulty-badge-silver {
+  background-color: #f9fafb;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .difficulty-badge-gold {
+  background-color: #fefce8;
+  color: #a16207;
+  border: 1px solid #fde047;
+}
+
+html:not(.dark) .difficulty-badge-platinum {
+  background-color: #ecfeff;
+  color: #0e7490;
+  border: 1px solid #67e8f9;
+}
+
+/* ===== 다크모드 기본값 유지 ===== */
+html.dark .problem-solve-page {
+  background-color: #18181b;
+  color: #f4f4f5;
+}
+
+html.dark .problem-solve-header {
+  background-color: #27272a;
+  border-color: #3f3f46;
+}
+
+html.dark .problem-panel,
+html.dark .editor-panel {
+  background-color: #27272a;
+  border-color: #3f3f46;
+}
+
+html.dark .focus-status-bar {
+  background-color: #1c1c1e;
+  border-color: #3f3f46;
+}
+
+html.dark .execution-result-area {
+  background-color: #1c1c1e;
+}
+
+html.dark .action-buttons-container {
+  background-color: #27272a;
+  border-color: #3f3f46;
+}
+
+/* ===== 라이트모드 집중도 게이지 툴팁 ===== */
+html:not(.dark) .focus-gauge-tooltip {
+  background-color: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .focus-gauge-tooltip-arrow {
+  border-bottom-color: #ffffff;
+}
+
+html:not(.dark) .focus-gauge-tooltip-desc {
+  color: #6b7280;
+}
+
+/* ===== 다크모드 집중도 게이지 툴팁 ===== */
+html.dark .focus-gauge-tooltip {
+  background-color: #18181b;
+  color: #ffffff;
+  border: 1px solid #3f3f46;
+}
+
+html.dark .focus-gauge-tooltip-arrow {
+  border-bottom-color: #18181b;
+}
+
+html.dark .focus-gauge-tooltip-desc {
+  color: #9ca3af;
+}

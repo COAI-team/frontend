@@ -411,7 +411,7 @@ const ModeCard = ({
       <ul className="mode-card-features text-sm space-y-2 text-gray-600 dark:text-gray-300">
         {features.map((feature, idx) => (
           <li key={idx} className="flex items-center gap-2">
-            <span className={feature.enabled ? 'text-green-500 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}>
+            <span className={feature.enabled ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}>
               {feature.enabled ? '✓' : '✗'}
             </span>
             {feature.text}
