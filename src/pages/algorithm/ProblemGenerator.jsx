@@ -52,12 +52,8 @@ const ProblemGenerator = () => {
 
   // 사용량 제한 상태
   const [usageInfo, setUsageInfo] = useState(null);
-  const [usageLoading, setUsageLoading] = useState(true);
 
-  // 구독 상태 확인
-  const rawTier = user?.subscriptionTier;
-  const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
-  const isSubscriber = subscriptionTier !== 'FREE';
+  // 사용량 제한 초과 여부 (API 응답의 isSubscriber 사용)
   const isUsageLimitExceeded = usageInfo && !usageInfo.isSubscriber && usageInfo.remaining <= 0;
 
   // 토픽 목록 상태 (백엔드에서 가져옴)
@@ -129,7 +125,6 @@ const ProblemGenerator = () => {
   useEffect(() => {
     const fetchUsageInfo = async () => {
       if (!user?.userId) {
-        setUsageLoading(false);
         return;
       }
       try {
@@ -139,8 +134,6 @@ const ProblemGenerator = () => {
         }
       } catch (err) {
         console.error('사용량 조회 실패:', err);
-      } finally {
-        setUsageLoading(false);
       }
     };
     fetchUsageInfo();
