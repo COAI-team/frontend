@@ -225,7 +225,7 @@ const DailyMission = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto daily-mission-page">
                 {/* 페이지 헤더 */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between">
@@ -278,10 +278,14 @@ const DailyMission = () => {
                         {/* 상단 정보 카드 */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             {/* 레벨 정보 */}
-                            <UserLevelBadge userLevel={userLevel} />
+                            <div className="user-level-container">
+                                <UserLevelBadge userLevel={userLevel} />
+                            </div>
 
                             {/* 사용량 정보 */}
-                            <UsageDisplay usageInfo={usageInfo} />
+                            <div className="usage-display-container">
+                                <UsageDisplay usageInfo={usageInfo} />
+                            </div>
                         </div>
 
                         {/* 🌱 GitHub 스타일 잔디 캘린더 */}

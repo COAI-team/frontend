@@ -58,7 +58,7 @@ const UsageDisplay = ({ usageInfo }) => {
                             <span className={`font-medium ${
                                 remaining === 0 ? 'text-red-600' : 'text-green-600'
                             }`}>
-                                {remaining > 0 ? `${remaining}회 남음` : '한도 초과'}
+                                {remaining > 0 ? `${remaining}회 남음` : '한도 도달'}
                             </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2.5">
