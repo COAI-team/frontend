@@ -409,16 +409,6 @@ const ProblemGenerator = () => {
     return colors[difficulty] || 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600';
   };
 
-  /**
-   * DB 필드에 구조화된 내용이 있는지 확인
-   * - DB에서 직접 가져온 inputFormat, outputFormat, constraints 등이 있으면 구조화 표시
-   */
-  const hasStructuredSections = generatedProblem && typingComplete && (
-    generatedProblem.inputFormat ||
-    generatedProblem.outputFormat ||
-    generatedProblem.constraints ||
-    (generatedProblem.testcases && generatedProblem.testcases.filter(tc => tc.isSample).length > 0)
-  );
 
   // ===== 렌더링 =====
   return (
@@ -904,101 +894,43 @@ const ProblemGenerator = () => {
                 </div>
 
                 {/* 구조화된 문제 내용 - ProblemDetail.jsx와 동일한 스타일 */}
-                {hasStructuredSections ? (
-                  <div className="problem-content-area">
-                    {/* 문제 설명 - description에서 입력/출력 앞부분만 추출 */}
-                    <div className="section-card section-description">
-                      <div className="section-header">
-                        <span className="section-icon">📋</span>
-                        <h2 className="section-title">문제 설명</h2>
-                      </div>
-                      <div className="section-content">
-                        {renderFormattedText(
-                          generatedProblem.inputFormat
-                            ? extractPureDescription(generatedProblem.description)
-                            : generatedProblem.description
-                        )}
-                      </div>
-                    </div>
-
-                    {/* 입력/출력 그리드 */}
-                    {(generatedProblem.inputFormat || generatedProblem.outputFormat) && (
-                      <div className="io-grid">
-                        {generatedProblem.inputFormat && (
-                          <div className="section-card section-input">
-                            <div className="section-header">
-                              <span className="section-icon">📥</span>
-                              <h2 className="section-title">입력</h2>
-                            </div>
-                            <div className="section-content">
-                              {renderFormattedText(generatedProblem.inputFormat)}
-                            </div>
-                          </div>
-                        )}
-                        {generatedProblem.outputFormat && (
-                          <div className="section-card section-output">
-                            <div className="section-header">
-                              <span className="section-icon">📤</span>
-                              <h2 className="section-title">출력</h2>
-                            </div>
-                            <div className="section-content">
-                              {renderFormattedText(generatedProblem.outputFormat)}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* 제한사항 */}
-                    {generatedProblem.constraints && (
-                      <div className="section-card section-constraints">
-                        <div className="section-header">
-                          <span className="section-icon">⚠️</span>
-                          <h2 className="section-title">제한 사항</h2>
-                        </div>
-                        <div className="section-content">
-                          {renderFormattedText(generatedProblem.constraints)}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 예제 입출력 */}
-                    {generatedProblem.testcases && generatedProblem.testcases.filter(tc => tc.isSample).length > 0 && (
-                      <div className="examples-section">
-                        <h2 className="section-title">예제 입출력</h2>
-                        <div className="examples-container">
-                          {generatedProblem.testcases.filter(tc => tc.isSample).map((tc, idx) => (
-                            <div key={idx} className="example-grid">
-                              <div className="example-item">
-                                <h3 className="example-label">📝 예제 입력 {idx + 1}</h3>
-                                <pre className="example-code">
-                                  {tc.inputData || tc.input}
-                                </pre>
-                              </div>
-                              <div className="example-item">
-                                <h3 className="example-label">✅ 예제 출력 {idx + 1}</h3>
-                                <pre className="example-code">
-                                  {tc.expectedOutput || tc.output}
-                                </pre>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  /* 섹션 구분 없는 경우: 전체 설명을 마크다운으로 출력 */
+                <div className="problem-content-area">
+                  {/* 문제 설명 - DB의 ALGO_PROBLEM_DESCRIPTION 컬럼 (순수 스토리만) */}
                   <div className="section-card section-description">
                     <div className="section-header">
                       <span className="section-icon">📋</span>
                       <h2 className="section-title">문제 설명</h2>
                     </div>
                     <div className="section-content">
-                      {renderFormattedText(generatedProblem.description)}
+                      {renderFormattedText(extractPureDescription(generatedProblem.description))}
                     </div>
                   </div>
-                )}
+
+                  {/* 예제 입출력 */}
+                  {generatedProblem.testcases && generatedProblem.testcases.filter(tc => tc.isSample).length > 0 && (
+                    <div className="examples-section">
+                      <h2 className="section-title">예제 입출력</h2>
+                      <div className="examples-container">
+                        {generatedProblem.testcases.filter(tc => tc.isSample).map((tc, idx) => (
+                          <div key={idx} className="example-grid">
+                            <div className="example-item">
+                              <h3 className="example-label">📝 예제 입력 {idx + 1}</h3>
+                              <pre className="example-code">
+                                {tc.inputData || tc.input}
+                              </pre>
+                            </div>
+                            <div className="example-item">
+                              <h3 className="example-label">✅ 예제 출력 {idx + 1}</h3>
+                              <pre className="example-code">
+                                {tc.expectedOutput || tc.output}
+                              </pre>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* 생성 정보 */}
                 <div className={`generation-info-container ${generatedProblem.fromPool ? 'generation-info-pool' : 'generation-info-realtime'}`}>
