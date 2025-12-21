@@ -259,16 +259,12 @@ const FreeboardDetail = () => {
                     onConfirm: async () => {
                       try {
                         await axiosInstance.delete(`/freeboard/${id}`);
-
-                        showAlert({
-                          type: 'success',
-                          title: '삭제 완료',
-                          message: '게시글이 삭제되었습니다.',
-                          onConfirm: () => navigate('/freeboard')
-                        });
+                        
+                        // 삭제 성공 시 바로 목록으로 이동
+                        navigate('/freeboard');
                       } catch (err) {
                         console.error('삭제 실패:', err);
-
+                        
                         showAlert({
                           type: 'error',
                           title: '삭제 실패',

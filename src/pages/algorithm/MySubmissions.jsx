@@ -141,6 +141,12 @@ const MySubmissions = () => {
                   >
                     제출 일시
                   </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
+                  >
+                    공유
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-panel divide-y divide-gray-200 dark:divide-zinc-700">
@@ -201,6 +207,17 @@ const MySubmissions = () => {
                         "yyyy-MM-dd HH:mm",
                         { locale: ko }
                       )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          submission.isShared
+                            ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30"
+                            : "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-700/50"
+                        }`}
+                      >
+                        {submission.isShared ? "공유됨" : "미공유"}
+                      </span>
                     </td>
                   </tr>
                 ))}

@@ -75,14 +75,11 @@ export default function Navbar() {
     if (!mounted) return null;
 
     return (
-        <Disclosure
-            as="nav"
-            className="relative transition-colors border-b
-       dark:bg-gray-800 dark:text-gray-100
-       dark:border-gray-200
-       dark:after:absolute dark:after:bottom-0 dark:after:h-px
-       dark:after:w-full dark:after:bg-white/10"
-        >
+    <Disclosure
+        as="nav"
+        className="relative transition-colors border-b border-gray-500
+       dark:bg-gray-800 dark:text-gray-100"
+       >
             {/* 2 & 3. Walking Moai Animation */}
             {showMoai && (
                 <div className="header-banner-area">

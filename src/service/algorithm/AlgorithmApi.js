@@ -318,6 +318,10 @@ export const generateProblem = async (data) => {
 export const generateProblemWithSSE = (data, callbacks) => {
     const { onStep, onComplete, onError } = callbacks;
 
+    // 로그인된 사용자 ID 가져오기 (Rate Limit 추적용)
+    const auth = getAuth();
+    const userId = auth?.user?.userId;
+
     // URL 쿼리 파라미터 구성
     const params = new URLSearchParams({
         difficulty: data.difficulty,
@@ -327,6 +331,11 @@ export const generateProblemWithSSE = (data, callbacks) => {
 
     if (data.additionalRequirements) {
         params.append('additionalRequirements', data.additionalRequirements);
+    }
+
+    // userId가 있으면 파라미터에 추가 (SSE는 Authorization 헤더 전송 불가)
+    if (userId) {
+        params.append('userId', userId);
     }
 
     // API 베이스 URL 가져오기 (검증 포함 스트리밍 엔드포인트 사용)

@@ -3,10 +3,29 @@ import {useNavigate} from "react-router-dom";
 import WriteEditor from "../../components/editor/WriteEditor";
 import AlertModal from "../../components/modal/AlertModal";
 import {useAlert} from "../../hooks/common/useAlert";
+import React, { useEffect, useState } from "react";
 
 const FreeboardWrite = () => {
   const {alert, showAlert, closeAlert} = useAlert();
   const navigate = useNavigate();
+  const [isDark, setIsDark] = useState(false);
+
+  // 다크모드 감지
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+
+    checkDarkMode();
+
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleSubmit = ({title, content, representImage, tags}) => {
 
@@ -33,31 +52,31 @@ const FreeboardWrite = () => {
       })
       .then((response) => {
         console.log("응답:", response.data);
-        showAlert({
-          type: 'success',
-          title: '등록 완료',
-          message: '게시글이 등록되었습니다.'
-        });
-
-        navigate("/freeboard");
+        const freeboardId = response.data.data.freeboardId;
+        navigate(`/freeboard/${freeboardId}`);
       })
       .catch((err) => {
         console.error("등록 실패:", err);
         console.error("에러 상세:", err.response?.data);
+        showAlert({
+          type: 'error',
+          title: '등록 실패',
+          message: '게시글 등록에 실패했습니다.'
+        });
       });
   };
 
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#101828',
+      backgroundColor: isDark ? '#101828' : '#F9FAFB',
       padding: '2rem 1rem'
     }}>
       <div style={{
         maxWidth: '900px',
         margin: '0 auto'
       }}>
-        <WriteEditor
+        <WriteEditor 
           onSubmit={handleSubmit}
           toolbarType="full"
         />

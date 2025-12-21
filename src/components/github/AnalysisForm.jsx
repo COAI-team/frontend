@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTheme } from "../../context/theme/useTheme";
 import { Info } from 'lucide-react';
 
@@ -18,7 +19,7 @@ const toneLevels = [
     { level: 5, label: '매우 엄격함', desc: '까다롭고 심술궂은 고양이 같은 톤', emoji: '😾' },
 ];
 
-const AnalysisForm = ({ onSubmit, isLoading }) => {
+const AnalysisForm = ({ onSubmit, isLoading, disabled = false }) => {
     const { theme } = useTheme();
     const [selectedTypes, setSelectedTypes] = useState(['code_smell']);
     const [toneLevel, setToneLevel] = useState(3);
@@ -188,13 +189,41 @@ const AnalysisForm = ({ onSubmit, isLoading }) => {
                     placeholder="예: 변수명 컨벤션과 매직 넘버를 중점적으로 검토해주세요"
                 />
             </div>
-            
+
+            {/* 사용량 초과 경고 */}
+            {disabled && (
+                <div className={`p-4 rounded-lg border ${
+                    theme === 'light'
+                        ? 'bg-amber-50 border-amber-200'
+                        : 'bg-amber-900/20 border-amber-700'
+                }`}>
+                    <div className={`flex items-center gap-2 mb-2 ${
+                        theme === 'light' ? 'text-amber-800' : 'text-amber-300'
+                    }`}>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span className="font-semibold">일일 무료 사용량을 모두 사용했습니다.</span>
+                    </div>
+                    <Link
+                        to="/pricing"
+                        className={`inline-flex items-center gap-1 font-medium underline ${
+                            theme === 'light'
+                                ? 'text-amber-700 hover:text-amber-900'
+                                : 'text-amber-400 hover:text-amber-200'
+                        }`}
+                    >
+                        구독권 구매하러 가기 →
+                    </Link>
+                </div>
+            )}
+
             <button
                 type="submit"
-                disabled={isLoading || selectedTypes.length === 0}
-                className="w-full bg-indigo-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors shadow-md cursor-pointer"
+                disabled={isLoading || selectedTypes.length === 0 || disabled}
+                className="w-full bg-indigo-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors shadow-md"
             >
-                {isLoading ? '분석 중...' : '분석 시작'}
+                {disabled ? '사용량 초과' : isLoading ? '분석 중...' : '분석 시작'}
             </button>
         </form>
     );

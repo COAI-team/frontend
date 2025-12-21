@@ -1,24 +1,84 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {useParams, useNavigate} from 'react-router-dom';
 import {useTheme} from "../../context/theme/useTheme";
 import axiosInstance from '../../server/AxiosConfig';
 import WriteEditor from '../../components/editor/WriteEditor';
 import {getAnalysisResult} from '../../service/codeAnalysis/analysisApi';
 import {getSmellKeyword} from '../../utils/codeAnalysisUtils';
-import AlertModal from "../../components/modal/AlertModal";
-import {useAlert} from "../../hooks/common/useAlert";
+import hljs from 'highlight.js';
 
 const CodeboardWrite = () => {
   const {analysisId} = useParams();
-  const {alert, showAlert, closeAlert} = useAlert();
   const navigate = useNavigate();
   const {theme} = useTheme();
+  const codeViewerRef = useRef(null);
 
   // 분석 결과 상태
   const [fileContent, setFileContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
+
+  // highlight.js 테마 관리
+  useEffect(() => {
+    const loadHljsTheme = (darkMode) => {
+      document.querySelectorAll('link[data-hljs-theme]').forEach(el => el.remove());
+      
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.dataset.hljsTheme = 'true';
+      link.href = darkMode 
+        ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css'
+        : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+      document.head.appendChild(link);
+    };
+
+    loadHljsTheme(theme === 'dark');
+
+    return () => {
+      document.querySelectorAll('link[data-hljs-theme]').forEach(el => el.remove());
+    };
+  }, [theme]);
+
+  // 파일 확장자로 언어 감지
+  const detectLanguage = (filePath) => {
+    if (!filePath) return 'plaintext';
+    const ext = filePath.split('.').pop().toLowerCase();
+    const langMap = {
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'py': 'python',
+      'java': 'java',
+      'cpp': 'cpp',
+      'c': 'c',
+      'css': 'css',
+      'html': 'html',
+      'json': 'json',
+      'xml': 'xml',
+      'sql': 'sql',
+      'sh': 'bash',
+      'yml': 'yaml',
+      'yaml': 'yaml'
+    };
+    return langMap[ext] || 'plaintext';
+  };
+
+  // 코드 하이라이팅 적용
+  useEffect(() => {
+    if (!codeViewerRef.current || !fileContent) return;
+
+    const timer = setTimeout(() => {
+      codeViewerRef.current.querySelectorAll('pre code').forEach((block) => {
+        block.classList.remove('hljs');
+        delete block.dataset.highlighted;
+        hljs.highlightElement(block);
+      });
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [fileContent, theme]);
 
   // 분석 결과 로드
   useEffect(() => {
@@ -79,23 +139,13 @@ const CodeboardWrite = () => {
       })
       .then((response) => {
         console.log("✅ 응답:", response.data);
-        // ApiResponse 구조 대응
         const codeboardId = response.data.data?.codeboardId || response.data.codeboardId;
-        showAlert({
-          type: "success",
-          title: "등록 완료",
-          message: "게시글이 등록되었습니다.",
-        });
         navigate(`/codeboard/${codeboardId}`);
       })
       .catch((err) => {
         console.error("등록 실패:", err);
         console.error("에러 상세:", err.response?.data);
-        showAlert({
-          type: "error",
-          title: "등록 실패",
-          message: "게시글 등록에 실패했습니다.",
-        });
+        alert("게시글 등록에 실패했습니다.");
       });
   };
 
@@ -130,6 +180,8 @@ const CodeboardWrite = () => {
     );
   }
 
+  const language = detectLanguage(analysisResult.filePath);
+
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* 상단 헤더 */}
@@ -161,22 +213,24 @@ const CodeboardWrite = () => {
           <div className="space-y-6">
             {/* 코드 뷰어 */}
             <div
-              className={`border rounded-lg overflow-hidden ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+              className={`border rounded-lg overflow-hidden ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}
+              ref={codeViewerRef}
+            >
               {/* 헤더 */}
               <div
                 className={`px-4 py-2 border-b flex justify-between items-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'}`}>
-                                <span
-                                  className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                                    {analysisResult.filePath?.split('/').pop()}
-                                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {analysisResult.filePath?.split('/').pop()}
+                  </span>
+                  <span className={`text-xs px-2 py-0.5 rounded ${theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-600'}`}>
+                    {language}
+                  </span>
+                </div>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(fileContent);
-                    showAlert({
-                      type: "success",
-                      title: "복사 완료",
-                      message: "코드가 클립보드에 복사되었습니다.",
-                    });
+                    alert("코드가 클립보드에 복사되었습니다.");
                   }}
                   className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}
                 >
@@ -188,26 +242,19 @@ const CodeboardWrite = () => {
                 </button>
               </div>
 
-              {/* 코드 영역 */}
+              {/* 코드 영역 - hljs 사용 */}
               <div className="overflow-auto" style={{maxHeight: '500px'}}>
-                {fileContent.split('\n').map((line, index) => {
-                  const lineNumber = index + 1;
-                  return (
-                    <div
-                      key={lineNumber}
-                      className={`flex ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}
-                    >
-                      <div
-                        className={`w-12 flex-shrink-0 px-2 text-right text-xs select-none border-r ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-600' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-                        {lineNumber}
-                      </div>
-                      <div className="flex-1 px-4 py-0">
-                        <pre
-                          className={`text-sm m-0 font-mono ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{line || ' '}</pre>
-                      </div>
-                    </div>
-                  );
-                })}
+                <pre style={{ margin: 0, backgroundColor: theme === 'dark' ? '#1e1e1e' : '#f6f8fa' }}>
+                  <code className={`language-${language}`} style={{
+                    display: 'block',
+                    padding: '1rem',
+                    fontSize: '0.875rem',
+                    lineHeight: '1.5',
+                    fontFamily: 'monospace'
+                  }}>
+                    {fileContent}
+                  </code>
+                </pre>
               </div>
             </div>
 
@@ -218,10 +265,9 @@ const CodeboardWrite = () => {
               {/* 헤더 */}
               <div
                 className={`px-4 py-2 border-b flex justify-between items-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'}`}>
-                                <span
-                                  className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                                    분석 결과
-                                </span>
+                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                  분석 결과
+                </span>
                 {analysisResult && (() => {
                   const score = analysisResult.aiScore;
                   let colorClass = '';
@@ -246,8 +292,8 @@ const CodeboardWrite = () => {
 
                   return (
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
-                                            {getSmellKeyword(score).text}
-                                        </span>
+                      {getSmellKeyword(score).text}
+                    </span>
                   );
                 })()}
               </div>
@@ -312,8 +358,8 @@ const CodeboardWrite = () => {
                                     </div>
                                     <pre
                                       className={`p-2 rounded text-xs overflow-x-auto font-mono ${theme === 'dark' ? 'bg-red-900/20 text-red-300' : 'bg-red-50 text-red-700'}`}>
-                                                                            {suggestion.problematicSnippet || suggestion.problematicCode}
-                                                                        </pre>
+                                      {suggestion.problematicSnippet || suggestion.problematicCode}
+                                    </pre>
                                   </div>
                                 )}
                                 {suggestion.proposedReplacement && (
@@ -324,8 +370,8 @@ const CodeboardWrite = () => {
                                     </div>
                                     <pre
                                       className={`p-2 rounded text-xs overflow-x-auto font-mono ${theme === 'dark' ? 'bg-green-900/20 text-green-300' : 'bg-green-50 text-green-700'}`}>
-                                                                            {suggestion.proposedReplacement}
-                                                                        </pre>
+                                      {suggestion.proposedReplacement}
+                                    </pre>
                                   </div>
                                 )}
                               </div>
@@ -349,14 +395,6 @@ const CodeboardWrite = () => {
           </div>
         </div>
       </div>
-      <AlertModal
-        open={alert.open}
-        onClose={closeAlert}
-        onConfirm={alert.onConfirm}
-        type={alert.type}
-        title={alert.title}
-        message={alert.message}
-      />
     </div>
   );
 };

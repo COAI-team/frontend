@@ -64,7 +64,7 @@ const ImageBlockView = ({ node, updateAttributes, deleteNode, editor }) => {
               borderRadius: "0.375rem",
               fontSize: "0.75rem",
               fontWeight: "600",
-              zIndex: 10,
+              zIndex: 5,
               boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
             }}
           >
@@ -82,7 +82,7 @@ const ImageBlockView = ({ node, updateAttributes, deleteNode, editor }) => {
               right: "0.5rem",
               display: "flex",
               gap: "0.4rem",
-              zIndex: 10,
+              zIndex: 5,
             }}
           >
             {!isRepresentative && (

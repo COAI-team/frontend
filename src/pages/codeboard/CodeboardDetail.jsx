@@ -374,32 +374,18 @@ const CodeboardDetail = () => {
                     수정
                   </button>
                   <button
-                    onClick={() => {
-                      showAlert({
-                        type: 'warning',
-                        title: '게시글 삭제',
-                        message: '정말 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.',
-                        onConfirm: async () => {
-                          try {
-                            await axiosInstance.delete(`/codeboard/${id}`);
+                    onClick={async () => {
+                      if (!confirm('정말 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.')) {
+                        return;
+                      }
 
-                            showAlert({
-                              type: 'success',
-                              title: '삭제 완료',
-                              message: '게시글이 삭제되었습니다.',
-                              onConfirm: () => navigate('/codeboard')
-                            });
-                          } catch (err) {
-                            console.error('삭제 실패:', err);
-
-                            showAlert({
-                              type: 'error',
-                              title: '삭제 실패',
-                              message: '게시글 삭제에 실패했습니다.'
-                            });
-                          }
-                        }
-                      });
+                      try {
+                        await axiosInstance.delete(`/codeboard/${id}`);
+                        navigate('/codeboard');
+                      } catch (err) {
+                        console.error('삭제 실패:', err);
+                        alert('게시글 삭제에 실패했습니다.');
+                      }
                     }}
                     style={{
                       padding: '0.625rem 1.25rem',

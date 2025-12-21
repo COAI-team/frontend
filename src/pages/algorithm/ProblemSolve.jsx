@@ -1,25 +1,22 @@
 import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {useParams, useNavigate} from 'react-router-dom';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
-import {
-  codeTemplates,
-  LANGUAGE_MAP,
-  LANGUAGE_NAME_TO_TEMPLATE_KEY
-} from '../../components/algorithm/editor/editorUtils';
-import {useResizableLayout, useVerticalResizable} from '../../hooks/algorithm/useResizableLayout';
-import {useFocusViolationDetection} from '../../hooks/algorithm/useFocusViolationDetection';
-import {useParsedProblem} from '../../hooks/algorithm/useParsedProblem';
-import {startProblemSolve, submitCode, runTestCode} from '../../service/algorithm/AlgorithmApi';
-import EyeTracker, {TRACKER_TYPES} from '../../components/algorithm/eye-tracking/EyeTracker';
+import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY } from '../../components/algorithm/editor/editorUtils';
+import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
+import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolationDetection';
+import { startProblemSolve, submitCode, runTestCode, getUsageInfo, getProblem } from '../../service/algorithm/AlgorithmApi';
+import { useLogin } from '../../context/login/useLogin';
+import EyeTracker, { TRACKER_TYPES } from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
 import ViolationWarnings from '../../components/algorithm/ViolationWarnings';
 import PenaltyNotification from '../../components/algorithm/PenaltyNotification';
 import ConfirmModal from '../../components/algorithm/ConfirmModal';
-import {useViolationPenalty} from '../../hooks/algorithm/useViolationPenalty';
-import {useApplyThemeClass} from '../../hooks/useApplyThemeClass';
+import { useViolationPenalty } from '../../hooks/algorithm/useViolationPenalty';
+import { useApplyThemeClass } from '../../hooks/useApplyThemeClass';
+import { extractPureDescription, renderFormattedText } from '../../components/algorithm/problem/markdownUtils';
 import AlertModal from "../../components/modal/AlertModal";
 import {useAlert} from "../../hooks/common/useAlert";
-
+import '../../styles/ProblemDetail.css';
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
  * ✅ 수평(좌우) + 수직(상하) 리사이저 지원
@@ -36,6 +33,7 @@ import {useAlert} from "../../hooks/common/useAlert";
 const ProblemSolve = () => {
   const {problemId} = useParams();
   const navigate = useNavigate();
+  const { user } = useLogin();
   const editorRef = useRef(null);
   const eyeTrackerRef = useRef(null); // 시선 추적 ref
   const handleSubmitRef = useRef(null); // 자동 제출용 ref (stale closure 방지)
@@ -46,11 +44,17 @@ const ProblemSolve = () => {
 
   // 커스텀 Alert 훅
   const { alert, showAlert, closeAlert } = useAlert();
-
+  
   // 문제 데이터 상태
   const [problem, setProblem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // 구독 및 사용량 제한 상태
+  const [usageInfo, setUsageInfo] = useState(null);
+  const rawTier = user?.subscriptionTier;
+  const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
+  const isUsageLimitExceeded = usageInfo && !usageInfo.isSubscriber && usageInfo.remaining <= 0;
 
   // ========== 모드 선택 관련 상태 ==========
   const [showModeSelection, setShowModeSelection] = useState(true); // 모드 선택 화면 표시 여부
@@ -74,6 +78,8 @@ const ProblemSolve = () => {
   const [timerMode, setTimerMode] = useState('TIMER'); // 'TIMER' (카운트다운) | 'STOPWATCH' (스톱워치)
   const [elapsedTime, setElapsedTime] = useState(0); // 스톱워치용 경과 시간
   const [isTimerHovered, setIsTimerHovered] = useState(false); // 타이머 hover 상태 (시간 편집용)
+  const [editingTimeValue, setEditingTimeValue] = useState(''); // 편집 중인 시간 문자열
+  const [isEditingTime, setIsEditingTime] = useState(false); // 시간 편집 중 여부
 
   // 실행 결과 상태
   const [testResult, setTestResult] = useState(null);
@@ -185,7 +191,7 @@ const ProblemSolve = () => {
     isResizing: isHorizontalResizing,
     handleResizeStart: handleHorizontalResizeStart,
     containerRef
-  } = useResizableLayout(35, 20, 60);
+  } = useResizableLayout(45, 20, 60);
 
   // ✅ 수직 리사이저 (에디터 | 실행결과)
   const {
@@ -508,6 +514,9 @@ const ProblemSolve = () => {
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
+  // 로그인 여부 확인
+  const isLoggedIn = !!user?.userId;
+
   // 문제 데이터 로드
   useEffect(() => {
     const fetchProblem = async () => {
@@ -515,36 +524,60 @@ const ProblemSolve = () => {
       setError(null);
 
       try {
-        const res = await startProblemSolve(problemId);
-        console.log('📥 API 응답:', res);
+        // 비회원인 경우: 공개 API(getProblem)로 문제 데이터만 조회
+        // 회원인 경우: startProblemSolve API로 풀이 시작
+        if (!user?.userId) {
+          console.log('📥 비회원 - 문제 데이터만 조회');
+          const res = await getProblem(problemId);
 
-        if (res.error) {
-          setError(res.message);
-          return;
-        }
+          if (res.error) {
+            setError(res.message);
+            return;
+          }
 
-        const problemData = res.Data || res.data || res;
-        console.log('📋 문제 데이터:', problemData);
-        console.log('🔤 Available Languages:', problemData.availableLanguages);
+          const problemData = res.Data || res.data || res;
+          console.log('📋 문제 데이터 (비회원):', problemData);
 
-        setProblem(problemData);
-
-        // 기본 언어 설정 (languageId와 languageName 모두 설정)
-        // 변경사항 (2025-12-13): languageId 지원 추가, Python 3 → Python
-        if (problemData.problemType === 'SQL') {
-          setSelectedLanguage('SQL');
-          const sqlLang = problemData.availableLanguages?.find(l => l.languageName === 'SQL');
-          setSelectedLanguageId(sqlLang?.languageId || null);
+          // 문제 데이터 설정 (풀이는 시작하지 않음)
+          setProblem({
+            ...problemData,
+            problemId: problemData.algoProblemId,
+            title: problemData.algoProblemTitle,
+            description: problemData.algoProblemDescription,
+            difficulty: problemData.algoProblemDifficulty,
+          });
         } else {
-          // 기본 언어 설정 (Python)
-          setSelectedLanguage('Python');
-          const pythonLang = problemData.availableLanguages?.find(l => l.languageName === 'Python');
-          setSelectedLanguageId(pythonLang?.languageId || null);
+          // 회원인 경우: 기존 로직
+          const res = await startProblemSolve(problemId);
+          console.log('📥 API 응답:', res);
+
+          if (res.error) {
+            setError(res.message);
+            return;
+          }
+
+          const problemData = res.Data || res.data || res;
+          console.log('📋 문제 데이터:', problemData);
+          console.log('🔤 Available Languages:', problemData.availableLanguages);
+
+          setProblem(problemData);
+
+          // 기본 언어 설정 (languageId와 languageName 모두 설정)
+          // 변경사항 (2025-12-13): languageId 지원 추가, Python 3 → Python
+          if (problemData.problemType === 'SQL') {
+            setSelectedLanguage('SQL');
+            const sqlLang = problemData.availableLanguages?.find(l => l.languageName === 'SQL');
+            setSelectedLanguageId(sqlLang?.languageId || null);
+          } else {
+            // 기본 언어 설정 (Python)
+            setSelectedLanguage('Python');
+            const pythonLang = problemData.availableLanguages?.find(l => l.languageName === 'Python');
+            setSelectedLanguageId(pythonLang?.languageId || null);
+          }
+
+          setTimeLeft(30 * 60);
+          setStartTime(new Date());
         }
-
-        setTimeLeft(30 * 60);
-        setStartTime(new Date());
-
       } catch (err) {
         console.error('❌ 문제 로드 실패:', err);
         setError('문제를 불러오는데 실패했습니다.');
@@ -556,7 +589,23 @@ const ProblemSolve = () => {
     if (problemId) {
       fetchProblem();
     }
-  }, [problemId]);
+  }, [problemId, user?.userId]);
+
+  // 사용량 정보 조회
+  useEffect(() => {
+    const fetchUsageInfo = async () => {
+      if (!user?.userId) return;
+      try {
+        const response = await getUsageInfo(user.userId);
+        if (response.data) {
+          setUsageInfo(response.data);
+        }
+      } catch (err) {
+        console.error('사용량 조회 실패:', err);
+      }
+    };
+    fetchUsageInfo();
+  }, [user?.userId]);
 
   // 타이머 효과 - 시간 기반 계산 (브라우저 스로틀링 방지)
   // 백그라운드 탭에서도 정확한 시간 계산을 위해 Date.now() 사용
@@ -762,59 +811,12 @@ const ProblemSolve = () => {
     return styles[diff] || 'bg-gray-700/50 text-gray-400 border-gray-600';
   };
 
-  // ===== 마크다운 텍스트 파싱 함수 =====
-  const renderFormattedText = (text) => {
-    if (!text) return null;
+  const getProblemTypeBadgeClass = (type) => {
+    return type === 'SQL' ? 'badge-database' : 'badge-algorithm';
+};
 
-    // **text** 패턴을 찾아서 <strong>으로 변환
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-
-    return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        const boldText = part.slice(2, -2);
-        return (
-          <strong key={index} className="font-bold text-white">
-            {boldText}
-          </strong>
-        );
-      }
-      return <span key={index}>{part}</span>;
-    });
-  };
-
-  // ===== 섹션 렌더링 컴포넌트 =====
-  const SectionCard = ({title, icon, content, bgColor = 'bg-zinc-800/50'}) => {
-    if (!content) return null;
-    return (
-      <div className={`${bgColor} rounded-lg p-4 border border-zinc-700`}>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg">{icon}</span>
-          <h4 className="font-semibold text-white">{title}</h4>
-        </div>
-        <div className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
-          {renderFormattedText(content)}
-        </div>
-      </div>
-    );
-  };
-
-  const CodeBlock = ({title, icon, content}) => {
-    if (!content) return null;
-    return (
-      <div className="bg-zinc-950 rounded-lg overflow-hidden border border-zinc-700">
-        <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border-b border-zinc-700">
-          <span>{icon}</span>
-          <span className="text-sm font-medium text-gray-300">{title}</span>
-        </div>
-        <pre className="p-4 text-sm text-green-400 font-mono overflow-x-auto">
-          {content}
-        </pre>
-      </div>
-    );
-  };
-
-  // 파싱된 문제 섹션 (커스텀 훅으로 메모이제이션)
-  const parsedSections = useParsedProblem(problem?.description);
+  // 구조화된 문제 섹션 존재 여부 (백엔드에서 직접 제공)
+  const hasStructuredSections = problem?.inputFormat || problem?.outputFormat || problem?.constraints || problem?.sampleTestCases?.length > 0;
 
   // 필터링된 언어 목록 (useMemo로 캐싱 - 렌더링 중 반복 계산 방지)
   const filteredLanguages = useMemo(() => {
@@ -927,6 +929,12 @@ const ProblemSolve = () => {
         setCustomTimeMinutes={setCustomTimeMinutes}
         selectedTrackerType={selectedTrackerType}
         setSelectedTrackerType={setSelectedTrackerType}
+        // 구독 및 사용량 제한 props
+        subscriptionTier={subscriptionTier}
+        isUsageLimitExceeded={isUsageLimitExceeded}
+        usageInfo={usageInfo}
+        // 로그인 여부 props
+        isLoggedIn={isLoggedIn}
       />
     );
   }
@@ -979,57 +987,98 @@ const ProblemSolve = () => {
                   {selectedMode === 'BASIC' ? (timerMode === 'TIMER' ? '타이머' : '스톱워치') : '남은 시간'}
                 </span>
 
-                {/* 기본 모드 + 타이머 + 실행 전: hover 시 시간 직접 편집 */}
+                {/* 기본 모드 + 타이머 + 실행 전: hover 시 시간 편집 (시:분만, 초는 00 고정) */}
                 {selectedMode === 'BASIC' && timerMode === 'TIMER' && !isTimerRunning ? (
                   <div
                     className="relative"
-                    onMouseEnter={() => setIsTimerHovered(true)}
-                    onMouseLeave={() => setIsTimerHovered(false)}
+                    onMouseEnter={() => {
+                      setIsTimerHovered(true);
+                      if (!isEditingTime) {
+                        // 시:분만 편집 (HH:MM 형식)
+                        const hours = Math.floor(timeLeft / 3600);
+                        const mins = Math.floor((timeLeft % 3600) / 60);
+                        setEditingTimeValue(`${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      // 편집 중이면 값 적용
+                      if (isEditingTime) {
+                        const match = editingTimeValue.match(/^(\d{1,2}):(\d{1,2})$/);
+                        if (match) {
+                          const hours = Math.min(3, parseInt(match[1]) || 0);
+                          const mins = Math.min(59, parseInt(match[2]) || 0);
+                          const totalSeconds = Math.max(0, Math.min(10800, hours * 3600 + mins * 60));
+                          setTimeLeft(totalSeconds);
+                          setCustomTimeMinutes(hours * 60 + mins);
+                        }
+                        setIsEditingTime(false);
+                      }
+                      setIsTimerHovered(false);
+                    }}
                   >
-                    {/* 고정 너비 컨테이너로 떨림 방지 */}
-                    <div className={`w-28 text-center font-mono text-lg px-2 py-1 rounded transition-all ${
+                    <div className={`text-center font-mono text-lg px-2 py-1 rounded transition-all w-32 ${
                       isTimerHovered
                         ? 'bg-zinc-600 ring-2 ring-yellow-500/50'
                         : 'bg-zinc-700/50 hover:bg-zinc-700'
                     }`}>
                       {isTimerHovered ? (
-                        <input
-                          type="text"
-                          value={formatTime(timeLeft)}
-                          onChange={(e) => {
-                            // HH:MM:SS 형식에서 총 초로 변환
-                            const parts = e.target.value.split(':').map(p => Number.parseInt(p) || 0);
-                            let totalSeconds = 0;
-                            if (parts.length === 3) {
-                              totalSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
-                            } else if (parts.length === 2) {
-                              totalSeconds = parts[0] * 60 + parts[1];
-                            } else {
-                              totalSeconds = parts[0] * 60;
-                            }
-                            // 최대 3시간 (10800초) 제한
-                            totalSeconds = Math.max(60, Math.min(10800, totalSeconds));
-                            setCustomTimeMinutes(Math.ceil(totalSeconds / 60));
-                            setTimeLeft(totalSeconds);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              setIsTimerHovered(false);
-                            }
-                          }}
-                          className="w-full bg-transparent text-yellow-400 text-center outline-none font-mono text-lg"
-                          autoFocus
-                        />
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="text"
+                            value={isEditingTime ? editingTimeValue : (() => {
+                              const hours = Math.floor(timeLeft / 3600);
+                              const mins = Math.floor((timeLeft % 3600) / 60);
+                              return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+                            })()}
+                            onFocus={() => {
+                              setIsEditingTime(true);
+                              const hours = Math.floor(timeLeft / 3600);
+                              const mins = Math.floor((timeLeft % 3600) / 60);
+                              setEditingTimeValue(`${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`);
+                            }}
+                            onChange={(e) => {
+                              // 숫자와 콜론만 허용, 최대 5자 (HH:MM)
+                              const value = e.target.value.replace(/[^0-9:]/g, '').slice(0, 5);
+                              setEditingTimeValue(value);
+                            }}
+                            onBlur={() => {
+                              const match = editingTimeValue.match(/^(\d{1,2}):(\d{1,2})$/);
+                              if (match) {
+                                const hours = Math.min(3, parseInt(match[1]) || 0);
+                                const mins = Math.min(59, parseInt(match[2]) || 0);
+                                const totalSeconds = Math.max(0, Math.min(10800, hours * 3600 + mins * 60));
+                                setTimeLeft(totalSeconds);
+                                setCustomTimeMinutes(hours * 60 + mins);
+                              }
+                              setIsEditingTime(false);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const match = editingTimeValue.match(/^(\d{1,2}):(\d{1,2})$/);
+                                if (match) {
+                                  const hours = Math.min(3, parseInt(match[1]) || 0);
+                                  const mins = Math.min(59, parseInt(match[2]) || 0);
+                                  const totalSeconds = Math.max(0, Math.min(10800, hours * 3600 + mins * 60));
+                                  setTimeLeft(totalSeconds);
+                                  setCustomTimeMinutes(hours * 60 + mins);
+                                }
+                                setIsEditingTime(false);
+                                e.target.blur();
+                              }
+                            }}
+                            className="w-14 bg-transparent text-yellow-400 text-center outline-none font-mono text-lg"
+                          />
+                          <span className="text-gray-500 font-mono text-lg">:00</span>
+                        </div>
                       ) : (
-                        <span className="text-yellow-400 cursor-pointer" title="클릭하여 시간 수정">
+                        <span className="text-yellow-400 cursor-pointer" title="마우스를 올려 시간 수정">
                           {formatTime(timeLeft)}
                         </span>
                       )}
                     </div>
                     {isTimerHovered && (
-                      <div
-                        className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-xs text-gray-500 whitespace-nowrap">
-                        최대 3시간 (03:00:00)
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-xs text-gray-500 whitespace-nowrap">
+                        최대 3시간 (03:00)
                       </div>
                     )}
                   </div>
@@ -1184,129 +1233,142 @@ const ProblemSolve = () => {
           {/* 왼쪽: 문제 설명 */}
           <div className="bg-zinc-800 rounded-lg overflow-auto" style={{width: `${leftPanelWidth}%`}}>
             <div className="p-6">
-              <h2 className="text-lg font-bold text-white mb-4">문제 설명</h2>
-
-              {/* 제한 정보 표시 */}
-              <div className="flex flex-wrap gap-3 mb-6">
-                <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
-                  {problem?.difficulty || 'N/A'}
-                </span>
-                <span
-                  className="px-3 py-1 rounded-full text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-700">
-                  ⏱ 시간제한: {problem?.timeLimit || 1000}ms
-                </span>
-                <span
-                  className="px-3 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700">
-                  💾 메모리제한: {problem?.memoryLimit || 256}MB
-                </span>
+              {/* 문제 설명 제목 + 제한 정보 (같은 줄) */}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-bold text-white">문제 설명</h2>
+                <div className="flex flex-wrap gap-2 justify-end">
+                  <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
+                    {problem?.difficulty || 'N/A'}
+                  </span>
+                  <span className={`badge ${getProblemTypeBadgeClass(problem.problemType)}`}>
+                      {problem.problemType === 'SQL' ? 'DATABASE' : 'ALGORITHM'}
+                  </span>
+                  {/* 문제 태그 - ProblemDetail.jsx와 동일한 스타일 */}
+                  {problem?.algoProblemTags && (() => {
+                    try {
+                      const tags = JSON.parse(problem.algoProblemTags);
+                      return tags.map((tag, idx) => (
+                        <span key={idx} className="badge badge-tag">
+                          {tag}
+                        </span>
+                      ));
+                    } catch {
+                      return <span className="badge badge-tag">{problem.algoProblemTags}</span>;
+                    }
+                  })()}
+                </div>
               </div>
 
-              {/* 구조화된 문제 내용 */}
-              {parsedSections && (parsedSections.description || parsedSections.input || parsedSections.output) ? (
-                <div className="space-y-4">
+              {/* 구조화된 문제 내용 - 백엔드에서 직접 제공된 필드 사용 */}
+              {hasStructuredSections ? (
+                <div className="problem-content-area problem-solve-dark">
                   {/* 문제 설명 */}
-                  <SectionCard
-                    title="문제 설명"
-                    icon="📋"
-                    content={parsedSections.description}
-                    bgColor="bg-gray-50 dark:bg-zinc-900/30"
-                  />
-
-                  {/* 입력/출력 */}
-                  <div className="grid grid-cols-1 gap-4">
-                    <SectionCard
-                      title="입력"
-                      icon="📥"
-                      content={parsedSections.input}
-                      bgColor="bg-blue-50 dark:bg-blue-900/20"
-                    />
-                    <SectionCard
-                      title="출력"
-                      icon="📤"
-                      content={parsedSections.output}
-                      bgColor="bg-green-50 dark:bg-green-900/20"
-                    />
+                  <div className="section-card section-description">
+                    <div className="section-header">
+                      <span className="section-icon">📋</span>
+                      <h2 className="section-title">문제 설명</h2>
+                    </div>
+                    <div className="section-content">
+                      {renderFormattedText(
+                        problem?.inputFormat
+                          ? extractPureDescription(problem?.description)
+                          : problem?.description
+                      )}
+                    </div>
                   </div>
 
-                  {/* 제한사항 */}
-                  <SectionCard
-                    title="제한사항"
-                    icon="⚠️"
-                    content={parsedSections.constraints}
-                    bgColor="bg-yellow-50 dark:bg-yellow-900/20"
-                  />
-
-                  {/* 파싱된 예제 입출력 */}
-                  {(parsedSections.exampleInput || parsedSections.exampleOutput) && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <CodeBlock
-                        title="예제 입력"
-                        icon="📝"
-                        content={parsedSections.exampleInput}
-                      />
-                      <CodeBlock
-                        title="예제 출력"
-                        icon="✅"
-                        content={parsedSections.exampleOutput}
-                      />
+                  {/* 입력/출력 그리드 */}
+                  {(problem?.inputFormat || problem?.outputFormat) && (
+                    <div className="io-grid">
+                      {problem?.inputFormat && (
+                        <div className="section-card section-input">
+                          <div className="section-header">
+                            <span className="section-icon">📥</span>
+                            <h2 className="section-title">입력</h2>
+                          </div>
+                          <div className="section-content">
+                            {renderFormattedText(problem.inputFormat)}
+                          </div>
+                        </div>
+                      )}
+                      {problem?.outputFormat && (
+                        <div className="section-card section-output">
+                          <div className="section-header">
+                            <span className="section-icon">📤</span>
+                            <h2 className="section-title">출력</h2>
+                          </div>
+                          <div className="section-content">
+                            {renderFormattedText(problem.outputFormat)}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* DB에서 가져온 샘플 테스트케이스 (파싱된 예제가 없을 경우) */}
-                  {!parsedSections.exampleInput && !parsedSections.exampleOutput && problem?.sampleTestCases?.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <span>📋</span> 예제
-                      </h3>
-                      {problem.sampleTestCases.map((tc, idx) => (
-                        <div key={idx}
-                             className="bg-gray-100 dark:bg-zinc-900 rounded p-4 mb-3 border border-gray-300 dark:border-zinc-700">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">입력</p>
-                              <pre
-                                className="text-sm bg-gray-900 dark:bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.input}</pre>
+                  {/* 제한사항 */}
+                  {problem?.constraints && (
+                    <div className="section-card section-constraints">
+                      <div className="section-header">
+                        <span className="section-icon">⚠️</span>
+                        <h2 className="section-title">제한 사항</h2>
+                      </div>
+                      <div className="section-content">
+                        {renderFormattedText(problem.constraints)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 예제 입출력 - DB에서 가져온 샘플 테스트케이스 */}
+                  {problem?.sampleTestCases?.length > 0 && (
+                    <div className="examples-section">
+                      <h2 className="section-title">예제 입출력</h2>
+                      <div className="examples-container">
+                        {problem.sampleTestCases.map((tc, idx) => (
+                          <div key={idx} className="example-grid">
+                            <div className="example-item">
+                              <h3 className="example-label">📝 예제 입력 {idx + 1}</h3>
+                              <pre className="example-code">{tc.input}</pre>
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">출력</p>
-                              <pre
-                                className="text-sm bg-gray-900 dark:bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.expectedOutput}</pre>
+                            <div className="example-item">
+                              <h3 className="example-label">✅ 예제 출력 {idx + 1}</h3>
+                              <pre className="example-code">{tc.expectedOutput}</pre>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
               ) : (
-                /* 파싱 실패 시 원본 출력 (마크다운 포맷팅 적용) */
-                <div className="prose prose-invert prose-sm max-w-none space-y-4">
-                  <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                    {renderFormattedText(problem?.description) || '문제 설명이 없습니다.'}
+                /* 구조화된 필드가 없는 경우 원본 출력 */
+                <div className="problem-content-area problem-solve-dark">
+                  <div className="section-card section-description">
+                    <div className="section-header">
+                      <span className="section-icon">📋</span>
+                      <h2 className="section-title">문제 설명</h2>
+                    </div>
+                    <div className="section-content">
+                      {renderFormattedText(problem?.description) || '문제 설명이 없습니다.'}
+                    </div>
                   </div>
 
                   {problem?.sampleTestCases?.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <span>📋</span> 예제
-                      </h3>
-                      {problem.sampleTestCases.map((tc, idx) => (
-                        <div key={idx}
-                             className="bg-gray-100 dark:bg-zinc-900 rounded p-4 mb-3 border border-gray-300 dark:border-zinc-700">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">입력</p>
-                              <pre
-                                className="text-sm bg-gray-900 dark:bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.input}</pre>
+                    <div className="examples-section">
+                      <h2 className="section-title">예제 입출력</h2>
+                      <div className="examples-container">
+                        {problem.sampleTestCases.map((tc, idx) => (
+                          <div key={idx} className="example-grid">
+                            <div className="example-item">
+                              <h3 className="example-label">📝 예제 입력 {idx + 1}</h3>
+                              <pre className="example-code">{tc.input}</pre>
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">출력</p>
-                              <pre
-                                className="text-sm bg-gray-900 dark:bg-zinc-950 p-2 rounded font-mono text-green-400">{tc.expectedOutput}</pre>
+                            <div className="example-item">
+                              <h3 className="example-label">✅ 예제 출력 {idx + 1}</h3>
+                              <pre className="example-code">{tc.expectedOutput}</pre>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1348,8 +1410,8 @@ const ProblemSolve = () => {
                 {/* 선택된 언어의 제한 정보 표시 (작게) */}
                 {problem?.availableLanguages && (
                   <span className="text-xs text-gray-500 ml-2">
-                    (⏱ {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.timeLimit}ms /
-                    💾 {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.memoryLimit}MB)
+                    (⏱ 시간제한: {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.timeLimit}ms /
+                    💾 메모리제한: {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.memoryLimit}MB)
                   </span>
                 )}
               </div>
