@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import TrackerSelector from './eye-tracking/TrackerSelector';
+import '../../styles/ModeSelectionScreen.css';
 
 /**
  * 풀이 모드 선택 화면 컴포넌트
@@ -41,22 +42,22 @@ const ModeSelectionScreen = ({
   // 비회원 여부
   const isDisabled = isUsageLimitExceeded || !isLoggedIn;
   return (
-    <div className="min-h-screen bg-zinc-900 text-gray-100">
+    <div className="mode-selection-page min-h-screen bg-zinc-900 dark:bg-zinc-900 text-gray-800 dark:text-gray-100">
       {/* Header */}
-      <div className="bg-zinc-800 border-b border-zinc-700">
+      <div className="mode-selection-header bg-zinc-800 dark:bg-zinc-800 border-b border-zinc-700 dark:border-zinc-700">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold">
+              <h1 className="header-title text-xl font-bold text-gray-900 dark:text-white">
                 #{problem?.problemId || problemId} {problem?.title || '문제'}
               </h1>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="header-subtitle text-sm text-gray-500 dark:text-gray-400 mt-1">
                 맞힌사람 {problem?.successCount || 0} • 제출 {problem?.totalAttempts || 0}
               </p>
             </div>
             <button
               onClick={onNavigateBack}
-              className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm cursor-pointer"
+              className="header-back-btn px-4 py-2 bg-zinc-700 dark:bg-zinc-700 hover:bg-zinc-600 dark:hover:bg-zinc-600 rounded text-sm cursor-pointer"
             >
               목록으로
             </button>
@@ -69,14 +70,14 @@ const ModeSelectionScreen = ({
         <div className="max-w-5xl mx-auto">
           {/* 비회원 경고 */}
           {!isLoggedIn && (
-            <div className="mb-6 p-4 bg-blue-900/30 border border-blue-600/50 rounded-xl">
-              <div className="flex items-center gap-3 text-blue-400 mb-2">
+            <div className="warning-box-info mb-6 p-4 bg-blue-900/30 dark:bg-blue-900/30 border border-blue-600/50 dark:border-blue-600/50 rounded-xl">
+              <div className="flex items-center gap-3 mb-2">
                 <span className="text-2xl">ℹ️</span>
-                <span className="font-bold text-lg">로그인하고 내가 만든 알고리즘 문제의 정답을 맞춰보세요! 문제 풀면 AI가 준 피드백을 확인할 수 있습니다.</span>
+                <span className="warning-text font-bold text-lg text-blue-600 dark:text-blue-400">로그인하고 내가 만든 알고리즘 문제의 정답을 맞춰보세요! 문제 풀면 AI가 준 피드백을 확인할 수 있습니다.</span>
               </div>
               <Link
                 to={`/signin?redirect=${encodeURIComponent(`/algorithm/problems/${problemId}/solve`)}`}
-                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-200 font-medium underline"
+                className="warning-link inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 font-medium underline"
               >
                 로그인하러 가기 →
               </Link>
@@ -85,14 +86,14 @@ const ModeSelectionScreen = ({
 
           {/* 사용량 초과 경고 */}
           {isLoggedIn && isUsageLimitExceeded && (
-            <div className="mb-6 p-4 bg-amber-900/30 border border-amber-600/50 rounded-xl">
-              <div className="flex items-center gap-3 text-amber-400 mb-2">
+            <div className="warning-box-warning mb-6 p-4 bg-amber-900/30 dark:bg-amber-900/30 border border-amber-600/50 dark:border-amber-600/50 rounded-xl">
+              <div className="flex items-center gap-3 mb-2">
                 <span className="text-2xl">⚠️</span>
-                <span className="font-bold text-lg">일일 무료 사용량을 모두 사용했습니다</span>
+                <span className="warning-text font-bold text-lg text-amber-600 dark:text-amber-400">일일 무료 사용량을 모두 사용했습니다</span>
               </div>
               <Link
                 to={`/pricing?redirect=${encodeURIComponent(`/algorithm/problems/${problemId}/solve`)}`}
-                className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 font-medium underline"
+                className="warning-link inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 font-medium underline"
               >
                 구독권 구매하러 가기 →
               </Link>
@@ -158,11 +159,11 @@ const ModeSelectionScreen = ({
 
           {/* 집중 모드 타이머 설정 */}
           {selectedMode === 'FOCUS' && (
-            <div className="mt-6 p-6 bg-zinc-800 border border-zinc-700 rounded-xl">
+            <div className="timer-settings-panel mt-6 p-6 bg-zinc-800 dark:bg-zinc-800 border border-zinc-700 dark:border-zinc-700 rounded-xl">
               <div className="text-center mb-4">
                 <span className="text-4xl mb-2 block">⏱️</span>
-                <h3 className="text-lg font-bold text-white">풀이 시간 설정</h3>
-                <p className="text-sm text-gray-400 mt-1">집중 모드에서 사용할 타이머 시간을 설정하세요</p>
+                <h3 className="panel-title text-lg font-bold text-gray-900 dark:text-white">풀이 시간 설정</h3>
+                <p className="panel-subtitle text-sm text-gray-500 dark:text-gray-400 mt-1">집중 모드에서 사용할 타이머 시간을 설정하세요</p>
               </div>
 
               {/* 프리셋 버튼 */}
@@ -171,10 +172,10 @@ const ModeSelectionScreen = ({
                   <button
                     key={time}
                     onClick={() => setCustomTimeMinutes(time)}
-                    className={`px-5 py-2 rounded-lg font-semibold transition-all ${
+                    className={`px-5 py-2 rounded-lg font-semibold transition-all cursor-pointer ${
                       customTimeMinutes === time
-                        ? 'bg-purple-600 text-white ring-2 ring-purple-400 cursor-pointer'
-                        : 'bg-zinc-700 hover:bg-zinc-600 text-gray-300 cursor-pointer'
+                        ? 'timer-preset-btn-selected bg-purple-600 text-white ring-2 ring-purple-400'
+                        : 'timer-preset-btn bg-zinc-700 dark:bg-zinc-700 hover:bg-zinc-600 dark:hover:bg-zinc-600 text-gray-700 dark:text-gray-300'
                     }`}
                   >
                     {time}분
@@ -184,7 +185,7 @@ const ModeSelectionScreen = ({
 
               {/* 커스텀 시간 입력 */}
               <div className="flex items-center justify-center gap-3">
-                <span className="text-gray-400">직접 입력:</span>
+                <span className="timer-input-label text-gray-500 dark:text-gray-400">직접 입력:</span>
                 <input
                   type="number"
                   min="1"
@@ -195,20 +196,20 @@ const ModeSelectionScreen = ({
                       Math.max(1, Math.min(180, Number.parseInt(e.target.value) || 30))
                     )
                   }
-                  className="w-20 px-3 py-2 bg-zinc-700 rounded-lg text-center text-lg font-mono text-white"
+                  className="timer-input w-20 px-3 py-2 bg-zinc-700 dark:bg-zinc-700 rounded-lg text-center text-lg font-mono text-gray-900 dark:text-white"
                 />
-                <span className="text-gray-400">분</span>
+                <span className="timer-input-label text-gray-500 dark:text-gray-400">분</span>
               </div>
             </div>
           )}
 
           {/* 집중 모드 추적기 선택 */}
           {selectedMode === 'FOCUS' && (
-            <div className="mt-6 p-6 bg-zinc-800 border border-zinc-700 rounded-xl">
+            <div className="tracker-settings-panel mt-6 p-6 bg-zinc-800 dark:bg-zinc-800 border border-zinc-700 dark:border-zinc-700 rounded-xl">
               <div className="text-center mb-4">
                 <span className="text-4xl mb-2 block">👁️</span>
-                <h3 className="text-lg font-bold text-white">시선 추적 방식 선택</h3>
-                <p className="text-sm text-gray-400 mt-1">집중 모드에서 사용할 시선 추적 라이브러리를 선택하세요</p>
+                <h3 className="panel-title text-lg font-bold text-gray-900 dark:text-white">시선 추적 방식 선택</h3>
+                <p className="panel-subtitle text-sm text-gray-500 dark:text-gray-400 mt-1">집중 모드에서 사용할 시선 추적 라이브러리를 선택하세요</p>
               </div>
               <TrackerSelector
                 selectedTracker={selectedTrackerType}
@@ -227,8 +228,8 @@ const ModeSelectionScreen = ({
               disabled={!selectedMode || isDisabled}
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
                 selectedMode && !isDisabled
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 cursor-pointer'
-                  : 'bg-zinc-700 text-gray-500 cursor-not-allowed'
+                  ? 'start-button-enabled bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 cursor-pointer text-white'
+                  : 'start-button-disabled bg-zinc-700 dark:bg-zinc-700 text-gray-500 cursor-not-allowed'
               }`}
             >
               {!isLoggedIn
@@ -244,7 +245,7 @@ const ModeSelectionScreen = ({
                         : '모드를 선택해주세요'}
             </button>
 
-            <p className="text-gray-500 text-sm mt-3">
+            <p className="start-button-hint text-gray-500 text-sm mt-3">
               {!isLoggedIn
                 ? '문제를 풀려면 로그인이 필요합니다. 회원가입 후 이용해주세요.'
                 : isUsageLimitExceeded
@@ -268,8 +269,8 @@ const ModeSelectionScreen = ({
  * 위반 항목 표시 헬퍼 컴포넌트
  */
 const ViolationItem = ({ text, points }) => (
-  <div className="flex items-center gap-2 text-gray-400">
-    <span className="text-red-400">•</span>
+  <div className="violation-item flex items-center gap-2 text-gray-600 dark:text-gray-400">
+    <span className="text-red-500 dark:text-red-400">•</span>
     <span>{text} ({points}점)</span>
   </div>
 );
@@ -278,8 +279,8 @@ const ViolationItem = ({ text, points }) => (
  * 집중 모드 주의사항 안내 컴포넌트
  */
 const FocusModeWarning = () => (
-  <div className="mt-6 p-5 bg-amber-900/30 border border-amber-600/50 rounded-xl">
-    <h3 className="text-amber-400 font-bold text-lg mb-4 flex items-center gap-2">
+  <div className="focus-mode-warning-box mt-6 p-5 bg-amber-900/30 dark:bg-amber-900/30 border border-amber-600/50 dark:border-amber-600/50 rounded-xl">
+    <h3 className="warning-title text-amber-600 dark:text-amber-400 font-bold text-lg mb-4 flex items-center gap-2">
       <span>&#9888;&#65039;</span> 집중 모드 주의사항
     </h3>
 
@@ -287,7 +288,7 @@ const FocusModeWarning = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
       {/* 심각한 위반 (2.5~3점) */}
       <div>
-        <h4 className="text-red-400 font-semibold mb-2">
+        <h4 className="violation-red text-red-500 dark:text-red-400 font-semibold mb-2">
           심각한 위반 (2.5~3점)
         </h4>
         <div className="space-y-1 text-sm ml-4">
@@ -298,7 +299,7 @@ const FocusModeWarning = () => (
 
       {/* 중간 위반 (1.5점) */}
       <div>
-        <h4 className="text-yellow-400 font-semibold mb-2">
+        <h4 className="violation-yellow text-yellow-600 dark:text-yellow-400 font-semibold mb-2">
           중간 위반 (1.5점)
         </h4>
         <div className="space-y-1 text-sm ml-4">
@@ -309,7 +310,7 @@ const FocusModeWarning = () => (
 
       {/* 높은 위반 (2점) */}
       <div>
-        <h4 className="text-orange-400 font-semibold mb-2">
+        <h4 className="violation-orange text-orange-500 dark:text-orange-400 font-semibold mb-2">
           높은 위반 (2점)
         </h4>
         <div className="space-y-1 text-sm ml-4">
@@ -321,7 +322,7 @@ const FocusModeWarning = () => (
 
       {/* 경미한 위반 (0.3~0.5점) */}
       <div>
-        <h4 className="text-gray-400 font-semibold mb-2">
+        <h4 className="violation-gray text-gray-600 dark:text-gray-400 font-semibold mb-2">
           경미한 위반 (0.3~0.5점)
         </h4>
         <div className="space-y-1 text-sm ml-4">
@@ -332,26 +333,26 @@ const FocusModeWarning = () => (
       </div>
     </div>
 
-    <div className="bg-zinc-800/50 rounded-lg p-3">
-      <h4 className="text-gray-300 font-semibold mb-3">패널티 시스템:</h4>
+    <div className="penalty-system-box bg-zinc-800/50 dark:bg-zinc-800/50 rounded-lg p-3">
+      <h4 className="penalty-title text-gray-700 dark:text-gray-300 font-semibold mb-3">패널티 시스템:</h4>
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-3">
-          <span className="w-20 px-2 py-1 bg-yellow-600/30 text-yellow-400 rounded text-center text-xs font-semibold">
+          <span className="penalty-badge-warning w-20 px-2 py-1 bg-yellow-600/30 dark:bg-yellow-600/30 text-yellow-600 dark:text-yellow-400 rounded text-center text-xs font-semibold">
             1~3점
           </span>
-          <span className="text-gray-400">경고 알림 표시</span>
+          <span className="penalty-text text-gray-600 dark:text-gray-400">경고 알림 표시</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="w-20 px-2 py-1 bg-orange-600/30 text-orange-400 rounded text-center text-xs font-semibold">
+          <span className="penalty-badge-moderate w-20 px-2 py-1 bg-orange-600/30 dark:bg-orange-600/30 text-orange-600 dark:text-orange-400 rounded text-center text-xs font-semibold">
             4~6점
           </span>
-          <span className="text-gray-400">제한 시간 5분 감소 (최대 3회)</span>
+          <span className="penalty-text text-gray-600 dark:text-gray-400">제한 시간 5분 감소 (최대 3회)</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="w-20 px-2 py-1 bg-red-600/30 text-red-400 rounded text-center text-xs font-semibold">
+          <span className="penalty-badge-severe w-20 px-2 py-1 bg-red-600/30 dark:bg-red-600/30 text-red-600 dark:text-red-400 rounded text-center text-xs font-semibold">
             7점+
           </span>
-          <span className="text-gray-400">자동 제출</span>
+          <span className="penalty-text text-gray-600 dark:text-gray-400">자동 제출</span>
         </div>
       </div>
     </div>
@@ -374,50 +375,61 @@ const ModeCard = ({
   disabled = false,
   disabledReason = null,
   proOnly = false
-}) => (
-  <div
-    onClick={disabled ? undefined : onClick}
-    className={`p-6 rounded-xl transition-all border-2 relative ${
-      disabled
-        ? 'border-zinc-700 bg-zinc-800/50 opacity-60 cursor-not-allowed'
-        : isSelected
-          ? `${selectedBorderClass} cursor-pointer`
-          : 'border-zinc-700 bg-zinc-800 hover:border-zinc-500 cursor-pointer'
-    }`}
-  >
-    {/* Pro 전용 배지 */}
-    {proOnly && (
-      <div className="absolute top-2 right-2 px-2 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">
-        PRO
-      </div>
-    )}
+}) => {
+  // 선택된 상태의 CSS 클래스 결정
+  const getSelectedClass = () => {
+    if (!isSelected) return '';
+    if (selectedBorderClass.includes('green')) return 'mode-card-selected-learn';
+    if (selectedBorderClass.includes('blue')) return 'mode-card-selected-basic';
+    if (selectedBorderClass.includes('purple')) return 'mode-card-selected-focus';
+    return '';
+  };
 
-    <div className="text-center mb-4">
-      <span className="text-4xl">{icon}</span>
-    </div>
-    <h3 className="text-xl font-bold text-center mb-2">{title}</h3>
-    <p className="text-gray-400 text-sm text-center mb-4">{description}</p>
-    <ul className="text-sm space-y-2 text-gray-300">
-      {features.map((feature, idx) => (
-        <li key={idx} className="flex items-center gap-2">
-          <span className={feature.enabled ? 'text-green-400' : 'text-gray-500'}>
-            {feature.enabled ? '✓' : '✗'}
+  return (
+    <div
+      onClick={disabled ? undefined : onClick}
+      className={`mode-card p-6 rounded-xl transition-all border-2 relative ${
+        disabled
+          ? 'mode-card-disabled border-zinc-700 dark:border-zinc-700 bg-zinc-800/50 dark:bg-zinc-800/50 opacity-60 cursor-not-allowed'
+          : isSelected
+            ? `${getSelectedClass()} ${selectedBorderClass} cursor-pointer`
+            : 'border-zinc-700 dark:border-zinc-700 bg-zinc-800 dark:bg-zinc-800 hover:border-zinc-500 dark:hover:border-zinc-500 cursor-pointer'
+      }`}
+    >
+      {/* Pro 전용 배지 */}
+      {proOnly && (
+        <div className="absolute top-2 right-2 px-2 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">
+          PRO
+        </div>
+      )}
+
+      <div className="text-center mb-4">
+        <span className="text-4xl">{icon}</span>
+      </div>
+      <h3 className="mode-card-title text-xl font-bold text-center mb-2 text-gray-900 dark:text-white">{title}</h3>
+      <p className="mode-card-description text-gray-500 dark:text-gray-400 text-sm text-center mb-4">{description}</p>
+      <ul className="mode-card-features text-sm space-y-2 text-gray-600 dark:text-gray-300">
+        {features.map((feature, idx) => (
+          <li key={idx} className="flex items-center gap-2">
+            <span className={feature.enabled ? 'text-green-500 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}>
+              {feature.enabled ? '✓' : '✗'}
+            </span>
+            {feature.text}
+          </li>
+        ))}
+      </ul>
+      {note && <p className="mode-card-note text-xs text-purple-600 dark:text-purple-400 mt-3 text-center">{note}</p>}
+
+      {/* 비활성화 사유 표시 */}
+      {disabled && disabledReason && (
+        <div className="mt-3 text-center">
+          <span className="disabled-reason-badge inline-block px-3 py-1 bg-red-900/30 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-xs rounded-full border border-red-700/50 dark:border-red-700/50">
+            {disabledReason}
           </span>
-          {feature.text}
-        </li>
-      ))}
-    </ul>
-    {note && <p className="text-xs text-purple-400 mt-3 text-center">{note}</p>}
-
-    {/* 비활성화 사유 표시 */}
-    {disabled && disabledReason && (
-      <div className="mt-3 text-center">
-        <span className="inline-block px-3 py-1 bg-red-900/30 text-red-400 text-xs rounded-full border border-red-700/50">
-          {disabledReason}
-        </span>
-      </div>
-    )}
-  </div>
-);
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default ModeSelectionScreen;
