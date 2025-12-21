@@ -350,6 +350,13 @@ html:not(.dark) .action-buttons-container {
   border-top: 1px solid #e2e8f0;
 }
 
+/* ProblemGenerator.css의 .reset-btn 스타일 오버라이드 */
+.action-buttons-container .reset-btn {
+  padding: 0.5rem 1rem;  /* py-2 px-4와 동일 (8px 16px) */
+  font-weight: 400;
+  border: 1px solid transparent;
+}
+
 html:not(.dark) .action-buttons-container .reset-btn {
   color: #6b7280;
 }
