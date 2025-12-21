@@ -1,5 +1,23 @@
 /* ProblemGenerator.jsx 전용 스타일 */
 
+/* ===== 모든 버튼/링크 커서 스타일 ===== */
+.difficulty-btn,
+.problem-type-btn,
+.topic-btn,
+.theme-btn,
+.reset-btn,
+.alert-link {
+  cursor: pointer;
+}
+
+.difficulty-btn:disabled,
+.problem-type-btn:disabled,
+.topic-btn:disabled,
+.theme-btn:disabled,
+.reset-btn:disabled {
+  cursor: not-allowed;
+}
+
 .back-link:hover {
     color: var(--text-primary);
   }
