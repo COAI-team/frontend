@@ -11,6 +11,7 @@ import { useTutorWebSocket } from '../../hooks/algorithm/useTutorWebSocket';
 import { useLogin } from '../../context/login/useLogin';
 import { getAuth } from '../../utils/auth/token';
 import { useLoginRequiredModal } from '../../hooks/common/useLoginRequiredModal.jsx';
+import { useTheme } from '../../context/theme/useTheme';
 
 const TUTOR_AUTO_INTERVAL_MS = 8000;
 const JUDGE0_LANGUAGE_IDS = {
@@ -54,15 +55,15 @@ function renderFormattedText(text) {
   });
 }
 
-const SectionCard = ({ title, icon, content, bgColor = 'bg-zinc-900/50' }) => {
+const SectionCard = ({ title, icon, content, bgColor = 'bg-gray-50 dark:bg-zinc-900/50' }) => {
   if (!content) return null;
   return (
-    <div className={`${bgColor} rounded-lg p-4 border border-zinc-700`}>
+    <div className={`${bgColor} rounded-lg p-4 border border-gray-200 dark:border-zinc-700`}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-lg">{icon}</span>
-        <h4 className="font-semibold text-gray-200">{title}</h4>
+        <h4 className="font-semibold text-gray-800 dark:text-gray-200">{title}</h4>
       </div>
-      <div className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+      <div className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
         {renderFormattedText(content)}
       </div>
     </div>
@@ -72,12 +73,12 @@ const SectionCard = ({ title, icon, content, bgColor = 'bg-zinc-900/50' }) => {
 const CodeBlock = ({ title, icon, content }) => {
   if (!content) return null;
   return (
-    <div className="bg-zinc-950 rounded-lg overflow-hidden border border-zinc-700">
-      <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border-b border-zinc-700">
+    <div className="bg-gray-100 dark:bg-zinc-950 rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700">
+      <div className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-zinc-900 border-b border-gray-300 dark:border-zinc-700">
         <span>{icon}</span>
-        <span className="text-sm font-medium text-gray-300">{title}</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{title}</span>
       </div>
-      <pre className="p-4 text-sm text-green-400 font-mono overflow-x-auto">
+      <pre className="p-4 text-sm text-green-600 dark:text-green-400 font-mono overflow-x-auto">
         {content}
       </pre>
     </div>
@@ -137,13 +138,13 @@ const parseProblemDescription = (description) => {
 
 const getDifficultyBadge = (diff) => {
   const styles = {
-    BRONZE: 'bg-orange-900/50 text-orange-400 border-orange-700',
-    SILVER: 'bg-gray-700/50 text-gray-300 border-gray-600',
-    GOLD: 'bg-yellow-900/50 text-yellow-400 border-yellow-700',
-    PLATINUM: 'bg-cyan-900/50 text-cyan-400 border-cyan-700',
-    DIAMOND: 'bg-blue-900/50 text-blue-300 border-blue-700'
+    BRONZE: 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 border-orange-300 dark:border-orange-700',
+    SILVER: 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600',
+    GOLD: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-600 dark:text-yellow-400 border-yellow-300 dark:border-yellow-700',
+    PLATINUM: 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400 border-cyan-300 dark:border-cyan-700',
+    DIAMOND: 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 border-blue-300 dark:border-blue-700'
   };
-  return styles[diff || ''] || 'bg-gray-700/50 text-gray-400 border-gray-600';
+  return styles[diff || ''] || 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600';
 };
 
 const QUESTION_COOLDOWN_MS = 5000;
@@ -156,6 +157,7 @@ const ProblemLearn = () => {
   const chatContainerRef = useRef(null);
   const judgeCooldownRef = useRef(0);
   const { user } = useLogin();
+  const { theme } = useTheme();
   const { openLoginRequired, LoginRequiredModalElement } = useLoginRequiredModal(
     'Live Tutor를 사용하려면 먼저 로그인해 주세요.'
   );
@@ -769,7 +771,7 @@ const ProblemLearn = () => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-zinc-900 text-gray-100 flex items-center justify-center">
+      <div className="h-screen bg-gray-50 dark:bg-zinc-900 text-gray-800 dark:text-gray-100 flex items-center justify-center">
         Loading...
       </div>
     );
@@ -777,7 +779,7 @@ const ProblemLearn = () => {
 
   if (error) {
     return (
-      <div className="h-screen bg-zinc-900 text-gray-100 flex items-center justify-center">
+      <div className="h-screen bg-gray-50 dark:bg-zinc-900 text-gray-800 dark:text-gray-100 flex items-center justify-center">
         {error}
       </div>
     );
@@ -785,24 +787,24 @@ const ProblemLearn = () => {
 
   return (
     <>
-      <div className="h-screen bg-zinc-900 text-gray-100 flex flex-col overflow-hidden">
+      <div className="h-screen bg-white dark:bg-[#131313] text-gray-800 dark:text-gray-100 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-zinc-800 border-b border-zinc-700 shrink-0">
+        <div className="bg-gray-100 dark:bg-[#1f1f1f] border-b border-gray-200 dark:border-[#2e2e2e] shrink-0">
           <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                 #{problem?.problemId || problemId} {problem?.title || '문제'}
               </h1>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 맞힌 사람 {problem?.solvedUserCount ?? 0} · 제출한 사람 {problem?.submittedCount ?? 0}
               </p>
-              <span className="ml-2 px-2 py-1 rounded-full text-xs bg-purple-700 text-white">
+              <span className="ml-2 px-2 py-1 rounded-full text-xs bg-purple-600 dark:bg-purple-700 text-white">
                 학습 모드
               </span>
             </div>
             <button
               onClick={() => setExitConfirm(true)}
-              className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"
+              className="px-4 py-2 bg-gray-200 dark:bg-[#2e2e2e] hover:bg-gray-300 dark:hover:bg-[#3f3f3f] text-gray-700 dark:text-gray-300 rounded text-sm"
             >
               ← 풀이 모드로
             </button>
@@ -814,9 +816,9 @@ const ProblemLearn = () => {
           <div className="container mx-auto px-6 py-6 h-full min-h-0">
             <div className="grid grid-cols-12 gap-4 items-stretch h-full min-h-0">
               <div className="col-span-3 h-full min-h-0">
-                <div className="bg-zinc-850 rounded border border-zinc-700 p-4 h-full overflow-auto space-y-4">
+                <div className="bg-gray-50 dark:bg-[#1f1f1f] rounded border border-gray-200 dark:border-[#2e2e2e] p-4 h-full overflow-auto space-y-4">
                   <div>
-                    <h2 className="text-lg font-semibold mb-3">문제 설명</h2>
+                    <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">문제 설명</h2>
                     <div className="flex flex-wrap items-center gap-2 mb-3">
                       <span
                         className={`px-2 py-1 rounded border text-xs ${getDifficultyBadge(
@@ -825,10 +827,10 @@ const ProblemLearn = () => {
                       >
                         {problem?.difficulty || 'UNKNOWN'}
                       </span>
-                      <span className="px-2 py-1 rounded border border-blue-800 bg-blue-900/30 text-xs text-blue-200">
+                      <span className="px-2 py-1 rounded border border-blue-300 dark:border-blue-800 bg-blue-100 dark:bg-blue-900/30 text-xs text-blue-600 dark:text-blue-200">
                         시간제한: {(problem?.timeLimit || problem?.timelimit || 0) || 0}ms
                       </span>
-                      <span className="px-2 py-1 rounded border border-emerald-800 bg-emerald-900/30 text-xs text-emerald-200">
+                      <span className="px-2 py-1 rounded border border-emerald-300 dark:border-emerald-800 bg-emerald-100 dark:bg-emerald-900/30 text-xs text-emerald-600 dark:text-emerald-200">
                         메모리제한: {(problem?.memoryLimit || problem?.memorylimit || 0) || 0}MB
                       </span>
                     </div>
@@ -840,7 +842,7 @@ const ProblemLearn = () => {
                         title="문제 설명"
                         icon="📄"
                         content={parsedSections.description || '문제 설명이 없습니다.'}
-                        bgColor="bg-zinc-900/30"
+                        bgColor="bg-gray-100 dark:bg-zinc-900/30"
                       />
 
                       <div className="grid grid-cols-1 gap-4">
@@ -848,13 +850,13 @@ const ProblemLearn = () => {
                           title="입력"
                           icon="⌨️"
                           content={parsedSections.input}
-                          bgColor="bg-blue-900/20"
+                          bgColor="bg-blue-50 dark:bg-blue-900/20"
                         />
                         <SectionCard
                           title="출력"
                           icon="🖨️"
                           content={parsedSections.output}
-                          bgColor="bg-green-900/20"
+                          bgColor="bg-green-50 dark:bg-green-900/20"
                         />
                       </div>
 
@@ -862,7 +864,7 @@ const ProblemLearn = () => {
                         title="제한사항"
                         icon="🪢"
                         content={parsedSections.constraints}
-                        bgColor="bg-yellow-900/20"
+                        bgColor="bg-yellow-50 dark:bg-yellow-900/20"
                       />
 
                       {(parsedSections.exampleInput || parsedSections.exampleOutput) && (
@@ -884,24 +886,24 @@ const ProblemLearn = () => {
                         !parsedSections.exampleOutput &&
                         problem?.sampleTestCases?.length > 0 && (
                           <div>
-                            <h3 className="font-semibold mb-3 text-white flex items-center gap-2">
+                            <h3 className="font-semibold mb-3 text-gray-900 dark:text-white flex items-center gap-2">
                               <span>📄</span> 예제
                             </h3>
                             {problem.sampleTestCases.map((tc, idx) => (
                               <div
                                 key={idx}
-                                className="bg-zinc-900 rounded p-4 mb-3 border border-zinc-700"
+                                className="bg-gray-100 dark:bg-zinc-900 rounded p-4 mb-3 border border-gray-200 dark:border-zinc-700"
                               >
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <p className="text-xs text-gray-500 mb-1">입력</p>
-                                    <pre className="text-sm bg-zinc-950 p-2 rounded font-mono text-green-400 whitespace-pre-wrap">
+                                    <pre className="text-sm bg-gray-200 dark:bg-zinc-950 p-2 rounded font-mono text-green-600 dark:text-green-400 whitespace-pre-wrap">
                                       {tc.input}
                                     </pre>
                                   </div>
                                   <div>
                                     <p className="text-xs text-gray-500 mb-1">출력</p>
-                                    <pre className="text-sm bg-zinc-950 p-2 rounded font-mono text-green-400 whitespace-pre-wrap">
+                                    <pre className="text-sm bg-gray-200 dark:bg-zinc-950 p-2 rounded font-mono text-green-600 dark:text-green-400 whitespace-pre-wrap">
                                       {tc.expectedOutput}
                                     </pre>
                                   </div>
@@ -912,22 +914,22 @@ const ProblemLearn = () => {
                         )}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-300">문제 설명을 불러올 수 없습니다.</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">문제 설명을 불러올 수 없습니다.</p>
                   )}
                 </div>
               </div>
 
               {/* 에디터 + 실행결과 */}
               <div className="col-span-6 h-full min-h-0">
-                <div className="bg-zinc-850 rounded border border-zinc-700 p-4 h-full flex flex-col min-h-0">
+                <div className="bg-gray-50 dark:bg-[#1f1f1f] rounded border border-gray-200 dark:border-[#2e2e2e] p-4 h-full flex flex-col min-h-0">
                   {/* 언어 선택 + Tutor 상태 */}
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
-                      <label className="text-sm text-gray-300">언어</label>
+                      <label className="text-sm text-gray-600 dark:text-gray-300">언어</label>
                       <select
                         value={selectedLanguage}
                         onChange={handleLanguageChange}
-                        className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm"
+                        className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-gray-800 dark:text-gray-100"
                       >
                         {filteredLanguages.map((lang) => (
                           <option key={lang} value={lang}>
@@ -936,7 +938,7 @@ const ProblemLearn = () => {
                         ))}
                       </select>
                     </div>
-                    <div className="hidden md:flex items-center gap-2 text-xs text-gray-400">
+                    <div className="hidden md:flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                       <span className={`w-2 h-2 rounded-full ${tutorStatusDotClass}`} />
                       <span>{tutorStatusText}</span>
                     </div>
@@ -950,21 +952,21 @@ const ProblemLearn = () => {
                       onChange={handleCodeChange}
                       onMount={handleEditorMount}
                       height="100%"
-                      theme="vs-dark"
+                      theme={theme === 'dark' ? 'vs-dark' : 'light'}
                     />
                   </div>
 
                   {/* 실행 결과 */}
-                  <div className="flex-[3] min-h-0 flex flex-col border-t border-zinc-800 mt-4 pt-3">
-                    <p className="text-sm text-gray-300 mb-2">실행 결과</p>
+                  <div className="flex-[3] min-h-0 flex flex-col border-t border-gray-200 dark:border-[#2e2e2e] mt-4 pt-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">실행 결과</p>
 
                     {isRunning && (
                       <div className="mb-3">
-                        <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                           <span>⏳ 코드 실행 중...</span>
                           <span>{Math.round(runProgress)}%</span>
                         </div>
-                        <div className="w-full bg-gray-300 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 transition-all duration-300 ease-out"
                             style={{ width: `${runProgress}%` }}
@@ -973,26 +975,26 @@ const ProblemLearn = () => {
                       </div>
                     )}
 
-                    <div className="bg-zinc-900 rounded p-3 h-full overflow-auto text-xs text-gray-100 border border-zinc-800">
+                    <div className="bg-gray-100 dark:bg-zinc-900 rounded p-3 h-full overflow-auto text-xs text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-zinc-800">
                       {isRunning ? (
-                        <div className="flex items-center gap-2 text-yellow-300">
+                        <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-300">
                           <span className="animate-spin">⚙️</span>
                           <span>Judge0 서버에서 코드를 실행하고 있습니다...</span>
                         </div>
                       ) : testResult ? (
                         testResult.error ? (
-                          <span className="text-red-400">오류: {testResult.message}</span>
+                          <span className="text-red-500 dark:text-red-400">오류: {testResult.message}</span>
                         ) : (
                           <div>
                             <div
                               className={`font-bold mb-2 ${
                                 testResult.overallResult === 'AC'
-                                  ? 'text-green-400'
-                                  : 'text-red-400'
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : 'text-red-500 dark:text-red-400'
                               }`}
                             >
                               {testResult.overallResult === 'AC' ? '정답!' : `결과: ${testResult.overallResult}`}
-                              <span className="ml-2 text-gray-400 font-normal">
+                              <span className="ml-2 text-gray-500 dark:text-gray-400 font-normal">
                                 ({testResult.passedCount}/{testResult.totalCount} 통과)
                               </span>
                               {testResult.maxExecutionTime && (
@@ -1003,7 +1005,7 @@ const ProblemLearn = () => {
                             </div>
                             {testResult.testCaseResults?.map((tc, idx) => (
                               <div key={idx} className="text-xs mt-1">
-                                <span className={tc.result === 'AC' ? 'text-green-400' : 'text-red-400'}>
+                                <span className={tc.result === 'AC' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}>
                                   TC{tc.testCaseNumber}: {tc.result}
                                 </span>
                                 {tc.result !== 'AC' && tc.actualOutput && (
@@ -1012,7 +1014,7 @@ const ProblemLearn = () => {
                                   </span>
                                 )}
                                 {tc.errorMessage && (
-                                  <pre className="text-red-300 mt-1 text-xs whitespace-pre-wrap bg-red-900/20 p-2 rounded">
+                                  <pre className="text-red-500 dark:text-red-300 mt-1 text-xs whitespace-pre-wrap bg-red-100 dark:bg-red-900/20 p-2 rounded">
                                     {tc.errorMessage}
                                   </pre>
                                 )}
@@ -1028,7 +1030,7 @@ const ProblemLearn = () => {
                     <div className="flex items-center justify-end gap-3 pt-3 flex-shrink-0">
                       <button
                         onClick={runTests}
-                        className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2 text-sm"
+                        className="px-4 py-2 bg-gray-200 dark:bg-[#2e2e2e] hover:bg-gray-300 dark:hover:bg-[#3f3f3f] text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 flex items-center gap-2 text-sm"
                         disabled={isRunning}
                       >
                         {isRunning ? (
@@ -1047,11 +1049,11 @@ const ProblemLearn = () => {
 
               {/* Live Tutor */}
               <div className="col-span-3 h-full min-h-0">
-                <div className="bg-zinc-900 rounded border border-zinc-700 p-3 h-full flex flex-col overflow-hidden">
+                <div className="bg-gray-50 dark:bg-[#1f1f1f] rounded border border-gray-200 dark:border-[#2e2e2e] p-3 h-full flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between mb-1 flex-shrink-0 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${tutorStatusDotClass}`} />
-                      <span className="text-sm font-semibold">라이브 튜터</span>
+                      <span className="text-sm font-semibold text-gray-800 dark:text-white">라이브 튜터</span>
                     </div>
                     {isPro && (
                       <button
@@ -1060,7 +1062,7 @@ const ProblemLearn = () => {
                         className={`px-3 py-1 rounded-full text-[11px] border whitespace-nowrap shrink-0 ${
                           autoHintEnabled
                             ? 'bg-purple-600/90 border-purple-400 text-white'
-                            : 'bg-zinc-900 border-zinc-600 text-gray-300'
+                            : 'bg-gray-100 dark:bg-zinc-900 border-gray-300 dark:border-zinc-600 text-gray-600 dark:text-gray-300'
                         }`}
                       >
                         자동 힌트 {autoHintEnabled ? 'ON' : 'OFF'}
@@ -1068,7 +1070,7 @@ const ProblemLearn = () => {
                     )}
                   </div>
                   <p
-                    className="mb-2 text-[11px] text-gray-400 truncate flex-shrink-0"
+                    className="mb-2 text-[11px] text-gray-500 dark:text-gray-400 truncate flex-shrink-0"
                     title={autoHintStatusLabel}
                   >
                     {autoHintStatusLabel}
@@ -1079,15 +1081,15 @@ const ProblemLearn = () => {
                     <div
                       ref={chatContainerRef}
                       onScroll={handleChatScroll}
-                      className="absolute inset-0 bg-zinc-950 rounded p-3 text-sm space-y-2 border border-zinc-800 overflow-y-auto"
+                      className="absolute inset-0 bg-gray-100 dark:bg-zinc-950 rounded p-3 text-sm space-y-2 border border-gray-200 dark:border-zinc-800 overflow-y-auto"
                     >
-                      <div className="flex items-center gap-2 mb-2 text-xs text-gray-400">
+                      <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 dark:text-gray-400">
                         <label className="flex items-center gap-1">
                           글꼴
                           <select
                             value={tutorFontSize}
                             onChange={(e) => setTutorFontSize(e.target.value)}
-                            className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs"
+                            className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-100"
                           >
                             <option value="12px">12px</option>
                             <option value="14px">14px</option>
@@ -1101,7 +1103,7 @@ const ProblemLearn = () => {
                             type="color"
                             value={tutorTextColor}
                             onChange={(e) => setTutorTextColor(e.target.value)}
-                            className="w-16 h-7 bg-transparent border border-zinc-700 rounded"
+                            className="w-16 h-7 bg-transparent border border-gray-300 dark:border-zinc-700 rounded"
                           />
                         </label>
                       </div>
@@ -1145,8 +1147,8 @@ const ProblemLearn = () => {
                                 <div
                                   className={`p-2 rounded border max-w-[90%] ${
                                     isUser
-                                      ? 'bg-purple-700 text-white border-purple-500'
-                                      : 'bg-zinc-900 text-gray-200 border-zinc-800'
+                                      ? 'bg-purple-600 dark:bg-purple-700 text-white border-purple-400 dark:border-purple-500'
+                                      : 'bg-white dark:bg-zinc-900 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-zinc-800'
                                   }`}
                                 >
                                   <div className="flex items-center justify-between text-[11px] text-gray-400 mb-1">
@@ -1179,10 +1181,10 @@ const ProblemLearn = () => {
                               <div
                                 className="
                                   w-full
-                                  rounded-lg border border-zinc-700
-                                  bg-zinc-900/95
+                                  rounded-lg border border-gray-200 dark:border-zinc-700
+                                  bg-gray-50 dark:bg-zinc-900/95
                                   px-3 py-1.5
-                                  text-xs text-gray-300
+                                  text-xs text-gray-600 dark:text-gray-300
                                   flex items-center gap-2
                                   box-border
                                 "
@@ -1232,7 +1234,7 @@ const ProblemLearn = () => {
                         }
                       }}
                       placeholder={tutorPlaceholder}
-                      className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-purple-500 disabled:opacity-60"
+                      className="flex-1 min-w-0 bg-white dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 rounded px-3 py-2 text-sm text-gray-800 dark:text-gray-100 focus:outline-none focus:border-purple-500 disabled:opacity-60"
                       disabled={
                         tutorStatus !== 'CONNECTED' ||
                         !currentUserId ||
@@ -1246,7 +1248,7 @@ const ProblemLearn = () => {
                     <button
                       onClick={handleSendTutorQuestion}
                       disabled={!canSend}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm font-medium disabled:opacity-50"
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm font-medium text-white disabled:opacity-50"
                     >
                       전송
                     </button>
@@ -1254,17 +1256,17 @@ const ProblemLearn = () => {
 
                   {/* 티어 안내 */}
                   {!currentUserId && (
-                    <p className="text-xs text-yellow-400 mt-2">
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
                       튜터 기능을 사용하려면 로그인하세요.
                     </p>
                   )}
                   {currentUserId && isFree && (
-                    <p className="text-xs text-yellow-400 mt-2">
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
                       Live Tutor는 Basic / Pro 구독에서 이용할 수 있습니다.
                     </p>
                   )}
                   {currentUserId && isBasic && (
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                       Basic 플랜: 직접 질문은 가능하지만 자동 힌트는 Pro에서만 제공됩니다.
                     </p>
                   )}
@@ -1278,21 +1280,21 @@ const ProblemLearn = () => {
       {LoginRequiredModalElement}
 
       {exitConfirm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-full max-w-md shadow-2xl">
-            <h3 className="text-lg font-semibold mb-3">풀이 모드로 이동</h3>
-            <p className="text-sm text-gray-300 mb-4">
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#2e2e2e] rounded-lg p-6 w-full max-w-md shadow-xl dark:shadow-2xl">
+            <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">풀이 모드로 이동</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
               학습 모드를 떠나면 작성 중인 코드와 튜터 채팅이 사라집니다. 풀이 모드로 이동할까요?
             </p>
             <div className="flex justify-end gap-3">
               <button
-                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"
+                className="px-4 py-2 bg-gray-200 dark:bg-[#2e2e2e] hover:bg-gray-300 dark:hover:bg-[#3f3f3f] text-gray-700 dark:text-gray-300 rounded text-sm"
                 onClick={() => setExitConfirm(false)}
               >
                 취소
               </button>
               <button
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm text-white"
                 onClick={() => {
                   setExitConfirm(false);
                   navigate(`/algorithm/problems/${problemId}/solve`);
@@ -1306,21 +1308,21 @@ const ProblemLearn = () => {
       )}
 
       {languageConfirm.isOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-full max-w-md shadow-2xl">
-            <h3 className="text-lg font-semibold mb-3">언어 변경</h3>
-            <p className="text-sm text-gray-300 mb-4">
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#2e2e2e] rounded-lg p-6 w-full max-w-md shadow-xl dark:shadow-2xl">
+            <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">언어 변경</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
               기존 코드 양식에서 수정사항이 존재합니다. 언어를 변경하면 코드가 초기화됩니다. 계속하시겠습니까?
             </p>
             <div className="flex justify-end gap-3">
               <button
-                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"
+                className="px-4 py-2 bg-gray-200 dark:bg-[#2e2e2e] hover:bg-gray-300 dark:hover:bg-[#3f3f3f] text-gray-700 dark:text-gray-300 rounded text-sm"
                 onClick={() => setLanguageConfirm({ isOpen: false, newLang: null })}
               >
                 아니오
               </button>
               <button
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm text-white"
                 onClick={() => {
                   applyLanguageChange(languageConfirm.newLang);
                   setLanguageConfirm({ isOpen: false, newLang: null });

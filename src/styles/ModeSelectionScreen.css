@@ -68,15 +68,13 @@ html:not(.dark) .warning-box-warning .warning-link:hover {
 }
 
 /* ===== 라이트모드 모드 카드 ===== */
-html:not(.dark) .mode-card {
-  background-color: #ffffff;
-  border: 2px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-html:not(.dark) .mode-card:not(.mode-card-disabled):hover {
-  border-color: #94a3b8;
-}
+/*
+ * ModeCard 스타일은 Tailwind 클래스로 처리됨
+ * - 기본: bg-white border-gray-200
+ * - 호버: hover:bg-gray-50 hover:border-gray-300
+ * - 선택: bg-green-50/blue-50/purple-50 + border 색상
+ * - 비활성: bg-gray-100 opacity-60
+ */
 
 html:not(.dark) .mode-card .mode-card-title {
   color: #1f2937;
@@ -92,31 +90,6 @@ html:not(.dark) .mode-card .mode-card-features {
 
 html:not(.dark) .mode-card .mode-card-note {
   color: #7c3aed;
-}
-
-/* 학습 모드 선택됨 (Green) */
-html:not(.dark) .mode-card-selected-learn {
-  background-color: #f0fdf4 !important;
-  border-color: #22c55e !important;
-}
-
-/* 기본 모드 선택됨 (Blue) */
-html:not(.dark) .mode-card-selected-basic {
-  background-color: #eff6ff !important;
-  border-color: #3b82f6 !important;
-}
-
-/* 집중 모드 선택됨 (Purple) */
-html:not(.dark) .mode-card-selected-focus {
-  background-color: #faf5ff !important;
-  border-color: #a855f7 !important;
-}
-
-/* 비활성화된 카드 */
-html:not(.dark) .mode-card-disabled {
-  background-color: #f9fafb;
-  border-color: #e5e7eb;
-  opacity: 0.6;
 }
 
 /* 비활성화 사유 배지 */
