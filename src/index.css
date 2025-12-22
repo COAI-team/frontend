@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* ✅ Tailwind v4: 클래스 기반 다크모드 설정 (tailwind.config.js의 darkMode: 'class' 대체) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* 👇 Tailwind에 light/dark 모드 힌트 주기 */
 @layer base {
   :root {
