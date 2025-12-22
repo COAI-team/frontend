@@ -24,8 +24,8 @@ export default function GuestLandingPage() {
             CodeNose
           </h1>
           <p className="text-2xl md:text-3xl text-gray-500 dark:text-gray-400 font-light max-w-2xl mx-auto">
-            Your code smells.<br/>
-            <span className="font-semibold text-gray-900 dark:text-white">We tell you where.</span>
+            당신의 코드 냄새를 맡아드립니다.<br/>
+            <span className="font-semibold text-gray-900 dark:text-white">어디가 문제인지 알려드릴게요.</span>
           </p>
           <div className="pt-10 animate-bounce">
             <svg className="w-8 h-8 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,8 +38,8 @@ export default function GuestLandingPage() {
       {/* Section 2: Input (The "Problem") */}
       <section className="min-h-screen flex flex-col md:flex-row items-center justify-center w-full max-w-7xl mx-auto px-6 py-20 gap-10">
         <div className="flex-1 space-y-6 text-left reveal-on-scroll">
-          <h2 className="text-4xl md:text-6xl font-bold leading-tight">It puts the code<br/>in the box.</h2>
-          <p className="text-xl text-gray-500 dark:text-gray-400">Don't be shy. Paste your spaghetti code. <br/>Our advanced analysis engine (and the Moai) is ready to judge.</p>
+          <h2 className="text-4xl md:text-6xl font-bold leading-tight">일단 코드를<br/>채워 넣어보세요.</h2>
+          <p className="text-xl text-gray-500 dark:text-gray-400">부끄러워 마세요. 그 스파게티 코드, 다 압니다. <br/>고도로 발달된 분석 엔진(과 모아이)이 평가할 준비가 되었습니다.</p>
         </div>
         <div className="flex-1 w-full reveal-on-scroll delay-200">
           <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-[#1e1e1e] border border-gray-700">
@@ -72,12 +72,12 @@ export default function GuestLandingPage() {
       <section className="min-h-screen flex flex-col md:flex-row-reverse items-center justify-center w-full max-w-7xl mx-auto px-6 py-20 gap-10 bg-gray-50 dark:bg-gray-900/30 rounded-3xl my-20">
         <div className="flex-1 space-y-6 text-left reveal-on-scroll">
           <div className="text-blue-500 font-bold tracking-wide uppercase">Deep Scan</div>
-          <h2 className="text-4xl md:text-6xl font-bold leading-tight">We judge it silently.<br/>(And loudly).</h2>
-          <p className="text-xl text-gray-500 dark:text-gray-400">Detects O(n!) complexity, SQL Injection vulnerabilities,<br/>and pure laziness.</p>
+          <h2 className="text-4xl md:text-6xl font-bold leading-tight">조용히 평가합니다.<br/>(때로는 신랄하게).</h2>
+          <p className="text-xl text-gray-500 dark:text-gray-400">O(n!) 복잡도, SQL 인젝션 취약점,<br/>그리고 당신의 순수한 게으름까지 탐지합니다.</p>
           <ul className="space-y-3 mt-4 text-lg font-medium text-gray-700 dark:text-gray-300">
-            <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Complexity Analysis</li>
-            <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Refactoring Suggestions</li>
-            <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Security Vulnerabilities</li>
+            <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> 복잡도 분석</li>
+            <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> 리팩토링 제안</li>
+            <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> 보안 취약점 점검</li>
           </ul>
         </div>
         <div className="flex-1 w-full flex justify-center reveal-on-scroll delay-200">
@@ -89,7 +89,7 @@ export default function GuestLandingPage() {
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mx-auto animate-pulse delay-100"></div>
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6 mx-auto animate-pulse delay-200"></div>
             </div>
-            <div className="mt-8 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm font-bold animate-bounce">"CRITICAL: Too many loops!"</div>
+            <div className="mt-8 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm font-bold animate-bounce">"경고: 반복문이 너무 많아!"</div>
           </div>
         </div>
       </section>
