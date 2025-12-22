@@ -102,7 +102,7 @@ export default function SignIn() {
   }, [showAlert, setLoginResult, loginContextLogin, setIsAlertOpen, navigate, redirect]);
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden dark:bg-[#131313]">
       {/* 왼쪽 레이아웃 */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-16">
         <div className="mx-auto w-full max-w-sm bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#2e2e2e] rounded-xl shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-8">

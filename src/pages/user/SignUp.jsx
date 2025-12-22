@@ -230,7 +230,7 @@ export default function SignUp() {
   const [profileFile, setProfileFile] = useState(null);
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden dark:bg-[#131313]">
       <div className="hidden lg:block w-1/2 relative">
         <img
           alt=""
