@@ -1,5 +1,4 @@
 import { Outlet, useLocation } from "react-router-dom";
-import { SpeedInsights } from "@vercel/speed-insights/react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import ChatbotButton from "../../button/ChatbotButton";
@@ -28,7 +27,6 @@ export default function Layout() {
                     <Footer />
                 </div>
             </div>
-          <SpeedInsights />
             <ScrollToTopButton />
             {showChatbot && <ChatbotButton />}
         </div>
