@@ -230,7 +230,7 @@ export default function SignUp() {
   const [profileFile, setProfileFile] = useState(null);
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden dark:bg-[#131313]">
       <div className="hidden lg:block w-1/2 relative">
         <img
           alt=""
@@ -240,7 +240,7 @@ export default function SignUp() {
       </div>
 
       <div className="w-full py-4 lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-16">
-        <div className="mx-auto w-full max-w-xl border dark:border-gray-700 rounded-xl shadow-lg p-8 dark:bg-gray-900">
+        <div className="mx-auto w-full max-w-xl bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#2e2e2e] rounded-xl shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-8">
           <h2 className="text-2xl font-bold dark:text-white text-center">
             회원가입
           </h2>

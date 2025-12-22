@@ -15,6 +15,14 @@ import {
 } from "react-icons/fa";
 import { getUserLevel, getTodayMissions, MISSION_TYPE_INFO, ALGO_LEVEL_INFO } from "../service/algorithm/AlgorithmApi";
 
+// 레벨별 이미지 경로 매핑
+const LEVEL_IMAGES = {
+    EMERALD: '/LevelImg/emerald.png',
+    SAPPHIRE: '/LevelImg/sapphire.png',
+    RUBY: '/LevelImg/ruby.png',
+    DIAMOND: '/LevelImg/diamond.png'
+};
+
 export default function LoggedInMain({ user, userStats, popularPosts, loading, onPostClick }) {
     // 사용자 레벨 및 미션 상태
     const [userLevel, setUserLevel] = useState(null);
@@ -171,13 +179,22 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                     
                     {/* Quick Stats Overlay (Real Data) */}
                     <div className="flex gap-4">
-                        <div className="px-6 py-3 bg-white/80 dark:bg-white/5 rounded-2xl backdrop-blur-md border border-white/40 dark:border-white/20 shadow-lg flex flex-col items-center min-w-[100px]">
-                            <span className="text-xs text-slate-400 font-bold uppercase">Rank</span>
-                            <span className="text-xl font-bold text-slate-800 dark:text-white">
-                                {ALGO_LEVEL_INFO[userLevel?.algoLevel]?.name || userStats?.level?.rankName || "Newbie"}
-                            </span>
+                        <div className="px-4 py-3 bg-white/80 dark:bg-white/5 rounded-2xl backdrop-blur-md border border-white/40 dark:border-transparent shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex items-center gap-3 min-w-[100px]">
+                            {userLevel?.algoLevel && LEVEL_IMAGES[userLevel.algoLevel] && (
+                                <img
+                                    src={LEVEL_IMAGES[userLevel.algoLevel]}
+                                    alt={userLevel.algoLevel}
+                                    className="w-10 h-10 object-contain"
+                                />
+                            )}
+                            <div className="flex flex-col items-center">
+                                <span className="text-xs text-slate-400 font-bold uppercase">Level</span>
+                                <span className="text-xl font-bold text-slate-800 dark:text-white">
+                                    {ALGO_LEVEL_INFO[userLevel?.algoLevel]?.name || userStats?.level?.rankName || "Newbie"}
+                                </span>
+                            </div>
                         </div>
-                        <div className="px-6 py-3 bg-white/80 dark:bg-white/5 rounded-2xl backdrop-blur-md border border-white/40 dark:border-white/20 shadow-lg flex flex-col items-center min-w-[100px]">
+                        <div className="px-6 py-3 bg-white/80 dark:bg-white/5 rounded-2xl backdrop-blur-md border border-white/40 dark:border-transparent shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex flex-col items-center min-w-[100px]">
                             <span className="text-xs text-slate-400 font-bold uppercase">EXP</span>
                             <span className="text-xl font-bold text-indigo-500">
                                 {(userLevel?.totalXp ?? userStats?.exp ?? 0).toLocaleString()}
@@ -194,7 +211,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                     className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-5 lg:gap-6 h-auto md:h-[600px]"
                 >
                     {/* Block A: Command Center (Main Action Hub) - Spans 2 cols, 2 rows */}
-                    <motion.div variants={item} className="col-span-1 md:col-span-2 row-span-2 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col">
+                    <motion.div variants={item} className="col-span-1 md:col-span-2 row-span-2 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
                         
                         <div className="p-6 pb-2">
@@ -244,9 +261,15 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                         </div>
                     </motion.div>
 
+<<<<<<< HEAD
                     {/* Block B: MCP Intro - Spans 1 col */}
                     <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-slate-800 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all group overflow-hidden">
                         <Link to="/mypage/profile" className="absolute inset-0 z-20"></Link>
+=======
+                    {/* Block B: Performance Stat (KPI) - Spans 1 col */}
+                    <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] p-8 flex flex-col justify-between shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-xl transition-all group overflow-hidden">
+                        <Link to="/mypage/dashboard" className="absolute inset-0 z-20"></Link>
+>>>>>>> 9ee73961d6c27e5c6768d42848ee9ab1b6ae7e31
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                             <FaNetworkWired className="text-8xl text-slate-900 dark:text-white transform rotate-12"/>
                         </div>
@@ -340,7 +363,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                     </motion.div>
 
                     {/* Block D: Community News - Spans 2 cols, 1 row */}
-                    <motion.div variants={item} className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-slate-800 p-6 shadow-lg flex flex-col">
+                    <motion.div variants={item} className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] p-6 shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex flex-col">
                         <div className="flex items-center justify-between mb-4 px-2">
                              <h3 className="text-base font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div> Live Updates
