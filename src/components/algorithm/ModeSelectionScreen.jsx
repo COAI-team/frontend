@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import TrackerSelector from './eye-tracking/TrackerSelector';
 import '../../styles/ModeSelectionScreen.css';
 
 /**
@@ -10,7 +9,7 @@ import '../../styles/ModeSelectionScreen.css';
  * - 기본 모드 / 집중 모드 선택
  * - 모드별 기능 안내
  * - 집중 모드 선택 시 타이머 설정 UI 표시
- * - 집중 모드 선택 시 추적기 선택 UI 표시 (TrackerSelector)
+ * - 집중 모드는 MediaPipe 시선 추적 사용 (고정)
  * - 구독 상태에 따른 모드 제한 (집중 모드는 Pro 전용)
  * - 사용량 초과 시 모드 선택 비활성화
  */
@@ -24,9 +23,6 @@ const ModeSelectionScreen = ({
   // 타이머 설정 props (집중 모드용)
   customTimeMinutes,
   setCustomTimeMinutes,
-  // 추적기 선택 props (집중 모드용)
-  selectedTrackerType,
-  setSelectedTrackerType,
   // 구독 및 사용량 제한 props
   subscriptionTier = 'FREE',
   isUsageLimitExceeded = false,
@@ -42,9 +38,9 @@ const ModeSelectionScreen = ({
   // 비회원 여부
   const isDisabled = isUsageLimitExceeded || !isLoggedIn;
   return (
-    <div className="mode-selection-page min-h-screen bg-zinc-900 dark:bg-zinc-900 text-gray-800 dark:text-gray-100">
+    <div className="mode-selection-page min-h-screen bg-zinc-900 dark:bg-[#131313] text-gray-800 dark:text-gray-100">
       {/* Header */}
-      <div className="mode-selection-header bg-zinc-800 dark:bg-zinc-800 border-b border-zinc-700 dark:border-zinc-700">
+      <div className="mode-selection-header bg-zinc-800 dark:bg-[#1f1f1f] border-b border-zinc-700 dark:border-[#2e2e2e]">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -57,7 +53,7 @@ const ModeSelectionScreen = ({
             </div>
             <button
               onClick={onNavigateBack}
-              className="header-back-btn px-4 py-2 bg-zinc-700 dark:bg-zinc-700 hover:bg-zinc-600 dark:hover:bg-zinc-600 rounded text-sm cursor-pointer"
+              className="header-back-btn px-4 py-2 bg-zinc-700 dark:bg-[#2e2e2e] hover:bg-zinc-600 dark:hover:bg-[#3f3f3f] rounded text-sm cursor-pointer"
             >
               목록으로
             </button>
@@ -159,7 +155,7 @@ const ModeSelectionScreen = ({
 
           {/* 집중 모드 타이머 설정 */}
           {selectedMode === 'FOCUS' && (
-            <div className="timer-settings-panel mt-6 p-6 bg-zinc-800 dark:bg-zinc-800 border border-zinc-700 dark:border-zinc-700 rounded-xl">
+            <div className="timer-settings-panel mt-6 p-6 bg-zinc-800 dark:bg-[#1f1f1f] border border-zinc-700 dark:border-[#2e2e2e] rounded-xl">
               <div className="text-center mb-4">
                 <span className="text-4xl mb-2 block">⏱️</span>
                 <h3 className="panel-title text-lg font-bold text-gray-900 dark:text-white">풀이 시간 설정</h3>
@@ -175,7 +171,7 @@ const ModeSelectionScreen = ({
                     className={`px-5 py-2 rounded-lg font-semibold transition-all cursor-pointer ${
                       customTimeMinutes === time
                         ? 'timer-preset-btn-selected bg-purple-600 text-white ring-2 ring-purple-400'
-                        : 'timer-preset-btn bg-zinc-700 dark:bg-zinc-700 hover:bg-zinc-600 dark:hover:bg-zinc-600 text-gray-700 dark:text-gray-300'
+                        : 'timer-preset-btn bg-zinc-700 dark:bg-[#2e2e2e] hover:bg-zinc-600 dark:hover:bg-[#3f3f3f] text-gray-700 dark:text-gray-300'
                     }`}
                   >
                     {time}분
@@ -196,27 +192,13 @@ const ModeSelectionScreen = ({
                       Math.max(1, Math.min(180, Number.parseInt(e.target.value) || 30))
                     )
                   }
-                  className="timer-input w-20 px-3 py-2 bg-zinc-700 dark:bg-zinc-700 rounded-lg text-center text-lg font-mono text-gray-900 dark:text-white"
+                  className="timer-input w-20 px-3 py-2 bg-zinc-700 dark:bg-[#2e2e2e] rounded-lg text-center text-lg font-mono text-gray-900 dark:text-white"
                 />
                 <span className="timer-input-label text-gray-500 dark:text-gray-400">분</span>
               </div>
             </div>
           )}
 
-          {/* 집중 모드 추적기 선택 */}
-          {selectedMode === 'FOCUS' && (
-            <div className="tracker-settings-panel mt-6 p-6 bg-zinc-800 dark:bg-zinc-800 border border-zinc-700 dark:border-zinc-700 rounded-xl">
-              <div className="text-center mb-4">
-                <span className="text-4xl mb-2 block">👁️</span>
-                <h3 className="panel-title text-lg font-bold text-gray-900 dark:text-white">시선 추적 방식 선택</h3>
-                <p className="panel-subtitle text-sm text-gray-500 dark:text-gray-400 mt-1">집중 모드에서 사용할 시선 추적 라이브러리를 선택하세요</p>
-              </div>
-              <TrackerSelector
-                selectedTracker={selectedTrackerType}
-                onSelect={setSelectedTrackerType}
-              />
-            </div>
-          )}
 
           {/* 시작 버튼 */}
           <div className="mt-8 text-center">
@@ -229,7 +211,7 @@ const ModeSelectionScreen = ({
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all ${
                 selectedMode && !isDisabled
                   ? 'start-button-enabled bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 cursor-pointer text-white'
-                  : 'start-button-disabled bg-zinc-700 dark:bg-zinc-700 text-gray-500 cursor-not-allowed'
+                  : 'start-button-disabled bg-zinc-700 dark:bg-[#2e2e2e] text-gray-500 cursor-not-allowed'
               }`}
             >
               {!isLoggedIn
@@ -333,7 +315,7 @@ const FocusModeWarning = () => (
       </div>
     </div>
 
-    <div className="penalty-system-box bg-zinc-800/50 dark:bg-zinc-800/50 rounded-lg p-3">
+    <div className="penalty-system-box bg-zinc-800/50 dark:bg-[#1f1f1f]/50 rounded-lg p-3">
       <h4 className="penalty-title text-gray-700 dark:text-gray-300 font-semibold mb-3">패널티 시스템:</h4>
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-3">
@@ -376,12 +358,18 @@ const ModeCard = ({
   disabledReason = null,
   proOnly = false
 }) => {
-  // 선택된 상태의 CSS 클래스 결정
+  // 선택된 상태의 Tailwind 클래스 결정 (다크모드 포함)
   const getSelectedClass = () => {
     if (!isSelected) return '';
-    if (selectedBorderClass.includes('green')) return 'mode-card-selected-learn';
-    if (selectedBorderClass.includes('blue')) return 'mode-card-selected-basic';
-    if (selectedBorderClass.includes('purple')) return 'mode-card-selected-focus';
+    if (selectedBorderClass.includes('green')) {
+      return 'border-green-500 dark:border-green-400 bg-green-900/20 dark:bg-green-900/30 ring-2 ring-green-500/50 dark:ring-green-400/50';
+    }
+    if (selectedBorderClass.includes('blue')) {
+      return 'border-blue-500 dark:border-blue-400 bg-blue-900/20 dark:bg-blue-900/30 ring-2 ring-blue-500/50 dark:ring-blue-400/50';
+    }
+    if (selectedBorderClass.includes('purple')) {
+      return 'border-purple-500 dark:border-purple-400 bg-purple-900/20 dark:bg-purple-900/30 ring-2 ring-purple-500/50 dark:ring-purple-400/50';
+    }
     return '';
   };
 
@@ -390,10 +378,10 @@ const ModeCard = ({
       onClick={disabled ? undefined : onClick}
       className={`mode-card p-6 rounded-xl transition-all border-2 relative ${
         disabled
-          ? 'mode-card-disabled border-zinc-700 dark:border-zinc-700 bg-zinc-800/50 dark:bg-zinc-800/50 opacity-60 cursor-not-allowed'
+          ? 'border-zinc-700 dark:border-[#2e2e2e] bg-zinc-800/50 dark:bg-[#1f1f1f]/50 opacity-60 cursor-not-allowed'
           : isSelected
-            ? `${getSelectedClass()} ${selectedBorderClass} cursor-pointer`
-            : 'border-zinc-700 dark:border-zinc-700 bg-zinc-800 dark:bg-zinc-800 hover:border-zinc-500 dark:hover:border-zinc-500 cursor-pointer'
+            ? `${getSelectedClass()} cursor-pointer`
+            : 'border-zinc-700 dark:border-[#2e2e2e] bg-zinc-800 dark:bg-[#1f1f1f] hover:border-zinc-500 dark:hover:border-[#3f3f3f] hover:bg-zinc-700/50 dark:hover:bg-[#2a2a2a] cursor-pointer'
       }`}
     >
       {/* Pro 전용 배지 */}
