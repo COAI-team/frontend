@@ -10,7 +10,8 @@ import {
     FaBrain,
     FaLaptopCode,
     FaSearch,
-    FaCheck
+    FaCheck,
+    FaNetworkWired
 } from "react-icons/fa";
 import { getUserLevel, getTodayMissions, MISSION_TYPE_INFO, ALGO_LEVEL_INFO } from "../service/algorithm/AlgorithmApi";
 
@@ -243,23 +244,23 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                         </div>
                     </motion.div>
 
-                    {/* Block B: Performance Stat (KPI) - Spans 1 col */}
+                    {/* Block B: MCP Intro - Spans 1 col */}
                     <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-slate-800 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all group overflow-hidden">
-                        <Link to="/mypage/dashboard" className="absolute inset-0 z-20"></Link>
+                        <Link to="/mypage/profile" className="absolute inset-0 z-20"></Link>
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <FaChartLine className="text-8xl text-slate-900 dark:text-white transform rotate-12"/>
+                            <FaNetworkWired className="text-8xl text-slate-900 dark:text-white transform rotate-12"/>
                         </div>
                         
                         <div className="relative z-10">
                             <div className="p-3 w-fit bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4 group-hover:bg-slate-900 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-slate-900 transition-colors">
-                                <FaCrown className="text-xl" />
+                                <FaNetworkWired className="text-xl" />
                             </div>
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Total Solved</h3>
-                            <div className="text-5xl font-extrabold text-slate-900 dark:text-white">
-                                {userStats?.totalSolved || 0}
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">MCP Service</h3>
+                            <div className="text-4xl font-extrabold text-slate-900 dark:text-white">
+                                Connect
                             </div>
-                            <div className="mt-2 text-xs font-semibold text-green-500 flex items-center gap-1 bg-green-50 dark:bg-green-900/30 w-fit px-2 py-1 rounded-lg">
-                                <FaArrowRight className="rotate-[-45deg]"/> Problems
+                            <div className="mt-2 text-xs font-semibold text-blue-500 flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 w-fit px-2 py-1 rounded-lg">
+                                <FaArrowRight className="-rotate-45"/> Model Context Protocol
                             </div>
                         </div>
                     </motion.div>
