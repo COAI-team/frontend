@@ -11,17 +11,17 @@ export const decodeHTML = (html) => {
 export const processCodeBlocks = (container, isDark) => {
   // Monaco 코드 블록 처리
   container.querySelectorAll('pre[data-type="monaco-code-block"]').forEach(block => {
-    const code = block.getAttribute('data-code');
-    const language = block.getAttribute('data-language') || 'plaintext';
+    const code = block.dataset.code;
+    const language = block.dataset.language || 'plaintext';
 
     if (code) {
       const decodedCode = decodeHTML(code);
 
       block.innerHTML = '';
       block.className = 'code-block-wrapper';
-      block.removeAttribute('data-type');
-      block.removeAttribute('data-code');
-      block.removeAttribute('data-language');
+      delete block.dataset.type;
+      delete block.dataset.code;
+      delete block.dataset.language;
 
       const header = document.createElement('div');
       header.className = 'code-header';

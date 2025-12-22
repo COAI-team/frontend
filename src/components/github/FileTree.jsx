@@ -160,15 +160,15 @@ const FileTree = ({ repository, branch, onSelect }) => {
             return (
                 <div>
                     <div 
-                        className="flex items-center py-1 px-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm select-none"
+                        className="flex items-center py-1 px-2 cursor-pointer text-sm select-none"
                         style={{ paddingLeft: `${paddingLeft}rem` }}
                         onClick={() => handleToggle(node.path)}
                     >
-                        <span className="mr-1 text-gray-500">
+                        <span className="mr-1">
                             {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </span>
                         <Folder size={16} className="mr-2 text-yellow-500 fill-yellow-500" />
-                        <span className="text-gray-700 dark:text-gray-200 truncate">{node.name}</span>
+                        <span className="truncate">{node.name}</span>
                     </div>
                     {isExpanded && node.children.map(child => (
                         <TreeNode key={child.path} node={child} level={level + 1} />
@@ -179,13 +179,13 @@ const FileTree = ({ repository, branch, onSelect }) => {
 
         return (
             <div 
-                className="flex items-center py-1 px-2 hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer text-sm group"
+                className="flex items-center py-1 px-2 hover:bg-gray-300 cursor-pointer text-sm group"
                 style={{ paddingLeft: `${paddingLeft}rem` }}
                 onClick={() => onSelect(node.actualFile || node)} // Pass the full file object
             >
                 <span className="mr-1 w-4"></span> {/* Spacer for chevron alignment */}
-                <FileCode size={16} className="mr-2 text-blue-500" />
-                <span className="text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-300 truncate">
+                <FileCode size={16} className="mr-2" />
+                <span className="truncate">
                     {node.name}
                 </span>
             </div>
@@ -193,18 +193,18 @@ const FileTree = ({ repository, branch, onSelect }) => {
     };
 
     return (
-        <div className="mt-4 flex flex-col h-[500px] border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 overflow-hidden">
-            <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white flex items-center gap-2">
+        <div className="mt-4 flex flex-col h-[500px] border border-gray-300 rounded-lg overflow-hidden">
+            <div className="p-3 border-b border-gray-200">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
                     <Folder size={20} />
                     File Browser
                 </h2>
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2" size={16} />
                     <input 
                         type="text" 
                         placeholder="Search files..." 
-                        className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -213,7 +213,7 @@ const FileTree = ({ repository, branch, onSelect }) => {
 
             <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                 {loading && (
-                    <div className="flex justify-center items-center h-full text-gray-500">
+                    <div className="flex justify-center items-center h-full">
                         Loading...
                     </div>
                 )}
@@ -230,18 +230,18 @@ const FileTree = ({ repository, branch, onSelect }) => {
                             // Search Results View
                             <div className="space-y-1">
                                 {searchResults.length === 0 ? (
-                                    <p className="text-gray-500 text-center py-4 text-sm">No files found.</p>
+                                    <p className="text-center py-4 text-sm">No files found.</p>
                                 ) : (
                                     searchResults.map(file => (
                                         <div 
                                             key={file.path}
                                             onClick={() => onSelect(file)}
-                                            className="flex items-center p-2 hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer rounded text-sm"
+                                            className="flex items-center p-2 hover:bg-blue-50 cursor-pointer rounded text-sm"
                                         >
-                                            <FileCode size={16} className="mr-2 text-blue-500" />
+                                            <FileCode size={16} className="mr-2" />
                                             <div className="flex flex-col overflow-hidden">
-                                                <span className="font-medium text-gray-700 dark:text-gray-200 truncate">{file.path.split('/').pop()}</span>
-                                                <span className="text-xs text-gray-400 truncate">{file.path}</span>
+                                                <span className="font-medium truncate">{file.path.split('/').pop()}</span>
+                                                <span className="text-xs truncate">{file.path}</span>
                                             </div>
                                         </div>
                                     ))
@@ -254,7 +254,7 @@ const FileTree = ({ repository, branch, onSelect }) => {
                                     <TreeNode key={node.path} node={node} />
                                 ))}
                                 {treeStructure.length === 0 && (
-                                    <p className="text-gray-500 text-center py-4 text-sm">Empty repository.</p>
+                                    <p className="text-center py-4 text-sm">Empty repository.</p>
                                 )}
                             </div>
                         )}

@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubmissionResult, completeMission, updateSharingStatus } from '../../service/algorithm/AlgorithmApi';
-import { useParsedProblem } from '../../hooks/algorithm/useParsedProblem';
 import { commitToGithub, getGithubSettings } from '../../service/github/GithubApi';
 import { AiFillGithub } from 'react-icons/ai';
+import { useLogin } from '../../context/login/useLogin';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
 /**
  * 간단한 마크다운 렌더러 컴포넌트
  * - ## 헤딩, **볼드**, - 리스트 지원
  */
-const MarkdownRenderer = ({ content }) => {
+const MarkdownRenderer = ({content}) => {
   if (!content) return null;
 
   const lines = content.split('\n');
@@ -38,13 +40,15 @@ const MarkdownRenderer = ({ content }) => {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, idx) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={idx} className="font-semibold text-gray-900 dark:text-gray-100">{part.slice(2, -2)}</strong>;
+        return <strong key={idx}
+                       className="font-semibold text-gray-900 dark:text-gray-100">{part.slice(2, -2)}</strong>;
       }
       // `코드` 처리
       const codeParts = part.split(/(`[^`]+`)/g);
       return codeParts.map((codePart, codeIdx) => {
         if (codePart.startsWith('`') && codePart.endsWith('`')) {
-          return <code key={`${idx}-${codeIdx}`} className="bg-gray-100 dark:bg-zinc-700 px-1 rounded text-sm font-mono text-blue-600 dark:text-blue-400">{codePart.slice(1, -1)}</code>;
+          return <code key={`${idx}-${codeIdx}`}
+                       className="bg-gray-100 dark:bg-zinc-700 px-1 rounded text-sm font-mono text-blue-600 dark:text-blue-400">{codePart.slice(1, -1)}</code>;
         }
         return codePart;
       });
@@ -57,7 +61,7 @@ const MarkdownRenderer = ({ content }) => {
     // 빈 줄
     if (!trimmedLine) {
       flushList();
-      elements.push(<div key={`br-${index}`} className="h-2" />);
+      elements.push(<div key={`br-${index}`} className="h-2"/>);
       return;
     }
 
@@ -66,7 +70,8 @@ const MarkdownRenderer = ({ content }) => {
       flushList();
       const headingText = trimmedLine.slice(3);
       elements.push(
-        <h3 key={`h2-${index}`} className="text-lg font-bold text-gray-900 dark:text-white mt-4 mb-2 flex items-center gap-2">
+        <h3 key={`h2-${index}`}
+            className="text-lg font-bold text-gray-900 dark:text-white mt-4 mb-2 flex items-center gap-2">
           {headingText}
         </h3>
       );
@@ -129,7 +134,7 @@ const renderFormattedText = (text) => {
 /**
  * 섹션 카드 컴포넌트 (라이트/다크 테마 지원)
  */
-const SectionCard = ({ title, icon, content, bgColor = 'bg-panel' }) => {
+const SectionCard = ({title, icon, content, bgColor = 'bg-panel'}) => {
   if (!content) return null;
   return (
     <div className={`${bgColor} rounded-lg p-4 border border-gray-200 dark:border-zinc-700`}>
@@ -147,7 +152,7 @@ const SectionCard = ({ title, icon, content, bgColor = 'bg-panel' }) => {
 /**
  * 코드 블록 컴포넌트 (라이트 테마)
  */
-const CodeBlock = ({ title, icon, content }) => {
+const CodeBlock = ({title, icon, content}) => {
   if (!content) return null;
   return (
     <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700">
@@ -166,8 +171,12 @@ const CodeBlock = ({ title, icon, content }) => {
  * 제출 결과 페이지 - 실시간 업데이트 버전
  */
 const SubmissionResult = () => {
-  const { submissionId } = useParams();
+  const {submissionId} = useParams();
   const navigate = useNavigate();
+  const { user } = useLogin();
+
+  // Alert 훅
+  const {alert, showAlert, closeAlert} = useAlert();
 
   // 상태 관리
   const [submission, setSubmission] = useState(null);
@@ -180,7 +189,7 @@ const SubmissionResult = () => {
   // GitHub 커밋 상태
   const [githubSettings, setGithubSettings] = useState(null);
   const [isCommitting, setIsCommitting] = useState(false);
-  const [commitStatus, setCommitStatus] = useState({ success: null, message: '', url: '' });
+  const [commitStatus, setCommitStatus] = useState({success: null, message: '', url: ''});
 
   // 🎯 데일리 미션 완료 상태
   const [missionStatus, setMissionStatus] = useState({
@@ -241,11 +250,12 @@ const SubmissionResult = () => {
       // 🎯 채점 완료(AC) 시 바로 데일리 미션 완료 처리 (AI 완료 기다리지 않음)
       if (isJudgeComplete && data.judgeResult === 'AC' && !missionCompletedRef.current) {
         missionCompletedRef.current = true;
-        // TODO: 실제 로그인 구현 후 user.userId로 변경
-        const testUserId = 3; // 개발용 테스트 userId
-        console.log('🎯 미션 완료 API 호출 시작:', { missionType: 'PROBLEM_SOLVE', testUserId });
+        if (!user?.userId) {
+          console.warn('로그인되지 않은 상태에서 미션 완료 처리 스킵');
+        } else {
+        console.log('🎯 미션 완료 API 호출 시작:', { missionType: 'PROBLEM_SOLVE', userId: user.userId });
         try {
-          const missionResult = await completeMission('PROBLEM_SOLVE', testUserId);
+          const missionResult = await completeMission('PROBLEM_SOLVE', user.userId);
           console.log('🎯 미션 완료 API 응답 (전체):', JSON.stringify(missionResult, null, 2));
 
           // API 응답 구조 분석: 다양한 응답 패턴 처리
@@ -258,7 +268,7 @@ const SubmissionResult = () => {
 
           if (result.error) {
             console.warn('미션 완료 API 오류:', result.message);
-            setMissionStatus(prev => ({ ...prev, error: result.message }));
+            setMissionStatus(prev => ({...prev, error: result.message}));
           } else if (result.success || result.completed) {
             setMissionStatus({
               completed: true,
@@ -285,9 +295,10 @@ const SubmissionResult = () => {
               error: null
             });
           }
-        } catch (missionErr) {
-          console.warn('미션 완료 처리 실패:', missionErr);
-          setMissionStatus(prev => ({ ...prev, error: '미션 완료 처리 실패' }));
+        } catch (error_) {
+          console.warn('미션 완료 처리 실패:', error_);
+          setMissionStatus(prev => ({...prev, error: '미션 완료 처리 실패'}));
+        }
         }
       }
 
@@ -378,7 +389,7 @@ const SubmissionResult = () => {
       console.log('🚀 자동 커밋 시작...');
 
       setIsCommitting(true);
-      setCommitStatus({ success: null, message: '자동 커밋 중...', url: '' });
+      setCommitStatus({success: null, message: '자동 커밋 중...', url: ''});
 
       const res = await commitToGithub(submissionId);
 
@@ -397,13 +408,13 @@ const SubmissionResult = () => {
           message: '자동 커밋이 완료되었습니다!',
           url: res.commitUrl || ''
         });
-        setSubmission(prev => ({ ...prev, githubCommitUrl: res.commitUrl }));
+        setSubmission(prev => ({...prev, githubCommitUrl: res.commitUrl}));
         console.log('✅ 자동 커밋 완료:', res.commitUrl);
       }
 
       // 5초 후 메시지 숨기기
       setTimeout(() => {
-        setCommitStatus(prev => ({ ...prev, success: null }));
+        setCommitStatus(prev => ({...prev, success: null}));
       }, 5000);
     };
 
@@ -416,7 +427,7 @@ const SubmissionResult = () => {
     if (!submissionId) return;
 
     setIsCommitting(true);
-    setCommitStatus({ success: null, message: '', url: '' });
+    setCommitStatus({success: null, message: '', url: ''});
 
     const res = await commitToGithub(submissionId);
 
@@ -435,12 +446,12 @@ const SubmissionResult = () => {
         url: res.commitUrl || ''
       });
       // submission 상태 업데이트 (커밋 URL 반영)
-      setSubmission(prev => ({ ...prev, githubCommitUrl: res.commitUrl }));
+      setSubmission(prev => ({...prev, githubCommitUrl: res.commitUrl}));
     }
 
     // 3초 후 메시지 숨기기
     setTimeout(() => {
-      setCommitStatus(prev => ({ ...prev, success: null }));
+      setCommitStatus(prev => ({...prev, success: null}));
     }, 5000);
   };
 
@@ -467,38 +478,70 @@ const SubmissionResult = () => {
   // 결과 색상 및 아이콘
   const getResultInfo = (result) => {
     switch (result) {
-      case 'AC': return { color: 'text-green-600', bg: 'bg-green-100', icon: '✅', text: 'Accepted' };
-      case 'WA': return { color: 'text-red-600', bg: 'bg-red-100', icon: '❌', text: 'Wrong Answer' };
-      case 'TLE': return { color: 'text-yellow-600', bg: 'bg-yellow-100', icon: '⏰', text: 'Time Limit Exceeded' };
-      case 'MLE': return { color: 'text-purple-600', bg: 'bg-purple-100', icon: '💾', text: 'Memory Limit Exceeded' };
-      case 'CE': return { color: 'text-orange-600', bg: 'bg-orange-100', icon: '⚠️', text: 'Compilation Error' };
-      case 'RE': return { color: 'text-red-600', bg: 'bg-red-100', icon: '💥', text: 'Runtime Error' };
-      default: return { color: 'text-gray-600', bg: 'bg-gray-100', icon: '⏳', text: 'Judging...' };
+      case 'AC':
+        return {color: 'text-green-600', bg: 'bg-green-100', icon: '✅', text: 'Accepted'};
+      case 'WA':
+        return {color: 'text-red-600', bg: 'bg-red-100', icon: '❌', text: 'Wrong Answer'};
+      case 'TLE':
+        return {color: 'text-yellow-600', bg: 'bg-yellow-100', icon: '⏰', text: 'Time Limit Exceeded'};
+      case 'MLE':
+        return {color: 'text-purple-600', bg: 'bg-purple-100', icon: '💾', text: 'Memory Limit Exceeded'};
+      case 'CE':
+        return {color: 'text-orange-600', bg: 'bg-orange-100', icon: '⚠️', text: 'Compilation Error'};
+      case 'RE':
+        return {color: 'text-red-600', bg: 'bg-red-100', icon: '💥', text: 'Runtime Error'};
+      default:
+        return {color: 'text-gray-600', bg: 'bg-gray-100', icon: '⏳', text: 'Judging...'};
     }
   };
 
-  // 파싱된 문제 섹션 (커스텀 훅으로 메모이제이션)
-  const parsedSections = useParsedProblem(submission?.problemDescription);
+  // 구조화된 문제 섹션 존재 여부 (백엔드에서 직접 제공)
+  const hasStructuredSections = submission?.inputFormat || submission?.outputFormat || submission?.constraints;
 
   // 공유하기
   const handleShare = async () => {
     if (!submission) return;
-    
+
+    // AC가 아니면 경고
+    if (submission.judgeResult !== 'AC') {
+      showAlert({
+        type: 'warning',
+        title: '공유 불가',
+        message: '통과한 문제만 공유가 가능합니다.'
+      });
+      return;
+    }
+
     setIsSharing(true);
-    
+
     try {
       const response = await updateSharingStatus(submission.submissionId, true);
-      
+
       if (response.error) {
-        alert(response.message || '공유 설정에 실패했습니다.');
+        showAlert({
+          type: 'error',
+          title: '공유 실패',
+          message: response.message || '공유 설정에 실패했습니다.'
+        });
       } else {
-        // 성공 시 submission 상태 업데이트
-        setSubmission(prev => ({ ...prev, isShared: true }));
-        alert('✅ 제출 결과를 공유했습니다!');
+        setSubmission(prev => ({...prev, isShared: true}));
+
+        // 확인 다이얼로그
+        const goToSolutions = globalThis.confirm('제출 결과를 공유했습니다! 확인하시겠습니까?');
+
+        if (goToSolutions) {
+          navigate(`/algorithm/problems/${submission.problemId}`, {
+            state: {activeTab: 'solutions'}
+          });
+        }
       }
     } catch (error) {
       console.error('공유하기 실패:', error);
-      alert('공유 설정 중 오류가 발생했습니다.');
+      showAlert({
+        type: 'error',
+        title: '공유 오류',
+        message: '공유 설정 중 오류가 발생했습니다.'
+      });
     } finally {
       setIsSharing(false);
     }
@@ -528,7 +571,8 @@ const SubmissionResult = () => {
       <div className="min-h-screen bg-main flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 dark:text-red-400 text-xl mb-4">⚠️ {error}</p>
-          <button onClick={() => navigate('/algorithm')} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          <button onClick={() => navigate('/algorithm')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
             문제 목록으로
           </button>
         </div>
@@ -579,7 +623,7 @@ const SubmissionResult = () => {
                   rel="noopener noreferrer"
                   className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors flex items-center gap-2"
                 >
-                  <AiFillGithub className="w-5 h-5" />
+                  <AiFillGithub className="w-5 h-5"/>
                   커밋 보기
                 </a>
               ) : !githubSettings?.githubRepoName ? (
@@ -589,7 +633,7 @@ const SubmissionResult = () => {
                   className="px-4 py-2 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors flex items-center gap-2"
                   title="프로필에서 GitHub 저장소를 설정해주세요"
                 >
-                  <AiFillGithub className="w-5 h-5" />
+                  <AiFillGithub className="w-5 h-5"/>
                   저장소 설정
                 </button>
               ) : githubSettings?.autoCommitEnabled && (isCommitting || submission.judgeResult !== 'AC' || submission.aiFeedbackStatus !== 'COMPLETED' || autoCommitWindowActive) ? (
@@ -600,7 +644,7 @@ const SubmissionResult = () => {
                     disabled
                     className="px-4 py-2 bg-gray-800 text-white rounded cursor-wait flex items-center gap-2 animate-pulse"
                   >
-                    <AiFillGithub className="w-5 h-5 animate-spin" />
+                    <AiFillGithub className="w-5 h-5 animate-spin"/>
                     자동 커밋 중...
                   </button>
                 ) : submission.judgeResult !== 'AC' ? (
@@ -610,7 +654,7 @@ const SubmissionResult = () => {
                     className="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed flex items-center gap-2"
                     title="정답(AC)일 때만 자동 커밋됩니다"
                   >
-                    <AiFillGithub className="w-5 h-5" />
+                    <AiFillGithub className="w-5 h-5"/>
                     정답만 커밋 가능
                   </button>
                 ) : submission.aiFeedbackStatus !== 'COMPLETED' ? (
@@ -620,7 +664,7 @@ const SubmissionResult = () => {
                     className="px-4 py-2 bg-gray-600 text-gray-300 rounded cursor-wait flex items-center gap-2"
                     title="AI 분석 완료 후 자동으로 커밋됩니다"
                   >
-                    <AiFillGithub className="w-5 h-5" />
+                    <AiFillGithub className="w-5 h-5"/>
                     <span className="flex items-center gap-1">
                       <span className="animate-spin text-xs">⏳</span>
                       자동 커밋 대기 중
@@ -632,7 +676,7 @@ const SubmissionResult = () => {
                     disabled
                     className="px-4 py-2 bg-green-600 text-white rounded cursor-wait flex items-center gap-2"
                   >
-                    <AiFillGithub className="w-5 h-5" />
+                    <AiFillGithub className="w-5 h-5"/>
                     자동 커밋 준비 중...
                   </button>
                 )
@@ -647,7 +691,7 @@ const SubmissionResult = () => {
                       : 'bg-gray-800 text-white hover:bg-gray-700'
                   }`}
                 >
-                  <AiFillGithub className="w-5 h-5" />
+                  <AiFillGithub className="w-5 h-5"/>
                   {isCommitting ? '커밋 중...' : 'GitHub 커밋'}
                 </button>
               ) : (
@@ -657,21 +701,36 @@ const SubmissionResult = () => {
                   className="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed flex items-center gap-2"
                   title={getGithubButtonDisabledReason()}
                 >
-                  <AiFillGithub className="w-5 h-5" />
+                  <AiFillGithub className="w-5 h-5"/>
                   <span>{getGithubButtonDisabledReason() || 'GitHub 커밋'}</span>
                 </button>
               )}
 
-              <button
-                onClick={handleShare}
-                disabled={isSharing}
-                className={`px-4 py-2 rounded transition-colors ${isSharing
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-green-500 text-white hover:bg-green-600'
+              {submission.isShared ? (
+                // 이미 공유된 경우: 공유한 내용 보러가기
+                <button
+                  onClick={() => navigate(`/algorithm/problems/${submission.problemId}`, {
+                    state: { activeTab: 'solutions' }
+                  })}
+                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors"
+                >
+                  📤 공유한 내용 보러가기
+                </button>
+              ) : (
+                // 미공유인 경우: 공유하기 버튼
+                <button
+                  onClick={handleShare}
+                  disabled={isSharing || submission.judgeResult !== 'AC'}
+                  className={`px-4 py-2 rounded transition-colors ${
+                    isSharing || submission.judgeResult !== 'AC'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-500 text-white hover:bg-green-600'
                   }`}
-              >
-                {isSharing ? '공유 중...' : '📤 공유하기'}
-              </button>
+                  title={submission.judgeResult !== 'AC' ? '통과한 문제만 공유가 가능합니다.' : ''}
+                >
+                  {isSharing ? '공유 중...' : '📤 공유하기'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -682,7 +741,8 @@ const SubmissionResult = () => {
         <div className="space-y-6">
           {/* 🎯 데일리 미션 완료 배너 */}
           {missionStatus.completed && (
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-lg p-4 text-white animate-pulse">
+            <div
+              className="bg-linear-to-r from-green-500 to-emerald-600 rounded-lg shadow-lg p-4 text-white animate-pulse">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-3xl">🎉</span>
@@ -703,15 +763,38 @@ const SubmissionResult = () => {
             </div>
           )}
 
+          {/* 🏆 획득 XP 배너 (AC 제출 시에만 표시) */}
+          {submission.judgeResult === 'AC' && submission.earnedXp > 0 && (
+            <div className="bg-linear-to-r from-purple-500 to-indigo-600 rounded-lg shadow-lg p-4 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">✨</span>
+                  <div>
+                    <h3 className="font-bold text-lg">경험치 획득!</h3>
+                    <p className="text-purple-100 text-sm">
+                      {submission.isFirstSolve ? '🎉 첫 정답 보너스 1.5배 적용!' : '문제를 정답 처리하여 XP를 획득했습니다'}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold">+{submission.earnedXp} XP</p>
+                  <p className="text-purple-100 text-xs">
+                    {submission.isFirstSolve ? '첫 정답 보너스' : '문제 풀이 보상'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* GitHub 커밋 상태 배너 */}
           {commitStatus.success !== null && (
             <div className={`rounded-lg shadow-lg p-4 flex items-center justify-between ${
               commitStatus.success
-                ? 'bg-gradient-to-r from-gray-700 to-gray-800 text-white'
+                ? 'bg-linear-to-r from-gray-700 to-gray-800 text-white'
                 : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
             }`}>
               <div className="flex items-center gap-3">
-                <AiFillGithub className="w-8 h-8" />
+                <AiFillGithub className="w-8 h-8"/>
                 <div>
                   <h3 className="font-bold">{commitStatus.success ? 'GitHub 커밋 완료!' : '커밋 실패'}</h3>
                   <p className={`text-sm ${commitStatus.success ? 'text-gray-300' : ''}`}>
@@ -738,10 +821,15 @@ const SubmissionResult = () => {
               {/* 문제 정보 */}
               <div>
                 <h3 className="text-sm font-medium text-muted mb-2">📝 문제</h3>
-                <p className="text-lg font-semibold text-main">
-                  <span className="text-blue-600 dark:text-blue-400">#{submission.problemId}</span> {submission.problemTitle}
+                <p
+                  onClick={() => navigate(`/algorithm/problems/${submission.problemId}`)}
+                  className="text-lg font-semibold text-main cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  <span
+                    className="text-blue-600 dark:text-blue-400 hover:underline">#{submission.problemId}</span> {submission.problemTitle}
                 </p>
-                <span className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-zinc-700 text-sub`}>
+                <span
+                  className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-zinc-700 text-sub`}>
                   {submission.difficulty || 'N/A'}
                 </span>
               </div>
@@ -764,7 +852,7 @@ const SubmissionResult = () => {
                 <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 mt-1">
                   <div
                     className={`h-2 rounded-full ${submission.judgeResult === 'AC' ? 'bg-green-500' : 'bg-red-500'}`}
-                    style={{ width: `${submission.totalTestCount ? (submission.passedTestCount / submission.totalTestCount) * 100 : 0}%` }}
+                    style={{width: `${submission.totalTestCount ? (submission.passedTestCount / submission.totalTestCount) * 100 : 0}%`}}
                   ></div>
                 </div>
               </div>
@@ -778,7 +866,7 @@ const SubmissionResult = () => {
                     <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 mt-1">
                       <div
                         className="bg-blue-500 h-2 rounded-full"
-                        style={{ width: `${submission.aiScore || 0}%` }}
+                        style={{width: `${submission.aiScore || 0}%`}}
                       ></div>
                     </div>
                   </>
@@ -803,9 +891,11 @@ const SubmissionResult = () => {
                   <span className="text-xl">📋</span>
                   <h3 className="text-lg font-semibold text-main">문제 설명</h3>
                 </div>
-                <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm flex items-center gap-1">
+                <button
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm flex items-center gap-1">
                   <span>{showProblemDescription ? '접기' : '펼치기'}</span>
-                  <span className={`transform transition-transform ${showProblemDescription ? 'rotate-180' : ''}`}>▼</span>
+                  <span
+                    className={`transform transition-transform ${showProblemDescription ? 'rotate-180' : ''}`}>▼</span>
                 </button>
               </div>
 
@@ -813,22 +903,24 @@ const SubmissionResult = () => {
                 <div className="p-6 pt-0 border-t border-gray-100 dark:border-zinc-700">
                   {/* 제한 정보 표시 */}
                   <div className="flex flex-wrap gap-3 mb-4 mt-4">
-                    <span className="px-3 py-1 rounded-full text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                    <span
+                      className="px-3 py-1 rounded-full text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
                       ⏱ 시간제한: {submission.timeLimit || 1000}ms
                     </span>
-                    <span className="px-3 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
+                    <span
+                      className="px-3 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
                       💾 메모리제한: {submission.memoryLimit || 256}MB
                     </span>
                   </div>
 
                   {/* 구조화된 문제 내용 */}
-                  {parsedSections && (parsedSections.description || parsedSections.input || parsedSections.output) ? (
+                  {hasStructuredSections ? (
                     <div className="space-y-4">
                       {/* 문제 설명 */}
                       <SectionCard
                         title="문제 설명"
                         icon="📝"
-                        content={parsedSections.description}
+                        content={submission.problemDescription}
                         bgColor="bg-gray-50"
                       />
 
@@ -837,13 +929,13 @@ const SubmissionResult = () => {
                         <SectionCard
                           title="입력"
                           icon="📥"
-                          content={parsedSections.input}
+                          content={submission.inputFormat}
                           bgColor="bg-blue-50 dark:bg-blue-900/20"
                         />
                         <SectionCard
                           title="출력"
                           icon="📤"
-                          content={parsedSections.output}
+                          content={submission.outputFormat}
                           bgColor="bg-green-50 dark:bg-green-900/20"
                         />
                       </div>
@@ -852,28 +944,28 @@ const SubmissionResult = () => {
                       <SectionCard
                         title="제한사항"
                         icon="⚠️"
-                        content={parsedSections.constraints}
+                        content={submission.constraints}
                         bgColor="bg-yellow-50 dark:bg-yellow-900/20"
                       />
 
-                      {/* 예제 입출력 */}
-                      {(parsedSections.exampleInput || parsedSections.exampleOutput) && (
+                      {/* 예제 입출력 (첫 번째 테스트케이스에서 가져옴) */}
+                      {submission.testCaseResults && submission.testCaseResults.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <CodeBlock
                             title="예제 입력"
                             icon="📝"
-                            content={parsedSections.exampleInput}
+                            content={submission.testCaseResults[0]?.input}
                           />
                           <CodeBlock
                             title="예제 출력"
                             icon="✅"
-                            content={parsedSections.exampleOutput}
+                            content={submission.testCaseResults[0]?.expectedOutput}
                           />
                         </div>
                       )}
                     </div>
                   ) : (
-                    /* 파싱 실패 시 원본 출력 */
+                    /* 구조화된 필드가 없을 시 원본 출력 */
                     <div className="prose prose-sm max-w-none dark:prose-invert">
                       <div className="text-sub whitespace-pre-wrap leading-relaxed bg-panel p-4 rounded-lg">
                         {renderFormattedText(submission.problemDescription)}
@@ -897,11 +989,13 @@ const SubmissionResult = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-muted">실행 시간:</span>
-                      <span className="font-mono text-main">{submission.executionTime ? `${submission.executionTime}s` : '-'}</span>
+                      <span
+                        className="font-mono text-main">{submission.executionTime ? `${submission.executionTime}s` : '-'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted">메모리 사용량:</span>
-                      <span className="font-mono text-main">{submission.memoryUsage ? `${submission.memoryUsage}KB` : '-'}</span>
+                      <span
+                        className="font-mono text-main">{submission.memoryUsage ? `${submission.memoryUsage}KB` : '-'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted">사용 언어:</span>
@@ -919,7 +1013,8 @@ const SubmissionResult = () => {
                       <h4 className="text-sm font-semibold text-main mb-3">📋 테스트케이스 결과</h4>
                       <div className="space-y-3">
                         {submission.testCaseResults.map((tc, idx) => (
-                          <div key={idx} className="border dark:border-zinc-600 rounded-lg p-3 bg-gray-50 dark:bg-zinc-700">
+                          <div key={idx}
+                               className="border dark:border-zinc-600 rounded-lg p-3 bg-gray-50 dark:bg-zinc-700">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-sub">
                                 Test Case #{tc.testCaseNumber || idx + 1}
@@ -959,8 +1054,8 @@ const SubmissionResult = () => {
                                     : tc.result === 'ERROR'
                                       ? 'bg-orange-500'
                                       : 'bg-blue-500 animate-pulse'
-                                  }`}
-                                style={{ width: tc.result ? '100%' : '60%' }}
+                                }`}
+                                style={{width: tc.result ? '100%' : '60%'}}
                               ></div>
                             </div>
                             {tc.executionTime && (
@@ -1036,9 +1131,10 @@ const SubmissionResult = () => {
 
                 {submission.aiFeedbackStatus === 'COMPLETED' ? (
                   showAIFeedback ? (
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-800">
+                    <div
+                      className="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-800">
                       {submission.aiFeedback ? (
-                        <MarkdownRenderer content={submission.aiFeedback} />
+                        <MarkdownRenderer content={submission.aiFeedback}/>
                       ) : (
                         <p className="text-muted text-center py-4">피드백이 없습니다.</p>
                       )}
@@ -1065,7 +1161,8 @@ const SubmissionResult = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-main">👁️ 집중 모드 모니터링 결과</h3>
                   {submission.monitoringStats.autoSubmitted && (
-                    <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium">
+                    <span
+                      className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium">
                       자동 제출됨
                     </span>
                   )}
@@ -1090,7 +1187,7 @@ const SubmissionResult = () => {
                     <div className="text-xs text-muted">탭 전환</div>
                   </div>
 
-                  {/* 얼굴 미검출 */}
+                  {/* 얼굴 미검출 (15초 이상) */}
                   <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
                     <div className="text-2xl mb-1">👤</div>
                     <div className="text-2xl font-bold text-main">
@@ -1107,17 +1204,137 @@ const SubmissionResult = () => {
                     </div>
                     <div className="text-xs text-muted">마우스 이탈</div>
                   </div>
+
+                  {/* 졸음 감지 */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">😴</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.sleepingCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">졸음 감지</div>
+                  </div>
+
+                  {/* 다중 인물 감지 */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">👥</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.multipleFacesCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">다중 인물</div>
+                  </div>
+
+                  {/* 깜빡임 없음 (Liveness 감지) */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">🖼️</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.maskDetectedCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">깜빡임 없음</div>
+                  </div>
+
+                  {/* 시선 이탈 */}
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">👀</div>
+                    <div className="text-2xl font-bold text-main">
+                      {submission.monitoringStats.gazeAwayCount || 0}
+                    </div>
+                    <div className="text-xs text-muted">시선 이탈</div>
+                  </div>
                 </div>
+
+                {/* 집중도 점수 통계 */}
+                {(submission.monitoringStats.focusAvgScore != null || submission.monitoringStats.focusFinalScore != null) && (
+                  <div className="mt-6 pt-6 border-t border-gray-200 dark:border-zinc-700">
+                    <h4 className="text-md font-semibold text-main mb-4 flex items-center gap-2">
+                      📊 집중도 점수
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {/* 평균 집중도 */}
+                      <div
+                        className="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg p-4 text-center border border-blue-100 dark:border-blue-800">
+                        <div className="text-sm text-blue-600 dark:text-blue-400 mb-1">평균 점수</div>
+                        <div className={`text-2xl font-bold ${
+                          (submission.monitoringStats.focusAvgScore || 0) >= 50 ? 'text-green-600' :
+                            (submission.monitoringStats.focusAvgScore || 0) >= 0 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {submission.monitoringStats.focusAvgScore?.toFixed(1) || '0.0'}
+                        </div>
+                        <div className="text-xs text-muted">(-100 ~ +100)</div>
+                      </div>
+
+                      {/* 최종 집중도 */}
+                      <div
+                        className="bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg p-4 text-center border border-green-100 dark:border-green-800">
+                        <div className="text-sm text-green-600 dark:text-green-400 mb-1">최종 점수</div>
+                        <div className={`text-2xl font-bold ${
+                          (submission.monitoringStats.focusFinalScore || 0) >= 50 ? 'text-green-600' :
+                            (submission.monitoringStats.focusFinalScore || 0) >= 0 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {submission.monitoringStats.focusFinalScore?.toFixed(1) || '0.0'}
+                        </div>
+                        <div className="text-xs text-muted">제출 시점</div>
+                      </div>
+
+                      {/* 집중 시간 비율 */}
+                      <div
+                        className="bg-linear-to-br from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 rounded-lg p-4 text-center border border-purple-100 dark:border-purple-800">
+                        <div className="text-sm text-purple-600 dark:text-purple-400 mb-1">집중 시간</div>
+                        <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                          {submission.monitoringStats.focusFocusedPercentage?.toFixed(1) || '0.0'}%
+                        </div>
+                        <div className="w-full bg-purple-200 dark:bg-purple-900 rounded-full h-1.5 mt-2">
+                          <div
+                            className="bg-purple-500 h-1.5 rounded-full transition-all duration-300"
+                            style={{width: `${submission.monitoringStats.focusFocusedPercentage || 0}%`}}
+                          ></div>
+                        </div>
+                      </div>
+
+                      {/* 고집중 시간 비율 */}
+                      <div
+                        className="bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg p-4 text-center border border-amber-100 dark:border-amber-800">
+                        <div className="text-sm text-amber-600 dark:text-amber-400 mb-1">고집중 시간</div>
+                        <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                          {submission.monitoringStats.focusHighFocusPercentage?.toFixed(1) || '0.0'}%
+                        </div>
+                        <div className="w-full bg-amber-200 dark:bg-amber-900 rounded-full h-1.5 mt-2">
+                          <div
+                            className="bg-amber-500 h-1.5 rounded-full transition-all duration-300"
+                            style={{width: `${submission.monitoringStats.focusHighFocusPercentage || 0}%`}}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 집중 시간 상세 (ms → 분:초 변환) */}
+                    {(submission.monitoringStats.focusTotalTime || submission.monitoringStats.focusFocusedTime) && (
+                      <div className="mt-4 text-sm text-muted flex items-center gap-4">
+                        <span>
+                          총 측정 시간: <span className="font-medium text-main">
+                            {Math.floor((submission.monitoringStats.focusTotalTime || 0) / 60000)}분 {Math.floor(((submission.monitoringStats.focusTotalTime || 0) % 60000) / 1000)}초
+                          </span>
+                        </span>
+                        <span>
+                          집중 상태 시간: <span className="font-medium text-main">
+                            {Math.floor((submission.monitoringStats.focusFocusedTime || 0) / 60000)}분 {Math.floor(((submission.monitoringStats.focusFocusedTime || 0) % 60000) / 1000)}초
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* 요약 통계 */}
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-4">
                       <span className="text-muted">
-                        총 위반: <span className="font-bold text-main">{submission.monitoringStats.totalViolations || 0}회</span>
+                        총 위반: <span
+                        className="font-bold text-main">{submission.monitoringStats.totalViolations || 0}회</span>
                       </span>
                       <span className="text-muted">
-                        경고 표시: <span className="font-bold text-main">{submission.monitoringStats.warningShownCount || 0}회</span>
+                        경고 표시: <span
+                        className="font-bold text-main">{submission.monitoringStats.warningShownCount || 0}회</span>
                       </span>
                     </div>
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -1145,6 +1362,17 @@ const SubmissionResult = () => {
 
         </div>
       </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import LoginRequiredModal from '../../components/common/LoginRequiredModal';
+import LoginRequiredModal from '../../components/modal/LoginRequiredModal';
 
 export function useLoginRequiredModal(defaultMessage) {
   const [open, setOpen] = useState(false);

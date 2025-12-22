@@ -32,8 +32,8 @@ const MediaPipeCalibrationScreen = ({ onComplete, faceLandmarker, videoRef }) =>
 
     // 랜드마크 인덱스 (useMediaPipeTracking과 동일)
     const LANDMARK_INDICES = {
-        LEFT_EYE: { P1: 33, P4: 133 },
-        RIGHT_EYE: { P1: 362, P4: 263 },
+        LEFT_EYE: { P1: 33, P2: 160, P4: 133, P5: 153 },    // P2=상단, P5=하단 추가
+        RIGHT_EYE: { P1: 362, P2: 385, P4: 263, P5: 373 },  // P2=상단, P5=하단 추가
         LEFT_IRIS: [468, 469, 470, 471, 472],
         RIGHT_IRIS: [473, 474, 475, 476, 477],
         NOSE_TIP: 1,
@@ -74,49 +74,50 @@ const MediaPipeCalibrationScreen = ({ onComplete, faceLandmarker, videoRef }) =>
         return { pitch, yaw, roll };
     }, []);
 
-    // 3D 시선 벡터 계산 (정규화된 방향 벡터)
+    // 홍채 상대 위치 계산 (눈 경계 기준 비율)
+    // useMediaPipeTracking.js와 동일한 방식 사용 (일관성 유지)
     const calculate3DGazeVector = useCallback((landmarks) => {
         if (!landmarks || landmarks.length < 478) return null;
 
-        // 3D 좌표 추출
+        // 홍채 중심 좌표
         const leftIris3D = landmarks[LANDMARK_INDICES.LEFT_IRIS[0]];
         const rightIris3D = landmarks[LANDMARK_INDICES.RIGHT_IRIS[0]];
 
+        // 눈의 좌우 경계점
         const leftEyeLeft3D = landmarks[LANDMARK_INDICES.LEFT_EYE.P1];
         const leftEyeRight3D = landmarks[LANDMARK_INDICES.LEFT_EYE.P4];
         const rightEyeLeft3D = landmarks[LANDMARK_INDICES.RIGHT_EYE.P1];
         const rightEyeRight3D = landmarks[LANDMARK_INDICES.RIGHT_EYE.P4];
 
-        // 눈 중심 (3D)
-        const eyeCenter3D = {
-            x: (leftEyeLeft3D.x + leftEyeRight3D.x + rightEyeLeft3D.x + rightEyeRight3D.x) / 4,
-            y: (leftEyeLeft3D.y + leftEyeRight3D.y + rightEyeLeft3D.y + rightEyeRight3D.y) / 4,
-            z: ((leftEyeLeft3D.z || 0) + (leftEyeRight3D.z || 0) + (rightEyeLeft3D.z || 0) + (rightEyeRight3D.z || 0)) / 4
-        };
+        // 눈의 상하 경계점
+        const leftEyeTop3D = landmarks[LANDMARK_INDICES.LEFT_EYE.P2];
+        const leftEyeBottom3D = landmarks[LANDMARK_INDICES.LEFT_EYE.P5];
+        const rightEyeTop3D = landmarks[LANDMARK_INDICES.RIGHT_EYE.P2];
+        const rightEyeBottom3D = landmarks[LANDMARK_INDICES.RIGHT_EYE.P5];
 
-        // 홍채 중심 (3D)
-        const irisCenter3D = {
-            x: (leftIris3D.x + rightIris3D.x) / 2,
-            y: (leftIris3D.y + rightIris3D.y) / 2,
-            z: ((leftIris3D.z || 0) + (rightIris3D.z || 0)) / 2
-        };
+        // X축: 눈 폭 대비 홍채 위치 비율 (0=왼쪽 끝, 1=오른쪽 끝)
+        const leftEyeWidth = Math.abs(leftEyeRight3D.x - leftEyeLeft3D.x) || 0.001;
+        const leftIrisRatioX = (leftIris3D.x - leftEyeLeft3D.x) / leftEyeWidth;
 
-        // 3D 시선 벡터 계산
-        const gazeVector = {
-            x: irisCenter3D.x - eyeCenter3D.x,
-            y: irisCenter3D.y - eyeCenter3D.y,
-            z: (irisCenter3D.z - eyeCenter3D.z) || 0.01
-        };
+        const rightEyeWidth = Math.abs(rightEyeRight3D.x - rightEyeLeft3D.x) || 0.001;
+        const rightIrisRatioX = (rightIris3D.x - rightEyeLeft3D.x) / rightEyeWidth;
 
-        // 시선 벡터 정규화
-        const gazeMagnitude = Math.sqrt(gazeVector.x ** 2 + gazeVector.y ** 2 + gazeVector.z ** 2);
-        const normalizedGaze = {
-            x: gazeVector.x / (gazeMagnitude || 1),
-            y: gazeVector.y / (gazeMagnitude || 1),
-            z: gazeVector.z / (gazeMagnitude || 1)
-        };
+        const irisRatioX = (leftIrisRatioX + rightIrisRatioX) / 2;
 
-        return { x: normalizedGaze.x, y: normalizedGaze.y };
+        // Y축: 눈 높이 대비 홍채 위치 비율
+        const leftEyeHeight = Math.abs(leftEyeBottom3D.y - leftEyeTop3D.y) || 0.001;
+        const leftIrisRatioY = (leftIris3D.y - leftEyeTop3D.y) / leftEyeHeight;
+
+        const rightEyeHeight = Math.abs(rightEyeBottom3D.y - rightEyeTop3D.y) || 0.001;
+        const rightIrisRatioY = (rightIris3D.y - rightEyeTop3D.y) / rightEyeHeight;
+
+        const irisRatioY = (leftIrisRatioY + rightIrisRatioY) / 2;
+
+        // 중심(0.5) 기준으로 변환 (범위: 약 -0.2 ~ +0.2)
+        return {
+            x: irisRatioX - 0.5,
+            y: irisRatioY - 0.5
+        };
     }, []);
 
     // 프레임 수집 (30프레임 수집 후 평균)
@@ -297,31 +298,34 @@ const MediaPipeCalibrationScreen = ({ onComplete, faceLandmarker, videoRef }) =>
             headY: headSensitivityY.toFixed(1)
         });
 
-        // 홍채와 머리의 상대적 기여도 결정
-        // (움직임이 더 큰 쪽에 더 높은 가중치)
-        const irisWeight = Math.abs(deltaIrisX) + Math.abs(deltaIrisY);
-        const headWeight = (Math.abs(deltaYaw) + Math.abs(deltaPitch)) / 30; // 각도를 정규화
+        // 홍채 기반 민감도만 사용 (head pose는 현재 비활성화됨)
+        // 가중치 비율을 적용하지 않고 직접 민감도 사용
+        const irisRatio = 1.0; // 홍채 100% 사용
+        const headRatio = 0.0; // head 비활성화
 
-        const totalWeight = irisWeight + headWeight;
-        const irisRatio = totalWeight > 0 ? irisWeight / totalWeight : 0.7;
-        const headRatio = 1 - irisRatio;
-
-        // 최종 감도에 가중치 적용
+        // 최종 감도 (가중치 적용 없이 직접 사용)
         const finalSensitivity = {
-            irisX: irisSensitivityX * irisRatio,
-            irisY: irisSensitivityY * irisRatio,
-            headX: headSensitivityX * headRatio,
-            headY: headSensitivityY * headRatio
+            irisX: irisSensitivityX,
+            irisY: irisSensitivityY,
+            headX: 0,
+            headY: 0
         };
 
-        // 기본값 적용 (감도가 너무 낮으면)
-        if (Math.abs(finalSensitivity.irisX) < 100 && Math.abs(finalSensitivity.headX) < 10) {
-            finalSensitivity.irisX = window.innerWidth * 2; // 기본값: 화면 너비의 2배 (안정성)
-            console.warn('⚠️ X-axis sensitivity too low, using default');
+        // 최소 민감도 보장
+        // 홍채 이동량이 약 ±0.05 이므로, 화면 절반(840px)을 커버하려면: 840 / 0.05 = 16800
+        // 너무 높으면 과민하게 반응하므로 적절한 균형 필요
+        const MIN_IRIS_SENSITIVITY_X = window.innerWidth * 10; // 최소 화면 너비의 10배 (15→10 축소)
+        const MIN_IRIS_SENSITIVITY_Y = window.innerHeight * 3;  // 최소 화면 높이의 3배
+
+        if (Math.abs(finalSensitivity.irisX) < MIN_IRIS_SENSITIVITY_X) {
+            const sign = finalSensitivity.irisX < 0 ? -1 : (finalSensitivity.irisX > 0 ? 1 : -1);
+            finalSensitivity.irisX = sign * MIN_IRIS_SENSITIVITY_X;
+            console.warn(`⚠️ X-axis sensitivity too low, using minimum: ${finalSensitivity.irisX.toFixed(0)}`);
         }
-        if (Math.abs(finalSensitivity.irisY) < 100 && Math.abs(finalSensitivity.headY) < 10) {
-            finalSensitivity.irisY = window.innerHeight * 2; // 기본값: 화면 높이의 2배 (안정성)
-            console.warn('⚠️ Y-axis sensitivity too low, using default');
+        if (Math.abs(finalSensitivity.irisY) < MIN_IRIS_SENSITIVITY_Y) {
+            const sign = finalSensitivity.irisY < 0 ? -1 : (finalSensitivity.irisY > 0 ? 1 : 1);
+            finalSensitivity.irisY = sign * MIN_IRIS_SENSITIVITY_Y;
+            console.warn(`⚠️ Y-axis sensitivity too low, using minimum: ${finalSensitivity.irisY.toFixed(0)}`);
         }
 
         const calibrationData = {

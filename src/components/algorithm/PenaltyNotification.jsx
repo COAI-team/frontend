@@ -58,7 +58,7 @@ const PenaltyNotification = ({
   const styles = getStyles();
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/50 z-9999 flex items-center justify-center">
       <div className={`${styles.bg} ${styles.pulse} p-6 rounded-xl shadow-2xl border-2 ${styles.border} max-w-md mx-4`}>
         <div className="flex items-start gap-4">
           <span className="text-4xl">{styles.icon}</span>

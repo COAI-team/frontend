@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../server/AxiosConfig';
 import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
 import { useLogin } from '../../context/login/useLogin';
+import WordCloudChart from '../../components/charts/WordCloudChart';
 import "./css/dashboard.css";
 
 const DashboardPage = () => {
@@ -18,14 +19,10 @@ const DashboardPage = () => {
     const [selectedPattern, setSelectedPattern] = useState(null);
     const [patternDetails, setPatternDetails] = useState([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
-    const [wordCloudImage, setWordCloudImage] = useState(null);
+    const [wordCloudData, setWordCloudData] = useState([]);
     
     const [showMistakeAlert, setShowMistakeAlert] = useState(false);
     
-    // [NEW] MCP State (Must be at top level, before conditional returns)
-    const [showMcpModal, setShowMcpModal] = useState(false);
-    const [mcpToken, setMcpToken] = useState(null);
-
     const userId = user?.userId;
 
     useEffect(() => {
@@ -85,16 +82,16 @@ const DashboardPage = () => {
 
             try {
                 const response = await axiosInstance.get(`/api/insights/wordcloud`, {
-                    params: { year, month } // userId is now handled by backend token
+                    params: { year, month }
                 });
                 if (response.status === 204) {
-                    setWordCloudImage(null);
+                    setWordCloudData([]);
                 } else {
-                    setWordCloudImage(response.data);
+                    setWordCloudData(response.data);
                 }
             } catch (err) {
                 console.error("Failed to fetch word cloud", err);
-                setWordCloudImage(null);
+                setWordCloudData([]);
             }
         };
 
@@ -112,95 +109,15 @@ const DashboardPage = () => {
 
     const maxFrequency = Math.max(...(Array.isArray(patterns) ? patterns : []).map(p => p.frequency), 1);
 
-    const handleConnectMcp = async () => {
-        try {
-            const res = await axiosInstance.post('/api/mcp/token');
-            setMcpToken(res.data.mcpToken);
-            setShowMcpModal(true);
-        } catch (err) {
-            console.error("Failed to issue MCP token", err);
-            alert("Failed to issue MCP token. Please try again.");
-        }
-    };
-
-    const mcpConfigJson = mcpToken ? JSON.stringify({
-        mcpServers: {
-            "coai": {
-                "command": "/opt/homebrew/bin/node",
-                "args": [
-                    "/Users/bangseong-il/Desktop/JAVA/FinalProject/backend/mcp-bridge/index.js"
-                ],
-                "env": {
-                    "COAI_SERVER_URL": "https://localhost:9443/api/mcp/analyze",
-                    "COAI_MCP_TOKEN": mcpToken
-                }
-            }
-        }
-    }, null, 2) : "";
-
     return (
         <div className="max-w-5xl mx-auto p-6 space-y-8 dashboard-page relative">
             <div className="flex justify-between items-center mb-1">
                 <h1 className="text-2xl font-bold">My Coding Dashboard</h1>
                 <div className="flex gap-2">
-                    <button 
-                        onClick={handleConnectMcp}
-                        className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded shadow transition-colors font-bold"
-                    >
-                        Connect Local AI (MCP)
-                    </button>
-                    <button 
-                        onClick={() => navigate('/mistake-report')}
-                        className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 px-3 py-1 rounded border border-gray-700 transition-colors"
-                    >
-                        View Mistake Report (Dev)
-                    </button>
+                   
                 </div>
             </div>
             <p className="text-sm dashboard-text-sub">나의 코딩 습관과 패턴을 한눈에 확인하세요.</p>
-
-            {/* MCP Connect Modal */}
-            {showMcpModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl p-6 relative animate-fade-in-up border border-gray-700">
-                        <button 
-                            onClick={() => setShowMcpModal(false)}
-                            className="absolute top-4 right-4 text-gray-500 hover:text-white"
-                        >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                        
-                        <h2 className="text-xl font-bold mb-4 text-indigo-400">⚡️ Connect CodeNose AI to Your IDE</h2>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                            Copy the configuration below and add it to your <code>claude_desktop_config.json</code> file.
-                        </p>
-
-                        <div className="relative">
-                            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto font-mono border border-gray-700">
-                                {mcpConfigJson}
-                            </pre>
-                            <button
-                                onClick={() => {
-                                    navigator.clipboard.writeText(mcpConfigJson);
-                                    alert("Copied to clipboard!");
-                                }}
-                                className="absolute top-2 right-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2 py-1 rounded transition-colors"
-                            >
-                                Copy
-                            </button>
-                        </div>
-                        
-                        <div className="mt-6 flex justify-end">
-                            <button 
-                                onClick={() => setShowMcpModal(false)}
-                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* 🚨 상습적인 실수 경고 배너 (데모) */}
             {showMistakeAlert && (
@@ -264,7 +181,7 @@ const DashboardPage = () => {
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                             </button>
-                            <span className="font-mono font-bold min-w-[80px] text-center">
+                            <span className="font-mono font-bold min-w-20 text-center">
                                 {trends.data[currentMonthIndex]?.month || 'No Data'}
                             </span>
                             <button 
@@ -277,12 +194,14 @@ const DashboardPage = () => {
                         </div>
                     </div>
                     
-                    <div className="flex-1 flex items-center justify-center min-h-[250px] relative overflow-hidden bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-                        {wordCloudImage ? (
-                            <img 
-                                src={`data:image/png;base64,${wordCloudImage}`} 
-                                alt="Word Cloud" 
-                                className="max-w-full max-h-full object-contain"
+                    <div className="flex-1 flex items-center justify-center min-h-62.5 relative overflow-hidden rounded-lg p-2">
+                        {wordCloudData && wordCloudData.length > 0 ? (
+                            <WordCloudChart 
+                                data={wordCloudData} 
+                                onWordClick={(name) => {
+                                    setSelectedPattern(name);
+                                    fetchPatternDetails(name);
+                                }}
                             />
                         ) : (
                             <div className="dashboard-text-sub">No data for this month</div>
@@ -295,7 +214,7 @@ const DashboardPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 {/* Detail View (Takes up 2 columns) */}
-                <div className="lg:col-span-2 dashboard-panel p-6 rounded-xl shadow-sm min-h-[400px]">
+                <div className="lg:col-span-2 dashboard-panel p-6 rounded-xl shadow-sm min-h-100">
                     <h2 className="dashboard-card-title mb-4">
                         {selectedPattern ? `Details: ${selectedPattern}` : "Select a pattern to view details"}
                     </h2>

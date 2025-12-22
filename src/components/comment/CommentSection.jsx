@@ -3,11 +3,12 @@ import CommentList from './CommentList';
 import CommentForm from './CommentForm';
 import { axiosInstance } from '../../server/AxiosConfig';
 
-export default function CommentSection({ boardId, boardType, isDark }) {
+export default function CommentSection({ boardId, boardType, isDark, onCommentCountChange, currentUserId }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [cursor, setCursor] = useState(null);
   const [hasNext, setHasNext] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   const buildCommentTree = (flatComments) => {
     const commentMap = new Map();
@@ -45,7 +46,7 @@ export default function CommentSection({ boardId, boardType, isDark }) {
         }
       });
 
-      const { content, nextCursor, hasNext: hasNextPage } = response.data;
+      const { content, nextCursor, hasNext: hasNextPage, totalElements } = response.data;
       const treeComments = buildCommentTree(content);
 
       if (isLoadMore) {
@@ -56,6 +57,13 @@ export default function CommentSection({ boardId, boardType, isDark }) {
 
       setCursor(nextCursor);
       setHasNext(hasNextPage);
+
+      if (totalElements !== undefined) {
+        setTotalCount(totalElements);
+        if (onCommentCountChange) {
+          onCommentCountChange(totalElements);
+        }
+      }
 
     } catch (error) {
       console.error('댓글 조회 실패:', error);
@@ -103,6 +111,7 @@ export default function CommentSection({ boardId, boardType, isDark }) {
             comments={comments}
             onCommentUpdated={fetchComments}
             isDark={isDark}
+            currentUserId={currentUserId}
           />
 
           {hasNext && (

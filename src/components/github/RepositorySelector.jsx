@@ -58,7 +58,9 @@ const RepositorySelector = ({ onSelect, onSearch }) => {
     };
 
     const handleManualSearch = () => {
-        if (onSearch) onSearch(owner);
+        // 사용자 본인의 GitHub ID인지 검증
+        const isOwnRepo = user?.githubId && owner.toLowerCase() === user.githubId.toLowerCase();
+        if (onSearch) onSearch(owner, isOwnRepo);
         fetchRepositories();
     };
 
@@ -91,7 +93,7 @@ const RepositorySelector = ({ onSelect, onSearch }) => {
                 />
                 <button 
                     onClick={handleManualSearch}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500 cursor-pointer"
                 >
                     Search
                 </button>

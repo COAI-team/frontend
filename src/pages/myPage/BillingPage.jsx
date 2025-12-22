@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchPointInfo } from "../../service/mypage/MyPageApi";
 import { cancelPayment, fetchPaymentHistory } from "../../service/payment/PaymentApi";
 import Pagination from "../../components/common/Pagination";
 import { useLogin } from "../../context/login/useLogin";
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 import "./css/billing.css";
 
 const statusLabel = {
@@ -132,6 +134,7 @@ function getEndDate(row) {
 export default function BillingPage() {
   const navigate = useNavigate();
   const { auth, logout, hydrated } = useLogin();
+  const {alert, showAlert, closeAlert} = useAlert();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("history"); // history | point
@@ -367,7 +370,11 @@ export default function BillingPage() {
 
   const handleRefund = async (row) => {
     if (!row?.paymentKey || Number(row.amount || 0) === 0) {
-      alert("포인트 전액 결제 건은 환불할 수 없습니다.");
+      showAlert({
+        type: "warning",
+        title: "환불 불가",
+        message: "포인트 전액 결제 건은 환불할 수 없습니다.",
+      });
       return;
     }
 
@@ -376,13 +383,25 @@ export default function BillingPage() {
 
     try {
       await cancelPayment({ paymentKey: row.paymentKey, cancelReason: reason });
-      alert("환불 요청이 처리되었습니다.");
+
+      showAlert({
+        type: "success",
+        title: "환불 완료",
+        message: "환불 요청이 처리되었습니다.",
+      });
+
       const res = await fetchPaymentHistory({ from: startDate, to: endDate });
       setHistory(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       const message =
-        err?.response?.data?.message || "환불 요청 처리 중 문제가 발생했습니다.";
-      alert(message);
+        err?.response?.data?.message ??
+        "환불 요청 처리 중 문제가 발생했습니다.";
+
+      showAlert({
+        type: "error",
+        title: "환불 실패",
+        message,
+      });
     }
   };
 
@@ -508,7 +527,11 @@ export default function BillingPage() {
                 <span className="text-sub">총 환불 금액: {formatMoney(filteredRefundSum)}</span>
               </div>
             </div>
-            <Pagination page={historyPage} totalPages={historyTotalPages} onPageChange={setHistoryPage} />
+            <Pagination
+              currentPage={historyPage}
+              totalPages={historyTotalPages}
+              onPageChange={setHistoryPage}
+            />
           </>
         ) : (
           <>
@@ -595,7 +618,11 @@ export default function BillingPage() {
                 <span className="text-sub">총 적립 포인트: {formatPoint(filteredTotalPointEarn)}</span>
               </div>
             </div>
-            <Pagination page={pointPage} totalPages={pointTotalPages} onPageChange={setPointPage} />
+            <Pagination
+              currentPage={pointPage}
+              totalPages={pointTotalPages}
+              onPageChange={setPointPage}
+            />
           </>
         )}
 
@@ -604,6 +631,17 @@ export default function BillingPage() {
         )}
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
       </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
     </div>
   );
 }

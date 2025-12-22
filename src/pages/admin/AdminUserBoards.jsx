@@ -1,7 +1,8 @@
-import React from "react";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import AdminBoardDetailModal from "./AdminBoardDetailModal";
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
 const API_BASE_URL = "http://localhost:9443/admin";
 const DEFAULT_PAGE_SIZE = 10;
@@ -43,6 +44,7 @@ const pickField = (item, fields, defaultValue = undefined) => {
 };
 
 const AdminUserBoards = () => {
+  const {alert, showAlert, closeAlert} = useAlert();
   const [boards, setBoards] = useState([]);
   const [pageInfo, setPageInfo] = useState({
     page: 1,
@@ -327,9 +329,12 @@ const AdminUserBoards = () => {
       setSelectedBoardType(null);
       setSelectedBoardId(null);
     } catch (err) {
-      alert(
-        err.response?.data?.message || "삭제 요청 중 오류가 발생했습니다."
-      );
+      showAlert({
+        type: 'error',
+        title: '삭제 실패',
+        message:
+          err.response?.data?.message || '삭제 요청 중 오류가 발생했습니다.'
+      });
     }
   };
 
@@ -383,7 +388,9 @@ const AdminUserBoards = () => {
         </div>
 
         <div style={styles.pageSizeWrapper}>
-          <label style={styles.pageSizeLabel}>페이지 크기</label>
+          <label
+            htmlFor="pageSizeSelect"
+            style={styles.pageSizeLabel}>페이지 크기</label>
           <select
             value={pageSize}
             onChange={handlePageSizeChange}
@@ -575,6 +582,17 @@ const AdminUserBoards = () => {
         boardType={selectedBoardType}
         onDelete={selectedBoardDetail ? handleDeleteBoard : undefined}
         onClose={() => setIsDetailModalOpen(false)}
+      />
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
       />
     </div>
   );
