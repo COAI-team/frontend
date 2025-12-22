@@ -5,6 +5,7 @@ import {
   UsersIcon,
   ShieldCheckIcon,
   ClipboardDocumentListIcon,
+  ArrowTrendingUpIcon,
 } from "@heroicons/react/24/outline";
 
 const adminMenu = [
@@ -13,10 +14,20 @@ const adminMenu = [
     icon: ShieldCheckIcon,
     children: [
       { name: "통계 대시보드", href: "/admin/stats", icon: ChartBarIcon },
+      {
+        name: "배치 통계 대시보드",
+        href: "/admin/batch-stats",
+        icon: ArrowTrendingUpIcon,
+      },
       { name: "사용자 관리", href: "/admin/users", icon: UsersIcon },
       {
         name: "사용자 게시판 관리",
         href: "/admin/userboards",
+        icon: ClipboardDocumentListIcon,
+      },
+      {
+        name: "로그 보기",
+        href: "/admin/logs",
         icon: ClipboardDocumentListIcon,
       },
     ],

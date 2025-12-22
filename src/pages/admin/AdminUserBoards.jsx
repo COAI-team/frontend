@@ -314,17 +314,13 @@ const AdminUserBoards = () => {
     if (!selectedBoardId || !selectedBoardType) return;
     const boardId = selectedBoardId;
     const normalizedType = selectedBoardType;
-    if (
-      !window.confirm(
-        "정말로 해당 게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
-      )
-    ) {
-      return;
-    }
     try {
-      await axios.delete(
-        `${API_BASE_URL}/boarddetail/${normalizedType}/${boardId}`
-      );
+      await axios.delete(`${API_BASE_URL}/boarddelte`, {
+        data: {
+          boardId,
+          boardType: normalizedType,
+        },
+      });
       fetchBoards(pageInfo.page);
       setIsDetailModalOpen(false);
       setSelectedBoardDetail(null);

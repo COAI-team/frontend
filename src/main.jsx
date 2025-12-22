@@ -57,8 +57,10 @@ import DashboardPage from "./pages/myPage/DashboardPage";
 //관리자 레이아웃
 import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
 import AdminStatsDashboard from "./pages/admin/AdminStatsDashboard";
+import AdminBatchTestDashboard from "./pages/admin/AdminBatchTestDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminUserBoards from "./pages/admin/AdminUserBoards";
+import AdminLogs from "./pages/admin/AdminLogs";
 
 createRoot(document.getElementById("root")).render(
     <ThemeProvider>
@@ -100,8 +102,13 @@ createRoot(document.getElementById("root")).render(
                         <Route path="admin" element={<AdminPageLayout/>}>
                             <Route index element={<Navigate to="stats" replace/>}/>
                             <Route path="stats" element={<AdminStatsDashboard/>}/>
+                            <Route
+                              path="batch-stats"
+                              element={<AdminBatchTestDashboard />}
+                            />
                             <Route path="users" element={<AdminUsers/>}/>
                             <Route path="userboards" element={<AdminUserBoards />} />
+                            <Route path="logs" element={<AdminLogs />} />
                         </Route>
 
                         {/* 자유게시판 - 리스트를 레이아웃으로 */}

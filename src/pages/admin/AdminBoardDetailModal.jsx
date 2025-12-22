@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 const AdminBoardDetailModal = ({
   open,
@@ -9,6 +9,8 @@ const AdminBoardDetailModal = ({
   onClose,
   onDelete,
 }) => {
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
   if (!open) return null;
 
   const codeDetail = detail?.codeBoardDetail || detail?.CodeBoardDetail || {};
@@ -19,6 +21,13 @@ const AdminBoardDetailModal = ({
     boardType === "free" &&
     (detail?.freeBoardDeletedYn || "N").toUpperCase() === "Y";
   const isDeleted = isCodeDeleted || isFreeDeleted;
+
+  const DetailRow = ({ label, children }) => (
+    <div style={styles.detailRow}>
+      <div style={styles.detailRowLabel}>{label}</div>
+      <div style={styles.detailRowValue}>{children}</div>
+    </div>
+  );
 
   const renderContent = () => {
     if (!detail || !boardType) {
@@ -39,20 +48,21 @@ const AdminBoardDetailModal = ({
               {isCodeDeleted ? "삭제됨" : "정상"}
             </span>
           </div>
-          <dl style={styles.detailList}>
-            <dt>제목</dt>
-            <dd>{codeDetail.codeboardTitle || "-"}</dd>
-            <dt>분석 타입</dt>
-            <dd>{codeDetail.analysisType || "-"}</dd>
-            <dt>AI 점수</dt>
-            <dd>{codeDetail.aiScore ?? "-"}</dd>
-            <dt>Git 저장소</dt>
-            <dd>{codeDetail.repositoryUrl || "-"}</dd>
-            <dt>분석 결과</dt>
-            <dd style={styles.detailBlock}>
-              {codeDetail.analysisResults || "-"}
-            </dd>
-          </dl>
+          <div style={styles.detailTable}>
+            <DetailRow label="제목">{codeDetail.codeboardTitle || "-"}</DetailRow>
+            <DetailRow label="분석 타입">
+              {codeDetail.analysisType || "-"}
+            </DetailRow>
+            <DetailRow label="AI 점수">{codeDetail.aiScore ?? "-"}</DetailRow>
+            <DetailRow label="Git 저장소">
+              {codeDetail.repositoryUrl || "-"}
+            </DetailRow>
+            <DetailRow label="분석 결과">
+              <div style={styles.detailBlock}>
+                {codeDetail.analysisResults || "-"}
+              </div>
+            </DetailRow>
+          </div>
           {detail.gitCode && (
             <>
               <h4 style={styles.detailSubheading}>Git 코드</h4>
@@ -82,16 +92,17 @@ const AdminBoardDetailModal = ({
               {isFreeDeleted ? "삭제됨" : "정상"}
             </span>
           </div>
-          <dl style={styles.detailList}>
-            <dt>제목</dt>
-            <dd>{detail.freeboardTitle || "-"}</dd>
-            <dt>작성자 닉네임</dt>
-            <dd>{detail.userNickNae || detail.userNickName || "-"}</dd>
-            <dt>내용</dt>
-            <dd style={styles.detailBlock}>
-              {detail.freeboardContent || "-"}
-            </dd>
-          </dl>
+          <div style={styles.detailTable}>
+            <DetailRow label="제목">{detail.freeboardTitle || "-"}</DetailRow>
+            <DetailRow label="작성자 닉네임">
+              {detail.userNickNae || detail.userNickName || "-"}
+            </DetailRow>
+            <DetailRow label="내용">
+              <div style={styles.detailBlock}>
+                {detail.freeboardContent || "-"}
+              </div>
+            </DetailRow>
+          </div>
           {isFreeDeleted && (
             <p style={styles.deletedNotice}>
               이 게시글은 이미 삭제된 상태입니다.
@@ -105,22 +116,24 @@ const AdminBoardDetailModal = ({
       return (
         <>
           <p style={styles.detailTypeLabel}>알고리즘 게시판</p>
-          <dl style={styles.detailList}>
-            <dt>작성자 닉네임</dt>
-            <dd>{detail.userNickName || "-"}</dd>
-            <dt>문제 제목</dt>
-            <dd>{detail.algoProblemTitle || "-"}</dd>
-            <dt>난이도</dt>
-            <dd>{detail.algoProblemDifficulty || "-"}</dd>
-            <dt>언어</dt>
-            <dd>{detail.language || "-"}</dd>
-            <dt>소스 코드</dt>
-            <dd style={styles.detailBlock}>{detail.sourceCode || "-"}</dd>
-            <dt>AI 피드백</dt>
-            <dd style={styles.detailBlock}>
-              {detail.aiFeedback || "-"}
-            </dd>
-          </dl>
+          <div style={styles.detailTable}>
+            <DetailRow label="작성자 닉네임">
+              {detail.userNickName || "-"}
+            </DetailRow>
+            <DetailRow label="문제 제목">
+              {detail.algoProblemTitle || "-"}
+            </DetailRow>
+            <DetailRow label="난이도">
+              {detail.algoProblemDifficulty || "-"}
+            </DetailRow>
+            <DetailRow label="언어">{detail.language || "-"}</DetailRow>
+            <DetailRow label="소스 코드">
+              <div style={styles.detailBlock}>{detail.sourceCode || "-"}</div>
+            </DetailRow>
+            <DetailRow label="AI 피드백">
+              <div style={styles.detailBlock}>{detail.aiFeedback || "-"}</div>
+            </DetailRow>
+          </div>
         </>
       );
     }
@@ -135,25 +148,78 @@ const AdminBoardDetailModal = ({
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h3 style={styles.modalTitle}>게시글 상세 정보</h3>
-          <button type="button" style={styles.modalClose} onClick={onClose}>
-            ✕
-          </button>
+          <div style={styles.headerButtons}>
+            {onDelete && !loading && !error && detail && !isDeleted && (
+              <button
+                type="button"
+                style={styles.deleteButton}
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                삭제하기
+              </button>
+            )}
+            <button type="button" style={styles.modalClose} onClick={onClose}>
+              ✕
+            </button>
+          </div>
         </div>
-        {onDelete && !loading && !error && detail && !isDeleted && (
-          <button
-            type="button"
-            style={styles.deleteButton}
-            onClick={onDelete}
-          >
-            삭제하기
-          </button>
-        )}
         {loading && (
           <p style={styles.detailText}>상세 정보를 불러오는 중...</p>
         )}
         {error && <p style={styles.detailError}>{error}</p>}
         {!loading && !error && renderContent()}
       </div>
+
+      {deleteConfirmOpen && (
+        <div
+          style={styles.confirmOverlay}
+          onClick={(e) => {
+            e.stopPropagation();
+            setDeleteConfirmOpen(false);
+          }}
+        >
+          <div
+            style={styles.confirmModal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.confirmHeader}>
+              <h3 style={styles.confirmTitle}>삭제 확인</h3>
+              <button
+                type="button"
+                style={styles.confirmClose}
+                onClick={() => setDeleteConfirmOpen(false)}
+                aria-label="Close delete confirm"
+              >
+                ✕
+              </button>
+            </div>
+            <div style={styles.confirmBody}>
+              <p style={styles.confirmMessage}>
+                정말로 해당 게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              </p>
+            </div>
+            <div style={styles.confirmFooter}>
+              <button
+                type="button"
+                style={styles.cancelButton}
+                onClick={() => setDeleteConfirmOpen(false)}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                style={styles.confirmDeleteButton}
+                onClick={async () => {
+                  await onDelete?.();
+                  setDeleteConfirmOpen(false);
+                }}
+              >
+                삭제하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -187,16 +253,27 @@ const styles = {
     alignItems: "center",
     marginBottom: "12px",
   },
+  headerButtons: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
   modalTitle: {
     margin: 0,
     fontSize: "18px",
     fontWeight: 700,
   },
   modalClose: {
-    background: "transparent",
-    border: "none",
-    color: "#94a3b8",
-    fontSize: "18px",
+    width: "34px",
+    height: "34px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#1f232a",
+    border: "1px solid #2e3440",
+    color: "#cbd5e1",
+    borderRadius: "8px",
+    fontSize: "16px",
     cursor: "pointer",
   },
   detailChipRow: {
@@ -228,11 +305,28 @@ const styles = {
     fontSize: "14px",
     margin: 0,
   },
-  detailList: {
+  detailTable: {
+    border: "1px solid #1f232a",
+    borderRadius: "10px",
+    overflow: "hidden",
+    backgroundColor: "#0b0f16",
+  },
+  detailRow: {
     display: "grid",
-    gridTemplateColumns: "120px 1fr",
-    rowGap: "8px",
-    columnGap: "12px",
+    gridTemplateColumns: "140px 1fr",
+    alignItems: "stretch",
+    borderBottom: "1px solid #1f232a",
+  },
+  detailRowLabel: {
+    padding: "10px 12px",
+    backgroundColor: "#0f1117",
+    borderRight: "1px solid #1f232a",
+    fontSize: "13px",
+    color: "#94a3b8",
+    fontWeight: 600,
+  },
+  detailRowValue: {
+    padding: "10px 12px",
     fontSize: "14px",
     color: "#e5e7eb",
   },
@@ -263,10 +357,11 @@ const styles = {
     backgroundColor: "#ef4444",
     color: "#fff",
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "8px",
     cursor: "pointer",
-    marginBottom: "16px",
-    alignSelf: "flex-end",
+    minHeight: "34px",
+    fontSize: "13px",
+    fontWeight: 700,
   },
   deletedNotice: {
     marginTop: "12px",
@@ -275,6 +370,87 @@ const styles = {
     backgroundColor: "rgba(239,68,68,0.15)",
     color: "#f87171",
     fontSize: "13px",
+  },
+  confirmOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 60,
+    padding: "0 16px",
+  },
+  confirmModal: {
+    width: "100%",
+    maxWidth: "420px",
+    backgroundColor: "#0f1117",
+    border: "1px solid #1f232a",
+    borderRadius: "12px",
+    boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
+  },
+  confirmHeader: {
+    padding: "14px 18px",
+    borderBottom: "1px solid #1f232a",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "8px",
+  },
+  confirmTitle: {
+    margin: 0,
+    fontSize: "16px",
+    fontWeight: 700,
+    color: "#e5e7eb",
+  },
+  confirmClose: {
+    width: "30px",
+    height: "30px",
+    background: "transparent",
+    border: "1px solid #2f3545",
+    borderRadius: "8px",
+    color: "#cbd5e1",
+    cursor: "pointer",
+    fontSize: "14px",
+  },
+  confirmBody: {
+    padding: "16px 18px",
+  },
+  confirmMessage: {
+    margin: 0,
+    fontSize: "14px",
+    color: "#e5e7eb",
+    lineHeight: 1.5,
+  },
+  confirmFooter: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "10px",
+    padding: "12px 18px",
+    borderTop: "1px solid #1f232a",
+  },
+  cancelButton: {
+    backgroundColor: "#2f3545",
+    color: "#fff",
+    border: "none",
+    padding: "8px 14px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: 600,
+  },
+  confirmDeleteButton: {
+    backgroundColor: "#ef4444",
+    color: "#fff",
+    border: "none",
+    padding: "8px 14px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: 700,
   },
 };
 
