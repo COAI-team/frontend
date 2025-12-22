@@ -55,8 +55,10 @@ import DashboardPage from "./pages/myPage/DashboardPage";
 //관리자 레이아웃
 import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
 import AdminStatsDashboard from "./pages/admin/AdminStatsDashboard";
+import AdminBatchTestDashboard from "./pages/admin/AdminBatchTestDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminUserBoards from "./pages/admin/AdminUserBoards";
+import AdminLogs from "./pages/admin/AdminLogs";
 
 createRoot(document.getElementById("root")).render(
   <ThemeProvider>
