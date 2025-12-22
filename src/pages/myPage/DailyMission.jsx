@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
     getTodayMissions,
     getUsageInfo,
@@ -265,7 +265,7 @@ const DailyMission = () => {
                         </div>
 
                         {/* 🌱 GitHub 스타일 잔디 캘린더 */}
-                        <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 mb-6 grass-calendar-container">
+                        <div className="bg-panel rounded-2xl border border-[#e2e8f0] dark:border-[#2e2e2e] shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-6 mb-6 grass-calendar-container">
                             <div className="flex items-center justify-between mb-4 calendar-header pb-0">
                                 <h2 className="text-lg font-semibold text-main flex items-center gap-2">
                                     🌱 문제 풀이 기록
@@ -453,7 +453,7 @@ const DailyMission = () => {
                                                 </div>
 
                                                 {/* 통계 + 범례 */}
-                                                <div className="mt-4 pt-4 border-t dark:border-gray-700 flex items-center justify-between text-sm">
+                                                <div className="mt-4 pt-4 border-t border-[#e2e8f0] dark:border-[#2e2e2e] flex items-center justify-between text-sm">
                                                     {/* 통계 (좌측) */}
                                                     <div className="text-muted">
                                                         올해 활동일 <span className="font-bold text-main">{activeDays}</span>일

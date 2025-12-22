@@ -64,10 +64,10 @@ export default function AlertModal({
       bgColor: currentBg,
       Icon,
       backdrop: theme === "dark" ? "bg-black/70" : "bg-gray-500/75",
-      panel: theme === "dark" ? "bg-gray-800" : "bg-white",
+      panel: theme === "dark" ? "bg-[#1f1f1f] border border-[#2e2e2e] shadow-[0_4px_20px_rgba(0,0,0,0.4)]" : "bg-white",
       title: theme === "dark" ? "text-gray-100" : "text-gray-900",
       text: theme === "dark" ? "text-gray-300" : "text-gray-600",
-      cancelBtn: theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-800",
+      cancelBtn: theme === "dark" ? "bg-zinc-700 hover:bg-zinc-600 text-gray-300 hover:text-white" : "bg-gray-200 text-gray-800",
     };
   }, [theme, type]);
 
