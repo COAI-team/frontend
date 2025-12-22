@@ -12,7 +12,7 @@ import { useLogin } from '../../context/login/useLogin';
  */
 
 // localStorage 키
-const TUTORIAL_STORAGE_KEY = 'coai_algorithm_tutorial_v3';
+const TUTORIAL_STORAGE_KEY_ALGO = 'coai_algorithm_tutorial_v3';
 
 // 튜토리얼 단계 정의
 const TUTORIAL_STEPS = [
@@ -156,9 +156,18 @@ const AlgorithmTutorial3 = () => {
   const currentPage = currentStepInfo?.page || 'generator';
   const progress = ((currentStep + 1) / TUTORIAL_STEPS.length) * 100;
 
-  // localStorage에서 상태 로드
+  // localStorage에서 상태 로드 및 URL 파라미터 처리
   useEffect(() => {
-    const saved = localStorage.getItem(TUTORIAL_STORAGE_KEY);
+    const searchParams = new URLSearchParams(window.location.search);
+    const stepParam = searchParams.get('step');
+    
+    if (stepParam !== null) {
+        // URL 파라미터가 있으면 강제로 해당 단계로 이동 (localStorage 무시)
+        setCurrentStep(parseInt(stepParam, 10));
+        return;
+    }
+
+    const saved = localStorage.getItem(TUTORIAL_STORAGE_KEY_ALGO);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -175,7 +184,7 @@ const AlgorithmTutorial3 = () => {
 
   // 상태 저장
   const saveProgress = useCallback((step, isComplete = false) => {
-    localStorage.setItem(TUTORIAL_STORAGE_KEY, JSON.stringify({
+    localStorage.setItem(TUTORIAL_STORAGE_KEY_ALGO, JSON.stringify({
       lastStep: step,
       tutorialCompleted: isComplete,
       timestamp: Date.now(),
@@ -211,7 +220,7 @@ const AlgorithmTutorial3 = () => {
 
   // 초기화
   const handleReset = useCallback(() => {
-    localStorage.removeItem(TUTORIAL_STORAGE_KEY);
+    localStorage.removeItem(TUTORIAL_STORAGE_KEY_ALGO);
     setCurrentStep(0);
     setTutorialCompleted(false);
   }, []);

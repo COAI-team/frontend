@@ -16,6 +16,49 @@ const ProblemGenerator = () => {
   const location = useLocation();
   const { user } = useLogin();
 
+  // [Tutorial Redirection] 
+  // Redirect to tutorial if accessing 'Problem Generator' and generator section (steps 1-4) not completed
+  useEffect(() => {
+    if (user) {
+      // 1. Check if user is "new" (created today or tomorrow)
+      // const createdDate = new Date(user.createdAt);
+      // const today = new Date();
+      // const tomorrow = new Date(today);
+      // tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // const isSameDate = (d1, d2) => 
+      //     d1.getFullYear() === d2.getFullYear() &&
+      //     d1.getMonth() === d2.getMonth() &&
+      //     d1.getDate() === d2.getDate();
+
+      // const isCreatedTodayOrTomorrow = isSameDate(createdDate, today) || isSameDate(createdDate, tomorrow);
+
+      // if (!isCreatedTodayOrTomorrow) {
+      //   return; // Skip redirection for old users
+      // }
+
+      // 2. Check tutorial progress for Part 1
+      const TUTORIAL_KEY = 'coai_algorithm_tutorial_v3_1';
+      const saved = localStorage.getItem(TUTORIAL_KEY);
+      
+      let shouldRedirect = true;
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.tutorialCompleted) {
+            shouldRedirect = false;
+          }
+        } catch (e) {
+            // Ignore error
+        }
+      }
+
+      if (shouldRedirect) {
+        navigate('/algorithm/tutorial/generator?returnUrl=/algorithm/output', { replace: true });
+      }
+    }
+  }, [user, navigate]);
+
   // 현재 페이지 경로 (리다이렉트용)
   const currentPath = location.pathname;
 
