@@ -17,6 +17,7 @@ import { extractPureDescription, renderFormattedText } from '../../components/al
 import AlertModal from "../../components/modal/AlertModal";
 import {useAlert} from "../../hooks/common/useAlert";
 import '../../styles/ProblemDetail.css';
+import '../../styles/ProblemSolve.css';
 /**
  * 문제 풀이 페이지 - 백엔드 API 연동 + 다크 테마
  * ✅ 수평(좌우) + 수직(상하) 리사이저 지원
@@ -800,16 +801,19 @@ const ProblemSolve = () => {
     });
   };
 
-  // 난이도 배지 스타일
-  const getDifficultyBadge = (diff) => {
-    const styles = {
-      'BRONZE': 'bg-orange-900/50 text-orange-400 border-orange-700',
-      'SILVER': 'bg-gray-700/50 text-gray-300 border-gray-600',
-      'GOLD': 'bg-yellow-900/50 text-yellow-400 border-yellow-700',
-      'PLATINUM': 'bg-cyan-900/50 text-cyan-400 border-cyan-700'
+  // 난이도 배지 스타일 (ProblemDetail.jsx와 동일 - CSS 클래스 사용)
+  const getDifficultyBadgeClass = (diff) => {
+    const classes = {
+      'BRONZE': 'badge-bronze',
+      'SILVER': 'badge-silver',
+      'GOLD': 'badge-gold',
+      'PLATINUM': 'badge-platinum'
     };
-    return styles[diff] || 'bg-gray-700/50 text-gray-400 border-gray-600';
+    return classes[diff] || 'badge-silver';
   };
+
+  // 테마 감지 (Monaco Editor용)
+  const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 
   const getProblemTypeBadgeClass = (type) => {
     return type === 'SQL' ? 'badge-database' : 'badge-algorithm';
@@ -890,11 +894,11 @@ const ProblemSolve = () => {
   // 로딩 상태
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+      <div className="problem-solve-loading min-h-screen bg-zinc-900 dark:bg-zinc-900 flex items-center justify-center">
         <div className="text-center">
           <div
-            className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-400">문제를 불러오는 중...</p>
+            className="loading-spinner animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="loading-text text-gray-500 dark:text-gray-400">문제를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -903,11 +907,11 @@ const ProblemSolve = () => {
   // 에러 상태
   if (error) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+      <div className="problem-solve-error min-h-screen bg-zinc-900 dark:bg-zinc-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-400 text-xl mb-4">⚠️ {error}</p>
+          <p className="error-text text-red-500 dark:text-red-400 text-xl mb-4">⚠️ {error}</p>
           <button onClick={() => navigate('/algorithm')}
-                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                  className="error-btn px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
             문제 목록으로
           </button>
         </div>
@@ -941,23 +945,23 @@ const ProblemSolve = () => {
 
 
   return (
-    <div className="h-screen bg-zinc-900 text-gray-100 flex flex-col overflow-hidden">
+    <div className="problem-solve-page h-screen bg-zinc-900 dark:bg-zinc-900 text-gray-800 dark:text-gray-100 flex flex-col overflow-hidden">
       {/* 헤더 */}
-      <div className="bg-zinc-800 border-b border-zinc-700 shrink-0">
+      <div className="problem-solve-header bg-zinc-800 dark:bg-zinc-800 border-b border-zinc-700 dark:border-zinc-700 shrink-0">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {/* 모드 선택으로 돌아가기 버튼 */}
               <button
                 onClick={handleBackToModeSelection}
-                className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+                className="header-back-btn px-3 py-2 bg-zinc-700 dark:bg-zinc-700 hover:bg-zinc-600 dark:hover:bg-zinc-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
               >
                 ← 모드 선택
               </button>
               <div>
                 <h1
-                  className="text-xl font-bold text-white">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
-                <p className="text-sm text-gray-400 mt-1">
+                  className="header-title text-xl font-bold text-gray-900 dark:text-white">#{problem?.problemId || problemId} {problem?.title || '문제'}</h1>
+                <p className="header-subtitle text-sm text-gray-500 dark:text-gray-400 mt-1">
                   맞힌사람 {problem?.successCount || 0} • 제출 {problem?.totalAttempts || 0}
                 </p>
               </div>
@@ -965,8 +969,8 @@ const ProblemSolve = () => {
 
             <div className="flex items-center gap-6">
               {/* 현재 모드 표시 */}
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                selectedMode === 'FOCUS' ? 'bg-purple-600' : 'bg-blue-600'
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white ${
+                selectedMode === 'FOCUS' ? 'mode-badge-focus bg-purple-600' : 'mode-badge-basic bg-blue-600'
               }`}>
                 <span>{selectedMode === 'FOCUS' ? '👁️' : '📝'}</span>
                 <span className="text-sm font-semibold">
@@ -1016,10 +1020,10 @@ const ProblemSolve = () => {
                       setIsTimerHovered(false);
                     }}
                   >
-                    <div className={`text-center font-mono text-lg px-2 py-1 rounded transition-all w-32 ${
+                    <div className={`timer-edit-container text-center font-mono text-lg px-2 py-1 rounded transition-all w-32 ${
                       isTimerHovered
-                        ? 'bg-zinc-600 ring-2 ring-yellow-500/50'
-                        : 'bg-zinc-700/50 hover:bg-zinc-700'
+                        ? 'bg-zinc-600 dark:bg-zinc-600 ring-2 ring-yellow-500/50'
+                        : 'bg-zinc-700/50 dark:bg-zinc-700/50 hover:bg-zinc-700 dark:hover:bg-zinc-700'
                     }`}>
                       {isTimerHovered ? (
                         <div className="flex items-center justify-center">
@@ -1066,12 +1070,12 @@ const ProblemSolve = () => {
                                 e.target.blur();
                               }
                             }}
-                            className="w-14 bg-transparent text-yellow-400 text-center outline-none font-mono text-lg"
+                            className="timer-edit-input w-14 bg-transparent text-yellow-500 dark:text-yellow-400 text-center outline-none font-mono text-lg"
                           />
-                          <span className="text-gray-500 font-mono text-lg">:00</span>
+                          <span className="text-gray-400 dark:text-gray-500 font-mono text-lg">:00</span>
                         </div>
                       ) : (
-                        <span className="text-yellow-400 cursor-pointer" title="마우스를 올려 시간 수정">
+                        <span className="timer-display text-yellow-500 dark:text-yellow-400 cursor-pointer" title="마우스를 올려 시간 수정">
                           {formatTime(timeLeft)}
                         </span>
                       )}
@@ -1085,8 +1089,8 @@ const ProblemSolve = () => {
                 ) : (
                   <span className={`font-mono text-lg w-28 text-center inline-block ${
                     selectedMode === 'FOCUS' || timerMode === 'TIMER'
-                      ? (timeLeft <= 300 ? 'text-red-400' : 'text-yellow-400')
-                      : 'text-cyan-400'
+                      ? (timeLeft <= 300 ? 'timer-display-danger text-red-500 dark:text-red-400' : 'timer-display text-yellow-500 dark:text-yellow-400')
+                      : 'timer-display-stopwatch text-cyan-500 dark:text-cyan-400'
                   }`}>
                     {selectedMode === 'FOCUS' || timerMode === 'TIMER'
                       ? formatTime(timeLeft)
@@ -1102,19 +1106,17 @@ const ProblemSolve = () => {
                       onClick={() => setShowFocusGauge(prev => !prev)}
                       className={`w-8 h-8 rounded-lg text-base transition-all flex items-center justify-center ${
                         showFocusGauge
-                          ? 'bg-emerald-600/80 text-white ring-1 ring-emerald-400 shadow-lg shadow-emerald-500/20 cursor-pointer'
-                          : 'bg-zinc-700/80 text-gray-400 hover:bg-zinc-600 hover:text-white cursor-pointer'
+                          ? 'focus-gauge-toggle-active bg-emerald-600/80 text-white ring-1 ring-emerald-400 shadow-lg shadow-emerald-500/20 cursor-pointer'
+                          : 'focus-gauge-toggle bg-zinc-700/80 dark:bg-zinc-700/80 text-gray-500 dark:text-gray-400 hover:bg-zinc-600 dark:hover:bg-zinc-600 hover:text-gray-900 dark:hover:text-white cursor-pointer'
                       }`}
                     >
                       {showFocusGauge ? '🚨' : '🚨'}
                     </button>
                     {/* 호버 툴팁 - 아래에 표시 */}
-                    <div
-                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-zinc-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg border border-zinc-700 z-50">
-                      <div
-                        className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-zinc-900"></div>
+                    <div className="focus-gauge-tooltip absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg z-50">
+                      <div className="focus-gauge-tooltip-arrow absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent"></div>
                       집중도 게이지 {showFocusGauge ? '숨기기' : '보기'}
-                      <div className="text-gray-400 mt-0.5">실시간 집중 정도를 확인</div>
+                      <div className="focus-gauge-tooltip-desc mt-0.5">실시간 집중 정도를 확인</div>
                     </div>
                   </div>
                 )}
@@ -1125,23 +1127,23 @@ const ProblemSolve = () => {
                 <div className="flex items-center gap-2">
                   {/* 타이머/스톱워치 모드 토글 */}
                   {!isTimerRunning && (
-                    <div className="flex items-center bg-zinc-700 rounded-lg p-0.5">
+                    <div className="timer-mode-toggle flex items-center bg-zinc-700 dark:bg-zinc-700 rounded-lg p-0.5">
                       <button
                         onClick={() => setTimerMode('TIMER')}
-                        className={`px-2 py-1 rounded text-xs transition-all ${
+                        className={`timer-mode-btn px-2 py-1 rounded text-xs transition-all ${
                           timerMode === 'TIMER'
-                            ? 'bg-yellow-600 text-white'
-                            : 'text-gray-400 hover:text-white'
+                            ? 'timer-mode-btn-active-timer bg-yellow-600 text-white'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                         } cursor-pointer`}
                       >
                         ⏱️ 타이머
                       </button>
                       <button
                         onClick={() => setTimerMode('STOPWATCH')}
-                        className={`px-2 py-1 rounded text-xs transition-all ${
+                        className={`timer-mode-btn px-2 py-1 rounded text-xs transition-all ${
                           timerMode === 'STOPWATCH'
-                            ? 'bg-cyan-600 text-white'
-                            : 'text-gray-400 hover:text-white'
+                            ? 'timer-mode-btn-active-stopwatch bg-cyan-600 text-white'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                         } cursor-pointer`}
                       >
                         ⏱️ 스톱워치
@@ -1153,14 +1155,14 @@ const ProblemSolve = () => {
                   {isTimerRunning ? (
                     <button
                       onClick={handleToggleTimer}
-                      className="px-3 py-1 rounded text-sm bg-red-600 hover:bg-red-700 text-white"
+                      className="timer-pause-btn px-3 py-1 rounded text-sm bg-red-600 hover:bg-red-700 text-white"
                     >
                       일시정지
                     </button>
                   ) : (
                     <button
                       onClick={handleStartTimer}
-                      className="px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700 text-white cursor-pointer"
+                      className="timer-start-btn px-3 py-1 rounded text-sm bg-green-600 hover:bg-green-700 text-white cursor-pointer"
                     >
                       시작
                     </button>
@@ -1170,7 +1172,7 @@ const ProblemSolve = () => {
                   {(isTimerRunning || elapsedTime > 0 || (timerMode === 'TIMER' && timeLeft !== customTimeMinutes * 60)) && (
                     <button
                       onClick={handleResetTimer}
-                      className="px-2 py-1 rounded text-sm bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 text-gray-600 dark:text-gray-300"
+                      className="timer-reset-btn px-2 py-1 rounded text-sm bg-gray-200 dark:bg-zinc-700 hover:bg-gray-300 dark:hover:bg-zinc-600 text-gray-600 dark:text-gray-300"
                       title="리셋"
                     >
                       ↺
@@ -1187,19 +1189,19 @@ const ProblemSolve = () => {
 
       {/* 집중 모드 상태 바 (상단 중앙) */}
       {selectedMode === 'FOCUS' && (
-        <div className="bg-zinc-850 border-b border-zinc-700 py-2 flex-shrink-0">
+        <div className="focus-status-bar bg-zinc-850 dark:bg-zinc-850 border-b border-zinc-700 dark:border-zinc-700 py-2 flex-shrink-0">
           <div className="flex justify-center items-center gap-4">
             {/* 추적기 상태 표시 */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 rounded-lg">
+            <div className="tracker-status-container flex items-center gap-2 px-3 py-1.5 bg-zinc-800 dark:bg-zinc-800 rounded-lg">
               <span className={`text-xs px-2 py-0.5 rounded ${
                 selectedTrackerType === 'mediapipe'
-                  ? 'bg-purple-900/50 text-purple-300'
-                  : 'bg-blue-900/50 text-blue-300'
+                  ? 'tracker-badge-mediapipe bg-purple-900/50 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300'
+                  : 'tracker-badge-webgazer bg-blue-900/50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300'
               }`}>
                 {selectedTrackerType === 'mediapipe' ? 'MediaPipe' : 'WebGazer'}
               </span>
               <span
-                className={`flex items-center gap-1.5 text-sm font-medium ${eyeTrackingReady ? 'text-green-400' : 'text-yellow-400'}`}>
+                className={`flex items-center gap-1.5 text-sm font-medium ${eyeTrackingReady ? 'tracker-status-ready text-green-500 dark:text-green-400' : 'tracker-status-pending text-yellow-500 dark:text-yellow-400'}`}>
                 {eyeTrackingReady && (
                   <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
                 )}
@@ -1211,10 +1213,10 @@ const ProblemSolve = () => {
             {eyeTrackingReady && (
               <button
                 onClick={handleToggleEyeTrackingDebug}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                className={`debug-btn px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                   eyeTrackingDebugMode
-                    ? 'bg-green-600 text-white ring-2 ring-green-400 shadow-lg shadow-green-500/30'
-                    : 'bg-zinc-700 text-gray-300 hover:bg-zinc-600 hover:text-white'
+                    ? 'debug-btn-active bg-green-600 text-white ring-2 ring-green-400 shadow-lg shadow-green-500/30'
+                    : 'bg-zinc-700 dark:bg-zinc-700 text-gray-600 dark:text-gray-300 hover:bg-zinc-600 dark:hover:bg-zinc-600 hover:text-gray-900 dark:hover:text-white'
                 }`}
                 title="웹캠 미리보기, 시선 위치 점, 얼굴 가이드 박스 표시"
               >
@@ -1231,13 +1233,13 @@ const ProblemSolve = () => {
         <div className="flex h-full gap-1">
 
           {/* 왼쪽: 문제 설명 */}
-          <div className="bg-zinc-800 rounded-lg overflow-auto" style={{width: `${leftPanelWidth}%`}}>
+          <div className="problem-panel bg-zinc-800 dark:bg-zinc-800 rounded-lg overflow-auto" style={{width: `${leftPanelWidth}%`}}>
             <div className="p-6">
               {/* 문제 설명 제목 + 제한 정보 (같은 줄) */}
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-bold text-white">문제 설명</h2>
+                <h2 className="panel-title text-lg font-bold text-gray-900 dark:text-white">문제 설명</h2>
                 <div className="flex flex-wrap gap-2 justify-end">
-                  <span className={`px-3 py-1 rounded-full text-xs border ${getDifficultyBadge(problem?.difficulty)}`}>
+                  <span className={`badge ${getDifficultyBadgeClass(problem?.difficulty)}`}>
                     {problem?.difficulty || 'N/A'}
                   </span>
                   <span className={`badge ${getProblemTypeBadgeClass(problem.problemType)}`}>
@@ -1261,7 +1263,7 @@ const ProblemSolve = () => {
 
               {/* 구조화된 문제 내용 - 백엔드에서 직접 제공된 필드 사용 */}
               {hasStructuredSections ? (
-                <div className="problem-content-area problem-solve-dark">
+                <div className="problem-content-area problem-solve-content">
                   {/* 문제 설명 */}
                   <div className="section-card section-description">
                     <div className="section-header">
@@ -1341,7 +1343,7 @@ const ProblemSolve = () => {
                 </div>
               ) : (
                 /* 구조화된 필드가 없는 경우 원본 출력 */
-                <div className="problem-content-area problem-solve-dark">
+                <div className="problem-content-area problem-solve-content">
                   <div className="section-card section-description">
                     <div className="section-header">
                       <span className="section-icon">📋</span>
@@ -1378,23 +1380,23 @@ const ProblemSolve = () => {
 
           {/* ✅ 수평 리사이저 (좌우) */}
           <div
-            className={`w-1 bg-gray-300 dark:bg-zinc-700 hover:bg-purple-500 cursor-col-resize transition-colors ${isHorizontalResizing ? 'bg-purple-500' : ''}`}
+            className={`resizer-horizontal w-1 bg-gray-300 dark:bg-zinc-700 hover:bg-purple-500 cursor-col-resize transition-colors ${isHorizontalResizing ? 'bg-purple-500' : ''}`}
             onMouseDown={handleHorizontalResizeStart}
           />
 
           {/* 오른쪽: 에디터 + 실행결과 */}
           <div
-            className="bg-zinc-800 rounded-lg flex flex-col overflow-hidden"
+            className="editor-panel bg-zinc-800 dark:bg-zinc-800 rounded-lg flex flex-col overflow-hidden"
             style={{width: `${100 - leftPanelWidth}%`}}
             ref={editorContainerRef}
           >
             {/* 에디터 헤더 */}
-            <div className="flex items-center justify-between p-3 border-b border-zinc-700 flex-shrink-0">
+            <div className="editor-header flex items-center justify-between p-3 border-b border-zinc-700 dark:border-zinc-700 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <select
                   value={selectedLanguage}
                   onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="bg-gray-100 dark:bg-zinc-700 border-none rounded px-3 py-1 text-sm"
+                  className="language-select bg-gray-100 dark:bg-zinc-700 border-none rounded px-3 py-1 text-sm text-gray-700 dark:text-gray-200"
                 >
                   {problem?.problemType === 'SQL' ? (
                     <option value="SQL">SQL (SQLite)</option>
@@ -1409,7 +1411,7 @@ const ProblemSolve = () => {
 
                 {/* 선택된 언어의 제한 정보 표시 (작게) */}
                 {problem?.availableLanguages && (
-                  <span className="text-xs text-gray-500 ml-2">
+                  <span className="limit-info text-xs text-gray-500 ml-2">
                     (⏱ 시간제한: {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.timeLimit}ms /
                     💾 메모리제한: {problem.availableLanguages.find(l => l.languageName === selectedLanguage)?.memoryLimit}MB)
                   </span>
@@ -1434,7 +1436,7 @@ const ProblemSolve = () => {
                       }
                     }}
                     id="copyCodeBtn"
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded cursor-pointer"
+                    className="copy-btn p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded cursor-pointer"
                   >
                     📋
                   </button>
@@ -1455,59 +1457,59 @@ const ProblemSolve = () => {
                 onChange={setCode}
                 onMount={handleEditorMount}
                 height="100%"
-                theme="vs-dark"
+                theme={isDarkMode ? "vs-dark" : "vs-light"}
               />
             </div>
 
             {/* ✅ 수직 리사이저 (상하) */}
             <div
-              className={`h-1 bg-gray-300 dark:bg-zinc-700 hover:bg-purple-500 cursor-row-resize transition-colors flex-shrink-0 ${isVerticalResizing ? 'bg-purple-500' : ''}`}
+              className={`resizer-vertical h-1 bg-gray-300 dark:bg-zinc-700 hover:bg-purple-500 cursor-row-resize transition-colors flex-shrink-0 ${isVerticalResizing ? 'bg-purple-500' : ''}`}
               onMouseDown={handleVerticalResizeStart}
             >
               {/* 리사이저 핸들 표시 */}
               <div className="flex justify-center items-center h-full">
-                <div className="w-8 h-0.5 bg-gray-400 dark:bg-zinc-500 rounded-full"></div>
+                <div className="resizer-handle w-8 h-0.5 bg-gray-400 dark:bg-zinc-500 rounded-full"></div>
               </div>
             </div>
 
             {/* ✅ 실행결과 영역 (수직 리사이저블) */}
             <div style={{height: `${100 - editorHeight}%`}} className="flex flex-col min-h-0">
-              <div className="p-3 bg-zinc-850 flex-1 overflow-auto">
-                <p className="text-sm text-gray-400 mb-2">실행결과</p>
+              <div className="execution-result-area p-3 bg-zinc-850 dark:bg-zinc-850 flex-1 overflow-auto">
+                <p className="result-label text-sm text-gray-500 dark:text-gray-400 mb-2">실행결과</p>
 
                 {/* 프로그레스 바 */}
                 {isRunning && (
                   <div className="mb-3">
                     <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                      <span>⏳ 코드 실행 중...</span>
+                      <span className="running-status">⏳ 코드 실행 중...</span>
                       <span>{Math.round(runProgress)}%</span>
                     </div>
-                    <div className="w-full bg-gray-300 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
+                    <div className="progress-bar-bg w-full bg-gray-300 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
                       <div
-                        className="h-full bg-linear-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                        className="progress-bar-fill h-full bg-linear-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
                         style={{width: `${runProgress}%`}}
                       />
                     </div>
                   </div>
                 )}
 
-                <div className="bg-gray-900 dark:bg-zinc-900 rounded p-3 h-full overflow-auto text-sm text-gray-100">
+                <div className="result-container bg-gray-900 dark:bg-zinc-900 rounded p-3 h-full overflow-auto text-sm text-gray-800 dark:text-gray-100">
                   {isRunning ? (
-                    <div className="flex items-center gap-2 text-yellow-400">
+                    <div className="running-status flex items-center gap-2 text-yellow-500 dark:text-yellow-400">
                       <span className="animate-spin">⚙️</span>
                       <span>Judge0 서버에서 코드를 실행하고 있습니다...</span>
                     </div>
                   ) : testResult ? (
                     testResult.error ? (
-                      <span className="text-red-400">❌ {testResult.message}</span>
+                      <span className="text-red-500 dark:text-red-400">❌ {testResult.message}</span>
                     ) : (
                       <div className="space-y-3">
                         {/* 상단: 간략한 결과 요약 */}
-                        <div className="flex items-center gap-3 pb-2 border-b border-zinc-700">
+                        <div className="result-summary flex items-center gap-3 pb-2 border-b border-zinc-300 dark:border-zinc-700">
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                             testResult.overallResult === 'AC'
-                              ? 'bg-green-900/50 text-green-400 border border-green-700'
-                              : 'bg-red-900/50 text-red-400 border border-red-700'
+                              ? 'result-badge-pass bg-green-900/50 dark:bg-green-900/50 text-green-600 dark:text-green-400 border border-green-700'
+                              : 'result-badge-fail bg-red-900/50 dark:bg-red-900/50 text-red-600 dark:text-red-400 border border-red-700'
                           }`}>
                             {testResult.overallResult === 'AC' ? '통과' : testResult.overallResult}
                           </span>
@@ -1515,7 +1517,7 @@ const ProblemSolve = () => {
                             {testResult.passedCount}/{testResult.totalCount} 테스트 통과
                           </span>
                           {testResult.maxExecutionTime > 0 && (
-                            <span className="text-gray-600 text-xs">
+                            <span className="text-gray-500 dark:text-gray-600 text-xs">
                               {testResult.maxExecutionTime}ms
                             </span>
                           )}
@@ -1523,19 +1525,19 @@ const ProblemSolve = () => {
 
                         {/* 각 테스트케이스 출력 */}
                         {testResult.testCaseResults?.map((tc, idx) => (
-                          <div key={idx} className="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/50">
+                          <div key={idx} className="testcase-card bg-zinc-800/50 dark:bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/50 dark:border-zinc-700/50">
                             {/* TC 헤더 */}
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-gray-400 text-xs font-medium">테스트 {tc.testCaseNumber}</span>
+                            <div className="testcase-header flex items-center gap-2 mb-2">
+                              <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">테스트 {tc.testCaseNumber}</span>
                               <span className={`px-1.5 py-0.5 rounded text-[10px] ${
                                 tc.result === 'AC'
-                                  ? 'bg-green-900/30 text-green-500'
-                                  : 'bg-red-900/30 text-red-500'
+                                  ? 'testcase-badge-ac bg-green-900/30 dark:bg-green-900/30 text-green-600 dark:text-green-500'
+                                  : 'testcase-badge-fail bg-red-900/30 dark:bg-red-900/30 text-red-600 dark:text-red-500'
                               }`}>
                                 {tc.result}
                               </span>
                               {tc.executionTime && (
-                                <span className="text-gray-600 text-[10px]">{tc.executionTime}ms</span>
+                                <span className="testcase-time text-gray-500 dark:text-gray-600 text-[10px]">{tc.executionTime}ms</span>
                               )}
                             </div>
 
@@ -1543,7 +1545,7 @@ const ProblemSolve = () => {
                             {tc.input && (
                               <div className="mb-2">
                                 <span className="text-gray-500 text-[10px] uppercase tracking-wide">입력</span>
-                                <pre className="mt-1 p-2 bg-zinc-900 rounded text-xs text-cyan-400 font-mono overflow-x-auto whitespace-pre-wrap">
+                                <pre className="code-block code-block-input mt-1 p-2 bg-zinc-900 dark:bg-zinc-900 rounded text-xs text-cyan-600 dark:text-cyan-400 font-mono overflow-x-auto whitespace-pre-wrap">
                                   {tc.input}
                                 </pre>
                               </div>
@@ -1552,8 +1554,8 @@ const ProblemSolve = () => {
                             {/* 출력 (항상 표시) */}
                             <div className="mb-2">
                               <span className="text-gray-500 text-[10px] uppercase tracking-wide">출력</span>
-                              <pre className={`mt-1 p-2 bg-zinc-900 rounded text-xs font-mono overflow-x-auto whitespace-pre-wrap ${
-                                tc.actualOutput ? 'text-green-400' : 'text-gray-600 italic'
+                              <pre className={`code-block code-block-output mt-1 p-2 bg-zinc-900 dark:bg-zinc-900 rounded text-xs font-mono overflow-x-auto whitespace-pre-wrap ${
+                                tc.actualOutput ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-600 italic'
                               }`}>
                                 {tc.actualOutput?.trim() || '(출력 없음)'}
                               </pre>
@@ -1563,7 +1565,7 @@ const ProblemSolve = () => {
                             {tc.result !== 'AC' && tc.expectedOutput && (
                               <div className="mb-2">
                                 <span className="text-gray-500 text-[10px] uppercase tracking-wide">기대 출력</span>
-                                <pre className="mt-1 p-2 bg-zinc-900 rounded text-xs text-yellow-400 font-mono overflow-x-auto whitespace-pre-wrap">
+                                <pre className="code-block code-block-expected mt-1 p-2 bg-zinc-900 dark:bg-zinc-900 rounded text-xs text-yellow-600 dark:text-yellow-400 font-mono overflow-x-auto whitespace-pre-wrap">
                                   {tc.expectedOutput}
                                 </pre>
                               </div>
@@ -1571,8 +1573,8 @@ const ProblemSolve = () => {
 
                             {/* 에러 메시지 */}
                             {tc.errorMessage && (
-                              <div className="mt-2 p-2 bg-red-900/20 rounded border border-red-900/50">
-                                <pre className="text-red-300 text-xs whitespace-pre-wrap">
+                              <div className="error-block mt-2 p-2 bg-red-900/20 dark:bg-red-900/20 rounded border border-red-900/50 dark:border-red-900/50">
+                                <pre className="text-red-500 dark:text-red-300 text-xs whitespace-pre-wrap">
                                   {tc.errorMessage}
                                 </pre>
                               </div>
@@ -1582,19 +1584,19 @@ const ProblemSolve = () => {
                       </div>
                     )
                   ) : (
-                    <span className="text-gray-500">💡 코드를 작성하고 "코드 실행" 버튼을 클릭하세요.</span>
+                    <span className="hint-text text-gray-500">💡 코드를 작성하고 "코드 실행" 버튼을 클릭하세요.</span>
                   )}
                 </div>
               </div>
 
               {/* 하단 버튼 */}
               <div
-                className="flex items-center justify-end gap-3 p-4 border-t border-zinc-700 bg-zinc-800 flex-shrink-0">
-                <button onClick={handleResetCode} className="px-4 py-2 text-gray-400 hover:text-white cursor-pointer">
+                className="action-buttons-container flex items-center justify-end gap-3 p-4 border-t border-zinc-700 dark:border-zinc-700 bg-zinc-800 dark:bg-zinc-800 flex-shrink-0">
+                <button onClick={handleResetCode} className="reset-btn px-4 py-2 rounded text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer">
                   초기화
                 </button>
                 <button onClick={handleTestRun} disabled={isRunning}
-                        className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2 cursor-pointer">
+                        className="run-btn px-4 py-2 bg-zinc-700 dark:bg-zinc-700 hover:bg-zinc-600 dark:hover:bg-zinc-600 rounded disabled:opacity-50 flex items-center gap-2 cursor-pointer text-gray-200 dark:text-gray-200">
                   {isRunning ? (
                     <>
                       <span className="animate-spin">⚙️</span>
@@ -1605,7 +1607,7 @@ const ProblemSolve = () => {
                   )}
                 </button>
                 <button onClick={handleSubmit} disabled={isSubmitting || !code.trim()}
-                        className="px-6 py-2 bg-linear-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2 cursor-pointer">
+                        className="submit-btn px-6 py-2 bg-linear-to-r from-purple-500 to-pink-500 rounded font-medium disabled:opacity-50 flex items-center gap-2 cursor-pointer text-white">
                   {isSubmitting ? '제출 중...' : '✓ 제출 후 채점하기'}
                 </button>
               </div>

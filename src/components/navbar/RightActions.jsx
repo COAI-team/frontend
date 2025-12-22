@@ -90,7 +90,7 @@ const RightActions = ({ user, logout, BASE_URL, hydrated }) => {
                 height="32"
                 loading="lazy"
               />
-              <span className="text-sm font-bold dark:text-white truncate max-w-30">
+              <span className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-30">
                                 {user.nickname}
                             </span>
             </div>
@@ -100,7 +100,7 @@ const RightActions = ({ user, logout, BASE_URL, hydrated }) => {
       ) : (
         <Link
           to="/signin"
-          className="ml-2 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm bg-indigo-600 hover:bg-indigo-500 text-white dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          className="ml-2 rounded-2xl px-3 py-1.5 text-sm font-semibold shadow-sm bg-gray-900 hover:bg-gray-700 text-white dark:bg-white dark:hover:bg-gray-200 dark:text-gray-900 transition-all duration-200"
           aria-label="로그인 페이지로 이동"
         >
           로그인

@@ -586,7 +586,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
 
                 // WASM 파일 로드
                 const filesetResolver = await FilesetResolver.forVisionTasks(
-                    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm'
+                    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm'
                 );
 
                 // FaceLandmarker 생성
