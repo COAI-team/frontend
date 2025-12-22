@@ -597,7 +597,7 @@ const SubmissionResult = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-[#131313] submission-result-page">
       {/* 상단 헤더 */}
-      <div className="bg-panel shadow-sm border-b dark:border-zinc-700 submission-header-panel">
+      <div className="bg-white dark:bg-[#1f1f1f] shadow-sm border-b border-gray-200 dark:border-[#2e2e2e] submission-header-panel">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* 네비게이션 */}
@@ -826,7 +826,7 @@ const SubmissionResult = () => {
           )}
 
           {/* 결과 요약 카드 */}
-          <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700 p-6 submission-summary-card">
+          <div className="bg-white dark:bg-[#1f1f1f] rounded-lg shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-gray-200 dark:border-[#2e2e2e] p-6 submission-summary-card">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* 문제 정보 */}
               <div>
@@ -914,9 +914,9 @@ const SubmissionResult = () => {
 
           {/* 문제 설명 (접이식) */}
           {submission.problemDescription && (
-            <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700 problem-description-section">
+            <div className="bg-white dark:bg-[#1f1f1f] rounded-lg shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-gray-200 dark:border-[#2e2e2e] problem-description-section">
               <div
-                className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors section-header"
+                className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors section-header"
                 onClick={() => setShowProblemDescription(!showProblemDescription)}
               >
                 <div className="flex items-center gap-3">
@@ -1037,7 +1037,7 @@ const SubmissionResult = () => {
             {/* 왼쪽 열: 실행 결과 + 제출된 코드 */}
             <div className="space-y-6">
               {/* 실행 결과 */}
-              <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700 execution-result-card">
+              <div className="bg-white dark:bg-[#1f1f1f] rounded-lg shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-gray-200 dark:border-[#2e2e2e] execution-result-card">
                 <div className="p-6">
                   <h3 className="text-lg font-semibold text-main mb-4">📈 실행 결과</h3>
 
@@ -1069,7 +1069,7 @@ const SubmissionResult = () => {
                       <div className="space-y-3">
                         {submission.testCaseResults.map((tc, idx) => (
                           <div key={idx}
-                               className={`border dark:border-zinc-600 rounded-lg p-3 bg-gray-50 dark:bg-zinc-700 testcase-item ${tc.result === 'PASS' ? 'testcase-pass' : tc.result === 'FAIL' ? 'testcase-fail' : tc.result === 'ERROR' ? 'testcase-error' : ''}`}>
+                               className={`border border-gray-200 dark:border-[#2e2e2e] rounded-lg p-3 bg-gray-50 dark:bg-[#2a2a2a] testcase-item ${tc.result === 'PASS' ? 'testcase-pass' : tc.result === 'FAIL' ? 'testcase-fail' : tc.result === 'ERROR' ? 'testcase-error' : ''}`}>
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-sub">
                                 Test Case #{tc.testCaseNumber || idx + 1}
@@ -1147,10 +1147,10 @@ const SubmissionResult = () => {
               </div>
 
               {/* 제출된 코드 */}
-              <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700 submitted-code-card">
+              <div className="bg-white dark:bg-[#1f1f1f] rounded-lg shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-gray-200 dark:border-[#2e2e2e] submitted-code-card">
                 <div className="p-6">
                   <h3 className="text-lg font-semibold text-main mb-4">💻 제출된 코드</h3>
-                  <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-600">
+                  <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-[#2e2e2e]">
                     <Editor
                       height="400px"
                       language={getMonacoLanguage(submission.languageName)}
@@ -1190,7 +1190,7 @@ const SubmissionResult = () => {
             </div>
 
             {/* AI 피드백 */}
-            <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700 ai-feedback-card">
+            <div className="bg-white dark:bg-[#1f1f1f] rounded-lg shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-gray-200 dark:border-[#2e2e2e] ai-feedback-card">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-main">🤖 AI 피드백</h3>
@@ -1229,7 +1229,7 @@ const SubmissionResult = () => {
 
           {/* 집중 모드 모니터링 통계 */}
           {submission.solveMode === 'FOCUS' && submission.monitoringStats && (
-            <div className="bg-panel rounded-lg shadow-sm border dark:border-zinc-700 focus-monitoring-card">
+            <div className="bg-white dark:bg-[#1f1f1f] rounded-lg shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-gray-200 dark:border-[#2e2e2e] focus-monitoring-card">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-main">👁️ 집중 모드 모니터링 결과</h3>
@@ -1243,7 +1243,7 @@ const SubmissionResult = () => {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {/* 전체화면 이탈 */}
-                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center monitoring-stat-item">
+                  <div className="bg-gray-50 dark:bg-[#2a2a2a] rounded-lg p-4 text-center monitoring-stat-item">
                     <div className="text-2xl mb-1">🖥️</div>
                     <div className="text-2xl font-bold text-main">
                       {submission.monitoringStats.fullscreenExitCount || 0}
@@ -1252,7 +1252,7 @@ const SubmissionResult = () => {
                   </div>
 
                   {/* 탭 전환 */}
-                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center monitoring-stat-item">
+                  <div className="bg-gray-50 dark:bg-[#2a2a2a] rounded-lg p-4 text-center monitoring-stat-item">
                     <div className="text-2xl mb-1">📑</div>
                     <div className="text-2xl font-bold text-main">
                       {submission.monitoringStats.tabSwitchCount || 0}
@@ -1261,7 +1261,7 @@ const SubmissionResult = () => {
                   </div>
 
                   {/* 얼굴 미검출 (15초 이상) */}
-                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center monitoring-stat-item">
+                  <div className="bg-gray-50 dark:bg-[#2a2a2a] rounded-lg p-4 text-center monitoring-stat-item">
                     <div className="text-2xl mb-1">👤</div>
                     <div className="text-2xl font-bold text-main">
                       {submission.monitoringStats.noFaceCount || 0}
@@ -1270,7 +1270,7 @@ const SubmissionResult = () => {
                   </div>
 
                   {/* 마우스 이탈 */}
-                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center monitoring-stat-item">
+                  <div className="bg-gray-50 dark:bg-[#2a2a2a] rounded-lg p-4 text-center monitoring-stat-item">
                     <div className="text-2xl mb-1">🖱️</div>
                     <div className="text-2xl font-bold text-main">
                       {submission.monitoringStats.mouseLeaveCount || 0}
@@ -1279,7 +1279,7 @@ const SubmissionResult = () => {
                   </div>
 
                   {/* 졸음 감지 */}
-                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center monitoring-stat-item">
+                  <div className="bg-gray-50 dark:bg-[#2a2a2a] rounded-lg p-4 text-center monitoring-stat-item">
                     <div className="text-2xl mb-1">😴</div>
                     <div className="text-2xl font-bold text-main">
                       {submission.monitoringStats.sleepingCount || 0}
@@ -1288,7 +1288,7 @@ const SubmissionResult = () => {
                   </div>
 
                   {/* 다중 인물 감지 */}
-                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center monitoring-stat-item">
+                  <div className="bg-gray-50 dark:bg-[#2a2a2a] rounded-lg p-4 text-center monitoring-stat-item">
                     <div className="text-2xl mb-1">👥</div>
                     <div className="text-2xl font-bold text-main">
                       {submission.monitoringStats.multipleFacesCount || 0}
@@ -1297,7 +1297,7 @@ const SubmissionResult = () => {
                   </div>
 
                   {/* 깜빡임 없음 (Liveness 감지) */}
-                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center monitoring-stat-item">
+                  <div className="bg-gray-50 dark:bg-[#2a2a2a] rounded-lg p-4 text-center monitoring-stat-item">
                     <div className="text-2xl mb-1">🖼️</div>
                     <div className="text-2xl font-bold text-main">
                       {submission.monitoringStats.maskDetectedCount || 0}
@@ -1306,7 +1306,7 @@ const SubmissionResult = () => {
                   </div>
 
                   {/* 시선 이탈 */}
-                  <div className="bg-gray-50 dark:bg-zinc-700 rounded-lg p-4 text-center monitoring-stat-item">
+                  <div className="bg-gray-50 dark:bg-[#2a2a2a] rounded-lg p-4 text-center monitoring-stat-item">
                     <div className="text-2xl mb-1">👀</div>
                     <div className="text-2xl font-bold text-main">
                       {submission.monitoringStats.gazeAwayCount || 0}
@@ -1317,7 +1317,7 @@ const SubmissionResult = () => {
 
                 {/* 집중도 점수 통계 */}
                 {(submission.monitoringStats.focusAvgScore != null || submission.monitoringStats.focusFinalScore != null) && (
-                  <div className="mt-6 pt-6 border-t border-gray-200 dark:border-zinc-700">
+                  <div className="mt-6 pt-6 border-t border-gray-200 dark:border-[#2e2e2e]">
                     <h4 className="text-md font-semibold text-main mb-4 flex items-center gap-2">
                       📊 집중도 점수
                     </h4>
@@ -1398,7 +1398,7 @@ const SubmissionResult = () => {
                 )}
 
                 {/* 요약 통계 */}
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2e2e2e]">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-4">
                       <span className="text-muted">
