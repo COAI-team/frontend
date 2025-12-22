@@ -261,15 +261,9 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                         </div>
                     </motion.div>
 
-<<<<<<< HEAD
                     {/* Block B: MCP Intro - Spans 1 col */}
                     <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-slate-800 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all group overflow-hidden">
                         <Link to="/mypage/profile" className="absolute inset-0 z-20"></Link>
-=======
-                    {/* Block B: Performance Stat (KPI) - Spans 1 col */}
-                    <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] p-8 flex flex-col justify-between shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-xl transition-all group overflow-hidden">
-                        <Link to="/mypage/dashboard" className="absolute inset-0 z-20"></Link>
->>>>>>> 9ee73961d6c27e5c6768d42848ee9ab1b6ae7e31
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                             <FaNetworkWired className="text-8xl text-slate-900 dark:text-white transform rotate-12"/>
                         </div>
