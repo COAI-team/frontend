@@ -137,7 +137,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
     const currentPost = popularPosts && popularPosts.length > 0 ? popularPosts[newsIndex] : null;
 
     return (
-        <div className="w-full min-h-screen font-sans overflow-hidden bg-[#F1F5F9] dark:bg-[#050505] text-slate-800 dark:text-slate-100 relative selection:bg-indigo-500 selection:text-white">
+        <div className="w-full min-h-screen font-sans overflow-hidden bg-white dark:bg-[#0a0a0a] text-slate-800 dark:text-slate-100 relative selection:bg-indigo-500 selection:text-white">
             
             {/* 1. Enhanced Ambient Background */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">

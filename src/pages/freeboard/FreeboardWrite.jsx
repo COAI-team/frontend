@@ -69,7 +69,7 @@ const FreeboardWrite = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: isDark ? '#101828' : '#F9FAFB',
+      backgroundColor: isDark ? '#131313' : '#ffffff',
       padding: '2rem 1rem'
     }}>
       <div style={{

@@ -77,8 +77,7 @@ export default function Navbar() {
     return (
     <Disclosure
         as="nav"
-        className="relative transition-all duration-300
-          bg-white text-gray-900 border-b border-gray-200 shadow-sm
+        className="relative z-50 bg-white text-gray-900 border-b border-gray-200 shadow-sm
           dark:bg-[#0a0a0a] dark:text-white dark:border-transparent dark:shadow-[0_1px_3px_0_rgba(255,255,255,0.05),0_1px_2px_-1px_rgba(255,255,255,0.03)]"
        >
             {/* 2 & 3. Walking Moai Animation */}

@@ -610,7 +610,7 @@ const SubmissionResult = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-main flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-[#131313] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-sub text-lg">채점 결과를 불러오는 중...</p>
@@ -622,7 +622,7 @@ const SubmissionResult = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-main flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-[#131313] flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 dark:text-red-400 text-xl mb-4">⚠️ {error}</p>
           <button onClick={() => navigate('/algorithm')}
@@ -639,7 +639,7 @@ const SubmissionResult = () => {
   const resultInfo = getResultInfo(submission.judgeResult);
 
   return (
-    <div className="min-h-screen bg-main submission-result-page">
+    <div className="min-h-screen bg-white dark:bg-[#131313] submission-result-page">
       {/* 상단 헤더 */}
       <div className="bg-panel shadow-sm border-b dark:border-zinc-700 submission-header-panel">
         <div className="container mx-auto px-4 py-4">

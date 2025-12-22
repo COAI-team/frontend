@@ -230,7 +230,7 @@ const CodeboardDetail = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: isDark ? '#101828' : '#f9fafb',
+      backgroundColor: isDark ? '#131313' : '#ffffff',
       padding: '2rem 1rem'
     }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -277,10 +277,10 @@ const CodeboardDetail = () => {
               }}>
                 {/* 코드 뷰어 스켈레톤 */}
                 <div style={{
-                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                  border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
                   borderRadius: '0.5rem',
                   overflow: 'hidden',
-                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
                   height: '500px',
                   display: 'flex',
                   alignItems: 'center',
@@ -296,7 +296,7 @@ const CodeboardDetail = () => {
                     <div style={{
                       width: '2rem',
                       height: '2rem',
-                      border: `2px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                      border: `2px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
                       borderTopColor: isDark ? '#60a5fa' : '#3b82f6',
                       borderRadius: '50%',
                       animation: 'spin 1s linear infinite'
@@ -307,10 +307,10 @@ const CodeboardDetail = () => {
 
                 {/* 분석 결과 스켈레톤 */}
                 <div style={{
-                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                  border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
                   borderRadius: '0.5rem',
                   overflow: 'hidden',
-                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
                   height: '300px',
                   display: 'flex',
                   alignItems: 'center',
@@ -326,7 +326,7 @@ const CodeboardDetail = () => {
                     <div style={{
                       width: '2rem',
                       height: '2rem',
-                      border: `2px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                      border: `2px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
                       borderTopColor: isDark ? '#60a5fa' : '#3b82f6',
                       borderRadius: '50%',
                       animation: 'spin 1s linear infinite'
@@ -365,7 +365,7 @@ const CodeboardDetail = () => {
                       borderRadius: '0.5rem',
                       fontSize: '1rem',
                       fontWeight: '500',
-                      backgroundColor: isDark ? '#374151' : '#e5e7eb',
+                      backgroundColor: isDark ? '#2e2e2e' : '#e5e7eb',
                       color: isDark ? '#e5e7eb' : '#1f2937',
                       border: 'none',
                       cursor: 'pointer'
@@ -411,7 +411,7 @@ const CodeboardDetail = () => {
               alignItems: 'center',
               gap: '1rem',
               paddingBottom: '1.5rem',
-              borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+              borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
               color: isDark ? '#9ca3af' : '#4b5563'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -423,7 +423,7 @@ const CodeboardDetail = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '0.875rem',
-                backgroundColor: isDark ? '#374151' : '#d1d5db',
+                backgroundColor: isDark ? '#2e2e2e' : '#d1d5db',
                 color: isDark ? '#e5e7eb' : '#1f2937',
                 overflow: 'hidden'
               }}>
@@ -460,7 +460,7 @@ const CodeboardDetail = () => {
                 flexWrap: 'wrap',
                 gap: '0.5rem',
                 paddingTop: '2rem',
-                borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
+                borderTop: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`
               }}>
                 {board.tags.map((tag, index) => (
                   <span
@@ -491,7 +491,7 @@ const CodeboardDetail = () => {
               padding: '1rem 0',
               marginTop: '2rem',
               paddingTop: '2rem',
-              borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+              borderTop: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
               flexWrap: 'wrap', 
                gap: '1rem'
             }}>
@@ -650,18 +650,18 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
     }}>
       {/* 코드 뷰어 */}
       <div style={{
-        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+        border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
         overflow: 'hidden',
-        backgroundColor: isDark ? '#1f2937' : '#ffffff'
+        backgroundColor: isDark ? '#1f1f1f' : '#ffffff'
       }} ref={codeViewerRef}>
         <div style={{
           padding: '0.5rem 1rem',
-          borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: isDark ? '#1f2937' : '#F9FAFB'
+          backgroundColor: isDark ? '#2e2e2e' : '#F9FAFB'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
@@ -671,7 +671,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
               fontSize: '0.75rem', 
               padding: '0.125rem 0.5rem',
               borderRadius: '0.25rem',
-              backgroundColor: isDark ? '#374151' : '#e5e7eb',
+              backgroundColor: isDark ? '#2e2e2e' : '#e5e7eb',
               color: isDark ? '#9ca3af' : '#6b7280'
             }}>
               {language}
@@ -721,18 +721,18 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
 
       {/* 분석 결과 */}
       <div style={{
-        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+        border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
         overflow: 'hidden',
-        backgroundColor: isDark ? '#1f2937' : '#ffffff'
+        backgroundColor: isDark ? '#1f1f1f' : '#ffffff'
       }}>
         <div style={{
           padding: '0.5rem 1rem',
-          borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: isDark ? '#111827' : '#f9fafb'
+          backgroundColor: isDark ? '#2e2e2e' : '#f9fafb'
         }}>
           <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
             분석 결과
@@ -791,14 +791,14 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {parseJSON(analysisResult.suggestions).map((suggestion, idx) => (
                     <div key={idx} style={{
-                      border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                      border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
                       borderRadius: '0.375rem',
                       overflow: 'hidden'
                     }}>
                       <div style={{
                         padding: '0.5rem 0.75rem',
-                        borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                        backgroundColor: isDark ? '#111827' : '#f9fafb'
+                        borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+                        backgroundColor: isDark ? '#2e2e2e' : '#f9fafb'
                       }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
                           제안 #{idx + 1}

@@ -138,7 +138,7 @@ const FreeboardEdit = () => {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: '100vh',
-        backgroundColor: '#101828'
+        backgroundColor: '#131313'
       }}>
         <div style={{ fontSize: '1.125rem', color: 'white' }}>로딩 중...</div>
       </div>
@@ -148,7 +148,7 @@ const FreeboardEdit = () => {
   return (
       <div style={{
         minHeight: '100vh',
-        backgroundColor: isDark ? '#101828' : '#F9FAFB',
+        backgroundColor: isDark ? '#131313' : '#ffffff',
         padding: '2rem 1rem'
       }}>
       <div style={{
