@@ -364,7 +364,7 @@ export default function ProfilePage() {
       <div className="mt-14">
         <h2 className="text-xl font-semibold mb-4">계정 연동</h2>
 
-        <div className="border rounded-2xl shadow-sm divide-y">
+        <div className="border border-[#e2e8f0] dark:border-[#3f3f46] rounded-2xl shadow-sm divide-y divide-[#e2e8f0] dark:divide-[#3f3f46]">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-4">
               <div
@@ -397,7 +397,7 @@ export default function ProfilePage() {
         {/* GitHub 자동커밋 설정 */}
         <GitHubAutoCommitSettings githubConnected={githubConnected} />
 
-        <div className="border rounded-2xl shadow-sm p-6 flex flex-col gap-4 mt-4">
+        <div className="border border-[#e2e8f0] dark:border-[#3f3f46] rounded-2xl shadow-sm p-6 flex flex-col gap-4 mt-4">
           <div className="flex justify-between items-center">
             <div>
               <h3 className="font-medium text-lg">모아이 대량 발생</h3>
@@ -421,7 +421,7 @@ export default function ProfilePage() {
             }}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
           />
-          <div className="flex items-center justify-between p-4 border-t pt-4 mt-4">
+          <div className="flex items-center justify-between p-4 border-t border-[#e2e8f0] dark:border-[#3f3f46] pt-4 mt-4">
             <div>
               <h3 className="font-medium text-lg">뿅뿅 모아이</h3>
               <p className="text-gray-500 text-sm">화면에 모아이가 뿅뿅거립니다.</p>
@@ -461,7 +461,7 @@ export default function ProfilePage() {
       <div className="mt-14">
         <h2 className="text-xl font-semibold mb-4">🔌 Local AI 연결 (MCP)</h2>
 
-        <div className="border rounded-2xl shadow-sm p-6 space-y-4">
+        <div className="border border-[#e2e8f0] dark:border-[#3f3f46] rounded-2xl shadow-sm p-6 space-y-4">
           <p className="text-gray-500 text-sm">
             Claude Desktop이나 다른 MCP 호환 클라이언트에서 CodeNose AI를 사용할 수 있습니다.
           </p>
@@ -557,7 +557,7 @@ export default function ProfilePage() {
       <div className="mt-14">
         <h2 className="text-xl font-semibold mb-4">계정 관리</h2>
 
-        <div className="border rounded-2xl shadow-sm p-6">
+        <div className="border border-[#e2e8f0] dark:border-[#3f3f46] rounded-2xl shadow-sm p-6">
           <div className="flex justify-end">
             {isDeleted ? (
               <button

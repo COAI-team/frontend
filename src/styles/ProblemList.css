@@ -776,15 +776,15 @@ html:not(.dark) .difficulty-platinum {
 html.dark,
 html.dark .problem-list-container {
   --bg-primary: #131313;
-  --bg-secondary: #1f2937;
-  --bg-tertiary: #374151;
+  --bg-secondary: #1f1f1f;
+  --bg-tertiary: #1f1f1f;
   --bg-hover: rgba(55, 65, 81, 0.5);
   --table-header-bg: rgba(55, 65, 81, 0.5);
-  --table-body-bg: #1f2937;
+  --table-body-bg: #1f1f1f;
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
   --text-tertiary: #6b7280;
-  --border-color: #374151;
+  --border-color: #2b2b2b;
   --primary-color: #3b82f6;
   --primary-hover: #2563eb;
 }
