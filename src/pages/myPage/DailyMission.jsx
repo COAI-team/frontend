@@ -39,8 +39,6 @@ const DailyMission = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [bonusStatusMap, setBonusStatusMap] = useState({});
 
-    const navigate = useNavigate();
-
     const fetchBonusStatuses = useCallback(async (missionList) => {
         const targets = missionList.filter(
             (m) => m.missionType === 'PROBLEM_SOLVE' && m.problemId
@@ -190,28 +188,6 @@ const DailyMission = () => {
         };
     }, [hydrated, isLoggedIn, loadData]);
 
-    // ===== 미션 카드 클릭 핸들러 =====
-    const handleMissionClick = (mission) => {
-        if (mission.completed) return;
-
-        const typeInfo = MISSION_TYPE_INFO[mission.missionType];
-        if (mission.missionType === 'PROBLEM_GENERATE') {
-            navigate(typeInfo.link);
-        } else if (mission.missionType === 'PROBLEM_SOLVE' && mission.problemId) {
-            navigate(`${typeInfo.linkPrefix}${mission.problemId}`);
-        }
-    };
-
-    // ===== 난이도 라벨 가져오기 =====
-    const getDifficultyLabel = (difficulty) => {
-        const option = DIFFICULTY_OPTIONS.find(opt => opt.value === difficulty);
-        return option ? option.label : difficulty;
-    };
-
-    // ===== 완료된 미션 수 계산 =====
-    const completedCount = missions.filter(m => m.completed).length;
-    const totalMissions = missions.length;
-
     // ===== 렌더링 =====
 
     // hydration 완료 전 또는 로딩 중 표시
@@ -231,10 +207,10 @@ const DailyMission = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-3xl font-bold text-main mb-2">
-                                오늘의 미션
+                                나의 활동
                             </h1>
                             <p className="text-muted">
-                                매일 미션을 완료하고 포인트를 획득하세요!
+                                활동을 확인하세요!
                             </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">

@@ -20,13 +20,7 @@ const myMenu = [
     icon: UserIcon,
     children: [
       { name: "프로필 설정", href: "/mypage/profile", icon: UserCircleIcon },
-    ],
-  },
-  {
-    name: "미션",
-    icon: CalendarDaysIcon,
-    children: [
-      { name: "오늘의 미션", href: "/mypage/daily-mission", icon: CheckCircleIcon },
+      { name: "나의 활동", href: "/mypage/daily-mission", icon: CheckCircleIcon },
     ],
   },
   {
