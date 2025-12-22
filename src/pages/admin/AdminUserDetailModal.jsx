@@ -1,4 +1,5 @@
 import axios from "axios";
+import { ChevronsRightLeft } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
 const AdminUserDetailModal = ({ userId, onClose }) => {
@@ -7,6 +8,10 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
+  const [subscriptionModalMessage, setSubscriptionModalMessage] = useState("");
+  const [subscriptionResult, setSubscriptionResult] = useState(null);
+  const [banModalOpen, setBanModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserDetail = async () => {
@@ -65,23 +70,39 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
       setLoading(true);
       const res = await axios.get(`${API_BASE_URL}/subscribecheck/${userId}`);
       if (res.data.message === "success") {
-        setUser(res.data.data);
+        const isActive = Boolean(res.data.data);
+
+        setSubscriptionResult(isActive);
+        setSubscriptionModalMessage(
+          isActive
+            ? "구독이 확인되었습니다. 구독이 활성화 상태입니다."
+            : "구독 결제내역이 없습니다."
+        );
+
+        setStatusMessage(
+          isActive
+            ? `✅ 구독중 (${user.userSubscribeStart} ~ ${user.userSubscribeEnd})`
+            : "❌ 현재 구독중이 아닙니다."
+        );
+
+        // 구독 상태를 다시 반영하기 위해 유저 정보를 새로 가져옴
+        const detailRes = await axios.get(
+          `${API_BASE_URL}/userdetail/${userId}`
+        );
+        if (detailRes.data.message === "success") {
+          setUser(detailRes.data.data);
+        }
       } else {
-        setError("데이터를 불러오지 못했습니다.");
+        setSubscriptionResult(false);
+        setSubscriptionModalMessage("데이터를 불러오지 못했습니다.");
       }
     } catch (err) {
       console.error("❌ 유저 상세 조회 오류:", err);
-      setError("서버 오류가 발생했습니다.");
+      setSubscriptionResult(false);
+      setSubscriptionModalMessage("서버 오류가 발생했습니다.");
     } finally {
       setLoading(false);
-    }
-
-    if (isSubscribed) {
-      setStatusMessage(
-        `✅ 구독중 (${user.userSubscribeStart} ~ ${user.userSubscribeEnd})`
-      );
-    } else {
-      setStatusMessage("❌ 현재 구독중이 아닙니다.");
+      setSubscriptionModalOpen(true);
     }
   };
 
@@ -98,7 +119,7 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
             {!user.userDeleteAt && (
               <button
                 style={styles.banButton}
-                onClick={() => handleBanUser(user.userId)} // ✅ 클릭 시 실행
+                onClick={() => setBanModalOpen(true)} // ✅ 추방 확인 모달 열기
               >
                 🚫 추방
               </button>
@@ -119,9 +140,11 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
           <p>
             <strong>등급:</strong> {user.userGrade}
           </p>
-          <p>
-            <strong>포인트:</strong> {user.userPoint.toLocaleString()}P
-          </p>
+          {user.userRole !== "ROLE_ADMIN" && (
+            <p>
+              <strong>포인트:</strong> {user.userPoint.toLocaleString()}
+            </p>
+          )}
           <hr style={styles.divider} />
           <p>
             <strong>가입일:</strong> {user.userCreateAt}
@@ -189,6 +212,75 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
           닫기
         </button>
       </div>
+
+      {subscriptionModalOpen && (
+        <div
+          style={styles.subscriptionModalOverlay}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={styles.subscriptionModal}>
+            <div style={styles.subscriptionModalHeader}>
+              <h3 style={styles.subscriptionModalTitle}>구독 상태 확인</h3>
+            </div>
+            <div style={styles.subscriptionModalBody}>
+              <p
+                style={{
+                  ...styles.subscriptionModalMessage,
+                  color: subscriptionResult ? "#4caf50" : "#ff5252",
+                }}
+              >
+                {subscriptionModalMessage}
+              </p>
+            </div>
+            <div style={styles.subscriptionModalFooter}>
+              <button
+                type="button"
+                style={styles.subscriptionModalButton}
+                onClick={() => setSubscriptionModalOpen(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {banModalOpen && (
+        <div
+          style={styles.subscriptionModalOverlay}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={styles.banModal}>
+            <div style={styles.subscriptionModalHeader}>
+              <h3 style={styles.subscriptionModalTitle}>추방 확인</h3>
+            </div>
+            <div style={styles.subscriptionModalBody}>
+              <p style={styles.subscriptionModalMessage}>
+                해당 유저를 정말 추방하시겠습니까?
+              </p>
+            </div>
+            <div style={styles.banModalFooter}>
+              <button
+                type="button"
+                style={styles.cancelButton}
+                onClick={() => setBanModalOpen(false)}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                style={styles.banButtonConfirm}
+                onClick={async () => {
+                  await handleBanUser(user.userId);
+                  setBanModalOpen(false);
+                }}
+              >
+                추방하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -299,5 +391,95 @@ const styles = {
     color: "#ff5252",
     textAlign: "center",
     marginTop: "30px",
+  },
+  subscriptionModalOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+    padding: "0 16px",
+  },
+  subscriptionModal: {
+    width: "100%",
+    maxWidth: "420px",
+    backgroundColor: "#1f2430",
+    border: "1px solid #3c4458",
+    borderRadius: "12px",
+    boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
+  },
+  subscriptionModalHeader: {
+    padding: "14px 18px",
+    borderBottom: "1px solid #2f3545",
+  },
+  subscriptionModalTitle: {
+    margin: 0,
+    fontSize: "17px",
+    fontWeight: 700,
+    color: "#fff",
+  },
+  subscriptionModalBody: {
+    padding: "16px 18px",
+  },
+  subscriptionModalMessage: {
+    margin: 0,
+    fontSize: "14px",
+    lineHeight: 1.5,
+  },
+  subscriptionModalFooter: {
+    display: "flex",
+    justifyContent: "flex-end",
+    padding: "12px 18px",
+    borderTop: "1px solid #2f3545",
+  },
+  subscriptionModalButton: {
+    backgroundColor: "#1976d2",
+    color: "#fff",
+    border: "none",
+    padding: "8px 14px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: 600,
+  },
+  banModal: {
+    width: "100%",
+    maxWidth: "420px",
+    backgroundColor: "#1f2430",
+    border: "1px solid #3c4458",
+    borderRadius: "12px",
+    boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
+  },
+  banModalFooter: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "10px",
+    padding: "12px 18px",
+    borderTop: "1px solid #2f3545",
+  },
+  cancelButton: {
+    backgroundColor: "#2f3545",
+    color: "#fff",
+    border: "none",
+    padding: "8px 14px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: 600,
+  },
+  banButtonConfirm: {
+    backgroundColor: "#ff5252",
+    color: "#fff",
+    border: "none",
+    padding: "8px 14px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: 600,
   },
 };

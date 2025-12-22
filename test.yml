@@ -1,0 +1,11 @@
+config:
+  target: "https://pop-spot.store"
+  phases:
+    - duration: 60
+      arrivalRate: 500
+
+scenarios:
+  - name: "Popup Page GET"
+    flow:
+      - get:
+          url: "/popup/1043"
