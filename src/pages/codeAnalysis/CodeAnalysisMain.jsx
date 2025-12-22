@@ -52,7 +52,7 @@ const CodeAnalysisMain = () => {
     };
 
     return (
-        <div className="min-h-screen py-8">
+        <div className="min-h-screen py-8 dark:bg-[#131313]">
             <div className="max-w-6xl mx-auto px-4">
                 
                 {/* 헤더 섹션 */}

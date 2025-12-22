@@ -146,7 +146,7 @@ const FreeboardDetail = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: isDark ? "#131313" : "#ffffff",
+          backgroundColor: isDark ? "#1f1f1f" : "#ffffff",
           color: isDark ? "white" : "#1f2937",
           padding: "2.5rem",
         }}
@@ -177,7 +177,7 @@ const FreeboardDetail = () => {
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: isDark ? "#101828" : "#f9fafb",
+        backgroundColor: isDark ? "#131313" : "#f9fafb",
         padding: "2rem 1rem",
       }}
     >
@@ -235,17 +235,17 @@ const FreeboardDetail = () => {
                   borderRadius: "0.5rem",
                   fontSize: "1rem",
                   fontWeight: "500",
-                  backgroundColor: isDark ? "#374151" : "#e5e7eb",
+                  backgroundColor: isDark ? "#2e2e2e" : "#e5e7eb",
                   color: isDark ? "#e5e7eb" : "#1f2937",
                   border: "none",
                   cursor: "pointer",
                   transition: "background-color 0.2s",
                 }}
                 onMouseEnter={(e) =>
-                  (e.target.style.backgroundColor = isDark ? "#4b5563" : "#d1d5db")
+                  (e.target.style.backgroundColor = isDark ? "#3f3f46" : "#d1d5db")
                 }
                 onMouseLeave={(e) =>
-                  (e.target.style.backgroundColor = isDark ? "#374151" : "#e5e7eb")
+                  (e.target.style.backgroundColor = isDark ? "#2e2e2e" : "#e5e7eb")
                 }
               >
                 수정
@@ -305,7 +305,7 @@ const FreeboardDetail = () => {
             gap: "1rem",
             marginBottom: "1.5rem",
             paddingBottom: "1.5rem",
-            borderBottom: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
+            borderBottom: `1px solid ${isDark ? "#2b2b2b" : "#e5e7eb"}`,
             color: isDark ? "#9ca3af" : "#4b5563",
           }}
         >
@@ -319,7 +319,7 @@ const FreeboardDetail = () => {
               alignItems: "center",
               justifyContent: "center",
               fontSize: "0.875rem",
-              backgroundColor: isDark ? "#374151" : "#d1d5db",
+              backgroundColor: isDark ? "#2e2e2e" : "#d1d5db",
               color: isDark ? "#e5e7eb" : "#1f2937",
               overflow: "hidden",
             }}
@@ -394,7 +394,7 @@ const FreeboardDetail = () => {
             padding: "1rem 0",
             marginTop: "8rem",
             paddingTop: "2rem",
-            borderTop: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
+            borderTop: `1px solid ${isDark ? "#2b2b2b" : "#e5e7eb"}`,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>

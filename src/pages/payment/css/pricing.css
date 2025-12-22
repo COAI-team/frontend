@@ -22,12 +22,12 @@
   --pricing-bg: #131313;
   --pricing-text: var(--text-main);
   --pricing-banner-bg: #1f2937;
-  --pricing-banner-border: #312e81;
+  --pricing-banner-border: #1f2937;
   --pricing-banner-title: #c7d2fe;
   --pricing-card-shadow: rgba(0, 0, 0, 0.35);
-  --pricing-card-border: #1f2937;
+  --pricing-card-border: #1f1f1f;
   --pricing-card-dark: #312e81;
-  --pricing-card-light: #111827;
+  --pricing-card-light: #1f1f1f;
   --pricing-card-text: var(--text-main);
   --pricing-muted: var(--text-muted);
   --pricing-btn-dark: #e5e7eb;

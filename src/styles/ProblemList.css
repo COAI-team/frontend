@@ -777,9 +777,9 @@ html.dark,
 html.dark .problem-list-container {
   --bg-primary: #131313;
   --bg-secondary: #1f1f1f;
-  --bg-tertiary: #1f1f1f;
-  --bg-hover: rgba(55, 65, 81, 0.5);
-  --table-header-bg: rgba(55, 65, 81, 0.5);
+  --bg-tertiary: #2e2e2e;
+  --bg-hover: #2e2e2e;
+  --table-header-bg: #1f1f1f;
   --table-body-bg: #1f1f1f;
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
