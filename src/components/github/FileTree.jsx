@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axiosInstance from '../../server/AxiosConfig';
 import { Folder, FileCode, ChevronRight, ChevronDown, Search } from 'lucide-react';
 
-const FileTree = ({ repository, branch, onSelect }) => {
+const FileTree = ({ repository, branch, onSelect, mockFiles }) => {
     const [files, setFiles] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -10,6 +10,12 @@ const FileTree = ({ repository, branch, onSelect }) => {
     const [expandedPaths, setExpandedPaths] = useState(new Set());
 
     useEffect(() => {
+        // If mockFiles provided, use them directly
+        if (mockFiles) {
+            setFiles(mockFiles);
+            return;
+        }
+
         if (!repository || !branch) {
             setFiles([]);
             return;
@@ -46,7 +52,7 @@ const FileTree = ({ repository, branch, onSelect }) => {
         };
 
         fetchTree();
-    }, [repository, branch]);
+    }, [repository, branch, mockFiles]);
 
     // Build hierarchical tree from flat list
     const treeStructure = useMemo(() => {

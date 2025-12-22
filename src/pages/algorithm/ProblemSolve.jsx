@@ -35,6 +35,62 @@ const ProblemSolve = () => {
   const {problemId} = useParams();
   const navigate = useNavigate();
   const { user } = useLogin();
+
+  // [Tutorial Redirection]
+  // Redirect to tutorial if accessing 'Problem Solve' and relevant sections not completed
+  useEffect(() => {
+    if (user) {
+      // 1. Check if user is "new" (created today or tomorrow)
+      // const createdDate = new Date(user.createdAt);
+      // const today = new Date();
+      // const tomorrow = new Date(today);
+      // tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // const isSameDate = (d1, d2) => 
+      //     d1.getFullYear() === d2.getFullYear() &&
+      //     d1.getMonth() === d2.getMonth() &&
+      //     d1.getDate() === d2.getDate();
+
+      // const isCreatedTodayOrTomorrow = isSameDate(createdDate, today) || isSameDate(createdDate, tomorrow);
+
+      // if (!isCreatedTodayOrTomorrow) {
+      //   return; // Skip redirection for old users
+      // }
+
+      // 2. Check tutorial progress
+      // Priority 1: Mode Selection (Steps 5-7)
+      const KEY_MODE = 'coai_algorithm_tutorial_v3_2';
+      const savedMode = localStorage.getItem(KEY_MODE);
+      let needsMode = true;
+      if (savedMode) {
+          try {
+              const parsed = JSON.parse(savedMode);
+              if (parsed.tutorialCompleted) needsMode = false;
+          } catch(e) {}
+      }
+
+      if (needsMode) {
+          navigate(`/algorithm/tutorial/mode?problemId=${problemId}`, { replace: true });
+          return;
+      }
+
+      // Priority 2: Problem Solve (Steps 8-12)
+      const KEY_SOLVE = 'coai_algorithm_tutorial_v3_3';
+      const savedSolve = localStorage.getItem(KEY_SOLVE);
+      let needsSolve = true;
+      if (savedSolve) {
+          try {
+              const parsed = JSON.parse(savedSolve);
+              if (parsed.tutorialCompleted) needsSolve = false;
+          } catch(e) {}
+      }
+
+      if (needsSolve) {
+          navigate(`/algorithm/tutorial/solve?problemId=${problemId}`, { replace: true });
+          return;
+      }
+    }
+  }, [user, navigate]);
   const editorRef = useRef(null);
   const eyeTrackerRef = useRef(null); // 시선 추적 ref
   const handleSubmitRef = useRef(null); // 자동 제출용 ref (stale closure 방지)
