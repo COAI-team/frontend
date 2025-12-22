@@ -572,7 +572,7 @@ html.dark {
 /* CSS 변수 정의 */
 html:not(.dark),
 html:not(.dark) .problem-detail-container {
-  --bg-primary: #f9fafb;
+  --bg-primary: #ffffff;
   --bg-secondary: #ffffff;
   --text-primary: #111827;
   --text-secondary: #6b7280;
@@ -582,7 +582,7 @@ html:not(.dark) .problem-detail-container {
 
 html.dark,
 html.dark .problem-detail-container {
-  --bg-primary: #111827;
+  --bg-primary: #131313;
   --bg-secondary: #1f2937;
   --text-primary: #f3f4f6;
   --text-secondary: #d1d5db;

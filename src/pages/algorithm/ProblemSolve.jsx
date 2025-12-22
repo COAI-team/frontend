@@ -894,7 +894,7 @@ const ProblemSolve = () => {
   // 로딩 상태
   if (loading) {
     return (
-      <div className="problem-solve-loading min-h-screen bg-zinc-900 dark:bg-zinc-900 flex items-center justify-center">
+      <div className="problem-solve-loading min-h-screen bg-white dark:bg-[#131313] flex items-center justify-center">
         <div className="text-center">
           <div
             className="loading-spinner animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
@@ -907,7 +907,7 @@ const ProblemSolve = () => {
   // 에러 상태
   if (error) {
     return (
-      <div className="problem-solve-error min-h-screen bg-zinc-900 dark:bg-zinc-900 flex items-center justify-center">
+      <div className="problem-solve-error min-h-screen bg-white dark:bg-[#131313] flex items-center justify-center">
         <div className="text-center">
           <p className="error-text text-red-500 dark:text-red-400 text-xl mb-4">⚠️ {error}</p>
           <button onClick={() => navigate('/algorithm')}
@@ -945,7 +945,7 @@ const ProblemSolve = () => {
 
 
   return (
-    <div className="problem-solve-page h-screen bg-zinc-900 dark:bg-zinc-900 text-gray-800 dark:text-gray-100 flex flex-col overflow-hidden">
+    <div className="problem-solve-page h-screen bg-white dark:bg-[#131313] text-gray-800 dark:text-gray-100 flex flex-col overflow-hidden">
       {/* 헤더 */}
       <div className="problem-solve-header bg-zinc-800 dark:bg-zinc-800 border-b border-zinc-700 dark:border-zinc-700 shrink-0">
         <div className="container mx-auto px-6 py-4">

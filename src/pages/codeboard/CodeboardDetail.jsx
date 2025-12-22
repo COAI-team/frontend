@@ -230,7 +230,7 @@ const CodeboardDetail = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: isDark ? '#101828' : '#f9fafb',
+      backgroundColor: isDark ? '#131313' : '#ffffff',
       padding: '2rem 1rem'
     }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>

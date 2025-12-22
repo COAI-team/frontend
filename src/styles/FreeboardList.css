@@ -619,7 +619,7 @@ html.dark .analysis-list-btn:hover {
 /* 다크모드 CSS 변수 */
 html.dark,
 html.dark .freeboard-list-container {
-  --bg-primary: #111827;
+  --bg-primary: #131313;
   --bg-secondary: #1f2937;
   --bg-tertiary: #374151;
   --bg-hover: #374151;

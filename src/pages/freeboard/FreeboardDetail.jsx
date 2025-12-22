@@ -146,7 +146,7 @@ const FreeboardDetail = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: isDark ? "#101828" : "#f9fafb",
+          backgroundColor: isDark ? "#131313" : "#ffffff",
           color: isDark ? "white" : "#1f2937",
           padding: "2.5rem",
         }}

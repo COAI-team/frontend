@@ -405,7 +405,7 @@ const ProblemGenerator = () => {
 
   // ===== 렌더링 =====
   return (
-    <div className="min-h-screen bg-main py-8">
+    <div className="min-h-screen bg-white dark:bg-[#131313] py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* 상단 네비게이션 */}
         <div>

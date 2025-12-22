@@ -139,7 +139,7 @@ const EditModeCard = ({
   );
 
   return (
-    <div className="border rounded-2xl p-10 shadow-sm">
+    <div className="border border-[#e2e8f0] dark:border-[#3f3f46] rounded-2xl p-10 shadow-sm">
       {/* 프로필 이미지 */}
       <div className="flex justify-center mb-6">
         <div className="relative w-32 h-32">
