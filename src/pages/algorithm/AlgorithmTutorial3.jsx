@@ -523,7 +523,7 @@ const MockProblemGenerator = ({ highlightRefs }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-main py-8 pt-20">
+    <div className="min-h-screen bg-main py-8 pt-20 pb-32">
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-main mb-2">AI 문제 생성</h1>
@@ -532,22 +532,22 @@ const MockProblemGenerator = ({ highlightRefs }) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 왼쪽: 설정 폼 */}
-          <div className="bg-panel rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-main mb-6">문제 생성 설정</h2>
+          <div className="bg-panel rounded-lg shadow-md p-5">
+            <h2 className="text-xl font-bold text-main mb-4">문제 생성 설정</h2>
 
             {/* 난이도 선택 */}
             <div
               ref={el => highlightRefs.current['difficulty'] = el}
-              className="mb-6"
+              className="mb-4"
             >
-              <label className="block text-sm font-medium text-sub mb-3">
+              <label className="block text-sm font-medium text-sub mb-2">
                 난이도 <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {difficulties.map((diff) => (
                   <button
                     key={diff.value}
-                    className={`p-4 rounded-lg border transition-all ${
+                    className={`p-3 rounded-lg border transition-all ${
                       diff.value === 'SILVER'
                         ? `${diff.color} border-current`
                         : 'border-gray-200 dark:border-zinc-600'
@@ -562,15 +562,15 @@ const MockProblemGenerator = ({ highlightRefs }) => {
             {/* 알고리즘 유형 */}
             <div
               ref={el => highlightRefs.current['topic'] = el}
-              className="mb-6"
+              className="mb-4"
             >
-              <label className="block text-sm font-medium text-sub mb-3">
+              <label className="block text-sm font-medium text-sub mb-2">
                 알고리즘 유형 <span className="text-red-500">*</span>
               </label>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {topics.map((cat) => (
                   <div key={cat.category}>
-                    <div className="text-xs font-semibold text-muted mb-1.5">{cat.category}</div>
+                    <div className="text-xs font-semibold text-muted mb-1">{cat.category}</div>
                     <div className="flex flex-wrap gap-2">
                       {cat.items.map((item) => (
                         <button
@@ -593,9 +593,9 @@ const MockProblemGenerator = ({ highlightRefs }) => {
             {/* 스토리 테마 */}
             <div
               ref={el => highlightRefs.current['theme'] = el}
-              className="mb-6"
+              className="mb-4"
             >
-              <label className="block text-sm font-medium text-sub mb-3">
+              <label className="block text-sm font-medium text-sub mb-2">
                 스토리 테마 <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-3 gap-2">
