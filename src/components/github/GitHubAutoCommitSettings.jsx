@@ -7,6 +7,7 @@ import {
     createGithubRepository,
     selectGithubRepository
 } from "../../service/github/GithubApi";
+import "../../styles/GitHubAutoCommitSettings.css";
 
 /**
  * GitHub 자동커밋 설정 컴포넌트
@@ -129,7 +130,7 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
 
     if (!githubConnected) {
         return (
-            <div className="border rounded-2xl shadow-sm p-6 mt-4 bg-gray-50 dark:bg-zinc-800">
+            <div className="border rounded-2xl shadow-sm p-6 mt-4 bg-gray-50 dark:bg-zinc-800 github-autocommit-container not-connected">
                 <div className="flex items-center gap-3 mb-3">
                     <AiFillGithub className="w-6 h-6" />
                     <h3 className="font-semibold text-lg">GitHub 자동커밋</h3>
@@ -154,7 +155,7 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
 
     return (
         <>
-            <div className="border rounded-2xl shadow-sm p-6 mt-4">
+            <div className="border rounded-2xl shadow-sm p-6 mt-4 github-autocommit-container">
                 <div className="flex items-center gap-3 mb-4">
                     <AiFillGithub className="w-6 h-6" />
                     <h3 className="font-semibold text-lg">GitHub 자동커밋</h3>
@@ -164,8 +165,8 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
                 {message.text && (
                     <div className={`mb-4 p-3 rounded-lg text-sm ${
                         message.type === "success"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                            ? "github-message-success"
+                            : "github-message-error"
                     }`}>
                         {message.text}
                     </div>
@@ -177,7 +178,7 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
                         연결된 저장소
                     </label>
                     <div className="flex items-center gap-3">
-                        <div className="flex-1 px-4 py-2 border rounded-lg bg-gray-50 dark:bg-zinc-700 dark:border-zinc-600">
+                        <div className="flex-1 px-4 py-2 border rounded-lg bg-gray-50 dark:bg-zinc-700 dark:border-zinc-600 github-repo-display">
                             {settings.githubRepoName ? (
                                 <a
                                     href={settings.githubRepoUrl}
@@ -193,15 +194,15 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
                         </div>
                         <button
                             onClick={handleOpenRepoModal}
-                            className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                            className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 github-repo-button"
                         >
                             {settings.githubRepoName ? "변경" : "선택"}
                         </button>
                     </div>
                 </div>
 
-                {/* ��동 커밋 토글 */}
-                <div className="flex items-center justify-between p-4 border rounded-lg dark:border-zinc-600">
+                {/* 자동 커밋 토글 */}
+                <div className="flex items-center justify-between p-4 border rounded-lg dark:border-zinc-600 github-toggle-section">
                     <div>
                         <h4 className="font-medium">자동 커밋</h4>
                         <p className="text-gray-500 dark:text-gray-400 text-sm">
@@ -232,7 +233,7 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
                 </div>
 
                 {!settings.githubRepoName && (
-                    <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
+                    <p className="text-sm text-amber-600 dark:text-amber-400 mt-2 github-warning">
                         * 자동 커밋을 사용하려면 먼저 저장소를 선택해주세요.
                     </p>
                 )}
@@ -241,13 +242,13 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
             {/* 저장소 선택 모달 */}
             {showRepoModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[80vh] overflow-hidden">
-                        <div className="p-6 border-b dark:border-zinc-700">
+                    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[80vh] overflow-hidden github-modal-content">
+                        <div className="p-6 border-b dark:border-zinc-700 github-modal-header">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-xl font-semibold">저장소 선택</h3>
                                 <button
                                     onClick={() => setShowRepoModal(false)}
-                                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
                                 >
                                     ✕
                                 </button>
@@ -256,7 +257,7 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
 
                         <div className="p-6 overflow-y-auto max-h-[50vh]">
                             {/* 새 저장소 생성 */}
-                            <div className="mb-6 p-4 border rounded-lg dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700">
+                            <div className="mb-6 p-4 border rounded-lg dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700 github-new-repo-section">
                                 <h4 className="font-medium mb-3">새 저장소 생성</h4>
                                 <div className="flex gap-2 mb-3">
                                     <input
@@ -264,22 +265,22 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
                                         value={newRepoName}
                                         onChange={(e) => setNewRepoName(e.target.value)}
                                         placeholder="저장소 이름 (예: coai-algorithm)"
-                                        className="flex-1 px-3 py-2 border rounded-lg dark:bg-zinc-800 dark:border-zinc-600"
+                                        className="flex-1 px-3 py-2 border rounded-lg dark:bg-zinc-800 dark:border-zinc-600 github-new-repo-input"
                                     />
                                     <button
                                         onClick={handleCreateRepo}
                                         disabled={creating || !newRepoName.trim()}
-                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed github-create-button"
                                     >
                                         {creating ? "생성 중..." : "생성"}
                                     </button>
                                 </div>
-                                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={isPrivate}
                                         onChange={(e) => setIsPrivate(e.target.checked)}
-                                        className="rounded"
+                                        className="rounded cursor-pointer"
                                     />
                                     비공개 저장소로 생성
                                 </label>
@@ -302,9 +303,9 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
                                         <div
                                             key={repo.id || repo.name}
                                             onClick={() => handleSelectRepo(repo)}
-                                            className={`p-3 border rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${
+                                            className={`p-3 border rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors github-repo-item ${
                                                 settings.githubRepoName === repo.name
-                                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 selected"
                                                     : "dark:border-zinc-600"
                                             }`}
                                         >
@@ -312,7 +313,7 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
                                                 <div>
                                                     <span className="font-medium">{repo.name}</span>
                                                     {(repo.private || repo.isPrivate) && (
-                                                        <span className="ml-2 text-xs px-2 py-0.5 bg-gray-200 dark:bg-zinc-600 rounded">
+                                                        <span className="ml-2 text-xs px-2 py-0.5 bg-gray-200 dark:bg-zinc-600 rounded private-badge">
                                                             Private
                                                         </span>
                                                     )}
@@ -332,10 +333,10 @@ export default function GitHubAutoCommitSettings({ githubConnected }) {
                             )}
                         </div>
 
-                        <div className="p-4 border-t dark:border-zinc-700 bg-gray-50 dark:bg-zinc-700">
+                        <div className="p-4 border-t dark:border-zinc-700 bg-gray-50 dark:bg-zinc-700 github-modal-footer">
                             <button
                                 onClick={() => setShowRepoModal(false)}
-                                className="w-full px-4 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-600 dark:border-zinc-500"
+                                className="w-full px-4 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-600 dark:border-zinc-500 github-close-button"
                             >
                                 닫기
                             </button>

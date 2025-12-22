@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { fetchSubscriptions } from "../../service/payment/PaymentApi";
 import { fetchMyProfile } from "../../service/mypage/MyPageApi";
 import { getAuth, removeAuth } from "../../utils/auth/token";
@@ -86,6 +86,7 @@ const renderFeatures = (items) => (
 
 function PricingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { alert, showAlert, closeAlert } = useAlert();
   const [loading, setLoading] = useState(true);
   const [currentPlan, setCurrentPlan] = useState("FREE");
@@ -93,6 +94,12 @@ function PricingPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [userName, setUserName] = useState("");
   const [isAuthed, setIsAuthed] = useState(!!getAuth()?.accessToken);
+
+  // URL에서 redirect 파라미터 추출 (구독 완료 후 돌아갈 경로)
+  const redirectPath = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("redirect") || null;
+  }, [location.search]);
 
   // PricingPage 함수 맨 위
   console.log("[PricingPage render]", {
@@ -225,7 +232,9 @@ function PricingPage() {
       return;
     }
     if (!selectedPlan) return;
-    navigate(`/buy?plan=${selectedPlan}`);
+    // redirect 파라미터가 있으면 함께 전달
+    const redirectParam = redirectPath ? `&redirect=${encodeURIComponent(redirectPath)}` : "";
+    navigate(`/buy?plan=${selectedPlan}${redirectParam}`);
   };
 
   const cardClass = (key, options = {}) => {

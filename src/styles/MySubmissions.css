@@ -1,0 +1,182 @@
+/* MySubmissions.css - 제출 이력 페이지 스타일 */
+
+/* ===== 라이트모드 테이블 컨테이너 ===== */
+html:not(.dark) .submissions-table-container {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+html:not(.dark) .submissions-table-container table {
+  border-color: #e2e8f0;
+}
+
+html:not(.dark) .submissions-table-container thead {
+  background-color: #f8fafc;
+}
+
+html:not(.dark) .submissions-table-container tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+html:not(.dark) .submissions-table-container .load-more-section {
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ===== 라이트모드 상태 배지 (Soft Colors) ===== */
+/* AC - 맞았습니다 (Green) */
+html:not(.dark) .status-badge-ac {
+  background-color: #f0fdf4 !important;  /* green-50 */
+  color: #15803d !important;             /* green-700 */
+  border: 1px solid #86efac;             /* green-300 */
+}
+
+/* WA - 틀렸습니다 (Red) */
+html:not(.dark) .status-badge-wa {
+  background-color: #fef2f2 !important;  /* red-50 */
+  color: #b91c1c !important;             /* red-700 */
+  border: 1px solid #fca5a5;             /* red-300 */
+}
+
+/* TLE - 시간 초과 (Orange) */
+html:not(.dark) .status-badge-tle {
+  background-color: #fff7ed !important;  /* orange-50 */
+  color: #c2410c !important;             /* orange-700 */
+  border: 1px solid #fdba74;             /* orange-300 */
+}
+
+/* MLE - 메모리 초과 (Purple) */
+html:not(.dark) .status-badge-mle {
+  background-color: #faf5ff !important;  /* purple-50 */
+  color: #7e22ce !important;             /* purple-700 */
+  border: 1px solid #d8b4fe;             /* purple-300 */
+}
+
+/* RE - 런타임 에러 (Yellow) */
+html:not(.dark) .status-badge-re {
+  background-color: #fefce8 !important;  /* yellow-50 */
+  color: #a16207 !important;             /* yellow-700 */
+  border: 1px solid #fde047;             /* yellow-300 */
+}
+
+/* CE - 컴파일 에러 (Blue) */
+html:not(.dark) .status-badge-ce {
+  background-color: #eff6ff !important;  /* blue-50 */
+  color: #1d4ed8 !important;             /* blue-700 */
+  border: 1px solid #93c5fd;             /* blue-300 */
+}
+
+/* Default - 채점 중 (Gray) */
+html:not(.dark) .status-badge-default {
+  background-color: #f9fafb !important;  /* gray-50 */
+  color: #374151 !important;             /* gray-700 */
+  border: 1px solid #d1d5db;             /* gray-300 */
+}
+
+/* ===== 라이트모드 풀이 모드 배지 ===== */
+/* FOCUS 모드 (Purple) */
+html:not(.dark) .solve-mode-badge-focus {
+  background-color: #faf5ff !important;  /* purple-50 */
+  color: #7e22ce !important;             /* purple-700 */
+  border: 1px solid #d8b4fe;             /* purple-300 */
+}
+
+/* 기본 모드 (Blue) */
+html:not(.dark) .solve-mode-badge-normal {
+  background-color: #eff6ff !important;  /* blue-50 */
+  color: #1d4ed8 !important;             /* blue-700 */
+  border: 1px solid #93c5fd;             /* blue-300 */
+}
+
+/* ===== 라이트모드 공유 상태 배지 ===== */
+/* 공유됨 (Green) */
+html:not(.dark) .share-badge-shared {
+  background-color: #f0fdf4 !important;  /* green-50 */
+  color: #15803d !important;             /* green-700 */
+  border: 1px solid #86efac;             /* green-300 */
+}
+
+/* 미공유 (Gray) */
+html:not(.dark) .share-badge-not-shared {
+  background-color: #f9fafb !important;  /* gray-50 */
+  color: #374151 !important;             /* gray-700 */
+  border: 1px solid #d1d5db;             /* gray-300 */
+}
+
+/* ===== 공통 배지 스타일 ===== */
+.status-badge-ac,
+.status-badge-wa,
+.status-badge-tle,
+.status-badge-mle,
+.status-badge-re,
+.status-badge-ce,
+.status-badge-default,
+.solve-mode-badge-focus,
+.solve-mode-badge-normal,
+.share-badge-shared,
+.share-badge-not-shared {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  border-radius: 9999px;
+  display: inline-flex;
+}
+
+/* ===== 다크모드 유지 (기존 Tailwind 스타일) ===== */
+html.dark .status-badge-ac {
+  background-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+html.dark .status-badge-wa {
+  background-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+html.dark .status-badge-tle {
+  background-color: rgba(249, 115, 22, 0.3);
+  color: #fb923c;
+}
+
+html.dark .status-badge-mle {
+  background-color: rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+}
+
+html.dark .status-badge-re {
+  background-color: rgba(234, 179, 8, 0.3);
+  color: #facc15;
+}
+
+html.dark .status-badge-ce {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+html.dark .status-badge-default {
+  background-color: rgba(75, 85, 99, 0.5);
+  color: #9ca3af;
+}
+
+html.dark .solve-mode-badge-focus {
+  background-color: rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+}
+
+html.dark .solve-mode-badge-normal {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+html.dark .share-badge-shared {
+  background-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+html.dark .share-badge-not-shared {
+  background-color: rgba(75, 85, 99, 0.5);
+  color: #9ca3af;
+}

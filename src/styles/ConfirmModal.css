@@ -1,0 +1,74 @@
+/* ConfirmModal.css - 확인 모달 스타일 */
+
+/* ===== 라이트모드 ===== */
+html:not(.dark) .confirm-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+html:not(.dark) .confirm-modal-container {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .confirm-modal-title {
+  color: #1f2937;
+}
+
+html:not(.dark) .confirm-modal-message {
+  color: #4b5563;
+}
+
+html:not(.dark) .confirm-modal-cancel-btn {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .confirm-modal-cancel-btn:hover {
+  background-color: #e5e7eb;
+}
+
+html:not(.dark) .confirm-modal-confirm-btn {
+  background-color: #a855f7;
+  color: #ffffff;
+}
+
+html:not(.dark) .confirm-modal-confirm-btn:hover {
+  background-color: #9333ea;
+}
+
+/* ===== 다크모드 ===== */
+html.dark .confirm-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+html.dark .confirm-modal-container {
+  background-color: #27272a;
+  border: 1px solid #3f3f46;
+}
+
+html.dark .confirm-modal-title {
+  color: #ffffff;
+}
+
+html.dark .confirm-modal-message {
+  color: #d1d5db;
+}
+
+html.dark .confirm-modal-cancel-btn {
+  background-color: #3f3f46;
+  color: #d1d5db;
+}
+
+html.dark .confirm-modal-cancel-btn:hover {
+  background-color: #52525b;
+}
+
+html.dark .confirm-modal-confirm-btn {
+  background-color: #a855f7;
+  color: #ffffff;
+}
+
+html.dark .confirm-modal-confirm-btn:hover {
+  background-color: #9333ea;
+}

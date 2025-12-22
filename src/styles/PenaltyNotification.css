@@ -1,0 +1,137 @@
+/* PenaltyNotification.css - 패널티 알림 스타일 */
+
+/* ===== 라이트모드 ===== */
+html:not(.dark) .penalty-overlay {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Warning 타입 (노란색) */
+html:not(.dark) .penalty-container.penalty-warning {
+  background-color: #fefce8;
+  border-color: #eab308;
+}
+
+html:not(.dark) .penalty-warning .penalty-title {
+  color: #854d0e;
+}
+
+html:not(.dark) .penalty-warning .penalty-message {
+  color: #713f12;
+}
+
+/* Severe 타입 (주황색) */
+html:not(.dark) .penalty-container.penalty-severe {
+  background-color: #fff7ed;
+  border-color: #f97316;
+}
+
+html:not(.dark) .penalty-severe .penalty-title {
+  color: #9a3412;
+}
+
+html:not(.dark) .penalty-severe .penalty-message {
+  color: #7c2d12;
+}
+
+/* Critical 타입 (빨간색) */
+html:not(.dark) .penalty-container.penalty-critical {
+  background-color: #fef2f2;
+  border-color: #ef4444;
+}
+
+html:not(.dark) .penalty-critical .penalty-title {
+  color: #991b1b;
+}
+
+html:not(.dark) .penalty-critical .penalty-message {
+  color: #7f1d1d;
+}
+
+/* 공통 라이트모드 스타일 */
+html:not(.dark) .penalty-status-box {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .penalty-label {
+  color: #6b7280;
+}
+
+html:not(.dark) .penalty-score {
+  color: #1f2937;
+}
+
+html:not(.dark) .penalty-progress-label {
+  color: #6b7280;
+}
+
+html:not(.dark) .penalty-progress-bg {
+  background-color: #e5e7eb;
+}
+
+/* ===== 다크모드 ===== */
+html.dark .penalty-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Warning 타입 (노란색) */
+html.dark .penalty-container.penalty-warning {
+  background-color: rgba(113, 63, 18, 0.95);
+  border-color: #eab308;
+}
+
+html.dark .penalty-warning .penalty-title {
+  color: #fef08a;
+}
+
+html.dark .penalty-warning .penalty-message {
+  color: #d1d5db;
+}
+
+/* Severe 타입 (주황색) */
+html.dark .penalty-container.penalty-severe {
+  background-color: rgba(124, 45, 18, 0.95);
+  border-color: #f97316;
+}
+
+html.dark .penalty-severe .penalty-title {
+  color: #fed7aa;
+}
+
+html.dark .penalty-severe .penalty-message {
+  color: #d1d5db;
+}
+
+/* Critical 타입 (빨간색) */
+html.dark .penalty-container.penalty-critical {
+  background-color: rgba(127, 29, 29, 0.95);
+  border-color: #ef4444;
+}
+
+html.dark .penalty-critical .penalty-title {
+  color: #fecaca;
+}
+
+html.dark .penalty-critical .penalty-message {
+  color: #d1d5db;
+}
+
+/* 공통 다크모드 스타일 */
+html.dark .penalty-status-box {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+html.dark .penalty-label {
+  color: #9ca3af;
+}
+
+html.dark .penalty-score {
+  color: #ffffff;
+}
+
+html.dark .penalty-progress-label {
+  color: #9ca3af;
+}
+
+html.dark .penalty-progress-bg {
+  background-color: #374151;
+}

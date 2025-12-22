@@ -71,6 +71,8 @@ const FocusScoreGauge = ({
     compact = false,
     showLabel = true,
 }) => {
+    // 테마 감지
+    const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
     // 경험치 스타일 애니메이션을 위한 상태
     const [animations, setAnimations] = useState([]);
     const prevScoreRef = useRef(score);
@@ -141,11 +143,13 @@ const FocusScoreGauge = ({
             userSelect: 'none',
         }}>
             <div style={{
-                background: '#18181b',  // zinc-900 (문제풀이 페이지 배경색)
+                background: isDarkMode ? '#18181b' : '#ffffff',  // 라이트/다크 모드에 따른 배경색
                 borderRadius: compact ? '10px' : '12px',
                 padding: compact ? '8px 6px' : '10px 8px',  // 패딩 축소
-                border: `1px solid ${config.borderColor}`,
-                boxShadow: `0 4px 16px rgba(0, 0, 0, 0.5), 0 0 12px ${config.color}15`,
+                border: `1px solid ${isDarkMode ? config.borderColor : '#e2e8f0'}`,
+                boxShadow: isDarkMode
+                    ? `0 4px 16px rgba(0, 0, 0, 0.5), 0 0 12px ${config.color}15`
+                    : `0 4px 16px rgba(0, 0, 0, 0.1), 0 0 12px ${config.color}15`,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -185,7 +189,7 @@ const FocusScoreGauge = ({
                     {animations.length === 0 && (
                         <div style={{
                             fontSize: compact ? '9px' : '10px',
-                            color: 'rgba(255,255,255,0.2)',
+                            color: isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
                             fontFamily: 'monospace',
                         }}>
                             ···
@@ -199,9 +203,9 @@ const FocusScoreGauge = ({
                     width: gaugeWidth,
                     height: gaugeHeight,
                     borderRadius: gaugeWidth / 2,
-                    background: 'rgba(255, 255, 255, 0.08)',
+                    background: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
                     overflow: 'hidden',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
                 }}>
                     {/* 배경 그라데이션 (희미하게) */}
                     <div style={{
@@ -221,7 +225,7 @@ const FocusScoreGauge = ({
                         left: 0,
                         right: 0,
                         height: '2px',
-                        background: 'rgba(255, 255, 255, 0.4)',
+                        background: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)',
                         transform: 'translateY(-50%)',
                         zIndex: 2,
                     }} />
