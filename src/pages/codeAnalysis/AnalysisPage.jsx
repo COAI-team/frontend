@@ -258,9 +258,9 @@ const AnalysisPage = () => {
     const resolvedAnalysisId = analysisResult?.analysisId ?? analysisId; // 게시판 글쓰기 버튼
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-white dark:bg-[#131313]">
             {/* 상단 헤더 */}
-            <div className="shadow-sm border-b">
+            <div className="shadow-sm border-b border-[#e2e8f0] dark:border-[#3f3f46]">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -286,7 +286,7 @@ const AnalysisPage = () => {
                     {/* 왼쪽 패널: 파일 선택 및 코드 뷰어 */}
                     <div className="space-y-6">
                         {isNew && (
-                            <div className="rounded-lg shadow-sm border p-6">
+                            <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] p-6">
                                 <h2 className="text-lg font-semibold mb-4">📂 파일 선택</h2>
                                 <div className="space-y-4">
                                     <RepositorySelector onSelect={handleRepoSelect} onSearch={handleOwnerSearch} />
@@ -296,8 +296,8 @@ const AnalysisPage = () => {
                             </div>
                         )}
 
-                        <div className="rounded-lg shadow-sm border overflow-hidden">
-                            <div className="p-4 border-b flex justify-between items-center">
+                        <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] overflow-hidden">
+                            <div className="p-4 border-b border-[#e2e8f0] dark:border-[#3f3f46] flex justify-between items-center">
                                 <h3 className="font-semibold">
                                     💻 코드 뷰어 {selectedFile && `- ${selectedFile.path}`}
                                 </h3>
@@ -317,11 +317,11 @@ const AnalysisPage = () => {
                     {/* 오른쪽 패널: 분석 설정 및 결과 */}
                     <div className="space-y-6">
                         {isNew && !analysisResult && !isLoading && (
-                            <div className="rounded-lg shadow-sm border p-6">
+                            <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] p-6">
                                 <h2 className="text-lg font-semibold mb-4">⚙️ 분석 설정</h2>
                                 
                                 {/* RAG Toggle Switch */}
-                                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="mb-6 p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg border border-[#e2e8f0] dark:border-[#3f3f46]">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="font-medium text-gray-700">RAG (과거 이력 참조) 모드</span>
                                         <button 
@@ -354,7 +354,7 @@ const AnalysisPage = () => {
 
                         {/* 분석 결과 */}
                         {!isLoading && analysisResult && (
-                            <div className="rounded-lg shadow-sm border p-6">
+                            <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] p-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-xl font-bold">
                                         분석 결과

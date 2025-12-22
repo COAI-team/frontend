@@ -135,7 +135,7 @@ const AnalysisOptions = () => {
 
                 <div className="space-y-8">
                     {/* Analysis Types Section */}
-                    <div className={`p-6 rounded-lg ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} shadow-lg`}>
+                    <div className={`p-6 rounded-lg ${theme === 'light' ? 'bg-white shadow-lg' : 'bg-[#1f1f1f] shadow-[0_4px_20px_rgba(0,0,0,0.4)]'}`}>
                         <h2 className={`text-2xl font-bold mb-4 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                             1. 분석 유형 선택
                         </h2>
@@ -201,7 +201,7 @@ const AnalysisOptions = () => {
                     </div>
 
                     {/* Tone Level Section */}
-                    <div className={`p-6 rounded-lg ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} shadow-lg`}>
+                    <div className={`p-6 rounded-lg ${theme === 'light' ? 'bg-white shadow-lg' : 'bg-[#1f1f1f] shadow-[0_4px_20px_rgba(0,0,0,0.4)]'}`}>
                         <h2 className={`text-2xl font-bold mb-4 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                             2. 피드백 강도 선택
                         </h2>
@@ -271,7 +271,7 @@ const AnalysisOptions = () => {
                     </div>
 
                     {/* Custom Requirements Section */}
-                    <div className={`p-6 rounded-lg ${theme === 'light' ? 'bg-white' : 'bg-gray-800'} shadow-lg`}>
+                    <div className={`p-6 rounded-lg ${theme === 'light' ? 'bg-white shadow-lg' : 'bg-[#1f1f1f] shadow-[0_4px_20px_rgba(0,0,0,0.4)]'}`}>
                         <h2 className={`text-2xl font-bold mb-4 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                             3. 추가 요구사항 (선택사항)
                         </h2>

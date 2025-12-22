@@ -72,10 +72,8 @@ function MyPageSidebar() {
       : "hover:bg-gray-800 text-gray-300";
   }, [theme, isActive]);
 
-  // aside 클래스 미리 계산
-  const asideClass = useMemo(() =>
-      `w-64 border-r ${theme === "light" ? "border-black bg-white" : "border-gray-700 bg-gray-900"}`,
-    [theme]);
+  // aside 클래스 - Navbar 스타일과 통일 (Tailwind dark: 방식)
+  const asideClass = "w-64 border-r border-gray-200 shadow-sm bg-white text-gray-900 dark:border-transparent dark:bg-[#0a0a0a] dark:text-white dark:shadow-[1px_0_3px_0_rgba(255,255,255,0.05)]";
 
   // 메뉴 렌더링 결과 캐싱
   const renderedMenu = useMemo(() =>

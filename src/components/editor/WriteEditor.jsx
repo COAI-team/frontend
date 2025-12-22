@@ -220,8 +220,8 @@ const WriteEditor = ({
       style={{
         maxWidth: "900px",
         borderRadius: "1rem",
-        backgroundColor: isDark ? "#101828" : "white",
-        border: `1px solid ${isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"}`,
+        backgroundColor: isDark ? "#1f1f1f" : "white",
+        border: `1px solid ${isDark ? "#2e2e2e" : "rgb(229,231,235)"}`,
         boxShadow: isDark
           ? "0 20px 25px -5px rgba(0,0,0,0.5)"
           : "0 20px 25px -5px rgba(0,0,0,0.1)",
@@ -233,7 +233,7 @@ const WriteEditor = ({
         style={{
           padding: "2rem",
           borderBottom: `1px solid ${
-            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
+            isDark ? "#2e2e2e" : "rgb(229,231,235)"
           }`,
         }}
       >
@@ -260,9 +260,9 @@ const WriteEditor = ({
           top: 0,
           zIndex: 10,
           padding: "1rem 1.5rem",
-          backgroundColor: isDark ? "#101828" : "white",
+          backgroundColor: isDark ? "#1f1f1f" : "white",
           borderBottom: `1px solid ${
-            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
+            isDark ? "#2e2e2e" : "rgb(229,231,235)"
           }`,
         }}
       >
@@ -299,7 +299,7 @@ const WriteEditor = ({
         style={{
           padding: "1.5rem 2rem",
           borderTop: `1px solid ${
-            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
+            isDark ? "#2e2e2e" : "rgb(229,231,235)"
           }`,
         }}
       >
@@ -314,7 +314,7 @@ const WriteEditor = ({
           justifyContent: "flex-end",
           gap: "0.75rem",
           borderTop: `1px solid ${
-            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
+            isDark ? "#2e2e2e" : "rgb(229,231,235)"
           }`,
         }}
       >
@@ -322,14 +322,14 @@ const WriteEditor = ({
           onClick={() => globalThis.history.back()}
           style={{
             padding: "0.625rem 1.5rem",
-            backgroundColor: isDark ? "rgb(31,41,55)" : "rgb(229,231,235)",
+            backgroundColor: isDark ? "#2e2e2e" : "rgb(229,231,235)",
             color: isDark ? "rgb(209,213,219)" : "rgb(55,65,81)",
             borderRadius: "0.5rem",
             border: "none",
             cursor: "pointer",
           }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? "rgb(55,65,81)" : "rgb(209,213,219)"}
-          onMouseLeave={(e) => e.target.style.backgroundColor = isDark ? "rgb(31,41,55)" : "rgb(229,231,235)"}
+          onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? "#3f3f3f" : "rgb(209,213,219)"}
+          onMouseLeave={(e) => e.target.style.backgroundColor = isDark ? "#2e2e2e" : "rgb(229,231,235)"}
         >
           취소
         </button>

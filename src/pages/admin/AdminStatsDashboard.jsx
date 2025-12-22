@@ -271,7 +271,7 @@ export default function AdminStatsDashboard() {
       {/* 4개 통계 카드 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 총 유저 수 */}
-        <div className="p-5 rounded-xl shadow-md flex items-center gap-4 border dark:bg-gray-800">
+        <div className="p-5 rounded-xl shadow-md flex items-center gap-4 border border-[#e2e8f0] dark:border-[#3f3f46] dark:bg-gray-800">
           <div className="p-3 bg-indigo-100 dark:bg-indigo-600/20 rounded-xl">
             <UserGroupIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-300" />
           </div>
@@ -284,7 +284,7 @@ export default function AdminStatsDashboard() {
         </div>
 
         {/* 오늘 가입자 수 */}
-        <div className="p-5 rounded-xl shadow-md flex items-center gap-4 border dark:bg-gray-800">
+        <div className="p-5 rounded-xl shadow-md flex items-center gap-4 border border-[#e2e8f0] dark:border-[#3f3f46] dark:bg-gray-800">
           <div className="p-3 bg-green-100 dark:bg-green-600/20 rounded-xl">
             <ArrowTrendingUpIcon className="w-6 h-6 text-green-600 dark:text-green-300" />
           </div>
@@ -297,7 +297,7 @@ export default function AdminStatsDashboard() {
         </div>
 
         {/* 오늘 결제 수 */}
-        <div className="p-5 rounded-xl shadow-md flex items-center gap-4 border dark:bg-gray-800">
+        <div className="p-5 rounded-xl shadow-md flex items-center gap-4 border border-[#e2e8f0] dark:border-[#3f3f46] dark:bg-gray-800">
           <div className="p-3 bg-yellow-100 dark:bg-yellow-600/20 rounded-xl">
             <ShoppingCartIcon className="w-6 h-6 text-yellow-600 dark:text-yellow-300" />
           </div>
@@ -310,7 +310,7 @@ export default function AdminStatsDashboard() {
         </div>
 
         {/* 오늘 매출 */}
-        <div className="p-5 rounded-xl shadow-md flex items-center gap-4 border dark:bg-gray-800">
+        <div className="p-5 rounded-xl shadow-md flex items-center gap-4 border border-[#e2e8f0] dark:border-[#3f3f46] dark:bg-gray-800">
           <div className="p-3 bg-blue-100 dark:bg-blue-600/20 rounded-xl">
             <ChartBarIcon className="w-6 h-6 text-blue-600 dark:text-blue-300" />
           </div>
@@ -324,8 +324,8 @@ export default function AdminStatsDashboard() {
       </div>
 
       {/* 유저 증감 그래프 */}
-      <div className="rounded-xl shadow-md border dark:bg-gray-800">
-        <div className="p-5 border-b dark:border-gray-700">
+      <div className="rounded-xl shadow-md border border-[#e2e8f0] dark:border-[#3f3f46] dark:bg-gray-800">
+        <div className="p-5 border-b border-[#e2e8f0] dark:border-[#3f3f46]">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">유저 증감 그래프</h2>
@@ -425,8 +425,8 @@ export default function AdminStatsDashboard() {
       </div>
 
       {/* 매출 추이 그래프 */}
-      <div className="rounded-xl shadow-md border dark:bg-gray-800">
-        <div className="p-5 border-b dark:border-gray-700">
+      <div className="rounded-xl shadow-md border border-[#e2e8f0] dark:border-[#3f3f46] dark:bg-gray-800">
+        <div className="p-5 border-b border-[#e2e8f0] dark:border-[#3f3f46]">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">매출 추이</h2>
@@ -531,7 +531,7 @@ export default function AdminStatsDashboard() {
 
       {/* 언어 랭킹 / 코드보드 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800">
+        <div className="rounded-xl shadow-md p-5 border border-[#e2e8f0] dark:border-[#3f3f46] dark:bg-gray-800">
           <h2 className="text-lg font-semibold mb-4">언어 랭킹</h2>
           {languageRanking.length === 0 ? (
             <p className="text-center text-gray-500">데이터가 없습니다.</p>
@@ -567,7 +567,7 @@ export default function AdminStatsDashboard() {
           )}
         </div>
 
-        <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800">
+        <div className="rounded-xl shadow-md p-5 border border-[#e2e8f0] dark:border-[#3f3f46] dark:bg-gray-800">
           <h2 className="text-lg font-semibold mb-4">코드보드 분석 통계</h2>
           {codeBoardStateTotal.length === 0 ? (
             <p className="text-center text-gray-500">데이터가 없습니다.</p>
@@ -614,7 +614,7 @@ export default function AdminStatsDashboard() {
 
       {/* 알고리즘 / 코드 분석 랭킹 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800">
+        <div className="rounded-xl shadow-md p-5 border border-[#e2e8f0] dark:border-[#3f3f46] dark:bg-gray-800">
           <h2 className="text-lg font-semibold mb-4">알고리즘 풀이 랭킹</h2>
           {algoSolverRanking.length === 0 ? (
             <p className="text-center text-gray-500">데이터가 없습니다.</p>
@@ -644,7 +644,7 @@ export default function AdminStatsDashboard() {
           )}
         </div>
 
-        <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800">
+        <div className="rounded-xl shadow-md p-5 border border-[#e2e8f0] dark:border-[#3f3f46] dark:bg-gray-800">
           <h2 className="text-lg font-semibold mb-4">코드 분석 랭킹</h2>
           {codeAnalysisRanking.length === 0 ? (
             <p className="text-center text-gray-500">데이터가 없습니다.</p>

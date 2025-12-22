@@ -80,9 +80,9 @@
 
 /* 다크모드 CSS 변수 */
 html.dark {
-  --topic-bg: #374151;
+  --topic-bg: #2e2e2e;
   --topic-text: #e5e7eb;
-  --topic-hover-bg: #4b5563;
+  --topic-hover-bg: #1e1e1e;
   --topic-hover-text: #ffffff;
   --primary-color: #3b82f6;
   --border-color: #374151;
