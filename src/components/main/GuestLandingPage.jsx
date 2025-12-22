@@ -21,7 +21,7 @@ export default function GuestLandingPage() {
             </div>
           </div>
           <h1 className="text-6xl md:text-8xl font-black tracking-tighter bg-clip-text text-transparent bg-linear-to-br from-gray-900 via-gray-700 to-gray-500 dark:from-white dark:via-gray-200 dark:to-gray-500">
-            CodeNose
+            {"< CoAi / >"}
           </h1>
           <p className="text-2xl md:text-3xl text-gray-500 dark:text-gray-400 font-light max-w-2xl mx-auto">
             당신의 코드 냄새를 맡아드립니다.<br/>

@@ -263,19 +263,46 @@ html.dark .animate-scan,
   width: 100%;
   height: 100%;
   pointer-events: none;
-  overflow: hidden;
-  z-index: 1; /* Navbar content is relative (z-auto), so this needs to be low but visible */
+  overflow: visible; /* Allow snow to drip down (vertical overflow) */
+  z-index: 1; 
+  /* Note: Horizontal overflow from Moai walking might cause scrollbars if not handled by parent (Navbar/Body) */
 }
 
 .walking-moai-container {
   position: absolute;
   left: -10%;
-  bottom: -5px; /* 바닥에 딱 붙거나 살짝 아래로 */
+  bottom: 0px; /* Feet closer to snow floor */
   /* 기본 20초, 인라인 스타일로 오버라이드 가능하도록 */
   animation: walkAcrossScreen var(--walk-duration, 20s) linear infinite;
   animation-delay: var(--walk-delay, 0s);
-  z-index: 1;
+  z-index: 30; /* Above Snow (10) */
   will-change: left;
+}
+
+/* ... existing code ... */
+
+/* accumulated snow (sobok sobok) */
+.snow-floor {
+  position: absolute;
+  /* Moved UP as requested: was -12px, now -2px */
+  bottom: -2px; 
+  left: 0;
+  width: 100%;
+  height: 25px;
+  /* Clean white snow, no circles */
+  background: white; 
+  /* Wavy/Dripping bottom edge simulation */
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  /* Thicker hanging layer */
+  border-bottom-left-radius: 50% 25px;
+  border-bottom-right-radius: 50% 25px;
+  
+  box-shadow: 
+    0 10px 20px rgba(0,0,0,0.1), /* Enhanced shadow */
+    inset 0 -5px 10px rgba(220, 230, 240, 0.5); 
+  
+  z-index: 10; 
+  filter: blur(0.5px);
 }
 
 .moai-body {
@@ -313,3 +340,97 @@ html.dark .animate-scan,
     transform: translateY(0) scaleY(0.95) scaleX(1.05); /* 착지 */
   }
 }
+
+@keyframes walkAcrossScreenReverse {
+  from { left: 115%; }
+  to { left: -15%; }
+}
+
+/* ❄️ Snow Animation */
+@keyframes snowfall {
+  0% {
+    transform: translateY(-10px) translateX(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(80px) translateX(20px);
+    opacity: 0.3;
+  }
+}
+
+.snowflake {
+  position: absolute;
+  top: -10px;
+  background-color: white;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 20; /* Snowflakes fall in front of floor but maybe behind Moai? Let's make them front for immersion */
+  animation: snowfall linear infinite;
+  box-shadow: 0 0 5px white;
+}
+
+/* accumulated snow (sobok sobok) */
+.snow-floor {
+  position: absolute;
+  /* Navbar bottom is 0. We want it to hang down a bit. */
+  bottom: -12px; 
+  left: 0;
+  width: 100%;
+  height: 20px;
+  /* Clean white snow, no circles */
+  background: white; 
+  /* Wavy/Dripping bottom edge simulation using border-radius specific corners or mask. 
+     A simple effective way is irregular border radius. */
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  /* To make it look like "flowing over", it needs to be wider than container or just smooth at bottom. 
+     Let's try a simpler approach first: a thick hanging layer with soft shadow. */
+  border-bottom-left-radius: 50% 20px;
+  border-bottom-right-radius: 50% 20px;
+  
+  box-shadow: 
+    0 8px 15px rgba(0,0,0,0.1), /* Soft drop shadow */
+    inset 0 -5px 10px rgba(220, 230, 240, 0.5); /* Inner shading for depth at bottom */
+  
+  z-index: 10; 
+  filter: blur(0.5px);
+}
+
+/* Add some random drip shapes using ::after/::before for "uneven flow" */
+.snow-floor::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 30%;
+  width: 60px;
+  height: 25px;
+  background: white;
+  border-radius: 0 0 30px 30px;
+  box-shadow: 0 5px 10px rgba(0,0,0,0.05);
+  z-index: 10;
+}
+
+.snow-floor::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 20%;
+  width: 80px;
+  height: 30px;
+  background: white;
+  border-radius: 0 0 40px 40px;
+  box-shadow: 0 5px 10px rgba(0,0,0,0.05);
+  z-index: 10;
+}
+
+/* Moai Container Adjustment */
+.walking-moai-container {
+  /* ... existing styles ... */
+  z-index: 30; /* Higher than snow (10) and snowflakes (20) if desired */
+}
+/* Note: walking-moai-container style block is not defined locally in CSS, 
+   it's in Navbar.jsx inline styles mostly, but class exists. 
+   We have .walking-moai-container defined around line 270. Let's update that block specifically. 
+*/
