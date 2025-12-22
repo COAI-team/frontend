@@ -9,17 +9,19 @@ const THEME_CLASSES = {
     buttonText: "text-gray-700",
     icon: "text-gray-500",
     menuBg: "bg-white",
-    menuBorder: "outline-black/5",
+    menuBorder: "border-gray-200",
+    menuShadow: "shadow-md",
     text: "text-gray-700",
     hover: "bg-gray-100"
   },
   dark: {
     buttonText: "text-gray-200",
     icon: "text-gray-300",
-    menuBg: "bg-gray-800",
-    menuBorder: "outline-white/10",
+    menuBg: "bg-[#1f1f1f]",
+    menuBorder: "border-[#2e2e2e]",
+    menuShadow: "shadow-[0_4px_20px_rgba(0,0,0,0.4)]",
     text: "text-gray-200",
-    hover: "bg-white/10"
+    hover: "bg-[#2a2a2a]"
   }
 };
 
@@ -58,7 +60,7 @@ export default function Dropdown({ button, items, width = "w-40" }) {
   return (
     <Menu as="div" className="relative inline-block">
       {/* 버튼 */}
-      <MenuButton className="inline-flex items-center gap-1 focus:outline-none">
+      <MenuButton className="inline-flex items-center gap-1 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0">
                 <span className={`w-full text-center ${themeClasses.buttonText}`}>
                     <strong>{button}</strong>
                 </span>
@@ -69,9 +71,10 @@ export default function Dropdown({ button, items, width = "w-40" }) {
       <MenuItems
         transition
         className={`absolute right-0 z-10 mt-2 ${width} origin-top-right rounded-md border
-                    ${themeClasses.menuBg} shadow-lg outline-1 
+                    ${themeClasses.menuBg} ${themeClasses.menuShadow}
                     ${themeClasses.menuBorder}
-                    data-closed:scale-95 data-closed:opacity-0 
+                    outline-none focus:outline-none focus:ring-0
+                    data-closed:scale-95 data-closed:opacity-0
                     data-enter:duration-100 data-leave:duration-75`}
       >
         <div className="py-1">

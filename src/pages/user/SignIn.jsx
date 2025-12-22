@@ -105,7 +105,7 @@ export default function SignIn() {
     <div className="flex h-full overflow-hidden">
       {/* 왼쪽 레이아웃 */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-16">
-        <div className="mx-auto w-full max-w-sm border dark:border-gray-700 rounded-xl shadow-lg p-8 dark:bg-gray-900">
+        <div className="mx-auto w-full max-w-sm bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#2e2e2e] rounded-xl shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-8">
           <div className="text-center">
             <h2 className="mt-2 text-2xl font-bold dark:text-white">로그인</h2>
             <p className="mt-2 text-sm dark:text-gray-400">
