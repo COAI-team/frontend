@@ -1,5 +1,13 @@
 import { ALGO_LEVEL_INFO } from '../../../service/algorithm/AlgorithmApi';
 
+// 레벨별 이미지 경로 매핑
+const LEVEL_IMAGES = {
+    EMERALD: '/LevelImg/emerald.png',
+    SAPPHIRE: '/LevelImg/sapphire.png',
+    RUBY: '/LevelImg/ruby.png',
+    DIAMOND: '/LevelImg/diamond.png'
+};
+
 /**
  * 사용자 알고리즘 레벨 표시 컴포넌트
  * - 레벨 뱃지 (EMERALD/SAPPHIRE/RUBY/DIAMOND)
@@ -69,8 +77,12 @@ const UserLevelBadge = ({ userLevel }) => {
 
             {/* 레벨 뱃지 */}
             <div className="text-center mb-6">
-                <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full ${levelInfo.bgColor} mb-3`}>
-                    <span className="text-4xl">{levelInfo.icon}</span>
+                <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full ${levelInfo.bgColor} mb-3 overflow-hidden`}>
+                    <img
+                        src={LEVEL_IMAGES[algoLevel] || LEVEL_IMAGES.EMERALD}
+                        alt={`${levelInfo.name} 레벨`}
+                        className="w-14 h-14 object-contain"
+                    />
                 </div>
                 <div className={`text-xl font-bold ${levelInfo.textColor}`}>
                     {levelInfo.name}
