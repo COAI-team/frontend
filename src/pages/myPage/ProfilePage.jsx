@@ -307,12 +307,13 @@ export default function ProfilePage() {
   const mcpConfigJson = mcpToken ? JSON.stringify({
     mcpServers: {
       "coai": {
-        "command": "/opt/homebrew/bin/node",
+        "command": "npx",
         "args": [
-          "/Users/bangseong-il/Desktop/JAVA/FinalProject/backend/mcp-bridge/index.js"
-        ],
+          "-y",
+          "github:SungilBang12/codenose-mcp" 
+      ],
         "env": {
-          "COAI_SERVER_URL": "https://localhost:9443/api/mcp/analyze",
+          "COAI_SERVER_URL": "https://api.co-ai.run/api/mcp/analyze",
           "COAI_MCP_TOKEN": mcpToken
         }
       }
