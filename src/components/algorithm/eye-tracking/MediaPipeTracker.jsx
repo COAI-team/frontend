@@ -3,6 +3,7 @@ import { useMediaPipeTracking } from '../../../hooks/algorithm/useMediaPipeTrack
 import { useFocusScore } from '../../../hooks/algorithm/useFocusScore';
 import MediaPipeCalibrationScreen from './MediaPipeCalibrationScreen';
 import FocusScoreGauge from './FocusScoreGauge';
+import '../../../styles/MediaPipeTracker.css';
 
 /**
  * MediaPipe 기반 시선/얼굴 추적 래퍼 컴포넌트
@@ -399,18 +400,19 @@ const MediaPipeTracker = forwardRef(({
     // 에러 표시
     if (error) {
         return (
-            <div style={{
-                position: 'fixed',
-                top: '20px',
-                right: '20px',
-                background: '#fee',
-                color: '#c33',
-                padding: '1rem',
-                borderRadius: '8px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                zIndex: 1000,
-                maxWidth: '300px'
-            }}>
+            <div
+                className="mediapipe-error-box"
+                style={{
+                    position: 'fixed',
+                    top: '20px',
+                    right: '20px',
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    zIndex: 1000,
+                    maxWidth: '300px'
+                }}
+            >
                 <strong>⚠️ 오류</strong>
                 <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>{error}</p>
             </div>
@@ -420,17 +422,18 @@ const MediaPipeTracker = forwardRef(({
     // 자동 캘리브레이션 안내 화면 표시
     if (showAutoCalibration) {
         return (
-            <div style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-                zIndex: 10000,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white'
-            }}>
+            <div
+                className="mediapipe-auto-calibration"
+                style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 10000,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}
+            >
                 {/* 중앙 타겟 포인트 */}
                 <div style={{
                     position: 'relative',
@@ -447,11 +450,11 @@ const MediaPipeTracker = forwardRef(({
                         style={{ position: 'absolute', transform: 'rotate(-90deg)' }}
                     >
                         <circle
+                            className="calibration-ring-bg"
                             cx="60"
                             cy="60"
                             r="54"
                             fill="none"
-                            stroke="rgba(255, 255, 255, 0.2)"
                             strokeWidth="6"
                         />
                         <circle
@@ -479,20 +482,25 @@ const MediaPipeTracker = forwardRef(({
                 </div>
 
                 {/* 안내 텍스트 */}
-                <h2 style={{
-                    marginTop: '2rem',
-                    fontSize: '1.5rem',
-                    fontWeight: '600',
-                    textAlign: 'center'
-                }}>
+                <h2
+                    className="calibration-title"
+                    style={{
+                        marginTop: '2rem',
+                        fontSize: '1.5rem',
+                        fontWeight: '600',
+                        textAlign: 'center'
+                    }}
+                >
                     화면 중앙의 점을 응시해주세요
                 </h2>
-                <p style={{
-                    marginTop: '0.75rem',
-                    fontSize: '1rem',
-                    color: '#94a3b8',
-                    textAlign: 'center'
-                }}>
+                <p
+                    className="calibration-subtitle"
+                    style={{
+                        marginTop: '0.75rem',
+                        fontSize: '1rem',
+                        textAlign: 'center'
+                    }}
+                >
                     시선 추적 캘리브레이션 중입니다
                 </p>
 
@@ -503,13 +511,15 @@ const MediaPipeTracker = forwardRef(({
                     alignItems: 'center',
                     gap: '0.75rem'
                 }}>
-                    <div style={{
-                        width: '200px',
-                        height: '6px',
-                        borderRadius: '3px',
-                        background: 'rgba(255, 255, 255, 0.2)',
-                        overflow: 'hidden'
-                    }}>
+                    <div
+                        className="calibration-progress-bg"
+                        style={{
+                            width: '200px',
+                            height: '6px',
+                            borderRadius: '3px',
+                            overflow: 'hidden'
+                        }}
+                    >
                         <div style={{
                             width: `${autoCalibrationProgress}%`,
                             height: '100%',
@@ -518,18 +528,13 @@ const MediaPipeTracker = forwardRef(({
                             transition: 'width 0.05s linear'
                         }} />
                     </div>
-                    <span style={{ fontSize: '0.9rem', color: '#94a3b8', minWidth: '40px' }}>
+                    <span
+                        className="calibration-progress-text"
+                        style={{ fontSize: '0.9rem', minWidth: '40px' }}
+                    >
                         {Math.round(autoCalibrationProgress)}%
                     </span>
                 </div>
-
-                {/* 펄스 애니메이션 */}
-                <style>{`
-                    @keyframes pulse {
-                        0%, 100% { transform: scale(1); opacity: 1; }
-                        50% { transform: scale(1.1); opacity: 0.8; }
-                    }
-                `}</style>
             </div>
         );
     }
@@ -548,36 +553,35 @@ const MediaPipeTracker = forwardRef(({
     // 캘리브레이션 준비 중
     if (showCalibration && !calibrationReady) {
         return (
-            <div style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)',
-                zIndex: 10000,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white'
-            }}>
-                <div style={{
-                    width: '60px',
-                    height: '60px',
-                    border: '4px solid rgba(255, 255, 255, 0.2)',
-                    borderTopColor: '#8b5cf6',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                }} />
-                <p style={{ marginTop: '1.5rem', fontSize: '1.2rem' }}>
+            <div
+                className="mediapipe-calibration-loading"
+                style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 10000,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}
+            >
+                <div
+                    className="loading-spinner"
+                    style={{
+                        width: '60px',
+                        height: '60px',
+                        borderWidth: '4px',
+                        borderStyle: 'solid',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                    }}
+                />
+                <p className="loading-text" style={{ marginTop: '1.5rem', fontSize: '1.2rem' }}>
                     캘리브레이션 준비 중...
                 </p>
-                <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#a5b4fc' }}>
+                <p className="loading-subtext" style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
                     MediaPipe 초기화 중입니다
                 </p>
-                <style>{`
-                    @keyframes spin {
-                        to { transform: rotate(360deg); }
-                    }
-                `}</style>
             </div>
         );
     }

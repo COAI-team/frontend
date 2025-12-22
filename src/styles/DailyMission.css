@@ -1,0 +1,259 @@
+/* DailyMission.css - 데일리 미션 페이지 스타일 */
+
+/* ===== 라이트모드 캘린더 컨테이너 ===== */
+html:not(.dark) .grass-calendar-container {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+html:not(.dark) .grass-calendar-container .calendar-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+html:not(.dark) .grass-calendar-container .calendar-footer {
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ===== 라이트모드 잔디 셀 (Soft Colors) ===== */
+/* 미래 날짜 */
+html:not(.dark) .grass-cell-future {
+  background-color: #f9fafb !important;  /* gray-50 */
+  border: 1px solid #e5e7eb;             /* gray-200 */
+}
+
+/* 풀이 없음 (count = 0) */
+html:not(.dark) .grass-cell-empty {
+  background-color: #f3f4f6 !important;  /* gray-100 */
+  border: 1px solid #e5e7eb;             /* gray-200 */
+}
+
+/* 1문제 (연한 초록) */
+html:not(.dark) .grass-cell-level1 {
+  background-color: #dcfce7 !important;  /* green-100 */
+  border: 1px solid #86efac;             /* green-300 */
+}
+
+/* 2문제 */
+html:not(.dark) .grass-cell-level2 {
+  background-color: #bbf7d0 !important;  /* green-200 */
+  border: 1px solid #4ade80;             /* green-400 */
+}
+
+/* 3-4문제 */
+html:not(.dark) .grass-cell-level3 {
+  background-color: #86efac !important;  /* green-300 */
+  border: 1px solid #22c55e;             /* green-500 */
+}
+
+/* 5문제 이상 */
+html:not(.dark) .grass-cell-level4 {
+  background-color: #4ade80 !important;  /* green-400 */
+  border: 1px solid #16a34a;             /* green-600 */
+}
+
+/* ===== 다크모드 잔디 셀 (기존 스타일 유지) ===== */
+html.dark .grass-cell-future {
+  background-color: #1f2937 !important;
+}
+
+html.dark .grass-cell-empty {
+  background-color: #374151 !important;
+}
+
+html.dark .grass-cell-level1 {
+  background-color: #14532d !important;
+}
+
+html.dark .grass-cell-level2 {
+  background-color: #15803d !important;
+}
+
+html.dark .grass-cell-level3 {
+  background-color: #16a34a !important;
+}
+
+html.dark .grass-cell-level4 {
+  background-color: #22c55e !important;
+}
+
+/* ===== 공통 잔디 셀 스타일 ===== */
+.grass-cell-future,
+.grass-cell-empty,
+.grass-cell-level1,
+.grass-cell-level2,
+.grass-cell-level3,
+.grass-cell-level4 {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  cursor: default;
+}
+
+/* ===== 라이트모드 범례 셀 ===== */
+html:not(.dark) .legend-cell-empty {
+  background-color: #f3f4f6 !important;  /* gray-100 */
+  border: 1px solid #e5e7eb;
+}
+
+html:not(.dark) .legend-cell-level1 {
+  background-color: #dcfce7 !important;  /* green-100 */
+  border: 1px solid #86efac;
+}
+
+html:not(.dark) .legend-cell-level2 {
+  background-color: #bbf7d0 !important;  /* green-200 */
+  border: 1px solid #4ade80;
+}
+
+html:not(.dark) .legend-cell-level3 {
+  background-color: #86efac !important;  /* green-300 */
+  border: 1px solid #22c55e;
+}
+
+html:not(.dark) .legend-cell-level4 {
+  background-color: #4ade80 !important;  /* green-400 */
+  border: 1px solid #16a34a;
+}
+
+/* 다크모드 범례 */
+html.dark .legend-cell-empty {
+  background-color: #374151 !important;
+}
+
+html.dark .legend-cell-level1 {
+  background-color: #14532d !important;
+}
+
+html.dark .legend-cell-level2 {
+  background-color: #15803d !important;
+}
+
+html.dark .legend-cell-level3 {
+  background-color: #16a34a !important;
+}
+
+html.dark .legend-cell-level4 {
+  background-color: #22c55e !important;
+}
+
+/* 공통 범례 셀 스타일 */
+.legend-cell-empty,
+.legend-cell-level1,
+.legend-cell-level2,
+.legend-cell-level3,
+.legend-cell-level4 {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+}
+
+/* ===== 라이트모드 미션 진행 컨테이너 ===== */
+html:not(.dark) .mission-progress-container {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== 라이트모드 미션 카드 ===== */
+html:not(.dark) .mission-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+html:not(.dark) .mission-card:hover:not(.mission-completed) {
+  border-color: #93c5fd;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+html:not(.dark) .mission-card.mission-completed {
+  opacity: 0.7;
+}
+
+/* ===== 라이트모드 UserLevelBadge 컨테이너 오버라이드 ===== */
+/* 내부 bg-white 컴포넌트 타겟팅 */
+html:not(.dark) .daily-mission-page .user-level-container > div {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .daily-mission-page .user-level-container h3 {
+  color: #111827;
+}
+
+/* 통계 아이템 배경 (bg-gray-50) */
+html:not(.dark) .daily-mission-page .user-level-container .bg-gray-50 {
+  background-color: #f9fafb !important;
+  border: 1px solid #e5e7eb;
+}
+
+/* 진행률 바 배경 (bg-gray-200) */
+html:not(.dark) .daily-mission-page .user-level-container .bg-gray-200 {
+  background-color: #e5e7eb !important;
+}
+
+/* ===== 라이트모드 UsageDisplay 컨테이너 오버라이드 ===== */
+html:not(.dark) .daily-mission-page .usage-display-container > div {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .daily-mission-page .usage-display-container h3 {
+  color: #111827;
+}
+
+/* Premium 배지 (bg-yellow-100) */
+html:not(.dark) .daily-mission-page .usage-display-container .bg-yellow-100 {
+  background-color: #fef3c7 !important;  /* amber-100 */
+  color: #92400e !important;             /* amber-800 */
+  border: 1px solid #fcd34d;             /* amber-300 */
+}
+
+/* 사용량 상세 아이템 (bg-gray-50) */
+html:not(.dark) .daily-mission-page .usage-display-container .bg-gray-50 {
+  background-color: #f9fafb !important;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+}
+
+/* 진행률 바 배경 (bg-gray-200) */
+html:not(.dark) .daily-mission-page .usage-display-container .bg-gray-200 {
+  background-color: #e5e7eb !important;
+}
+
+/* 한도 초과 경고 (bg-yellow-50) */
+html:not(.dark) .daily-mission-page .usage-display-container .bg-yellow-50 {
+  background-color: #fefce8 !important;  /* yellow-50 */
+  border: 1px solid #fde047 !important;  /* yellow-300 */
+}
+
+html:not(.dark) .daily-mission-page .usage-display-container .bg-yellow-50 p {
+  color: #92400e !important;  /* amber-800 */
+}
+
+html:not(.dark) .daily-mission-page .usage-display-container .bg-yellow-50 a {
+  color: #b45309 !important;  /* amber-700 */
+}
+
+html:not(.dark) .daily-mission-page .usage-display-container .bg-yellow-50 a:hover {
+  color: #78350f !important;  /* amber-900 */
+}
+
+/* 하단 안내 문구 */
+html:not(.dark) .daily-mission-page .usage-display-container .border-t {
+  border-top-color: #e5e7eb !important;
+}
+
+/* ===== 다크모드 컴포넌트 스타일 유지 ===== */
+html.dark .daily-mission-page .user-level-container > div,
+html.dark .daily-mission-page .usage-display-container > div {
+  border-color: #3f3f46 !important;
+}

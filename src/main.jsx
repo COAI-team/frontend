@@ -33,6 +33,9 @@ import ProblemSolve from "./pages/algorithm/ProblemSolve";
 import ProblemLearn from "./pages/algorithm/ProblemLearn";
 import SubmissionResult from "./pages/algorithm/SubmissionResult";
 import MySubmissions from "./pages/algorithm/MySubmissions";
+import AlgorithmTutorial from "./pages/algorithm/AlgorithmTutorial";
+import AlgorithmTutorial2 from "./pages/algorithm/AlgorithmTutorial2";
+import AlgorithmTutorial3 from "./pages/algorithm/AlgorithmTutorial3";
 import DailyMission from "./pages/myPage/DailyMission";
 
 // 코드 분석 도메인
@@ -55,8 +58,10 @@ import DashboardPage from "./pages/myPage/DashboardPage";
 //관리자 레이아웃
 import AdminPageLayout from "./components/layout/adminPageLayout/AdminPageLayout";
 import AdminStatsDashboard from "./pages/admin/AdminStatsDashboard";
+import AdminBatchTestDashboard from "./pages/admin/AdminBatchTestDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminUserBoards from "./pages/admin/AdminUserBoards";
+import AdminLogs from "./pages/admin/AdminLogs";
 
 createRoot(document.getElementById("root")).render(
   <ThemeProvider>
@@ -119,6 +124,11 @@ createRoot(document.getElementById("root")).render(
             <Route path="buy" element={<PaymentPage/>}/>
             <Route path="payment/success" element={<PaymentSuccess/>}/>
             <Route path="payment/fail" element={<PaymentFail/>}/>
+
+            {/* 알고리즘 튜토리얼 */}
+            <Route path="tutorial" element={<AlgorithmTutorial/>}/>
+            <Route path="tutorial2" element={<AlgorithmTutorial2/>}/>
+            <Route path="tutorial3" element={<AlgorithmTutorial3/>}/>
 
             {/* 알고리즘 */}
             <Route path="algorithm" element={<ProblemList/>}/>

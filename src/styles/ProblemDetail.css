@@ -292,6 +292,7 @@ html.dark .tab-button.active {
   line-height: 1.75;
   white-space: pre-wrap;
   padding-left: 1.625rem;
+  padding-right: 1.625rem;
 }
 
 /* 문제 설명 섹션 */
@@ -658,5 +659,149 @@ html.dark .problem-detail-container {
 
 .problem-solve-dark .formatted-text-bullet,
 .problem-solve-dark .formatted-text-number {
+  color: var(--text-tertiary);
+}
+
+/* ===== ProblemSolve 라이트모드 테마 ===== */
+html:not(.dark) .problem-solve-content {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --border-color: #e2e8f0;
+  --input-bg: #eff6ff;
+  --input-border: #dbeafe;
+  --output-bg: #f0fdf4;
+  --output-border: #bbf7d0;
+  --constraints-bg: #fefce8;
+  --constraints-border: #fef08a;
+  --code-bg: #f3f4f6;
+  --code-text: #dc2626;
+  --example-bg: #f9fafb;
+}
+
+html:not(.dark) .problem-solve-content .section-card {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+html:not(.dark) .problem-solve-content .section-title {
+  color: var(--text-primary);
+}
+
+html:not(.dark) .problem-solve-content .section-content {
+  color: var(--text-secondary);
+}
+
+html:not(.dark) .problem-solve-content .section-input {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+}
+
+html:not(.dark) .problem-solve-content .section-output {
+  background-color: var(--output-bg);
+  border-color: var(--output-border);
+}
+
+html:not(.dark) .problem-solve-content .section-constraints {
+  background-color: var(--constraints-bg);
+  border-color: var(--constraints-border);
+}
+
+html:not(.dark) .problem-solve-content .examples-section {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+html:not(.dark) .problem-solve-content .example-code {
+  background-color: var(--example-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html:not(.dark) .problem-solve-content .formatted-bold {
+  color: var(--text-primary);
+}
+
+html:not(.dark) .problem-solve-content .formatted-code {
+  background-color: var(--code-bg);
+  color: var(--code-text);
+}
+
+html:not(.dark) .problem-solve-content .formatted-text-bullet,
+html:not(.dark) .problem-solve-content .formatted-text-number {
+  color: var(--text-tertiary);
+}
+
+/* ProblemSolve 다크모드 테마 (기존 problem-solve-dark 스타일 유지) */
+html.dark .problem-solve-content {
+  --bg-primary: #18181b;
+  --bg-secondary: #27272a;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --border-color: #3f3f46;
+  --input-bg: rgba(59, 130, 246, 0.15);
+  --input-border: rgba(59, 130, 246, 0.4);
+  --output-bg: rgba(34, 197, 94, 0.15);
+  --output-border: rgba(34, 197, 94, 0.4);
+  --constraints-bg: rgba(234, 179, 8, 0.15);
+  --constraints-border: rgba(234, 179, 8, 0.4);
+  --code-bg: #3f3f46;
+  --code-text: #f87171;
+  --example-bg: #18181b;
+}
+
+html.dark .problem-solve-content .section-card {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+html.dark .problem-solve-content .section-title {
+  color: var(--text-primary);
+}
+
+html.dark .problem-solve-content .section-content {
+  color: var(--text-secondary);
+}
+
+html.dark .problem-solve-content .section-input {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+}
+
+html.dark .problem-solve-content .section-output {
+  background-color: var(--output-bg);
+  border-color: var(--output-border);
+}
+
+html.dark .problem-solve-content .section-constraints {
+  background-color: var(--constraints-bg);
+  border-color: var(--constraints-border);
+}
+
+html.dark .problem-solve-content .examples-section {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+html.dark .problem-solve-content .example-code {
+  background-color: var(--example-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html.dark .problem-solve-content .formatted-bold {
+  color: var(--text-primary);
+}
+
+html.dark .problem-solve-content .formatted-code {
+  background-color: var(--code-bg);
+  color: var(--code-text);
+}
+
+html.dark .problem-solve-content .formatted-text-bullet,
+html.dark .problem-solve-content .formatted-text-number {
   color: var(--text-tertiary);
 }

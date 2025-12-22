@@ -1,0 +1,291 @@
+/* ModeSelectionScreen.css - 모드 선택 화면 스타일 */
+
+/* ===== 라이트모드 전체 페이지 ===== */
+html:not(.dark) .mode-selection-page {
+  background-color: #f8fafc;  /* slate-50 */
+  color: #1f2937;             /* gray-800 */
+}
+
+/* ===== 라이트모드 헤더 ===== */
+html:not(.dark) .mode-selection-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .mode-selection-header .header-title {
+  color: #1f2937;
+}
+
+html:not(.dark) .mode-selection-header .header-subtitle {
+  color: #6b7280;
+}
+
+html:not(.dark) .mode-selection-header .header-back-btn {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .mode-selection-header .header-back-btn:hover {
+  background-color: #e5e7eb;
+}
+
+/* ===== 라이트모드 비회원 경고 ===== */
+html:not(.dark) .warning-box-info {
+  background-color: #eff6ff;
+  border: 1px solid #93c5fd;
+}
+
+html:not(.dark) .warning-box-info .warning-text {
+  color: #1d4ed8;
+}
+
+html:not(.dark) .warning-box-info .warning-link {
+  color: #2563eb;
+}
+
+html:not(.dark) .warning-box-info .warning-link:hover {
+  color: #1d4ed8;
+}
+
+/* ===== 라이트모드 사용량 초과 경고 ===== */
+html:not(.dark) .warning-box-warning {
+  background-color: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+
+html:not(.dark) .warning-box-warning .warning-text {
+  color: #b45309;
+}
+
+html:not(.dark) .warning-box-warning .warning-link {
+  color: #d97706;
+}
+
+html:not(.dark) .warning-box-warning .warning-link:hover {
+  color: #b45309;
+}
+
+/* ===== 라이트모드 모드 카드 ===== */
+html:not(.dark) .mode-card {
+  background-color: #ffffff;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .mode-card:not(.mode-card-disabled):hover {
+  border-color: #94a3b8;
+}
+
+html:not(.dark) .mode-card .mode-card-title {
+  color: #1f2937;
+}
+
+html:not(.dark) .mode-card .mode-card-description {
+  color: #6b7280;
+}
+
+html:not(.dark) .mode-card .mode-card-features {
+  color: #4b5563;
+}
+
+html:not(.dark) .mode-card .mode-card-note {
+  color: #7c3aed;
+}
+
+/* 학습 모드 선택됨 (Green) */
+html:not(.dark) .mode-card-selected-learn {
+  background-color: #f0fdf4 !important;
+  border-color: #22c55e !important;
+}
+
+/* 기본 모드 선택됨 (Blue) */
+html:not(.dark) .mode-card-selected-basic {
+  background-color: #eff6ff !important;
+  border-color: #3b82f6 !important;
+}
+
+/* 집중 모드 선택됨 (Purple) */
+html:not(.dark) .mode-card-selected-focus {
+  background-color: #faf5ff !important;
+  border-color: #a855f7 !important;
+}
+
+/* 비활성화된 카드 */
+html:not(.dark) .mode-card-disabled {
+  background-color: #f9fafb;
+  border-color: #e5e7eb;
+  opacity: 0.6;
+}
+
+/* 비활성화 사유 배지 */
+html:not(.dark) .mode-card .disabled-reason-badge {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+/* ===== 라이트모드 집중 모드 주의사항 ===== */
+html:not(.dark) .focus-mode-warning-box {
+  background-color: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+
+html:not(.dark) .focus-mode-warning-box .warning-title {
+  color: #b45309;
+}
+
+html:not(.dark) .focus-mode-warning-box .violation-item {
+  color: #6b7280;
+}
+
+html:not(.dark) .focus-mode-warning-box .violation-red {
+  color: #dc2626;
+}
+
+html:not(.dark) .focus-mode-warning-box .violation-yellow {
+  color: #ca8a04;
+}
+
+html:not(.dark) .focus-mode-warning-box .violation-orange {
+  color: #ea580c;
+}
+
+html:not(.dark) .focus-mode-warning-box .violation-gray {
+  color: #6b7280;
+}
+
+/* 패널티 시스템 박스 */
+html:not(.dark) .penalty-system-box {
+  background-color: #f3f4f6;
+  border-radius: 0.5rem;
+}
+
+html:not(.dark) .penalty-system-box .penalty-title {
+  color: #374151;
+}
+
+html:not(.dark) .penalty-system-box .penalty-text {
+  color: #6b7280;
+}
+
+/* 패널티 배지 */
+html:not(.dark) .penalty-badge-warning {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+html:not(.dark) .penalty-badge-moderate {
+  background-color: #ffedd5;
+  color: #c2410c;
+}
+
+html:not(.dark) .penalty-badge-severe {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ===== 라이트모드 타이머 설정 패널 ===== */
+html:not(.dark) .timer-settings-panel {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .timer-settings-panel .panel-title {
+  color: #1f2937;
+}
+
+html:not(.dark) .timer-settings-panel .panel-subtitle {
+  color: #6b7280;
+}
+
+/* 타이머 프리셋 버튼 - 미선택 */
+html:not(.dark) .timer-preset-btn {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .timer-preset-btn:hover {
+  background-color: #e5e7eb;
+}
+
+/* 타이머 프리셋 버튼 - 선택됨 */
+html:not(.dark) .timer-preset-btn-selected {
+  background-color: #a855f7;
+  color: #ffffff;
+  border: none;
+}
+
+/* 타이머 인풋 */
+html:not(.dark) .timer-input {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+}
+
+html:not(.dark) .timer-input-label {
+  color: #6b7280;
+}
+
+/* ===== 라이트모드 추적기 선택 패널 ===== */
+html:not(.dark) .tracker-settings-panel {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .tracker-settings-panel .panel-title {
+  color: #1f2937;
+}
+
+html:not(.dark) .tracker-settings-panel .panel-subtitle {
+  color: #6b7280;
+}
+
+/* ===== 라이트모드 시작 버튼 ===== */
+html:not(.dark) .start-button-enabled {
+  background: linear-gradient(to right, #a855f7, #ec4899);
+  color: #ffffff;
+}
+
+html:not(.dark) .start-button-enabled:hover {
+  background: linear-gradient(to right, #9333ea, #db2777);
+}
+
+html:not(.dark) .start-button-disabled {
+  background-color: #e5e7eb;
+  color: #9ca3af;
+}
+
+html:not(.dark) .start-button-hint {
+  color: #6b7280;
+}
+
+/* ===== 다크모드 기본값 유지 ===== */
+html.dark .mode-selection-page {
+  background-color: #18181b;
+  color: #f4f4f5;
+}
+
+html.dark .mode-selection-header {
+  background-color: #27272a;
+  border-color: #3f3f46;
+}
+
+html.dark .mode-card {
+  background-color: #27272a;
+  border-color: #3f3f46;
+}
+
+html.dark .timer-settings-panel,
+html.dark .tracker-settings-panel {
+  background-color: #27272a;
+  border-color: #3f3f46;
+}
+
+html.dark .penalty-system-box {
+  background-color: rgba(39, 39, 42, 0.5);
+}
