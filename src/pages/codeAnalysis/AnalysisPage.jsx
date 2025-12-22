@@ -371,7 +371,7 @@ const AnalysisPage = () => {
                                 {/* RAG Toggle Switch */}
                                 <div className="mb-6 p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg border border-[#e2e8f0] dark:border-[#3f3f46]">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-medium text-gray-700">RAG (과거 이력 참조) 모드</span>
+                                        <span className="font-medium">RAG (과거 이력 참조) 모드</span>
                                         <button 
                                             onClick={() => setUseRag(!useRag)}
                                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${useRag ? 'bg-indigo-600' : 'bg-gray-200'} cursor-pointer`}
