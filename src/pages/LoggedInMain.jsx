@@ -28,6 +28,24 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
     const [userLevel, setUserLevel] = useState(null);
     const [missions, setMissions] = useState([]);
     const [missionLoading, setMissionLoading] = useState(true);
+    const navigate = useNavigate();
+    const [expandedExp, setExpandedExp] = useState(false);
+    const [currentBoardType, setCurrentBoardType] = useState('free');
+
+    // 5초마다 자유 ↔ 코드 자동 전환
+    useEffect(() => {
+        if (popularPosts.length === 0) return;
+        
+        const timer = setInterval(() => {
+            setCurrentBoardType(prev => prev === 'free' ? 'code' : 'free');
+        }, 5000);
+        
+        return () => clearInterval(timer);
+    }, [popularPosts.length]);
+
+    const currentBoardPosts = popularPosts.filter(
+        post => post.type === currentBoardType
+    );
 
     // 데이터 로딩
     const loadUserData = useCallback(async () => {
@@ -65,8 +83,6 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
     const completedCount = missions.filter(m => m.completed).length;
     const totalMissions = missions.length;
 
-    const navigate = useNavigate();
-
     // 미션 클릭 핸들러
     const handleMissionClick = (mission) => {
         if (mission.completed) return;
@@ -85,28 +101,24 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
         const displayName = name || "Master Coder";
 
         if (hour >= 6 && hour < 12) {
-            // 오전 (06~12시)
             return {
                 greeting: "좋은 아침입니다,",
                 message: `오늘 첫 번째 로직 설계로 성장의 발판을 마련해 보세요. 🚀`,
                 name: displayName
             };
         } else if (hour >= 12 && hour < 18) {
-            // 오후 (12~18시)
             return {
                 greeting: "나른한 오후를 깨우는 도전!",
                 message: `더 효율적인 코드를 향한 한계에 도전해 볼까요?`,
                 name: displayName
             };
         } else if (hour >= 18 && hour < 24) {
-            // 저녁 (18~00시)
             return {
                 greeting: "오늘의 노력은 기록으로 남습니다.",
                 message: `오늘 분석한 코드가 내일의 강력한 무기가 될 거예요.`,
                 name: displayName
             };
         } else {
-            // 심야 (00~06시)
             return {
                 greeting: "모두가 멈춘 시간,",
                 message: `이 고요한 몰입이 당신을 특별한 개발자로 만듭니다.`,
@@ -210,7 +222,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                     animate="show"
                     className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-5 lg:gap-6 h-auto md:h-[600px]"
                 >
-                    {/* Block A: Command Center (Main Action Hub) - Spans 2 cols, 2 rows */}
+                    {/* Block A: Command Center */}
                     <motion.div variants={item} className="col-span-1 md:col-span-2 row-span-2 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
                         
@@ -237,7 +249,6 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                 <div className="relative z-10 w-12 h-12 rounded-full border-2 border-indigo-200 dark:border-indigo-700 flex items-center justify-center group-hover:bg-indigo-500 group-hover:border-indigo-500 group-hover:text-white transition-all">
                                     <FaArrowRight className="text-indigo-400 group-hover:text-white"/>
                                 </div>
-                                {/* Hover Effect Background - lighter */}
                                 <div className="absolute inset-0 bg-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0 pointer-events-none"></div>
                             </Link>
 
@@ -255,13 +266,12 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                 <div className="relative z-10 w-12 h-12 rounded-full border-2 border-emerald-200 dark:border-emerald-700 flex items-center justify-center group-hover:bg-emerald-500 group-hover:border-emerald-500 group-hover:text-white transition-all">
                                     <FaArrowRight className="text-emerald-400 group-hover:text-white"/>
                                 </div>
-                                {/* Hover Effect Background - lighter */}
                                 <div className="absolute inset-0 bg-emerald-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0 pointer-events-none"></div>
                             </Link>
                         </div>
                     </motion.div>
 
-                    {/* Block B: MCP Intro - Spans 1 col */}
+                    {/* Block B: MCP Intro */}
                     <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-slate-800 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all group overflow-hidden">
                         <Link to="/mypage/profile" className="absolute inset-0 z-20"></Link>
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -282,7 +292,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                         </div>
                     </motion.div>
 
-                    {/* Block C: Daily Mission - Spans 1 col */}
+                    {/* Block C: Daily Mission */}
                     <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] overflow-hidden shadow-lg bg-gradient-to-br from-indigo-500 to-blue-600">
                         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-30 pointer-events-none"></div>
 
@@ -356,67 +366,204 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                         </div>
                     </motion.div>
 
-                    {/* Block D: Community News - Spans 2 cols, 1 row */}
-                    <motion.div variants={item} className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] p-6 shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex flex-col">
-                        <div className="flex items-center justify-between mb-4 px-2">
-                             <h3 className="text-base font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div> Live Updates
-                             </h3>
-                             <Link to="/freeboard" className="text-sm font-bold text-indigo-500 hover:text-indigo-600 transition-colors">View All</Link>
+                    {/* Block D: Community News */}
+                    <motion.div variants={item} className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] p-4 pb-3 shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex flex-col pt-6">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                주간 인기글
+                            </h3>
+                            <div className="flex gap-1.5">
+                                <Link 
+                                    to="/freeboard" 
+                                    className={`text-[10px] font-semibold transition-colors ${
+                                        currentBoardType === 'free' 
+                                        ? 'text-indigo-600 dark:text-indigo-400' 
+                                        : 'text-slate-400 hover:text-indigo-500'
+                                    }`}
+                                >
+                                    자유게시판
+                                </Link>
+                                <span className="text-slate-300 dark:text-slate-700 text-[10px]">|</span>
+                                <Link 
+                                    to="/codeboard" 
+                                    className={`text-[10px] font-semibold transition-colors ${
+                                        currentBoardType === 'code' 
+                                        ? 'text-emerald-600 dark:text-emerald-400' 
+                                        : 'text-slate-400 hover:text-emerald-500'
+                                    }`}
+                                >
+                                    코드게시판
+                                </Link>
+                            </div>
                         </div>
 
                         {/* Slider Container */}
-                        <div className="flex-1 relative overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-700/50">
-                             {loading ? (
-                                <div className="w-full h-full bg-slate-100 dark:bg-slate-800 animate-pulse"></div>
-                             ) : currentPost ? (
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key={currentPost.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        transition={{ duration: 0.5 }}
-                                        onClick={() => onPostClick(currentPost)}
-                                        className="absolute inset-0 p-6 flex flex-col justify-center cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-colors"
-                                    >
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-sm ${
-                                                currentPost.type === 'code' 
-                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-                                                : 'bg-blue-50 text-blue-600 border-blue-100'
-                                            }`}>
-                                                {currentPost.type === 'code' ? 'Codeboard' : 'Freeboard'}
-                                            </span>
-                                            <span className="text-xs text-slate-400">
-                                                {new Date(currentPost.date).toLocaleDateString()}
-                                            </span>
-                                        </div>
-                                        <h4 className="text-xl font-bold text-slate-800 dark:text-slate-100 line-clamp-1 mb-2">
-                                            {currentPost.title}
-                                        </h4>
-                                        <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
-                                            <div className="flex items-center gap-1">
-                                                <div className="w-5 h-5 rounded-full bg-indigo-100 text-[10px] flex items-center justify-center font-bold text-indigo-600">
-                                                    {currentPost.author?.[0] || "U"}
-                                                </div>
-                                                <span className="font-medium">{currentPost.author || "User"}</span>
-                                            </div>
-                                            <span className="flex items-center gap-1"><FaRegSmileBeam/> {currentPost.views} views</span>
-                                        </div>
-                                    </motion.div>
-                                </AnimatePresence>
-                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                    No updates available.
+                        <div className="relative">
+                            {loading ? (
+                                <div className="w-full h-32 flex items-center justify-center">
+                                    <div className="w-5 h-5 border-2 border-slate-200 dark:border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div>
                                 </div>
-                             )}
-                        </div>
-                        {/* Progress Indicator */}
-                        <div className="flex justify-center gap-1 mt-3">
-                            {popularPosts.slice(0, 5).map((_, idx) => (
-                                <div key={idx} className={`h-1 rounded-full transition-all duration-300 ${idx === newsIndex ? 'w-6 bg-indigo-500' : 'w-2 bg-slate-200 dark:bg-slate-700'}`}></div>
-                            ))}
+                            ) : currentBoardPosts.length > 0 ? (
+                                <div className="relative group">
+                                    {/* Navigation Buttons */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCurrentBoardType(currentBoardType === 'free' ? 'code' : 'free');
+                                        }}
+                                        className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all opacity-0 group-hover:opacity-100"
+                                        aria-label="이전 게시판"
+                                    >
+                                        <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCurrentBoardType(currentBoardType === 'free' ? 'code' : 'free');
+                                        }}
+                                        className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all opacity-0 group-hover:opacity-100"
+                                        aria-label="다음 게시판"
+                                    >
+                                        <svg className="w-4 h-4 text-slate-700 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+
+                                    {/* Content List */}
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={currentBoardType}
+                                            initial={{ opacity: 0, x: 20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -20 }}
+                                            transition={{ duration: 0.4 }}
+                                            className="flex flex-col gap-2"
+                                        >
+                                            {currentBoardPosts.slice(0, 3).map((post, idx) => (
+                                                <div
+                                                    key={post.id}
+                                                    onClick={() => onPostClick(post)}
+                                                    className="p-2 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/30 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700/50 hover:shadow-md dark:hover:shadow-lg transition-all cursor-pointer"
+                                                >
+                                                    <div className="flex items-start gap-2">
+                                                        {/* Ranking Badge */}
+                                                        <div className="flex items-center justify-center w-5 h-5 rounded bg-yellow-500/20 dark:bg-yellow-900/30 flex-shrink-0 mt-0.5">
+                                                            <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400">
+                                                                {idx + 1}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Content */}
+                                                        <div className="flex-1 min-w-0">
+                                                            {/* Title + Date */}
+                                                            <div className="flex items-center gap-2 mb-0.5">
+                                                                <h4 className="text-xs font-semibold text-slate-800 dark:text-slate-100 line-clamp-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 min-w-0">
+                                                                    {post.title}
+                                                                </h4>
+                                                                <span className="text-[9px] text-slate-400 dark:text-slate-500 whitespace-nowrap flex-shrink-0">
+                                                                    {new Date(post.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Content Preview */}
+                                                            <p className="text-[9px] text-slate-600 dark:text-slate-400 line-clamp-1 mb-0.5 leading-relaxed">
+                                                                {post.plainText && post.plainText !== '내용 없음'
+                                                                    ? (post.plainText.length > 50 
+                                                                        ? post.plainText.substring(0, 50) + '...' 
+                                                                        : post.plainText)
+                                                                    : '내용이 없습니다'}
+                                                            </p>
+
+                                                            {/* Footer: Author + Stats */}
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="flex items-center gap-1">
+                                                                    {post.profileImage ? (
+                                                                        <img 
+                                                                            src={post.profileImage} 
+                                                                            alt={post.author}
+                                                                            className="w-3 h-3 rounded-full object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-3 h-3 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-[7px] font-bold">
+                                                                            {post.author?.[0]?.toUpperCase() || "?"}
+                                                                        </div>
+                                                                    )}
+                                                                    <span className="text-[8px] text-slate-600 dark:text-slate-400">
+                                                                        {post.author}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 text-[8px] text-slate-500 dark:text-slate-500">
+                                                                    <span className="flex items-center gap-0.5">
+                                                                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                        </svg>
+                                                                        {post.views || 0}
+                                                                    </span>
+                                                                    <span className="flex items-center gap-0.5">
+                                                                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                                        </svg>
+                                                                        {post.likes || 0}
+                                                                    </span>
+                                                                    <span className="flex items-center gap-0.5">
+                                                                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                                                        </svg>
+                                                                        {post.comments || 0}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Right: Image */}
+                                                        {post.image && (
+                                                            <div className="w-12 h-12 rounded-md overflow-hidden bg-slate-200 dark:bg-slate-800 flex-shrink-0">
+                                                                <img 
+                                                                    src={post.image} 
+                                                                    alt={post.title}
+                                                                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </motion.div>
+                                    </AnimatePresence>
+
+                                    {/* Progress Indicator */}
+                                    <div className="flex justify-center gap-1.5 mt-2">
+                                        <button
+                                            onClick={() => setCurrentBoardType('free')}
+                                            className={`h-1 rounded-full transition-all duration-300 ${
+                                                currentBoardType === 'free' 
+                                                ? 'w-6 bg-indigo-500' 
+                                                : 'w-1 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600'
+                                            }`}
+                                            aria-label="자유게시판으로 이동"
+                                        />
+                                        <button
+                                            onClick={() => setCurrentBoardType('code')}
+                                            className={`h-1 rounded-full transition-all duration-300 ${
+                                                currentBoardType === 'code' 
+                                                ? 'w-6 bg-emerald-500' 
+                                                : 'w-1 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600'
+                                            }`}
+                                            aria-label="코드게시판으로 이동"
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="w-full h-32 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600">
+                                    <svg className="w-12 h-12 mb-2 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <div className="text-xs font-medium">아직 인기글이 없습니다</div>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 </motion.div>

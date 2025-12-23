@@ -22,7 +22,7 @@ const LEVEL_IMAGES = {
 const UserLevelBadge = ({ userLevel }) => {
     if (!userLevel) {
         return (
-            <div className="bg-white dark:bg-[#1f1f1f] rounded-2xl shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-[#e2e8f0] dark:border-[#2e2e2e] p-6">
+            <div className="rounded-2xl shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-[#e2e8f0] dark:border-[#2e2e2e] p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     나의 레벨
                 </h3>
@@ -70,7 +70,7 @@ const UserLevelBadge = ({ userLevel }) => {
     };
 
     return (
-        <div className="bg-white dark:bg-[#1f1f1f] rounded-2xl shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-[#e2e8f0] dark:border-[#2e2e2e] p-6">
+        <div className="rounded-2xl shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-[#e2e8f0] dark:border-[#2e2e2e] p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 나의 레벨
             </h3>
