@@ -199,8 +199,8 @@ const FileTree = ({ repository, branch, onSelect, mockFiles }) => {
     };
 
     return (
-        <div className="mt-4 flex flex-col h-[500px] border border-gray-300 rounded-lg overflow-hidden">
-            <div className="p-3 border-b border-gray-200">
+        <div className="mt-4 flex flex-col h-[500px] border border-[#e2e8f0] dark:border-[#3f3f46] p-6 rounded-lg overflow-hidden">
+            <div className="border-b border-[#e2e8f0] dark:border-[#3f3f46]">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                     <Folder size={20} />
                     File Browser
@@ -210,7 +210,7 @@ const FileTree = ({ repository, branch, onSelect, mockFiles }) => {
                     <input 
                         type="text" 
                         placeholder="Search files..." 
-                        className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-9 pr-4 py-2 text-sm border border-[#e2e8f0] dark:border-[#3f3f46] rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -242,7 +242,7 @@ const FileTree = ({ repository, branch, onSelect, mockFiles }) => {
                                         <div 
                                             key={file.path}
                                             onClick={() => onSelect(file)}
-                                            className="flex items-center p-2 hover:bg-blue-50 cursor-pointer rounded text-sm"
+                                            className="flex items-center hover:bg-blue-50 cursor-pointer rounded text-sm"
                                         >
                                             <FileCode size={16} className="mr-2" />
                                             <div className="flex flex-col overflow-hidden">

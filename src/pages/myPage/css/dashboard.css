@@ -4,7 +4,7 @@
   --dashboard-muted: var(--text-muted);
   --dashboard-subtle: var(--text-sub);
   --dashboard-panel: #ffffff;
-  --dashboard-border: #e5e7eb; /* gray-200 */
+  --dashboard-border: #e2e8f0
   --dashboard-header: #f1f5f9; /* slate-100 */
   --dashboard-header-text: var(--text-main);
   --dashboard-chart-bg: #eef2ff; /* indigo-50 */
@@ -18,7 +18,6 @@
   --dashboard-muted: var(--text-muted);
   --dashboard-subtle: var(--text-sub);
   --dashboard-panel: #0f172a; /* slate-900 */
-  --dashboard-border: #1f2937; /* gray-800/700 */
   --dashboard-header: #111827;
   --dashboard-header-text: var(--text-main);
   --dashboard-chart-bg: #1f2937;
@@ -26,16 +25,9 @@
   --dashboard-chart-bar-hover: #818cf8;
 }
 
-.dashboard-page {
-  background-color: var(--dashboard-bg);
-  color: var(--dashboard-text);
-}
-
 .dashboard-panel {
-  background-color: var(--dashboard-panel);
   border: 1px solid var(--dashboard-border);
   color: var(--dashboard-text);
-  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .dashboard-card-title {
@@ -49,9 +41,6 @@
   color: var(--dashboard-subtle);
 }
 
-.dashboard-chart-bar-bg {
-  background-color: var(--dashboard-border); /* gray-700 equivalent in dark */
-}
 
 .dashboard-chart-bar-fill {
   background-color: var(--dashboard-chart-bar);
@@ -62,7 +51,6 @@
 }
 
 .dashboard-list-item {
-  background-color: var(--dashboard-bg); /* slightly different from panel */
   border: 1px solid var(--dashboard-border);
 }
 

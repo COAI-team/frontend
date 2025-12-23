@@ -142,7 +142,7 @@ const DashboardPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
                 
                 {/* 1. Overall Frequency Bar Chart (Horizontal) */}
-                <div className="dashboard-panel p-6 rounded-xl shadow-sm">
+                <div className="border border-[#e2e8f0] dark:border-[#3f3f46] p-6 rounded-xl shadow-sm">
                     <h2 className="dashboard-card-title">Most Common Code Smells (Top 5)</h2>
                     <p className="text-sm dashboard-text-sub mb-6">Click a bar to view details</p>
                     
@@ -170,7 +170,7 @@ const DashboardPage = () => {
                 </div>
 
                 {/* 2. Monthly Trends Word Cloud */}
-                <div className="dashboard-panel p-6 rounded-xl shadow-sm flex flex-col">
+                <div className="border border-[#e2e8f0] dark:border-[#3f3f46] p-6 rounded-xl shadow-sm flex flex-col">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="dashboard-card-title mb-0">Monthly Trends</h2>
                         <div className="flex items-center gap-2">
@@ -214,7 +214,7 @@ const DashboardPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 {/* Detail View (Takes up 2 columns) */}
-                <div className="lg:col-span-2 dashboard-panel p-6 rounded-xl shadow-sm min-h-100">
+                <div className="lg:col-span-2 border border-[#e2e8f0] dark:border-[#3f3f46] p-6 rounded-xl shadow-sm min-h-100">
                     <h2 className="dashboard-card-title mb-4">
                         {selectedPattern ? `Details: ${selectedPattern}` : "Select a pattern to view details"}
                     </h2>
@@ -262,7 +262,7 @@ const DashboardPage = () => {
                 </div>
 
                 {/* Recent History (Takes up 1 column) */}
-                <div className="dashboard-panel p-6 rounded-xl shadow-sm">
+                <div className="border border-[#e2e8f0] dark:border-[#3f3f46] p-6 rounded-xl shadow-sm">
                     <div className="flex justify-between items-center mb-4">
                         <h2 
                             className="dashboard-card-title mb-0 cursor-pointer hover:text-indigo-600 transition-colors"
@@ -281,7 +281,7 @@ const DashboardPage = () => {
                         {history.slice(0, 5).map(item => (
                             <div 
                                 key={item.analysisId} 
-                                className="dashboard-list-item p-4 rounded border-l-4 border-indigo-500 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                className="rounded border border-[#e2e8f0] dark:border-[#3f3f46] p-4 rounded-xl border-indigo-500 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                 onClick={() => navigate(`/codeAnalysis/${item.analysisId}`)}
                             >
                                 <p className="font-semibold truncate text-sm mb-1" title={item.filePath}>
