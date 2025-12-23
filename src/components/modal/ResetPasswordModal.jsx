@@ -36,13 +36,13 @@ const CLASS_MAP = {
     cancelBg: "bg-gray-300"
   },
   dark: {
-    bg: "bg-gray-900",
+    bg: "bg-[#1f1f1f] border border-[#2e2e2e] shadow-[0_4px_20px_rgba(0,0,0,0.4)]",
     title: "text-white",
     desc: "text-gray-400",
     label: "text-gray-300",
-    inputBg: "bg-gray-800 text-white outline outline-white/20",
-    cancelBtn: "bg-gray-700 hover:bg-gray-600 text-white",
-    cancelBg: "bg-gray-700"
+    inputBg: "bg-zinc-800 text-white outline outline-[#2e2e2e]",
+    cancelBtn: "bg-zinc-700 hover:bg-zinc-600 text-gray-300 hover:text-white",
+    cancelBg: "bg-zinc-700"
   }
 };
 

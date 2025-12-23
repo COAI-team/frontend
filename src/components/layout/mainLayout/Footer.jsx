@@ -7,13 +7,8 @@ import { useTheme } from "../../../context/theme/useTheme";
 const Footer = () => {
   const { theme } = useTheme();
 
-  // ✅ useMemo로 테마별 클래스 메모이제이션
-  const footerClasses = useMemo(() => {
-    const baseClasses = "transition-colors border-t py-3";
-    const themeClass = theme === "light" ? "bg-gray-200" : "bg-gray-900";
-    const borderClass = "border-gray-500";
-    return `${themeClass} ${baseClasses} ${borderClass}`;
-  }, [theme]);
+  // Footer 클래스 - Navbar 스타일과 통일 (Tailwind dark: 방식)
+  const footerClasses = "relative z-50 border-t py-3 shadow-sm border-gray-200 bg-white text-gray-900 dark:border-transparent dark:bg-[#0a0a0a] dark:text-white dark:shadow-[0_-1px_3px_0_rgba(255,255,255,0.05)]";
 
   // ✅ useMemo로 텍스트 스타일
   const textClasses = useMemo(() =>

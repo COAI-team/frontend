@@ -44,7 +44,7 @@ function MyPageLayout() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-white dark:bg-[#131313]">
       <MyPageSidebar />
       <main className="flex-1 p-8 overflow-y-auto">
         <Outlet />

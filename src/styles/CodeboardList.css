@@ -598,14 +598,14 @@
 /* 다크모드 CSS 변수 */
 html.dark,
 html.dark .freeboard-list-container {
-  --bg-primary: #111827;
-  --bg-secondary: #1f2937;
-  --bg-tertiary: #374151;
-  --bg-hover: #374151;
+  --bg-primary: #131313;
+  --bg-secondary: #1f1f1f;
+  --bg-tertiary: #2e2e2e;
+  --bg-hover: #2e2e2e;
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
   --text-tertiary: #6b7280;
-  --border-color: #374151;
+  --border-color: #2b2b2b;
   --primary-color: #3b82f6;
   --primary-hover: #2563eb;
   --tag-bg: rgba(59, 130, 246, 0.1);

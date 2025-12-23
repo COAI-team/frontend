@@ -31,7 +31,7 @@ const ProblemList = () => {
   // 사이드바 열림/닫힘 상태 (localStorage에서 복원)
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('problemListSidebarOpen');
-    return saved === 'true'; // 기본값: 닫힘(false)
+    return saved !== 'false'; // 기본값: 열림(true)
   });
 
   // 사이드바 상태 변경 시 localStorage에 저장

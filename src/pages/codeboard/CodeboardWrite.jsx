@@ -152,7 +152,7 @@ const CodeboardWrite = () => {
   if (isLoading) {
     return (
       <div
-        className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-[#131313]' : 'bg-white'}`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>분석 결과를 불러오는 중...</p>
@@ -164,7 +164,7 @@ const CodeboardWrite = () => {
   if (error || !analysisResult) {
     return (
       <div
-        className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-[#131313]' : 'bg-white'}`}>
         <div className="text-center">
           <p className={`text-xl mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
             {error || "분석 결과를 찾을 수 없습니다."}
@@ -183,7 +183,7 @@ const CodeboardWrite = () => {
   const language = detectLanguage(analysisResult.filePath);
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#131313]' : 'bg-white'}`}>
       {/* 상단 헤더 */}
       <div
         className={`shadow-sm border-b ${theme === 'dark' ? 'border-gray-800 bg-gray-900' : 'border-gray-200 bg-white'}`}>

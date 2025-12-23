@@ -9,8 +9,8 @@ import AnalysisForm from '../../components/github/AnalysisForm';
 import { saveFile, analyzeStoredFile, getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
 import { getUsageInfo } from '../../service/algorithm/AlgorithmApi';
 import AnalysisLoading from '../../components/codeAnalysis/AnalysisLoading';
+import AnalysisResultCard from '../../components/codeAnalysis/AnalysisResultCard';
 import axiosInstance from '../../server/AxiosConfig';
-import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
 
 import { getAuth } from "../../utils/auth/token";
 import AlertModal from "../../components/modal/AlertModal";
@@ -34,6 +34,54 @@ const AnalysisPage = () => {
         }
     }, []);
     const isNew = !analysisId;
+
+    // [Tutorial Redirection] 
+    // Redirect to tutorial if accessing 'New Analysis' and tutorial not completed
+    // [Tutorial Redirection] 
+    // Redirect to tutorial if accessing 'New Analysis' and tutorial not completed
+    // Condition: User is new (created today or tomorrow) AND tutorial not done
+    useEffect(() => {
+        if (isNew && user) {
+            // Check if user is "new" (created today or tomorrow)
+            // Assuming user.createdAt is ISO string or YYYY-MM-DD
+            if (user.createdAt) {
+                const createdDate = new Date(user.createdAt);
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+
+                const isSameDate = (d1, d2) => 
+                    d1.getFullYear() === d2.getFullYear() &&
+                    d1.getMonth() === d2.getMonth() &&
+                    d1.getDate() === d2.getDate();
+
+                const isCreatedTodayOrTomorrow = isSameDate(createdDate, today) || isSameDate(createdDate, tomorrow);
+
+                if (!isCreatedTodayOrTomorrow) {
+                    return; // Skip redirection for old users
+                }
+            }
+
+            const TUTORIAL_KEY = 'coai_code_analysis_tutorial_v3';
+            const saved = localStorage.getItem(TUTORIAL_KEY);
+            
+            let isCompleted = false;
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.tutorialCompleted) {
+                        isCompleted = true;
+                    }
+                } catch (e) {
+                    // Ignore parsing error, treat as incomplete
+                }
+            }
+
+            if (!isCompleted) {
+                navigate('/codeAnalysis/tutorial3', { replace: true });
+            }
+        }
+    }, [isNew, user, navigate]);
 
     // Selection State
     const [selectedRepo, setSelectedRepo] = useState(null);
@@ -258,9 +306,9 @@ const AnalysisPage = () => {
     const resolvedAnalysisId = analysisResult?.analysisId ?? analysisId; // 게시판 글쓰기 버튼
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-white dark:bg-[#131313]">
             {/* 상단 헤더 */}
-            <div className="shadow-sm border-b">
+            <div className="shadow-sm border-b border-[#e2e8f0] dark:border-[#3f3f46]">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -286,7 +334,7 @@ const AnalysisPage = () => {
                     {/* 왼쪽 패널: 파일 선택 및 코드 뷰어 */}
                     <div className="space-y-6">
                         {isNew && (
-                            <div className="rounded-lg shadow-sm border p-6">
+                            <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] p-6">
                                 <h2 className="text-lg font-semibold mb-4">📂 파일 선택</h2>
                                 <div className="space-y-4">
                                     <RepositorySelector onSelect={handleRepoSelect} onSearch={handleOwnerSearch} />
@@ -296,8 +344,8 @@ const AnalysisPage = () => {
                             </div>
                         )}
 
-                        <div className="rounded-lg shadow-sm border overflow-hidden">
-                            <div className="p-4 border-b flex justify-between items-center">
+                        <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] overflow-hidden">
+                            <div className="p-4 border-b border-[#e2e8f0] dark:border-[#3f3f46] flex justify-between items-center">
                                 <h3 className="font-semibold">
                                     💻 코드 뷰어 {selectedFile && `- ${selectedFile.path}`}
                                 </h3>
@@ -317,13 +365,13 @@ const AnalysisPage = () => {
                     {/* 오른쪽 패널: 분석 설정 및 결과 */}
                     <div className="space-y-6">
                         {isNew && !analysisResult && !isLoading && (
-                            <div className="rounded-lg shadow-sm border p-6">
+                            <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] p-6">
                                 <h2 className="text-lg font-semibold mb-4">⚙️ 분석 설정</h2>
                                 
                                 {/* RAG Toggle Switch */}
-                                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="mb-6 p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg border border-[#e2e8f0] dark:border-[#3f3f46]">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-medium text-gray-700">RAG (과거 이력 참조) 모드</span>
+                                        <span className="font-medium">RAG (과거 이력 참조) 모드</span>
                                         <button 
                                             onClick={() => setUseRag(!useRag)}
                                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${useRag ? 'bg-indigo-600' : 'bg-gray-200'} cursor-pointer`}
@@ -354,117 +402,13 @@ const AnalysisPage = () => {
 
                         {/* 분석 결과 */}
                         {!isLoading && analysisResult && (
-                            <div className="rounded-lg shadow-sm border p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-xl font-bold">
-                                        분석 결과
-                                    </h2>
-                                    {analysisResult && (
-                                        <div className="flex items-center gap-2">
-                                            <span className={`px-3 py-1 rounded-full font-bold text-sm ${getScoreBadgeColor(analysisResult.aiScore)}`}>
-                                                {getSmellKeyword(analysisResult.aiScore).text}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* RAG References Section */}
-                                {analysisResult.relatedAnalysisIds && (
-                                    <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                                        <h3 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                                            📚 참고된 과거 분석 이력 (RAG Context)
-                                        </h3>
-                                        <div className="space-y-2">
-                                            {(() => {
-                                                try {
-                                                    const refs = typeof analysisResult.relatedAnalysisIds === 'string' 
-                                                        ? JSON.parse(analysisResult.relatedAnalysisIds) 
-                                                        : analysisResult.relatedAnalysisIds;
-                                                    
-                                                    if (!refs || refs.length === 0) return <span className="text-xs text-blue-600">참조된 과거 이력이 없습니다.</span>;
-
-                                                    return refs.map((ref, idx) => (
-                                                        <div key={idx} 
-                                                            className="flex items-center justify-between bg-white p-2 rounded border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors"
-                                                            onClick={() => window.open(`/codeAnalysis/result/${ref.id}`, '_blank')}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs font-mono bg-blue-100 text-blue-700 px-1 rounded">REF #{idx + 1}</span>
-                                                                <span className="text-sm font-medium text-gray-700">{ref.fileName}</span>
-                                                            </div>
-                                                            <span className="text-xs text-gray-400">{new Date(ref.timestamp).toLocaleString()}</span>
-                                                        </div>
-                                                    ));
-                                                } catch (e) {
-                                                    return <span className="text-xs text-red-400">참조 데이터 로드 실패</span>;
-                                                }
-                                            })()}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="space-y-6">
-                                    {/* Code Smells */}
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-red-600 mb-3">🚨 발견된 문제점 (Code Smells)</h3>
-                                        <div className="space-y-3">
-                                            {analysisResult.codeSmells && (typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).map((smell, idx) => (
-                                                <div key={idx} className="p-3 bg-red-50 border border-red-100 rounded">
-                                                    <div className="font-medium text-red-800">{smell.name}</div>
-                                                    <div className="text-sm text-red-600 mt-1">{smell.description}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Suggestions */}
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-green-600 mb-3">💡 개선 제안</h3>
-                                        <div className="space-y-4">
-                                            {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
-                                                <div key={idx} className="border rounded-lg overflow-hidden">
-                                                    <div className="p-3 border-b text-sm font-medium flex justify-between items-center">
-                                                        <span>제안 #{idx + 1}</span>
-                                                        {suggestion.habitContext && (
-                                                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold animate-pulse">
-                                                                👀 {suggestion.habitContext}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="p-3 bg-white">
-                                                        <div className="text-xs text-gray-500 mb-1">변경 전:</div>
-                                                        <pre className="bg-red-50 p-2 rounded text-xs mb-3 overflow-x-auto text-red-700">
-                                                            {suggestion.problematicSnippet || suggestion.problematicCode}
-                                                        </pre>
-                                                        <div className="text-xs text-gray-500 mb-1">변경 후:</div>
-                                                        <pre className="bg-green-50 p-2 rounded text-xs overflow-x-auto text-green-700">
-                                                            {suggestion.proposedReplacement}
-                                                        </pre>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {resolvedAnalysisId && (
-                                    <div className="mt-6 pt-6 border-t flex justify-center gap-3 ">
-                                        <button
-                                            onClick={() => window.location.href = '/codeAnalysis/new'}
-                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors cursor-pointer"
-                                        >
-                                            새로운 분석하기
-                                        </button>
-
-                                        <button
-                                            onClick={() => navigate(`/codeboard/write/${resolvedAnalysisId}`)}
-                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors cursor-pointer"
-                                        >
-                                            분석결과 공유하기
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                            <AnalysisResultCard 
+                                analysisResult={analysisResult} 
+                                isRagMode={isNew ? useRag : undefined}
+                                resolvedAnalysisId={resolvedAnalysisId}
+                                onNewAnalysis={() => window.location.href = '/codeAnalysis/new'}
+                                onShare={() => navigate(`/codeboard/write/${resolvedAnalysisId}`)}
+                            />
                         )}
                     </div>
                 </div>

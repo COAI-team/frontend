@@ -72,9 +72,9 @@ export default function CommentForm({
       <form
         onSubmit={handleSubmit}
         style={{
-          border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          border: `1px solid ${isDark ? '#2e2e2e' : '#e5e7eb'}`,
           borderRadius: '0.5rem',
-          backgroundColor: isDark ? '#1f2937' : '#f9fafb',
+          backgroundColor: isDark ? '#1f1f1f' : '#f9fafb',
           overflow: 'hidden'
         }}
       >

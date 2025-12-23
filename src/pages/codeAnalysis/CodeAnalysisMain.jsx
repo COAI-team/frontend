@@ -45,14 +45,14 @@ const CodeAnalysisMain = () => {
         if (userId) {
             loadHistory();
         }
-    }, [isLogin, loading, userId]); // userId가 변경되면(로드되면) 실행
+    }, [isLogin, userId]); // userId가 변경되면(로드되면) 실행
 
     const handleCardClick = (analysisId) => {
         navigate(`/codeAnalysis/${analysisId}`);
     };
 
     return (
-        <div className="min-h-screen py-8">
+        <div className="min-h-screen py-8 dark:bg-[#131313]">
             <div className="max-w-6xl mx-auto px-4">
                 
                 {/* 헤더 섹션 */}

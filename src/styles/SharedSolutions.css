@@ -272,13 +272,16 @@ html.dark .solution-tab-button.active {
   padding: 1.5rem 0 0 0;
 }
 
-
+html.dark .solution-code-block {
+  background-color: #1e1e1e;
+}
 /* 코드 블록 */
 .solution-code-block {
-  background-color: #1e1e1e;
+  background-color: #ffffff;
   color: #d4d4d4;
   padding: 1rem;
   border-radius: 0.5rem;
+  border: none;
   overflow-x: auto;
   font-size: 0.875rem;
   font-family: 'Courier New', Courier, monospace;
@@ -289,7 +292,7 @@ html.dark .solution-tab-button.active {
   background-color: var(--feedback-bg);
   padding: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid var(--feedback-border);
+  border: none;
 }
 
 .ai-feedback-content {
@@ -685,18 +688,18 @@ html:not(.dark) {
 }
 
 html.dark {
-  --bg-primary: #1f2937;
-  --bg-secondary: #1f2937;
-  --bg-hover: #374151;
-  --table-header-bg: #111827;
-  --detail-bg: #111827;
-  --text-primary: #f3f4f6;
-  --text-secondary: #d1d5db;
-  --text-tertiary: #9ca3af;
-  --border-color: #374151;
+  --bg-primary: #131313;
+  --bg-secondary: #1f1f1f;
+  --bg-hover: #2e2e2e;
+  --table-header-bg: #1a1a1a;
+  --detail-bg: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6b7280;
+  --border-color: #2b2b2b;
   --error-text: #f87171;
-  --feedback-bg: rgba(37, 99, 235, 0.2);
-  --feedback-border: rgba(37, 99, 235, 0.5);
+  --feedback-bg: rgba(37, 99, 235, 0.15);
+  --feedback-border: transparent;
 }
 
 /* 반응형 */

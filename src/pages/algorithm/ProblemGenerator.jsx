@@ -16,6 +16,49 @@ const ProblemGenerator = () => {
   const location = useLocation();
   const { user } = useLogin();
 
+  // [Tutorial Redirection] 
+  // Redirect to tutorial if accessing 'Problem Generator' and generator section (steps 1-4) not completed
+  useEffect(() => {
+    if (user) {
+      // 1. Check if user is "new" (created today or tomorrow)
+      // const createdDate = new Date(user.createdAt);
+      // const today = new Date();
+      // const tomorrow = new Date(today);
+      // tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // const isSameDate = (d1, d2) => 
+      //     d1.getFullYear() === d2.getFullYear() &&
+      //     d1.getMonth() === d2.getMonth() &&
+      //     d1.getDate() === d2.getDate();
+
+      // const isCreatedTodayOrTomorrow = isSameDate(createdDate, today) || isSameDate(createdDate, tomorrow);
+
+      // if (!isCreatedTodayOrTomorrow) {
+      //   return; // Skip redirection for old users
+      // }
+
+      // 2. Check tutorial progress for Part 1
+      const TUTORIAL_KEY = 'coai_algorithm_tutorial_v3_1';
+      const saved = localStorage.getItem(TUTORIAL_KEY);
+      
+      let shouldRedirect = true;
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.tutorialCompleted) {
+            shouldRedirect = false;
+          }
+        } catch (e) {
+            // Ignore error
+        }
+      }
+
+      if (shouldRedirect) {
+        navigate('/algorithm/tutorial/generator?returnUrl=/algorithm/output', { replace: true });
+      }
+    }
+  }, [user, navigate]);
+
   // 현재 페이지 경로 (리다이렉트용)
   const currentPath = location.pathname;
 
@@ -405,7 +448,7 @@ const ProblemGenerator = () => {
 
   // ===== 렌더링 =====
   return (
-    <div className="min-h-screen bg-main py-8">
+    <div className="min-h-screen bg-white dark:bg-[#131313] py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* 상단 네비게이션 */}
         <div>
@@ -455,7 +498,7 @@ const ProblemGenerator = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           {/* 왼쪽: 문제 생성 폼 */}
-          <div className="bg-panel rounded-lg shadow-md p-6 h-full">
+          <div className="bg-white dark:bg-[#131313] rounded-lg shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-6 h-full">
             <h2 className="text-xl font-bold text-main mb-6">문제 생성 설정</h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -712,7 +755,7 @@ const ProblemGenerator = () => {
           </div>
 
           {/* 오른쪽: 생성된 문제 미리보기 */}
-          <div className="bg-panel rounded-lg shadow-md p-6 h-full flex flex-col overflow-hidden">
+          <div className="bg-white dark:bg-[#131313] rounded-lg shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-6 h-full flex flex-col overflow-hidden">
             <h2 className="text-xl font-bold text-main mb-6 flex-shrink-0">생성된 문제 미리보기</h2>
 
             <div className="flex-1 overflow-y-auto">

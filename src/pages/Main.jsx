@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLogin } from "../context/login/useLogin";
 import axiosInstance from "../server/AxiosConfig";
-import { useTheme } from "../context/theme/useTheme";
 import {
   GuestLandingPage,
 } from "../components/main";
@@ -11,7 +10,6 @@ import LoggedInMain from "./LoggedInMain";
 import { getUserLevel, getUsageInfo } from "../service/algorithm/AlgorithmApi";
 
 export default function Main() {
-  const { theme } = useTheme();
   const { user } = useLogin();
   const navigate = useNavigate();
 
@@ -69,7 +67,7 @@ export default function Main() {
   };
 
   return (
-    <main className={`min-h-screen transition-colors duration-300 ${theme === 'light' ? 'bg-gray-50' : 'bg-[#0a0a0a]'}`}>
+    <main className="min-h-screen bg-white dark:bg-[#0a0a0a]">
       <div className="w-full h-full flex flex-col items-center">
         {user ? (
           <LoggedInMain

@@ -41,6 +41,7 @@
     "date-fns": "^4.1.0",
     "devtools-detect": "^4.0.2",
     "echarts": "^6.0.0",
+    "echarts-wordcloud": "^2.1.0",
     "framer-motion": "^12.23.26",
     "highlight.js": "^11.11.1",
     "lowlight": "^3.3.0",
