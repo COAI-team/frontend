@@ -4,7 +4,7 @@ import {
     sendMonitoringViolation,
     endMonitoringSession,
     recordMonitoringWarning
-} from '../../service/algorithm/algorithmApi';
+} from '../../service/algorithm/AlgorithmApi';
 
 /**
  * MediaPipe 기반 시선/얼굴 추적 커스텀 훅

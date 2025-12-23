@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useCountAnimation } from '../../hooks/algorithm/useCountAnimation';
-import { getAlgorithmStatistics } from '../../service/algorithm/algorithmApi';
+import { getAlgorithmStatistics } from '../../service/algorithm/AlgorithmApi';
 import '../../styles/AlgorithmListStats.css';
 
 const StatCard = ({ label, value, color, suffix = '', isDecimal = false }) => {

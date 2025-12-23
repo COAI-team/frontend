@@ -8,7 +8,7 @@ import {
   restoreUser,
   updateMyInfo
 } from "../../service/user/User";
-import {fetchSubscriptions} from "../../service/payment/PaymentApi";
+// import {fetchSubscriptions} from "../../service/payment/PaymentApi";
 import {useLogin} from "../../context/login/useLogin";
 import {useNavigate} from "react-router-dom";
 import AlertModal from "../../components/modal/AlertModal";
@@ -20,7 +20,7 @@ import axiosInstance from "../../server/AxiosConfig";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { accessToken, setUser } = useLogin();
+  const { user, accessToken, setUser, refreshSubscription } = useLogin();
   const { alert, showAlert, closeAlert } = useAlert();
   const [editMode, setEditMode] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
@@ -37,9 +37,9 @@ export default function ProfilePage() {
     hasGithubToken: false,
   });
 
-  const [subscription, setSubscription] = useState({code: "FREE", label: "Free"});
-  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
-  const [subscriptionError, setSubscriptionError] = useState("");
+  // const [subscription, setSubscription] = useState({code: "FREE", label: "Free"});
+  // const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+  // const [subscriptionError, setSubscriptionError] = useState("");
 
   const [githubConnected, setGithubConnected] = useState(false);
 
@@ -53,6 +53,21 @@ export default function ProfilePage() {
     const [id, domain] = email.split("@");
     return `${id.slice(0, 2)}****@${domain}`;
   };
+
+  useEffect(() => {
+    refreshSubscription();
+  }, [refreshSubscription]);
+
+  const tier = user?.subscriptionTier ?? "FREE";
+
+  const tierLabelMap = {
+    FREE: "Free",
+    BASIC: "Basic",
+    PRO: "Pro",
+  };
+
+  const subscriptionText = `현재 구독 요금제: ${tierLabelMap[tier]}`;
+  const subscriptionTone = "primary";
 
   /** 🔥 사용자 기본 정보 불러오기 */
   useEffect(() => {
@@ -83,48 +98,48 @@ export default function ProfilePage() {
     loadUserInfo();
   }, [accessToken, navigate]);
 
-  useEffect(() => {
-    const fetchSubscription = async () => {
-      if (!accessToken) {
-        setSubscription({code: "FREE", label: "Free"});
-        setSubscriptionLoading(false);
-        return;
-      }
-
-      setSubscriptionLoading(true);
-      setSubscriptionError("");
-
-      try {
-        const res = await fetchSubscriptions();
-
-        const list = Array.isArray(res.data) ? res.data : [];
-        if (list.length === 0) {
-          setSubscription({code: "FREE", label: "Free"});
-          return;
-        }
-
-        const active =
-          list.find((item) => (item.status || "").toUpperCase() === "ACTIVE") ||
-          list[0];
-
-        const code = (active.subscriptionType || active.planCode || "FREE").toUpperCase();
-        const labels = {
-          PRO: "Pro",
-          BASIC: "Basic",
-        };
-
-        const label = labels[code] ?? "Free";
-
-        setSubscription({code, label});
-      } catch {
-        setSubscriptionError("구독 정보를 불러오지 못했습니다.");
-      } finally {
-        setSubscriptionLoading(false);
-      }
-    };
-
-    fetchSubscription();
-  }, [accessToken]);
+  // useEffect(() => {
+  //   const fetchSubscription = async () => {
+  //     if (!accessToken) {
+  //       setSubscription({code: "FREE", label: "Free"});
+  //       setSubscriptionLoading(false);
+  //       return;
+  //     }
+  //
+  //     setSubscriptionLoading(true);
+  //     setSubscriptionError("");
+  //
+  //     try {
+  //       const res = await fetchSubscriptions();
+  //
+  //       const list = Array.isArray(res.data) ? res.data : [];
+  //       if (list.length === 0) {
+  //         setSubscription({code: "FREE", label: "Free"});
+  //         return;
+  //       }
+  //
+  //       const active =
+  //         list.find((item) => (item.status || "").toUpperCase() === "ACTIVE") ||
+  //         list[0];
+  //
+  //       const code = (active.subscriptionType || active.planCode || "FREE").toUpperCase();
+  //       const labels = {
+  //         PRO: "Pro",
+  //         BASIC: "Basic",
+  //       };
+  //
+  //       const label = labels[code] ?? "Free";
+  //
+  //       setSubscription({code, label});
+  //     } catch {
+  //       setSubscriptionError("구독 정보를 불러오지 못했습니다.");
+  //     } finally {
+  //       setSubscriptionLoading(false);
+  //     }
+  //   };
+  //
+  //   fetchSubscription();
+  // }, [accessToken]);
 
   /** 🔥 GitHub OAuth 연결 */
   const handleGithubConnect = () => {
@@ -320,25 +335,25 @@ export default function ProfilePage() {
     }
   }, null, 2) : "";
 
-  let subscriptionTone;
-
-  if (subscriptionError) {
-    subscriptionTone = "error";
-  } else if (subscriptionLoading) {
-    subscriptionTone = "muted";
-  } else {
-    subscriptionTone = "primary";
-  }
-
-  let subscriptionText;
-
-  if (subscriptionLoading) {
-    subscriptionText = "구독 정보를 불러오는 중...";
-  } else if (subscriptionError) {
-    subscriptionText = subscriptionError;
-  } else {
-    subscriptionText = `현재 구독 요금제: ${subscription.label}`;
-  }
+  // let subscriptionTone;
+  //
+  // if (subscriptionError) {
+  //   subscriptionTone = "error";
+  // } else if (subscriptionLoading) {
+  //   subscriptionTone = "muted";
+  // } else {
+  //   subscriptionTone = "primary";
+  // }
+  //
+  // let subscriptionText;
+  //
+  // if (subscriptionLoading) {
+  //   subscriptionText = "구독 정보를 불러오는 중...";
+  // } else if (subscriptionError) {
+  //   subscriptionText = subscriptionError;
+  // } else {
+  //   subscriptionText = `현재 구독 요금제: ${subscription.label}`;
+  // }
 
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -356,7 +371,10 @@ export default function ProfilePage() {
         <ViewModeCard
           profile={profile}
           maskEmail={maskEmail}
-          subscriptionInfo={{text: subscriptionText, tone: subscriptionTone}}
+          subscriptionInfo={{
+            text: subscriptionText,
+            tone: subscriptionTone,
+          }}
           onEdit={() => setEditMode(true)}
         />
       )}

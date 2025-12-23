@@ -1,10 +1,16 @@
 import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {useParams, useNavigate} from 'react-router-dom';
+import {
+  startProblemSolve, submitCode, runTestCode, getProblem,  getUsageInfo
+} from '../../service/algorithm/AlgorithmApi';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
-import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY } from '../../components/algorithm/editor/editorUtils';
-import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
-import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolationDetection';
-import { startProblemSolve, submitCode, runTestCode, getUsageInfo, getProblem } from '../../service/algorithm/algorithmApi';
+import {
+  codeTemplates,
+  LANGUAGE_MAP,
+  LANGUAGE_NAME_TO_TEMPLATE_KEY
+} from '../../components/algorithm/editor/editorUtils';
+import {useResizableLayout, useVerticalResizable} from '../../hooks/algorithm/useResizableLayout';
+import {useFocusViolationDetection} from '../../hooks/algorithm/useFocusViolationDetection';
 import { useLogin } from '../../context/login/useLogin';
 import EyeTracker, { TRACKER_TYPES } from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
@@ -90,7 +96,7 @@ const ProblemSolve = () => {
           return;
       }
     }
-  }, [user, navigate]);
+  }, [user, navigate, problemId]);
   const editorRef = useRef(null);
   const eyeTrackerRef = useRef(null); // 시선 추적 ref
   const handleSubmitRef = useRef(null); // 자동 제출용 ref (stale closure 방지)
@@ -112,7 +118,7 @@ const ProblemSolve = () => {
   const rawTier = user?.subscriptionTier;
   const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
   const isUsageLimitExceeded = usageInfo && !usageInfo.isSubscriber && usageInfo.remaining <= 0;
-
+  console.log(rawTier, subscriptionTier, usageInfo);
   // ========== 모드 선택 관련 상태 ==========
   const [showModeSelection, setShowModeSelection] = useState(true); // 모드 선택 화면 표시 여부
   const [selectedMode, setSelectedMode] = useState(null); // 'BASIC' | 'FOCUS'
@@ -192,6 +198,7 @@ const ProblemSolve = () => {
 
   // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
   const solveMode = selectedMode || 'BASIC';
+
 
   // [Phase 2] 시간 감소 콜백 (패널티 시스템용)
   // timerEndTime을 조정하여 브라우저 스로틀링에도 정확하게 동작
@@ -654,6 +661,7 @@ const ProblemSolve = () => {
       if (!user?.userId) return;
       try {
         const response = await getUsageInfo(user.userId);
+        console.log('fetchUsageInfo', response);
         if (response.data) {
           setUsageInfo(response.data);
         }

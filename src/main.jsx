@@ -3,6 +3,7 @@ import "./index.css";
 import {ThemeProvider} from "./context/theme/ThemeProvider";
 import LoginProvider from "./context/login/LoginProvider";
 import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 // 레이아웃 및 메인
 import Layout from "./components/layout/mainLayout/Layout";
 import Main from "./pages/Main";
@@ -50,7 +51,7 @@ import MistakeReportPage from "./pages/myPage/MistakeReportPage";
 import CodeAnalysisTutorial3 from "./pages/codeAnalysis/CodeAnalysisTutorial3";
 
 // 코드게시판
-import CodeboardList from "./pages/codeboard/codeboardList";
+import CodeboardList from "./pages/codeboard/CodeboardList";
 import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
 import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
 import CodeboardEdit from "./pages/codeboard/CodeboardEdit";
@@ -73,6 +74,7 @@ createRoot(document.getElementById("root")).render(
   <ThemeProvider>
     <LoginProvider>
       <BrowserRouter>
+        <SpeedInsights />
         <Routes>
           {/* GitHub OAuth Callback (레이아웃 없이) */}
           <Route path="/auth/github/callback" element={<GitHubCallback/>}/>

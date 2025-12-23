@@ -41,10 +41,10 @@ export default function SignIn() {
   // ✅ GitHub OAuth 로그인
   const handleGitHubLogin = useCallback(() => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-    const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
-    globalThis.location.href = `https://github.com/login/oauth/authorize` +
+
+    globalThis.location.href =
+      "https://github.com/login/oauth/authorize" +
       `?client_id=${clientId}` +
-      `&redirect_uri=${redirectUri}` +
       `&scope=read:user user:email`;
   }, []);
 
@@ -132,7 +132,7 @@ export default function SignIn() {
                   name="email"
                   type="email"
                   required
-                  className="mt-2 block w-full rounded-md bg-white px-3 py-2 text-gray-900 outline outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:outline-indigo-600 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:focus:outline-indigo-500"
+                  className="mt-2 block w-full rounded-md outline outline-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-400 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 dark:bg-white/5 dark:text-white dark:border-white/20"
                   placeholder="이메일을 입력하세요"
                 />
               </div>
@@ -148,7 +148,7 @@ export default function SignIn() {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     required
-                    className="mt-2 block w-full rounded-md bg-white px-3 py-2 pr-10 text-gray-900 outline outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:outline-indigo-600 dark:bg-white/5 dark:text-white dark:outline-white/10 dark:focus:outline-indigo-500"
+                    className="mt-2 block w-full rounded-md outline outline-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-400 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 dark:bg-white/5 dark:text-white dark:border-white/20"
                     placeholder="비밀번호를 입력하세요"
                   />
                   <button

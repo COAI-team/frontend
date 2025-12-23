@@ -7,7 +7,7 @@ import BranchSelector from '../../components/github/BranchSelector';
 import FileTree from '../../components/github/FileTree';
 import AnalysisForm from '../../components/github/AnalysisForm';
 import { saveFile, analyzeStoredFile, getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
-import { getUsageInfo } from '../../service/algorithm/algorithmApi';
+import { getUsageInfo } from '../../service/algorithm/AlgorithmApi';
 import AnalysisLoading from '../../components/codeAnalysis/AnalysisLoading';
 import AnalysisResultCard from '../../components/codeAnalysis/AnalysisResultCard';
 import axiosInstance from '../../server/AxiosConfig';

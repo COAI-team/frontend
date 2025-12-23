@@ -1,5 +1,5 @@
-import { useContext, useMemo, useCallback, useEffect } from 'react';
-import {useTheme} from '../../context/theme/useTheme';
+import { useMemo, useCallback, useEffect } from "react";
+import { useTheme } from "../../context/theme/useTheme";
 import { AlertModalPropTypes } from "../../utils/propTypes";
 import {
   Dialog,
@@ -14,9 +14,9 @@ import {
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 
-// 상수 및 캐싱 (모듈 수준)
-const VALID_TYPES = new Set(['success', 'warning', 'error', 'info']);
-const DEFAULT_TYPE = 'success';
+// 상수
+const VALID_TYPES = new Set(["success", "warning", "error", "info"]);
+const DEFAULT_TYPE = "success";
 
 const COLOR_MAP = {
   light: {
@@ -51,27 +51,32 @@ export default function AlertModal({
                                      confirmText = "확인",
                                      cancelText = "취소",
                                    }) {
-  const context = useContext(useTheme);
-  const theme = context?.theme || 'light';
+  // ✅ 올바른 테마 사용
+  const { theme } = useTheme();
 
-  // useMemo로 스타일/아이콘 캐싱 (리렌더링 방지)
+  // 스타일 캐싱
   const styles = useMemo(() => {
     const validType = VALID_TYPES.has(type) ? type : DEFAULT_TYPE;
-    const currentBg = COLOR_MAP[theme]?.[validType] || COLOR_MAP.light[DEFAULT_TYPE];
+    const bgColor = COLOR_MAP[theme][validType];
     const Icon = ICON_MAP[validType] || ICON_MAP.success;
 
     return {
-      bgColor: currentBg,
+      bgColor,
       Icon,
       backdrop: theme === "dark" ? "bg-black/70" : "bg-gray-500/75",
-      panel: theme === "dark" ? "bg-[#1f1f1f] border border-[#2e2e2e] shadow-[0_4px_20px_rgba(0,0,0,0.4)]" : "bg-white",
+      panel:
+        theme === "dark"
+          ? "bg-[#1f1f1f] border border-[#2e2e2e] shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
+          : "bg-white",
       title: theme === "dark" ? "text-gray-100" : "text-gray-900",
       text: theme === "dark" ? "text-gray-300" : "text-gray-600",
-      cancelBtn: theme === "dark" ? "bg-zinc-700 hover:bg-zinc-600 text-gray-300 hover:text-white" : "bg-gray-200 text-gray-800",
+      cancelBtn:
+        theme === "dark"
+          ? "bg-zinc-700 hover:bg-zinc-600 text-gray-300 hover:text-white"
+          : "bg-gray-200 text-gray-800",
     };
   }, [theme, type]);
 
-  // useCallback으로 이벤트 핸들러 안정화
   const handleConfirm = useCallback(() => {
     onConfirm?.();
     onClose();
@@ -82,22 +87,21 @@ export default function AlertModal({
     onClose();
   }, [onCancel, onClose]);
 
-  // 키보드 핸들러 (useEffect import 추가 + passive 옵션)
   useEffect(() => {
     if (!open) return;
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Enter') {
+      if (e.key === "Enter") {
         e.preventDefault();
         handleConfirm();
-      } else if (e.key === 'Escape') {
+      } else if (e.key === "Escape") {
         onClose();
       }
     };
 
-    // passive: true로 스크롤 성능 향상
-    globalThis.addEventListener('keydown', handleKeyDown, { passive: true });
-    return () => globalThis.removeEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener("keydown", handleKeyDown, { passive: true });
+    return () =>
+      globalThis.removeEventListener("keydown", handleKeyDown);
   }, [open, handleConfirm, onClose]);
 
   if (!open) return null;
@@ -121,7 +125,6 @@ export default function AlertModal({
                 className="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full sm:mx-0 sm:size-10"
                 style={{ backgroundColor: styles.bgColor }}
               >
-                {/* styles.Icon → styles.Icon 컴포넌트 호출로 수정 */}
                 <styles.Icon aria-hidden="true" className="size-6 text-black" />
               </div>
 
@@ -150,8 +153,7 @@ export default function AlertModal({
               {onCancel && (
                 <button
                   onClick={handleCancel}
-                  className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm sm:w-auto 
-                    ${styles.cancelBtn}`}
+                  className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm sm:w-auto ${styles.cancelBtn}`}
                 >
                   {cancelText}
                 </button>

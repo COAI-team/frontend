@@ -1,38 +1,41 @@
 import * as monaco from "monaco-editor";
 
-self.MonacoEnvironment = {
+globalThis.MonacoEnvironment = {
   getWorker(_, label) {
     if (label === "json") {
       return new Worker(
         new URL(
-          "monaco-editor/esm/vs/language/json/json.worker",
+          "monaco-editor/esm/vs/language/json/json.worker.js",
           import.meta.url
         ),
         { type: "module" }
       );
     }
+
     if (label === "css" || label === "scss" || label === "less") {
       return new Worker(
         new URL(
-          "monaco-editor/esm/vs/language/css/css.worker",
+          "monaco-editor/esm/vs/language/css/css.worker.js",
           import.meta.url
         ),
         { type: "module" }
       );
     }
+
     if (label === "html" || label === "handlebars" || label === "razor") {
       return new Worker(
         new URL(
-          "monaco-editor/esm/vs/language/html/html.worker",
+          "monaco-editor/esm/vs/language/html/html.worker.js",
           import.meta.url
         ),
         { type: "module" }
       );
     }
+
     if (label === "typescript" || label === "javascript") {
       return new Worker(
         new URL(
-          "monaco-editor/esm/vs/language/typescript/ts.worker",
+          "monaco-editor/esm/vs/language/typescript/ts.worker.js",
           import.meta.url
         ),
         { type: "module" }
@@ -41,7 +44,7 @@ self.MonacoEnvironment = {
 
     return new Worker(
       new URL(
-        "monaco-editor/esm/vs/editor/editor.worker",
+        "monaco-editor/esm/vs/editor/editor.worker.js",
         import.meta.url
       ),
       { type: "module" }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/algorithmApi';
+import { startProblemSolve, submitCode, runTestCode } from '../../service/algorithm/AlgorithmApi';
 import { codeTemplates } from '../../components/algorithm/editor/editorUtils';
 
 /**
