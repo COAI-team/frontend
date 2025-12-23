@@ -1,3 +1,4 @@
+import axios from "axios";
 import {useState, useMemo, useEffect, useCallback} from "react";
 import {LoginContext} from "./LoginContext";
 import {LoginProviderPropTypes} from "../../utils/propTypes";
@@ -92,6 +93,7 @@ export default function LoginProvider({children}) {
     setAuth(null);
     setLoginResult(null);
     removeAuth();
+    delete axios.defaults.headers.common.Authorization;
   }, []);
 
   // ===============================================================
@@ -144,11 +146,27 @@ export default function LoginProvider({children}) {
   }, [auth?.accessToken]);
 
   useEffect(() => {
+    if (!auth?.user?.userId) return;
+
+    setAuth(prev => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        user: {
+          ...prev.user,
+          subscriptionTier: "FREE",
+        },
+      };
+    });
+  }, [auth?.user?.userId]);
+
+  useEffect(() => {
     if (!auth?.accessToken) return;
 
     refreshSubscription();
   }, [auth?.accessToken, refreshSubscription]);
-  
+
   // ===============================================================
   // ✅ useMemo 의존성 배열에 함수들 추가
   // ===============================================================
