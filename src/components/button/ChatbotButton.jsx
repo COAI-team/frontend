@@ -229,7 +229,7 @@ export default function ChatbotButton() {
       {isOpen && (
         <div
           className="fixed right-35 w-96 h-9/12 bg-white dark:bg-neutral-900
-                               rounded-3xl shadow-2xl border dark:border-neutral-800
+                               rounded-3xl shadow-2xl border border-slate-200 dark:border-neutral-800
                                z-9999 flex flex-col overflow-hidden transition-all duration-300"
           style={chatWindowStyle}
         >
