@@ -398,33 +398,6 @@ html.dark .animate-scan,
   filter: blur(0.5px);
 }
 
-/* Add some random drip shapes using ::after/::before for "uneven flow" */
-.snow-floor::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 30%;
-  width: 60px;
-  height: 25px;
-  background: white;
-  border-radius: 0 0 30px 30px;
-  box-shadow: 0 5px 10px rgba(0,0,0,0.05);
-  z-index: 10;
-}
-
-.snow-floor::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 20%;
-  width: 80px;
-  height: 30px;
-  background: white;
-  border-radius: 0 0 40px 40px;
-  box-shadow: 0 5px 10px rgba(0,0,0,0.05);
-  z-index: 10;
-}
-
 /* Moai Container Adjustment */
 .walking-moai-container {
   /* ... existing styles ... */
