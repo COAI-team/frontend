@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 const UsageDisplay = ({ usageInfo }) => {
     if (!usageInfo) {
         return (
-            <div className="bg-white dark:bg-[#1f1f1f] rounded-2xl shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-[#e2e8f0] dark:border-[#2e2e2e] p-6">
+            <div className="rounded-2xl shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-[#e2e8f0] dark:border-[#2e2e2e] p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     오늘의 사용량
                 </h3>
@@ -25,7 +25,7 @@ const UsageDisplay = ({ usageInfo }) => {
     const usagePercent = isSubscriber ? 0 : Math.min((totalUsage / dailyLimit) * 100, 100);
 
     return (
-        <div className="bg-white dark:bg-[#1f1f1f] rounded-2xl shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-[#e2e8f0] dark:border-[#2e2e2e] p-6">
+        <div className="rounded-2xl shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-[#e2e8f0] dark:border-[#2e2e2e] p-6">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     오늘의 사용량

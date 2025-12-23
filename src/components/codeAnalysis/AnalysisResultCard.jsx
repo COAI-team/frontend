@@ -8,7 +8,7 @@ const AnalysisResultCard = ({ analysisResult, isRagMode, onNewAnalysis, onShare,
     if (!analysisResult) return null;
 
     return (
-        <div className="rounded-lg shadow-sm border p-6">
+        <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] p-6">
             <div ref={scoreCardRef} className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold">
                     분석 결과
@@ -88,8 +88,8 @@ const AnalysisResultCard = ({ analysisResult, isRagMode, onNewAnalysis, onShare,
                             <h3 className="text-lg font-semibold text-green-600 mb-3">💡 개선 제안</h3>
                             <div className="space-y-4">
                                 {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
-                                    <div key={idx} className="border rounded-lg overflow-hidden">
-                                        <div className="p-3 border-b text-sm font-medium flex justify-between items-center">
+                                    <div key={idx} className="border border-[#e2e8f0] dark:border-[#3f3f46] rounded-lg overflow-hidden">
+                                        <div className="p-3 border border-[#e2e8f0] dark:border-[#3f3f46] text-sm font-medium flex justify-between items-center">
                                             <span>제안 #{idx + 1}</span>
                                             {suggestion.habitContext && showRagContext && (
                                                 <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold animate-pulse">
@@ -116,7 +116,7 @@ const AnalysisResultCard = ({ analysisResult, isRagMode, onNewAnalysis, onShare,
             </div>
 
             {resolvedAnalysisId && (
-                <div className="mt-6 pt-6 border-t flex justify-center gap-3 ">
+                <div className="mt-6 pt-6 border-t border-[#e2e8f0] dark:border-[#3f3f46] p-6 flex justify-center gap-3 ">
                     <button
                         onClick={onNewAnalysis || (() => window.location.href = '/codeAnalysis/new')}
                         className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors cursor-pointer"

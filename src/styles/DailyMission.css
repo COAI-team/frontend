@@ -262,7 +262,6 @@ html.dark .daily-mission-page .usage-display-container > div {
 
 /* 다크모드 잔디 캘린더 컨테이너 */
 html.dark .grass-calendar-container {
-  background-color: #1f1f1f;
   border-color: #2e2e2e;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
