@@ -207,11 +207,18 @@ const ProblemSolve = () => {
 
       try {
         const res = await fetchSubscriptions();
-        // 예: res.data.tier === 'PRO'
-        setSubscriptionTier(res.data.subscriptionType);
-        console.log("refetchSubscriptionInfo", res.data);
+        const subscriptions = res.data; // 배열
+
+        const activeSubscription = subscriptions.find(
+          (sub) => sub.status === 'ACTIVE'
+        );
+
+        setSubscriptionTier(activeSubscription?.subscriptionType ?? 'FREE');
+
+        console.log('activeSubscription', activeSubscription);
       } catch (e) {
         console.error('구독 정보 조회 실패', e);
+        setSubscriptionTier('FREE');
       }
     };
 
