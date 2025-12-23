@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
     FaArrowRight,
@@ -31,11 +31,11 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
     // 5초마다 자유 ↔ 코드 자동 전환
     useEffect(() => {
         if (popularPosts.length === 0) return;
-        
+
         const timer = setInterval(() => {
             setCurrentBoardType(prev => prev === 'free' ? 'code' : 'free');
         }, 5000);
-        
+
         return () => clearInterval(timer);
     }, [popularPosts.length]);
 
@@ -155,7 +155,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
 
     return (
         <div className="w-full min-h-screen font-sans overflow-hidden bg-white dark:bg-[#0a0a0a] text-slate-800 dark:text-slate-100 relative selection:bg-indigo-500 selection:text-white">
-            
+
             {/* 1. Enhanced Ambient Background */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-indigo-500/10 dark:bg-indigo-900/20 rounded-full blur-[120px] animate-pulse"></div>
@@ -166,7 +166,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
 
             <div className="relative z-10 max-w-7xl mx-auto px-6 py-10 lg:py-16">
                 {/* 2. Header / Greeting with Daily Stats */}
-                <motion.div 
+                <Motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
@@ -184,7 +184,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                             </p>
                         </h1>
                     </div>
-                    
+
                     {/* Quick Stats Overlay (Real Data) */}
                     <div className="flex gap-4">
                         <div className="px-4 py-3 bg-white/80 dark:bg-white/5 rounded-2xl backdrop-blur-md border border-white/40 dark:border-transparent shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex items-center gap-3 min-w-[100px]">
@@ -209,19 +209,19 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                             </span>
                         </div>
                     </div>
-                </motion.div>
+                </Motion.div>
 
                 {/* 3. Bento Grid Layout */}
-                <motion.div 
+                <Motion.div
                     variants={container}
                     initial="hidden"
                     animate="show"
                     className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-5 lg:gap-6 h-auto md:h-[600px]"
                 >
                     {/* Block A: Command Center */}
-                    <motion.div variants={item} className="col-span-1 md:col-span-2 row-span-2 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col">
+                    <Motion.div variants={item} className="col-span-1 md:col-span-2 row-span-2 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-                        
+
                         <div className="p-6 pb-2">
                              <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800 dark:text-white">
                                 <FaLaptopCode className="text-indigo-500"/> 바로 시작하기
@@ -230,7 +230,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
 
                         {/* Split Action Area */}
                         <div className="flex-1 grid grid-rows-2 h-full">
-                            
+
                             {/* Action 1: Code Analysis */}
                             <Link to="/codeAnalysis/new" className="group relative flex items-center justify-between p-6 m-4 mt-0 bg-indigo-50 dark:bg-indigo-900/10 rounded-[2rem] border border-indigo-100 dark:border-indigo-500/20 hover:bg-white hover:border-indigo-300 dark:hover:bg-indigo-900/20 dark:hover:border-indigo-500/50 transition-all duration-300 overflow-hidden shadow-sm hover:shadow-lg">
                                 <div className="relative z-10 flex gap-5 items-center">
@@ -265,15 +265,15 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                 <div className="absolute inset-0 bg-emerald-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0 pointer-events-none"></div>
                             </Link>
                         </div>
-                    </motion.div>
+                    </Motion.div>
 
                     {/* Block B: MCP Intro */}
-                    <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-slate-800 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all group overflow-hidden">
+                    <Motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-slate-800 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl transition-all group overflow-hidden">
                         <Link to="/mypage/profile" className="absolute inset-0 z-20"></Link>
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                             <FaNetworkWired className="text-8xl text-slate-900 dark:text-white transform rotate-12"/>
                         </div>
-                        
+
                         <div className="relative z-10">
                             <div className="p-3 w-fit bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4 group-hover:bg-slate-900 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-slate-900 transition-colors">
                                 <FaNetworkWired className="text-xl" />
@@ -286,10 +286,10 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                 <FaArrowRight className="-rotate-45"/> Model Context Protocol
                             </div>
                         </div>
-                    </motion.div>
+                    </Motion.div>
 
                     {/* Block C: Daily Mission */}
-                    <motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] overflow-hidden shadow-lg bg-gradient-to-br from-indigo-500 to-blue-600">
+                    <Motion.div variants={item} className="col-span-1 row-span-1 relative rounded-[2.5rem] overflow-hidden shadow-lg bg-gradient-to-br from-indigo-500 to-blue-600">
                         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-30 pointer-events-none"></div>
 
                         <div className="relative z-10 p-6 h-full flex flex-col text-white">
@@ -360,17 +360,17 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                 </div>
                             )}
                         </div>
-                    </motion.div>
+                    </Motion.div>
 
                     {/* Block D: Community News */}
-                    <motion.div variants={item} className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] p-4 pb-3 shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex flex-col pt-6">
+                    <Motion.div variants={item} className="col-span-1 md:col-span-2 lg:col-span-2 row-span-1 relative rounded-[2.5rem] bg-white dark:bg-[#111] border border-slate-200 dark:border-[#111] p-4 pb-3 shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] flex flex-col pt-6">
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                                 주간 인기글
                             </h3>
                             <div className="flex gap-1.5">
-                                <Link 
-                                    to="/freeboard" 
+                                <Link
+                                    to="/freeboard"
                                     className={`text-[10px] font-semibold transition-colors ${
                                         currentBoardType === 'free' 
                                         ? 'text-indigo-600 dark:text-indigo-400' 
@@ -380,8 +380,8 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                     자유게시판
                                 </Link>
                                 <span className="text-slate-300 dark:text-slate-700 text-[10px]">|</span>
-                                <Link 
-                                    to="/codeboard" 
+                                <Link
+                                    to="/codeboard"
                                     className={`text-[10px] font-semibold transition-colors ${
                                         currentBoardType === 'code' 
                                         ? 'text-emerald-600 dark:text-emerald-400' 
@@ -429,7 +429,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
 
                                     {/* Content List */}
                                     <AnimatePresence mode="wait">
-                                        <motion.div
+                                        <Motion.div
                                             key={currentBoardType}
                                             initial={{ opacity: 0, x: 20 }}
                                             animate={{ opacity: 1, x: 0 }}
@@ -466,8 +466,8 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                                             {/* Content Preview */}
                                                             <p className="text-[9px] text-slate-600 dark:text-slate-400 line-clamp-1 mb-0.5 leading-relaxed">
                                                                 {post.plainText && post.plainText !== '내용 없음'
-                                                                    ? (post.plainText.length > 50 
-                                                                        ? post.plainText.substring(0, 50) + '...' 
+                                                                    ? (post.plainText.length > 50
+                                                                        ? post.plainText.substring(0, 50) + '...'
                                                                         : post.plainText)
                                                                     : '내용이 없습니다'}
                                                             </p>
@@ -476,8 +476,8 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                                             <div className="flex items-center gap-2">
                                                                 <div className="flex items-center gap-1">
                                                                     {post.profileImage ? (
-                                                                        <img 
-                                                                            src={post.profileImage} 
+                                                                        <img
+                                                                            src={post.profileImage}
                                                                             alt={post.author}
                                                                             className="w-3 h-3 rounded-full object-cover"
                                                                         />
@@ -517,8 +517,8 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                                         {/* Right: Image */}
                                                         {post.image && (
                                                             <div className="w-12 h-12 rounded-md overflow-hidden bg-slate-200 dark:bg-slate-800 flex-shrink-0">
-                                                                <img 
-                                                                    src={post.image} 
+                                                                <img
+                                                                    src={post.image}
                                                                     alt={post.title}
                                                                     className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                                                                 />
@@ -527,7 +527,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                                     </div>
                                                 </div>
                                             ))}
-                                        </motion.div>
+                                        </Motion.div>
                                     </AnimatePresence>
 
                                     {/* Progress Indicator */}
@@ -561,8 +561,8 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                 </div>
                             )}
                         </div>
-                    </motion.div>
-                </motion.div>
+                    </Motion.div>
+                </Motion.div>
 
             </div>
         </div>
