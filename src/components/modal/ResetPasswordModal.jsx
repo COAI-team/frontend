@@ -40,7 +40,7 @@ const CLASS_MAP = {
     title: "text-white",
     desc: "text-gray-400",
     label: "text-gray-300",
-    inputBg: "bg-zinc-800 text-white outline outline-[#2e2e2e]",
+    inputBg: "bg-zinc-800 text-white outline outline-gray-300",
     cancelBtn: "bg-zinc-700 hover:bg-zinc-600 text-gray-300 hover:text-white",
     cancelBg: "bg-zinc-700"
   }
@@ -167,10 +167,6 @@ export default function ResetPasswordModal({open, onClose}) {
             onChange={handleEmailChange}
             placeholder="example@email.com"
             className={`mt-2 block w-full rounded-md px-3 py-2 placeholder:text-gray-400 ${styles.inputBg}`}
-            style={{
-              outlineWidth: "1px",
-              outlineColor: styles.outline
-            }}
             onFocus={(e) => {
               e.target.style.outlineColor = styles.primary;
             }}
