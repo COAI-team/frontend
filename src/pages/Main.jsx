@@ -2,12 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLogin } from "../context/login/useLogin";
 import axiosInstance from "../server/AxiosConfig";
-import {
-  DashboardSection,
-  GuestLandingPage,
-} from "../components/main";
+import { GuestLandingPage } from "../components/main";
 import LoggedInMain from "./LoggedInMain";
-
 import { getUserLevel, getUsageInfo } from "../service/algorithm/AlgorithmApi";
 
 export default function Main() {
@@ -31,32 +27,64 @@ export default function Main() {
       // 1. Fetch User Stats (Parallel)
       if (user.userId) {
         const [levelRes, usageRes] = await Promise.all([
-            getUserLevel(user.userId),
-            getUsageInfo(user.userId)
+          getUserLevel(user.userId),
+          getUsageInfo(user.userId)
         ]);
         
         setUserStats({
-            level: levelRes.data || null,
-            exp: levelRes.data?.exp || 0,
-            totalSolved: usageRes.data?.totalSolved || 0
+          level: levelRes.data || null,
+          exp: levelRes.data?.exp || 0,
+          totalSolved: usageRes.data?.totalSolved || 0
         });
       }
 
-      // 2. Fetch Popular Posts from both Boards
+      // 2. Fetch Popular Posts from Weekly Popular APIs
       const [freeboardRes, codeboardRes] = await Promise.all([
-        axiosInstance.get("/freeboard", { params: { page: 1, size: 5, sort: "views" } }),
-        axiosInstance.get("/codeboard", { params: { page: 1, size: 5, sort: "VIEW_COUNT", direction: "DESC" } })
+        axiosInstance.get("/popular/freeboard"),
+        axiosInstance.get("/popular/codeboard")
       ]);
 
-      // Combine and tag them
-      const freeSchema = (freeboardRes.data.content || []).map(p => ({ ...p, type: 'free', title: p.title, id: p.id, author: p.authorName, views: p.views, date: p.createdDate }));
-      const codeSchema = (codeboardRes.data.data?.content || []).map(p => ({ ...p, type: 'code', title: p.codeboardTitle, id: p.codeboardId, author: p.userNickname, views: p.codeboardClick, date: p.codeboardCreatedAt }));
+      // Transform to unified schema
+      const freeSchema = (freeboardRes.data || []).map(p => ({ 
+        ...p, 
+        type: 'free', 
+        title: p.freeboardTitle, 
+        id: p.freeboardId, 
+        author: p.userNickname || 'Unknown',
+        views: p.freeboardClick, 
+        date: p.freeboardCreatedAt,
+        likes: p.likeCount,
+        comments: p.commentCount,
+        score: p.popularityScore,
+        ranking: p.ranking,
+        plainText: p.freeboardPlainText || '내용 없음',
+        image: p.freeboardRepresentImage
+      }));
+
+      const codeSchema = (codeboardRes.data || []).map(p => ({ 
+        ...p, 
+        type: 'code', 
+        title: p.codeboardTitle, 
+        id: p.codeboardId, 
+        author: p.userNickname || 'Unknown',
+        views: p.codeboardClick, 
+        date: p.codeboardCreatedAt,
+        likes: p.likeCount,
+        comments: p.commentCount,
+        score: p.popularityScore,
+        ranking: p.ranking,
+        plainText: p.codeboardPlainText || '내용 없음', 
+        aiScore: p.aiScore,
+        image: p.codeboardRepresentImage
+      }));
       
-      const combined = [...freeSchema, ...codeSchema].sort((a, b) => b.views - a.views).slice(0, 10);
+      // Combine: 자유게시판 3개 + 코드게시판 3개
+      const combined = [...freeSchema, ...codeSchema];
       setPopularPosts(combined);
 
     } catch (error) {
       console.error("데이터 로딩 실패:", error);
+      setPopularPosts([]);
     } finally {
       setLoading(false);
     }
