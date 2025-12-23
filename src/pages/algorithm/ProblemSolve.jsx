@@ -112,7 +112,7 @@ const ProblemSolve = () => {
   const rawTier = user?.subscriptionTier;
   const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
   const isUsageLimitExceeded = usageInfo && !usageInfo.isSubscriber && usageInfo.remaining <= 0;
-
+  console.log(rawTier, subscriptionTier, usageInfo);
   // ========== 모드 선택 관련 상태 ==========
   const [showModeSelection, setShowModeSelection] = useState(true); // 모드 선택 화면 표시 여부
   const [selectedMode, setSelectedMode] = useState(null); // 'BASIC' | 'FOCUS'
