@@ -189,29 +189,42 @@ const LikeButton = ({
                 overflowY: 'auto'
               }}>
                 {likeUsers.map((user, idx) => (
-                  <div key={idx} style={{
+                <div key={idx} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{
+                    width: '1.5rem',
+                    height: '1.5rem',
+                    borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem'
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    backgroundColor: '#4b5563',
+                    color: '#e5e7eb',
+                    overflow: 'hidden'
                   }}>
-                    <div style={{
-                      width: '1.5rem',
-                      height: '1.5rem',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.75rem',
-                      backgroundColor: '#4b5563',
-                      color: '#e5e7eb'
-                    }}>
-                      {user?.userNickname ? user.userNickname.charAt(0).toUpperCase() : 'U'}
-                    </div>
-                    <span style={{ fontSize: '0.75rem' }}>
-                      {user?.userNickname || '사용자'}
-                    </span>
+                    {user?.userImage ? (
+                      <img 
+                        src={user.userImage} 
+                        alt={user.userNickname}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : (
+                      user?.userNickname ? user.userNickname.charAt(0).toUpperCase() : 'U'
+                    )}
                   </div>
-                ))}
+                  <span style={{ fontSize: '0.75rem' }}>
+                    {user?.userNickname || '사용자'}
+                  </span>
+                </div>
+              ))}
               </div>
             ) : (
               <div style={{
