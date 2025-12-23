@@ -4,6 +4,7 @@ import {
   startProblemSolve, submitCode, runTestCode, getProblem,  getUsageInfo
 } from '../../service/algorithm/AlgorithmApi';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
+import {fetchSubscriptions} from "../../service/payment/PaymentApi";
 import {
   codeTemplates,
   LANGUAGE_MAP,
@@ -115,8 +116,9 @@ const ProblemSolve = () => {
 
   // 구독 및 사용량 제한 상태
   const [usageInfo, setUsageInfo] = useState(null);
+  const [subscriptionTier, setSubscriptionTier] = useState('FREE');
   const rawTier = user?.subscriptionTier;
-  const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
+  // const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
   const isUsageLimitExceeded = usageInfo && !usageInfo.isSubscriber && usageInfo.remaining <= 0;
   console.log(rawTier, subscriptionTier, usageInfo);
   // ========== 모드 선택 관련 상태 ==========
@@ -198,6 +200,23 @@ const ProblemSolve = () => {
 
   // 풀이 모드: BASIC (자유 모드) vs FOCUS (집중 모드 - 시선 추적 포함)
   const solveMode = selectedMode || 'BASIC';
+
+  useEffect(() => {
+    const fetchSubscriptionInfo = async () => {
+      if (!user?.userId) return;
+
+      try {
+        const res = await fetchSubscriptions();
+        // 예: res.data.tier === 'PRO'
+        setSubscriptionTier(res.data.tier);
+      } catch (e) {
+        console.error('구독 정보 조회 실패', e);
+      }
+    };
+
+    fetchSubscriptionInfo();
+  }, [user?.userId]);
+
 
   // [Phase 2] 시간 감소 콜백 (패널티 시스템용)
   // timerEndTime을 조정하여 브라우저 스로틀링에도 정확하게 동작
