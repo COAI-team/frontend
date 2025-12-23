@@ -1,10 +1,16 @@
 import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {useParams, useNavigate} from 'react-router-dom';
+import {
+  startProblemSolve, submitCode, runTestCode, getProblem,  getUsageInfo
+} from '../../service/algorithm/AlgorithmApi';
 import CodeEditor from '../../components/algorithm/editor/CodeEditor';
-import { codeTemplates, LANGUAGE_MAP, LANGUAGE_NAME_TO_TEMPLATE_KEY } from '../../components/algorithm/editor/editorUtils';
-import { useResizableLayout, useVerticalResizable } from '../../hooks/algorithm/useResizableLayout';
-import { useFocusViolationDetection } from '../../hooks/algorithm/useFocusViolationDetection';
-import { startProblemSolve, submitCode, runTestCode, getUsageInfo, getProblem } from '../../service/algorithm/AlgorithmApi';
+import {
+  codeTemplates,
+  LANGUAGE_MAP,
+  LANGUAGE_NAME_TO_TEMPLATE_KEY
+} from '../../components/algorithm/editor/editorUtils';
+import {useResizableLayout, useVerticalResizable} from '../../hooks/algorithm/useResizableLayout';
+import {useFocusViolationDetection} from '../../hooks/algorithm/useFocusViolationDetection';
 import { useLogin } from '../../context/login/useLogin';
 import EyeTracker, { TRACKER_TYPES } from '../../components/algorithm/eye-tracking/EyeTracker';
 import ModeSelectionScreen from '../../components/algorithm/ModeSelectionScreen';
@@ -90,7 +96,7 @@ const ProblemSolve = () => {
           return;
       }
     }
-  }, [user, navigate]);
+  }, [user, navigate, problemId]);
   const editorRef = useRef(null);
   const eyeTrackerRef = useRef(null); // 시선 추적 ref
   const handleSubmitRef = useRef(null); // 자동 제출용 ref (stale closure 방지)
@@ -654,6 +660,7 @@ const ProblemSolve = () => {
       if (!user?.userId) return;
       try {
         const response = await getUsageInfo(user.userId);
+        console.log(response);
         if (response.data) {
           setUsageInfo(response.data);
         }

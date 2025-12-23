@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import {
     getTodayMissions,
     getUsageInfo,
     getUserLevel,
     getSolveBonusStatus,
     getContributions,
-    MISSION_TYPE_INFO,
-    DIFFICULTY_OPTIONS
 } from '../../service/algorithm/AlgorithmApi';
 import UsageDisplay from '../../components/algorithm/mission/UsageDisplay';
 import UserLevelBadge from '../../components/algorithm/mission/UserLevelBadge';
