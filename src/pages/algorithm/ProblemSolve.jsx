@@ -209,6 +209,7 @@ const ProblemSolve = () => {
         const res = await fetchSubscriptions();
         // 예: res.data.tier === 'PRO'
         setSubscriptionTier(res.data.tier);
+        console.log("refetchSubscriptionInfo", res.data);
       } catch (e) {
         console.error('구독 정보 조회 실패', e);
       }
