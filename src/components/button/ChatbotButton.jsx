@@ -262,7 +262,7 @@ export default function ChatbotButton() {
               max-h-48 overflow-y-auto text-[12px]
               ${
                     msg.sender === "ai"
-                      ? "bg-white dark:bg-neutral-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-neutral-700 rounded-tl-sm"
+                      ? "bg-white dark:bg-neutral-800 text-gray-800 dark:text-gray-100 border border-slate-200 dark:border-neutral-700 rounded-tl-sm"
                       : "bg-linear-to-br from-blue-500 via-blue-600 to-blue-700 text-white rounded-tr-sm"
                   }`}
                 >
