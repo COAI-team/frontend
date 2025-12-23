@@ -20,6 +20,32 @@ export default function Main() {
     }
   }, [user]);
 
+  // JSON 형식의 plainText에서 실제 텍스트 추출
+  const extractPlainText = (jsonText) => {
+    if (!jsonText) return '내용 없음';
+    
+    try {
+      // JSON 배열 파싱
+      const parsed = JSON.parse(jsonText);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // TipTap content에서 HTML 태그 제거
+        const content = parsed[0].content || '';
+        return content
+          .replace(/<[^>]+>/g, '') // HTML 태그 제거
+          .replace(/&nbsp;/g, ' ') // &nbsp; 공백으로
+          .replace(/&lt;/g, '<')   // HTML 엔티티 디코딩
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .trim();
+      }
+    } catch (e) {
+      // JSON 파싱 실패 시 원본 반환 (이미 텍스트인 경우)
+      return jsonText;
+    }
+    
+    return '내용 없음';
+  };
+
   const fetchAllData = async () => {
     try {
       setLoading(true);
@@ -45,38 +71,48 @@ export default function Main() {
       ]);
 
       // Transform to unified schema
-      const freeSchema = (freeboardRes.data || []).map(p => ({ 
-        ...p, 
-        type: 'free', 
-        title: p.freeboardTitle, 
-        id: p.freeboardId, 
-        author: p.userNickname || 'Unknown',
-        views: p.freeboardClick, 
-        date: p.freeboardCreatedAt,
-        likes: p.likeCount,
-        comments: p.commentCount,
-        score: p.popularityScore,
-        ranking: p.ranking,
-        plainText: p.freeboardPlainText || '내용 없음',
-        image: p.freeboardRepresentImage
-      }));
+      const freeSchema = (freeboardRes.data || []).map(p => {
+        const plainText = extractPlainText(p.freeboardPlainText);
+        
+        return { 
+          ...p, 
+          type: 'free', 
+          title: p.freeboardTitle, 
+          id: p.freeboardId, 
+          author: p.userNickname || 'Unknown',
+          profileImage: p.userImage,
+          views: p.freeboardClick, 
+          date: p.freeboardCreatedAt,
+          likes: p.likeCount,
+          comments: p.commentCount,
+          score: p.popularityScore,
+          ranking: p.ranking,
+          plainText: plainText,
+          image: p.freeboardRepresentImage
+        };
+      });
 
-      const codeSchema = (codeboardRes.data || []).map(p => ({ 
-        ...p, 
-        type: 'code', 
-        title: p.codeboardTitle, 
-        id: p.codeboardId, 
-        author: p.userNickname || 'Unknown',
-        views: p.codeboardClick, 
-        date: p.codeboardCreatedAt,
-        likes: p.likeCount,
-        comments: p.commentCount,
-        score: p.popularityScore,
-        ranking: p.ranking,
-        plainText: p.codeboardPlainText || '내용 없음', 
-        aiScore: p.aiScore,
-        image: p.codeboardRepresentImage
-      }));
+      const codeSchema = (codeboardRes.data || []).map(p => {
+        const plainText = extractPlainText(p.codeboardPlainText);
+        
+        return { 
+          ...p, 
+          type: 'code', 
+          title: p.codeboardTitle, 
+          id: p.codeboardId, 
+          author: p.userNickname || 'Unknown',
+          profileImage: p.userImage,
+          views: p.codeboardClick, 
+          date: p.codeboardCreatedAt,
+          likes: p.likeCount,
+          comments: p.commentCount,
+          score: p.popularityScore,
+          ranking: p.ranking,
+          plainText: plainText, 
+          aiScore: p.aiScore,
+          image: p.codeboardRepresentImage
+        };
+      });
       
       // Combine: 자유게시판 3개 + 코드게시판 3개
       const combined = [...freeSchema, ...codeSchema];

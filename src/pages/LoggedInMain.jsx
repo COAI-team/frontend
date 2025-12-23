@@ -479,9 +479,17 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
                                                             {/* Footer: Author + Stats */}
                                                             <div className="flex items-center gap-2">
                                                                 <div className="flex items-center gap-1">
-                                                                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-[7px] font-bold">
-                                                                        {post.author?.[0]?.toUpperCase() || "?"}
-                                                                    </div>
+                                                                    {post.profileImage ? (
+                                                                        <img 
+                                                                            src={post.profileImage} 
+                                                                            alt={post.author}
+                                                                            className="w-3 h-3 rounded-full object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-3 h-3 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-[7px] font-bold">
+                                                                            {post.author?.[0]?.toUpperCase() || "?"}
+                                                                        </div>
+                                                                    )}
                                                                     <span className="text-[8px] text-slate-600 dark:text-slate-400">
                                                                         {post.author}
                                                                     </span>
