@@ -38,7 +38,7 @@ const AnalysisLoading = () => {
     }, []);
 
     return (
-        <div className="rounded-lg shadow-sm border p-6">
+        <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] p-6">
             {/* Header Area */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
