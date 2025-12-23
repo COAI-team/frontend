@@ -23,27 +23,26 @@ export default function Main() {
   // JSON 형식의 plainText에서 실제 텍스트 추출
   const extractPlainText = (jsonText) => {
     if (!jsonText) return '내용 없음';
-    
+
     try {
-      // JSON 배열 파싱
       const parsed = JSON.parse(jsonText);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // TipTap content에서 HTML 태그 제거
         const content = parsed[0].content || '';
-        return content
-          .replace(/<[^>]+>/g, '') // HTML 태그 제거
-          .replace(/&nbsp;/g, ' ') // &nbsp; 공백으로
-          .replace(/&lt;/g, '<')   // HTML 엔티티 디코딩
+        const plainText = content
+          .replace(/<[^>]+>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
           .replace(/&amp;/g, '&')
           .trim();
+
+        return plainText || '내용 없음';  // ✅ 빈 문자열도 처리
       }
     } catch (e) {
-      // JSON 파싱 실패 시 원본 반환 (이미 텍스트인 경우)
-      return jsonText;
+      return jsonText || '내용 없음';
     }
-    
-    return '내용 없음';
+
+    return '내용 없음';  // ✅ 무조건 문자열 반환
   };
 
   const fetchAllData = async () => {

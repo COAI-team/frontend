@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
-    FaChartLine,
     FaArrowRight,
     FaFire,
-    FaCrown,
-    FaRegSmileBeam,
     FaBrain,
     FaLaptopCode,
     FaSearch,
@@ -28,8 +25,7 @@ export default function LoggedInMain({ user, userStats, popularPosts, loading, o
     const [userLevel, setUserLevel] = useState(null);
     const [missions, setMissions] = useState([]);
     const [missionLoading, setMissionLoading] = useState(true);
-    const navigate = useNavigate();
-    const [expandedExp, setExpandedExp] = useState(false);
+    const navigate = useNavigate();;
     const [currentBoardType, setCurrentBoardType] = useState('free');
 
     // 5초마다 자유 ↔ 코드 자동 전환
