@@ -1,11 +1,12 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { LoginContext } from "./LoginContext";
-import { LoginProviderPropTypes } from "../../utils/propTypes";
-import { getUserInfo } from "../../service/user/User";
-import { getAuth, saveAuth, removeAuth } from "../../utils/auth/token";
-import { normalizeUser } from "../../utils/normalizeUser";
+import {useState, useMemo, useEffect, useCallback} from "react";
+import {LoginContext} from "./LoginContext";
+import {LoginProviderPropTypes} from "../../utils/propTypes";
+import {getUserInfo} from "../../service/user/User";
+import {getAuth, saveAuth, removeAuth} from "../../utils/auth/token";
+import {normalizeUser} from "../../utils/normalizeUser";
+import {fetchSubscriptions} from "../../service/payment/PaymentApi";
 
-export default function LoginProvider({ children }) {
+export default function LoginProvider({children}) {
   const [auth, setAuth] = useState(null);
   const [loginResult, setLoginResult] = useState(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -111,26 +112,58 @@ export default function LoginProvider({ children }) {
     });
   }, []);
 
+  const refreshSubscription = useCallback(async () => {
+    if (!auth?.accessToken) return;
+
+    try {
+      const res = await fetchSubscriptions();
+      const list = Array.isArray(res.data) ? res.data : [];
+
+      const active =
+        list.find((s) => (s.status || "").toUpperCase() === "ACTIVE") || null;
+
+      const tier = active?.subscriptionType?.toUpperCase() ?? "FREE";
+
+      setAuth((prev) => {
+        if (!prev) return prev;
+
+        const newAuth = {
+          ...prev,
+          user: {
+            ...prev.user,
+            subscriptionTier: tier,
+          },
+        };
+
+        saveAuth(newAuth);
+        return newAuth;
+      });
+    } catch (e) {
+      console.warn("구독 정보 갱신 실패:", e);
+    }
+  }, [auth?.accessToken]);
+
   // ===============================================================
   // ✅ useMemo 의존성 배열에 함수들 추가
   // ===============================================================
   const value = useMemo(
-    () => ({
-      auth,
-      user: auth?.user || null,
-      accessToken: auth?.accessToken || null,
-      refreshToken: auth?.refreshToken || null,
-      login,
-      logout,
-      loginResult,
-      setLoginResult,
-      setUser,
-      hydrated,
-      isAlertOpen,
-      setIsAlertOpen
-    }),
-    [auth, loginResult, hydrated, isAlertOpen, login, logout, setUser]
-  );
+      () => ({
+        auth,
+        user: auth?.user || null,
+        accessToken: auth?.accessToken || null,
+        refreshToken: auth?.refreshToken || null,
+        login,
+        logout,
+        loginResult,
+        setLoginResult,
+        setUser,
+        refreshSubscription,
+        hydrated,
+        isAlertOpen,
+        setIsAlertOpen
+      }),
+      [auth, loginResult, hydrated, isAlertOpen, login, logout, setUser, refreshSubscription]
+    );
 
   return (
     <LoginContext.Provider value={value}>
