@@ -143,6 +143,12 @@ export default function LoginProvider({children}) {
     }
   }, [auth?.accessToken]);
 
+  useEffect(() => {
+    if (!auth?.accessToken) return;
+
+    refreshSubscription();
+  }, [auth?.accessToken, refreshSubscription]);
+  
   // ===============================================================
   // ✅ useMemo 의존성 배열에 함수들 추가
   // ===============================================================
