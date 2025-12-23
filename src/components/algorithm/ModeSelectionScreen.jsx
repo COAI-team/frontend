@@ -30,7 +30,7 @@ const ModeSelectionScreen = ({
   isLoggedIn = true,
 }) => {
 
-  console.log(subscriptionTier);
+  console.log("subscriptionTier",subscriptionTier);
   // 집중 모드는 Pro 전용
   const isFocusModeAvailable = subscriptionTier === 'PRO';
   // 학습 모드는 Basic, Pro 사용 가능

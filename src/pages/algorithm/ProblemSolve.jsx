@@ -660,7 +660,7 @@ const ProblemSolve = () => {
       if (!user?.userId) return;
       try {
         const response = await getUsageInfo(user.userId);
-        console.log(response);
+        console.log('fetchUsageInfo', response);
         if (response.data) {
           setUsageInfo(response.data);
         }
