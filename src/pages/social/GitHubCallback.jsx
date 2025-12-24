@@ -101,15 +101,33 @@ export default function GitHubCallback() {
         message: "기존 계정이 존재합니다. GitHub 계정을 연동하시겠습니까?",
         onConfirm: async () => {
           const accessToken = localStorage.getItem("accessToken");
-          await handleLinkGithubAccount(
-            githubResult.gitHubUser,
-            accessToken
-          );
+          const linkResult = await linkGithubAccount(githubResult.gitHubUser, {
+            _skipAuth: true,
+            headers: {Authorization: `Bearer ${accessToken}`},
+          });
+
+          if (linkResult?.error) {
+            showAlert({
+              type: "error",
+              title: "연동 실패",
+              message:
+                linkResult.error.response?.data?.message ??
+                "알 수 없는 오류입니다.",
+            });
+            return;
+          }
+
+          showAlert({
+            type: "success",
+            title: "연동 완료",
+            message: "GitHub 계정이 성공적으로 연동되었습니다!",
+            onConfirm: () => navigate("/profile"),
+          });
         },
         onCancel: () => navigate("/signin"),
       });
     },
-    [fetchUserInfo, login, showAlert, navigate, handleLinkGithubAccount]
+    [fetchUserInfo, login, showAlert, navigate]
   );
 
   /* 🎉 정상 로그인 */
@@ -143,7 +161,7 @@ export default function GitHubCallback() {
   const processGithub = useCallback(async () => {
     const url = new URL(globalThis.location.href);
     const code = url.searchParams.get("code");
-    const rawState = url.searchParams.get("state");
+    const mode = url.searchParams.get("state");
 
     if (!code) {
       showAlert({
@@ -154,35 +172,8 @@ export default function GitHubCallback() {
       return;
     }
 
-    /* ✅ state 디코딩 + CSRF 검증 */
-    let mode = "login";
-    let nonce;
-
     try {
-      const parsedState = JSON.parse(atob(rawState));
-      mode = parsedState.mode ?? "login";
-      nonce = parsedState.nonce;
-    } catch {
-      showAlert({
-        type: "error",
-        title: "GitHub 인증 오류",
-        message: "잘못된 OAuth state 값입니다.",
-      });
-      return;
-    }
-
-    const savedNonce = sessionStorage.getItem("github_oauth_state");
-    if (!nonce || nonce !== savedNonce) {
-      showAlert({
-        type: "error",
-        title: "보안 오류",
-        message: "GitHub OAuth state 검증에 실패했습니다.",
-      });
-      return;
-    }
-
-    try {
-      const githubResult = await loginWithGithub(code, { mode });
+      const githubResult = await loginWithGithub(code, mode);
 
       if (githubResult?.error) {
         showAlert({
