@@ -15,13 +15,8 @@ export default function GitHubCallback() {
 
   /* 🔗 GitHub 계정 연동 */
   const handleLinkGithubAccount = useCallback(
-    async (gitHubUser, accessToken) => {
-      const linkResult = await linkGithubAccount(gitHubUser, {
-        _skipAuth: true,
-        headers: {Authorization: `Bearer ${accessToken}`},
-      });
-
-      console.log("linkResult",linkResult)
+    async (gitHubUser) => {
+      const linkResult = await linkGithubAccount(gitHubUser);
 
       if (linkResult?.error) {
         showAlert({
@@ -74,8 +69,7 @@ export default function GitHubCallback() {
   /* 🔗 link 모드 */
   const handleLinkMode = useCallback(
     async (githubResult) => {
-      const accessToken = localStorage.getItem("accessToken");
-      await handleLinkGithubAccount(githubResult.gitHubUser, accessToken);
+      await handleLinkGithubAccount(githubResult.gitHubUser);
     },
     [handleLinkGithubAccount]
   );
@@ -166,7 +160,7 @@ export default function GitHubCallback() {
   const processGithub = useCallback(async () => {
     const url = new URL(globalThis.location.href);
     const code = url.searchParams.get("code");
-    const mode = url.searchParams.get("mode");
+    const mode = url.searchParams.get("state");
 
     if (!code) {
       showAlert({

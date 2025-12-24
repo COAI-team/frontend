@@ -8,7 +8,6 @@ import {
   restoreUser,
   updateMyInfo
 } from "../../service/user/User";
-// import {fetchSubscriptions} from "../../service/payment/PaymentApi";
 import {useLogin} from "../../context/login/useLogin";
 import {useNavigate} from "react-router-dom";
 import AlertModal from "../../components/modal/AlertModal";
@@ -36,10 +35,6 @@ export default function ProfilePage() {
     githubToken: "",
     hasGithubToken: false,
   });
-
-  // const [subscription, setSubscription] = useState({code: "FREE", label: "Free"});
-  // const [subscriptionLoading, setSubscriptionLoading] = useState(true);
-  // const [subscriptionError, setSubscriptionError] = useState("");
 
   const [githubConnected, setGithubConnected] = useState(false);
 
@@ -97,49 +92,6 @@ export default function ProfilePage() {
 
     loadUserInfo();
   }, [accessToken, navigate]);
-
-  // useEffect(() => {
-  //   const fetchSubscription = async () => {
-  //     if (!accessToken) {
-  //       setSubscription({code: "FREE", label: "Free"});
-  //       setSubscriptionLoading(false);
-  //       return;
-  //     }
-  //
-  //     setSubscriptionLoading(true);
-  //     setSubscriptionError("");
-  //
-  //     try {
-  //       const res = await fetchSubscriptions();
-  //
-  //       const list = Array.isArray(res.data) ? res.data : [];
-  //       if (list.length === 0) {
-  //         setSubscription({code: "FREE", label: "Free"});
-  //         return;
-  //       }
-  //
-  //       const active =
-  //         list.find((item) => (item.status || "").toUpperCase() === "ACTIVE") ||
-  //         list[0];
-  //
-  //       const code = (active.subscriptionType || active.planCode || "FREE").toUpperCase();
-  //       const labels = {
-  //         PRO: "Pro",
-  //         BASIC: "Basic",
-  //       };
-  //
-  //       const label = labels[code] ?? "Free";
-  //
-  //       setSubscription({code, label});
-  //     } catch {
-  //       setSubscriptionError("구독 정보를 불러오지 못했습니다.");
-  //     } finally {
-  //       setSubscriptionLoading(false);
-  //     }
-  //   };
-  //
-  //   fetchSubscription();
-  // }, [accessToken]);
 
   /** 🔥 GitHub OAuth 연결 */
   const handleGithubConnect = () => {
@@ -334,26 +286,6 @@ export default function ProfilePage() {
       }
     }
   }, null, 2) : "";
-
-  // let subscriptionTone;
-  //
-  // if (subscriptionError) {
-  //   subscriptionTone = "error";
-  // } else if (subscriptionLoading) {
-  //   subscriptionTone = "muted";
-  // } else {
-  //   subscriptionTone = "primary";
-  // }
-  //
-  // let subscriptionText;
-  //
-  // if (subscriptionLoading) {
-  //   subscriptionText = "구독 정보를 불러오는 중...";
-  // } else if (subscriptionError) {
-  //   subscriptionText = subscriptionError;
-  // } else {
-  //   subscriptionText = `현재 구독 요금제: ${subscription.label}`;
-  // }
 
   return (
     <div className="max-w-3xl mx-auto p-6">
