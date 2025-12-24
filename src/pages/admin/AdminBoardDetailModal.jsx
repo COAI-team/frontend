@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import "../../styles/tiptap.css";
 
 const AdminBoardDetailModal = ({
   open,
@@ -10,6 +13,50 @@ const AdminBoardDetailModal = ({
   onDelete,
 }) => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const RichViewer = ({ content }) => {
+    const normalizeContent = (raw) => {
+      if (!raw) return "";
+      if (typeof raw === "string") {
+        const trimmed = raw.trim();
+        if (
+          (trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+          (trimmed.startsWith("{") && trimmed.endsWith("}"))
+        ) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+              const tiptapBlock = parsed.find((item) => item?.content);
+              return tiptapBlock?.content || "";
+            }
+            if (parsed?.content) return parsed.content;
+          } catch (e) {
+            // ignore and fallback
+          }
+        }
+        return raw;
+      }
+      if (Array.isArray(raw)) {
+        const tiptapBlock = raw.find((item) => item?.content);
+        return tiptapBlock?.content || "";
+      }
+      if (raw?.content) return raw.content;
+      return "";
+    };
+
+    const normalized = normalizeContent(content);
+    const editor = useEditor({
+      extensions: [StarterKit],
+      content: normalized,
+      editable: false,
+    });
+    if (!normalized) return <div style={styles.detailBlock}>-</div>;
+    if (!editor) return <div style={styles.detailBlock}>로딩 중...</div>;
+    return (
+      <div style={styles.viewer}>
+        <EditorContent editor={editor} />
+      </div>
+    );
+  };
 
   if (!open) return null;
 
@@ -58,9 +105,7 @@ const AdminBoardDetailModal = ({
               {codeDetail.repositoryUrl || "-"}
             </DetailRow>
             <DetailRow label="분석 결과">
-              <div style={styles.detailBlock}>
-                {codeDetail.analysisResults || "-"}
-              </div>
+              <RichViewer content={codeDetail.analysisResults} />
             </DetailRow>
           </div>
           {detail.gitCode && (
@@ -98,9 +143,7 @@ const AdminBoardDetailModal = ({
               {detail.userNickNae || detail.userNickName || "-"}
             </DetailRow>
             <DetailRow label="내용">
-              <div style={styles.detailBlock}>
-                {detail.freeboardContent || "-"}
-              </div>
+              <RichViewer content={detail.freeboardContent} />
             </DetailRow>
           </div>
           {isFreeDeleted && (
@@ -336,6 +379,13 @@ const styles = {
     borderRadius: "8px",
     lineHeight: 1.5,
     whiteSpace: "pre-wrap",
+  },
+  viewer: {
+    padding: "12px",
+    backgroundColor: "#0b0f16",
+    borderRadius: "8px",
+    lineHeight: 1.6,
+    color: "#e5e7eb",
   },
   detailSubheading: {
     margin: "16px 0 8px",
