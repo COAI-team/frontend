@@ -44,13 +44,15 @@ export default function SignIn() {
     return redirectParam.startsWith("/signin") ? "/" : redirectParam;
   }, [location.search]);
 
-  // ✅ GitHub OAuth 로그인
+  // ✅ GitHub OAuth 로그인 (state 없음 = 로그인 모드)
   const handleGitHubLogin = useCallback(() => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+    const redirectUri = `${globalThis.location.origin}/auth/github/callback`;
 
     globalThis.location.href =
       "https://github.com/login/oauth/authorize" +
       `?client_id=${clientId}` +
+      `&redirect_uri=${redirectUri}` +
       `&scope=read:user user:email`;
   }, []);
 
