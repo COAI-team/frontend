@@ -1,16 +1,16 @@
-import {useEffect, useRef, useCallback} from "react";
-import {loginWithGithub, linkGithubAccount} from "../../service/user/User";
-import {useNavigate} from "react-router-dom";
-import {useLogin} from "../../context/login/useLogin";
+import { useEffect, useRef, useCallback } from "react";
+import { loginWithGithub, linkGithubAccount } from "../../service/user/User";
+import { useNavigate } from "react-router-dom";
+import { useLogin } from "../../context/login/useLogin";
 import axiosInstance from "../../server/AxiosConfig";
-import {saveAuth} from "../../utils/auth/token";
+import { saveAuth } from "../../utils/auth/token";
 import AlertModal from "../../components/modal/AlertModal";
-import {useAlert} from "../../hooks/common/useAlert";
+import { useAlert } from "../../hooks/common/useAlert";
 
 export default function GitHubCallback() {
   const navigate = useNavigate();
-  const {login} = useLogin();
-  const {alert, showAlert, closeAlert} = useAlert();
+  const { login } = useLogin();
+  const { alert, showAlert, closeAlert } = useAlert();
   const executedRef = useRef(false);
 
   /* 🔗 GitHub 계정 연동 */
@@ -18,10 +18,8 @@ export default function GitHubCallback() {
     async (gitHubUser, accessToken) => {
       const linkResult = await linkGithubAccount(gitHubUser, {
         _skipAuth: true,
-        headers: {Authorization: `Bearer ${accessToken}`},
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
-
-      console.log("linkResult",linkResult)
 
       if (linkResult?.error) {
         showAlert({
@@ -52,20 +50,17 @@ export default function GitHubCallback() {
     async (accessToken) => {
       try {
         const res = await axiosInstance.get("/users/me", {
-          headers: {Authorization: `Bearer ${accessToken}`},
+          headers: { Authorization: `Bearer ${accessToken}` },
           _skipAuthRedirect: true,
         });
-        return {success: true, user: res.data};
+        return { success: true, user: res.data };
       } catch (err) {
-        console.error("❌ 사용자 정보 조회 실패:", err);
-
         showAlert({
           type: "error",
           title: "사용자 정보 조회 실패",
           message: "기존 계정 정보를 불러오지 못했습니다.",
         });
-
-        return {success: false};
+        return { success: false };
       }
     },
     [showAlert]
@@ -106,33 +101,15 @@ export default function GitHubCallback() {
         message: "기존 계정이 존재합니다. GitHub 계정을 연동하시겠습니까?",
         onConfirm: async () => {
           const accessToken = localStorage.getItem("accessToken");
-          const linkResult = await linkGithubAccount(githubResult.gitHubUser, {
-            _skipAuth: true,
-            headers: {Authorization: `Bearer ${accessToken}`},
-          });
-
-          if (linkResult?.error) {
-            showAlert({
-              type: "error",
-              title: "연동 실패",
-              message:
-                linkResult.error.response?.data?.message ??
-                "알 수 없는 오류입니다.",
-            });
-            return;
-          }
-
-          showAlert({
-            type: "success",
-            title: "연동 완료",
-            message: "GitHub 계정이 성공적으로 연동되었습니다!",
-            onConfirm: () => navigate("/profile"),
-          });
+          await handleLinkGithubAccount(
+            githubResult.gitHubUser,
+            accessToken
+          );
         },
         onCancel: () => navigate("/signin"),
       });
     },
-    [fetchUserInfo, login, showAlert, navigate]
+    [fetchUserInfo, login, showAlert, navigate, handleLinkGithubAccount]
   );
 
   /* 🎉 정상 로그인 */
@@ -166,10 +143,7 @@ export default function GitHubCallback() {
   const processGithub = useCallback(async () => {
     const url = new URL(globalThis.location.href);
     const code = url.searchParams.get("code");
-    const mode = url.searchParams.get("state");
-
-    console.log("code",code);
-    console.log("mode",mode);
+    const rawState = url.searchParams.get("state");
 
     if (!code) {
       showAlert({
@@ -180,8 +154,35 @@ export default function GitHubCallback() {
       return;
     }
 
+    /* ✅ state 디코딩 + CSRF 검증 */
+    let mode = "login";
+    let nonce;
+
     try {
-      const githubResult = await loginWithGithub(code, mode);
+      const parsedState = JSON.parse(atob(rawState));
+      mode = parsedState.mode ?? "login";
+      nonce = parsedState.nonce;
+    } catch {
+      showAlert({
+        type: "error",
+        title: "GitHub 인증 오류",
+        message: "잘못된 OAuth state 값입니다.",
+      });
+      return;
+    }
+
+    const savedNonce = sessionStorage.getItem("github_oauth_state");
+    if (!nonce || nonce !== savedNonce) {
+      showAlert({
+        type: "error",
+        title: "보안 오류",
+        message: "GitHub OAuth state 검증에 실패했습니다.",
+      });
+      return;
+    }
+
+    try {
+      const githubResult = await loginWithGithub(code, { mode });
 
       if (githubResult?.error) {
         showAlert({
@@ -240,7 +241,7 @@ export default function GitHubCallback() {
 
   return (
     <div className="flex items-center justify-center h-screen flex-col gap-4 text-lg">
-      <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full"/>
+      <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full" />
       GitHub 인증 처리 중...
 
       <AlertModal
