@@ -54,7 +54,15 @@ export const confirmPasswordReset = (token, newPassword) =>
 
 // ✅ 회원 정보 수정 (FormData 최적화)
 export const updateMyInfo = (payload) =>
-  axiosInstance.put("/users/me", createFormData(payload)).then(res => res.data);
+  axiosInstance.put(
+    "/users/me",
+    createFormData(payload),
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  ).then(res => res.data);
 
 // ✅ GitHub API
 export const loginWithGithub = async (code, mode) => {
