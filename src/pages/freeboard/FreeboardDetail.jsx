@@ -90,7 +90,7 @@ const FreeboardDetail = () => {
     };
 
     fetchBoard();
-  }, [alert, id, showAlert]);
+  }, [id]);
 
   const handleTagClick = (tag) => {
     navigate(`/freeboard?keyword=${encodeURIComponent(tag)}`);
