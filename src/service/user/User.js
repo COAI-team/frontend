@@ -63,6 +63,9 @@ export const loginWithGithub = async (code, mode) => {
     const response = await axiosInstance.get(`/auth/github/callback${query}`, {
       _skipAuthRedirect: true
     });
+    console.log("query", query);
+    console.log("response", response);
+
     return response.data;
   } catch (error) {
     console.error("❌ [GitHub Login] 오류:", error);
