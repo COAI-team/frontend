@@ -4,7 +4,7 @@ import { ThemeProvider } from "./context/theme/ThemeProvider";
 import LoginProvider from "./context/login/LoginProvider";
 import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react";
 // 레이아웃 및 메인
 import Layout from "./components/layout/mainLayout/Layout";
 import Main from "./pages/Main";
