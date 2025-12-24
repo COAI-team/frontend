@@ -15,8 +15,13 @@ export default function GitHubCallback() {
 
   /* 🔗 GitHub 계정 연동 */
   const handleLinkGithubAccount = useCallback(
-    async (gitHubUser) => {
-      const linkResult = await linkGithubAccount(gitHubUser);
+    async (gitHubUser, accessToken) => {
+      const linkResult = await linkGithubAccount(gitHubUser, {
+        _skipAuth: true,
+        headers: {Authorization: `Bearer ${accessToken}`},
+      });
+
+      console.log("linkResult",linkResult)
 
       if (linkResult?.error) {
         showAlert({
@@ -69,19 +74,10 @@ export default function GitHubCallback() {
   /* 🔗 link 모드 */
   const handleLinkMode = useCallback(
     async (githubResult) => {
-      if (!githubResult?.gitHubUser?.id) {
-        showAlert({
-          type: "error",
-          title: "GitHub 연동 오류",
-          message: "GitHub 사용자 정보를 불러오지 못했습니다. 다시 시도해주세요.",
-          onConfirm: () => navigate("/profile"),
-        });
-        return;
-      }
-
-      await handleLinkGithubAccount(githubResult.gitHubUser);
+      const accessToken = localStorage.getItem("accessToken");
+      await handleLinkGithubAccount(githubResult.gitHubUser, accessToken);
     },
-    [handleLinkGithubAccount, showAlert, navigate]
+    [handleLinkGithubAccount]
   );
 
   /* ⚠️ 기존 계정 존재 → 연동 필요 */
@@ -109,16 +105,22 @@ export default function GitHubCallback() {
         title: "기존 계정 발견",
         message: "기존 계정이 존재합니다. GitHub 계정을 연동하시겠습니까?",
         onConfirm: async () => {
-          if (!githubResult?.gitHubUser?.id) {
+          const accessToken = localStorage.getItem("accessToken");
+          const linkResult = await linkGithubAccount(githubResult.gitHubUser, {
+            _skipAuth: true,
+            headers: {Authorization: `Bearer ${accessToken}`},
+          });
+
+          if (linkResult?.error) {
             showAlert({
               type: "error",
               title: "연동 실패",
-              message: "GitHub 사용자 정보가 없습니다.",
+              message:
+                linkResult.error.response?.data?.message ??
+                "알 수 없는 오류입니다.",
             });
             return;
           }
-          localStorage.getItem("accessToken");
-          await linkGithubAccount(githubResult.gitHubUser);
 
           showAlert({
             type: "success",

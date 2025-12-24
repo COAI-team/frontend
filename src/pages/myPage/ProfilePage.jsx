@@ -98,15 +98,7 @@ export default function ProfilePage() {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
     const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
 
-    console.log("🔗 [GitHub Connect] 버튼 클릭");
-    console.log("🔗 clientId:", clientId);
-    console.log("🔗 redirectUri:", redirectUri);
-
-    globalThis.location.href =
-      `https://github.com/login/oauth/authorize` +
-      `?client_id=${clientId}` +
-      `&redirect_uri=${redirectUri}` +
-      `&state=link`;
+    globalThis.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}`;
   };
 
 
