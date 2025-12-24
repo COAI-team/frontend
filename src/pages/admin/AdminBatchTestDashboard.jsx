@@ -31,15 +31,15 @@ const analysisTypePalette = [
   "#3B82F6",
 ];
 
-// const BATCH_DASHBOARD_API = "https://api.co-ai.run/admin/batch";
-// const BATCH_DAILY_RANGE_API = "https://api.co-ai.run/admin/dailystats";
-// const BATCH_USER_MONTHLY_STATS_API = "https://api.co-ai.run/admin/userstats";
-// const BATCH_SALES_MONTHLY_STATS_API = "https://api.co-ai.run/admin/salesstats";
+const BATCH_DASHBOARD_API = "https://api.co-ai.run/admin/batch";
+const BATCH_DAILY_RANGE_API = "https://api.co-ai.run/admin/dailystats";
+const BATCH_USER_MONTHLY_STATS_API = "https://api.co-ai.run/admin/userstats";
+const BATCH_SALES_MONTHLY_STATS_API = "https://api.co-ai.run/admin/salesstats";
 
-const BATCH_DASHBOARD_API = "http://localhost:9443/admin/batch";
-const BATCH_DAILY_RANGE_API = "http://localhost:9443/admin/dailystats";
-const BATCH_USER_MONTHLY_STATS_API = "http://localhost:9443/admin/userstats";
-const BATCH_SALES_MONTHLY_STATS_API = "http://localhost:9443/admin/salesstats";
+// const BATCH_DASHBOARD_API = "http://localhost:9443/admin/batch";
+// const BATCH_DAILY_RANGE_API = "http://localhost:9443/admin/dailystats";
+// const BATCH_USER_MONTHLY_STATS_API = "http://localhost:9443/admin/userstats";
+// const BATCH_SALES_MONTHLY_STATS_API = "http://localhost:9443/admin/salesstats";
 const RECENT_MONTHLY_RANGE_OPTIONS = [
   { label: "최근 6개월", value: 6 },
   { label: "최근 12개월", value: 12 },
