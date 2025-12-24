@@ -168,6 +168,9 @@ export default function GitHubCallback() {
     const code = url.searchParams.get("code");
     const mode = url.searchParams.get("state");
 
+    console.log("code",code);
+    console.log("mode",mode);
+
     if (!code) {
       showAlert({
         type: "error",
