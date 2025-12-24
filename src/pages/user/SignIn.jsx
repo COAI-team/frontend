@@ -47,11 +47,25 @@ export default function SignIn() {
   // ✅ GitHub OAuth 로그인
   const handleGitHubLogin = useCallback(() => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+    const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
+
+    // 🔐 OAuth state 생성 (CSRF + mode)
+    const stateObj = {
+      nonce: crypto.randomUUID(),
+      mode: "login", // ← 추후 "link"도 가능
+    };
+
+    const encodedState = btoa(JSON.stringify(stateObj));
+
+    // CSRF 검증용 nonce 저장
+    sessionStorage.setItem("github_oauth_state", stateObj.nonce);
 
     globalThis.location.href =
       "https://github.com/login/oauth/authorize" +
       `?client_id=${clientId}` +
-      `&scope=read:user user:email`;
+      `&redirect_uri=${redirectUri}` +
+      `&scope=read:user user:email` +
+      `&state=${encodedState}`;
   }, []);
 
   // ✅ 핵심 수정: try-catch + finally로 최적화 API 호환
