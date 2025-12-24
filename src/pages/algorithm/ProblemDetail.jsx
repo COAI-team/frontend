@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { getProblem } from '../../service/algorithm/algorithmApi';
+import { getProblem } from '../../service/algorithm/AlgorithmApi';
 import SharedSolutions from './SharedSolutions';
 import { extractPureDescription, renderFormattedText } from '../../components/algorithm/problem/markdownUtils';
 import '../../styles/ProblemDetail.css';

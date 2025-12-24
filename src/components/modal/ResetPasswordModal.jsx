@@ -40,7 +40,7 @@ const CLASS_MAP = {
     title: "text-white",
     desc: "text-gray-400",
     label: "text-gray-300",
-    inputBg: "bg-zinc-800 text-white outline outline-[#2e2e2e]",
+    inputBg: "bg-zinc-800 text-white outline outline-gray-300",
     cancelBtn: "bg-zinc-700 hover:bg-zinc-600 text-gray-300 hover:text-white",
     cancelBg: "bg-zinc-700"
   }
@@ -98,6 +98,7 @@ export default function ResetPasswordModal({open, onClose}) {
         title: "이메일 발송 완료",
         message: "비밀번호 재설정 링크가 이메일로 전송되었습니다.",
         onConfirm: () => {
+          setEmail("");
           setAlert(prev => ({...prev, open: false}));
           onClose();
         }
@@ -166,10 +167,6 @@ export default function ResetPasswordModal({open, onClose}) {
             onChange={handleEmailChange}
             placeholder="example@email.com"
             className={`mt-2 block w-full rounded-md px-3 py-2 placeholder:text-gray-400 ${styles.inputBg}`}
-            style={{
-              outlineWidth: "1px",
-              outlineColor: styles.outline
-            }}
             onFocus={(e) => {
               e.target.style.outlineColor = styles.primary;
             }}
@@ -190,7 +187,7 @@ export default function ResetPasswordModal({open, onClose}) {
 
           <div className="flex-1">
             <LoadingButton
-              text="비밀번호 재설정 메일 받기"
+              text="비번 재설정 메일 받기"
               isLoading={loadingReset}
               onClick={handleSubmit}
               className="px-4 py-2 rounded-md text-sm font-semibold text-white w-full"

@@ -3,7 +3,7 @@ import { ChevronsRightLeft } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
 const AdminUserDetailModal = ({ userId, onClose }) => {
-  const API_BASE_URL = "http://localhost:9443/admin";
+  const API_BASE_URL = "https://api.co-ai.run/admin";
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,6 +43,10 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
   if (!user) return null;
 
   const isSubscribed = user.subscriptionStatus === "ACTIVE" ? true : false;
+  const subscriptionTypeText =
+    user.subscriptionType && user.subscriptionType.trim().length > 0
+      ? user.subscriptionType
+      : "구독중이지 않습니다.";
 
   const handleBanUser = async (userId) => {
     try {
@@ -164,6 +168,9 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
                   {isSubscribed ? (
                     <>
                       <p>
+                        <strong>구독 상태:</strong> {subscriptionTypeText}
+                      </p>
+                      <p>
                         <strong>구독 시작일:</strong> {user.userSubscribeStart}
                       </p>
                       <p>
@@ -173,7 +180,7 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
                   ) : (
                     <>
                       <p>
-                        <strong>구독 상태:</strong> 구독중이지 않습니다.
+                        <strong>구독 상태:</strong> {subscriptionTypeText}
                       </p>
                     </>
                   )}
