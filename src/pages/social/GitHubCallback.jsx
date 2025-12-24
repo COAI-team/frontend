@@ -21,6 +21,8 @@ export default function GitHubCallback() {
         headers: {Authorization: `Bearer ${accessToken}`},
       });
 
+      console.log("linkResult",linkResult)
+
       if (linkResult?.error) {
         showAlert({
           type: "error",
@@ -164,7 +166,7 @@ export default function GitHubCallback() {
   const processGithub = useCallback(async () => {
     const url = new URL(globalThis.location.href);
     const code = url.searchParams.get("code");
-    const mode = url.searchParams.get("state");
+    const mode = url.searchParams.get("mode");
 
     if (!code) {
       showAlert({

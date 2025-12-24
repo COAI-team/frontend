@@ -41,7 +41,7 @@ export const verifyEmailCode = (email, code) =>
 
 // ✅ 비밀번호 재설정
 export const requestPasswordReset = (email) =>
-  axiosInstance.post("/users/password/reset/request", { email }).then(res => res.data);
+  axiosInstance.post("/users/password/reset/request", {email}).then(res => res.data);
 
 export const validateResetToken = (token) =>
   axiosInstance.get(`/users/password/reset/validate?token=${token}`).then(res => res.data);
@@ -85,5 +85,8 @@ export const getGithubUserInfo = () =>
 export const disconnectGithub = () =>
   axiosInstance.post("/auth/github/disconnect", {}).then(res => res.data);
 
+// 🔗 GitHub 계정 연동 (로그인된 사용자)
 export const linkGithubAccount = (gitHubUser) =>
-  axiosInstance.post("/users/github/link", gitHubUser).then(res => res.data);
+  axiosInstance
+    .post("/auth/github/link", gitHubUser)
+    .then(res => res.data);
