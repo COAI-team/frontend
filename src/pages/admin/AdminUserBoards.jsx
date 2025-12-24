@@ -1,10 +1,10 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminBoardDetailModal from "./AdminBoardDetailModal";
 import AlertModal from "../../components/modal/AlertModal";
-import {useAlert} from "../../hooks/common/useAlert";
+import { useAlert } from "../../hooks/common/useAlert";
 
-const API_BASE_URL = "http://localhost:9443/admin";
+const API_BASE_URL = "https://api.co-ai.run/admin";
 const DEFAULT_PAGE_SIZE = 10;
 const PAGES_PER_GROUP = 5;
 const BOARD_TYPES = {
@@ -12,19 +12,13 @@ const BOARD_TYPES = {
   code: { label: "코드 리뷰 게시판", color: "#f39c12" },
   free: { label: "자유 게시판", color: "#e74c3c" },
 };
+
 const LEGACY_TYPE_MAP = {
-  "1": "algo",
-  "2": "code",
-  "3": "free",
+  1: "algo",
+  2: "code",
+  3: "free",
 };
-const SORT_OPTIONS = [
-  { value: "recent", label: "최신순" },
-  { value: "oldest", label: "오래된 순" },
-  { value: "titleAsc", label: "제목 ↑" },
-  { value: "titleDesc", label: "제목 ↓" },
-  { value: "userAsc", label: "작성자 ↑" },
-  { value: "userDesc", label: "작성자 ↓" },
-];
+
 const SORT_QUERY_MAP = {
   recent: { field: "createdAt", order: "desc" },
   oldest: { field: "createdAt", order: "asc" },
@@ -44,7 +38,7 @@ const pickField = (item, fields, defaultValue = undefined) => {
 };
 
 const AdminUserBoards = () => {
-  const {alert, showAlert, closeAlert} = useAlert();
+  const { alert, showAlert, closeAlert } = useAlert();
   const [boards, setBoards] = useState([]);
   const [pageInfo, setPageInfo] = useState({
     page: 1,
@@ -67,13 +61,19 @@ const AdminUserBoards = () => {
   });
   const [sortOption, setSortOption] = useState("recent");
   const [hoveredFilter, setHoveredFilter] = useState(null);
-  const [hoveredSort, setHoveredSort] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
   const [selectedBoardDetail, setSelectedBoardDetail] = useState(null);
   const [selectedBoardType, setSelectedBoardType] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedBoardId, setSelectedBoardId] = useState(null);
+  const [sortMenuOpen, setSortMenuOpen] = useState(null);
+  const sortMenuRef = useRef(null);
+  const [sortMenuPos, setSortMenuPos] = useState({
+    left: 0,
+    top: 0,
+    width: 240,
+  });
 
   const fetchBoards = async (page = 1) => {
     try {
@@ -152,7 +152,8 @@ const AdminUserBoards = () => {
       }
     } catch (err) {
       setDetailError(
-        err.response?.data?.message || "상세 정보를 호출하는 중 오류가 발생했습니다."
+        err.response?.data?.message ||
+          "상세 정보를 호출하는 중 오류가 발생했습니다."
       );
       setSelectedBoardDetail(null);
       setSelectedBoardType(null);
@@ -312,6 +313,23 @@ const AdminUserBoards = () => {
   };
   const displayBoards = getSortedBoards();
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target)) {
+        setSortMenuOpen(null);
+      }
+    };
+    const handleWindowChange = () => setSortMenuOpen(null);
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleWindowChange, true);
+    window.addEventListener("resize", handleWindowChange);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleWindowChange, true);
+      window.removeEventListener("resize", handleWindowChange);
+    };
+  }, []);
+
   const handleDeleteBoard = async () => {
     if (!selectedBoardId || !selectedBoardType) return;
     const boardId = selectedBoardId;
@@ -330,10 +348,10 @@ const AdminUserBoards = () => {
       setSelectedBoardId(null);
     } catch (err) {
       showAlert({
-        type: 'error',
-        title: '삭제 실패',
+        type: "error",
+        title: "삭제 실패",
         message:
-          err.response?.data?.message || '삭제 요청 중 오류가 발생했습니다.'
+          err.response?.data?.message || "삭제 요청 중 오류가 발생했습니다.",
       });
     }
   };
@@ -358,72 +376,22 @@ const AdminUserBoards = () => {
       </div>
 
       <div style={styles.controlsWrapper}>
-        <div style={styles.boardFilterGroup}>
-          {[
-            { value: "all", label: "전체 게시판" },
-            ...Object.entries(BOARD_TYPES).map(([value, meta]) => ({
-              value,
-              label: meta.label,
-            })),
-          ].map((option) => (
-            <button
-              key={option.value}
-              style={{
-                ...styles.boardFilterButton,
-                ...(boardFilter === option.value
-                  ? styles.activeFilterButton
-                  : {}),
-                ...(hoveredFilter === option.value &&
-                boardFilter !== option.value
-                  ? styles.hoverFilterButton
-                  : {}),
-              }}
-              onClick={() => handleBoardFilterChange(option.value)}
-              onMouseEnter={() => setHoveredFilter(option.value)}
-              onMouseLeave={() => setHoveredFilter(null)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
         <div style={styles.pageSizeWrapper}>
-          <label
-            htmlFor="pageSizeSelect"
-            style={styles.pageSizeLabel}>페이지 크기</label>
+          <label htmlFor="pageSizeSelect" style={styles.pageSizeLabel}>
+            페이지 크기
+          </label>
           <select
             value={pageSize}
             onChange={handlePageSizeChange}
             style={styles.pageSizeSelect}
           >
-            {[10, 20, 50].map((sizeOption) => (
+            {[10, 20, 30].map((sizeOption) => (
               <option key={sizeOption} value={sizeOption}>
                 {sizeOption}개
               </option>
             ))}
           </select>
         </div>
-      </div>
-
-      <div style={styles.sortTabs}>
-        {SORT_OPTIONS.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setSortOption(value)}
-            style={{
-              ...styles.sortTab,
-              ...(sortOption === value ? styles.sortTabActive : {}),
-              ...(hoveredSort === value && sortOption !== value
-                ? styles.sortTabHover
-                : {}),
-            }}
-            onMouseEnter={() => setHoveredSort(value)}
-            onMouseLeave={() => setHoveredSort(null)}
-          >
-            {label}
-          </button>
-        ))}
       </div>
 
       <div style={styles.searchRow}>
@@ -462,10 +430,49 @@ const AdminUserBoards = () => {
               <thead style={styles.thead}>
                 <tr>
                   <th style={styles.thId}>ID</th>
-                  <th style={styles.thTitle}>제목</th>
+                  <HeaderWithSort
+                    label="제목"
+                    sortAsc="titleAsc"
+                    sortDesc="titleDesc"
+                    active={sortOption}
+                    onSelect={setSortOption}
+                    menuRef={sortMenuRef}
+                    openKey={sortMenuOpen}
+                    setOpenKey={setSortMenuOpen}
+                    setMenuPos={setSortMenuPos}
+                    menuPos={sortMenuPos}
+                    width={260}
+                    style={styles.thTitle}
+                  />
                   <th style={styles.thAuthor}>작성자</th>
-                  <th style={styles.thType}>유형</th>
-                  <th style={styles.thDate}>작성일</th>
+                  <TypeHeader
+                    activeType={boardFilter}
+                    onSelect={(type) => {
+                      handleBoardFilterChange(type);
+                      setSortMenuOpen(null);
+                    }}
+                    menuRef={sortMenuRef}
+                    openKey={sortMenuOpen}
+                    setOpenKey={setSortMenuOpen}
+                    setMenuPos={setSortMenuPos}
+                    menuPos={sortMenuPos}
+                    width={220}
+                    style={styles.thType}
+                  />
+                  <HeaderWithSort
+                    label="작성일"
+                    sortAsc="oldest"
+                    sortDesc="recent"
+                    active={sortOption}
+                    onSelect={setSortOption}
+                    menuRef={sortMenuRef}
+                    openKey={sortMenuOpen}
+                    setOpenKey={setSortMenuOpen}
+                    setMenuPos={setSortMenuPos}
+                    menuPos={sortMenuPos}
+                    width={240}
+                    style={styles.thDate}
+                  />
                 </tr>
               </thead>
               <tbody>
@@ -514,8 +521,7 @@ const AdminUserBoards = () => {
                             "rgba(148, 163, 184, 0.15)")
                         }
                         onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            rowBaseColor)
+                          (e.currentTarget.style.backgroundColor = rowBaseColor)
                         }
                         onClick={() => fetchBoardDetail(boardId, boardKey)}
                       >
@@ -598,6 +604,156 @@ const AdminUserBoards = () => {
   );
 };
 
+function HeaderWithSort({
+  label,
+  sortAsc,
+  sortDesc,
+  active,
+  onSelect,
+  menuRef,
+  openKey,
+  setOpenKey,
+  setMenuPos,
+  menuPos,
+  width,
+  style,
+}) {
+  const isOpen = openKey === label;
+  const getMenuCoords = (rect) => {
+    const menuWidth = width ?? 240;
+    const left = Math.min(
+      Math.max(8, rect.left),
+      window.innerWidth - menuWidth - 8
+    );
+    const top = rect.bottom + 8;
+    return { left, top, width: menuWidth };
+  };
+  return (
+    <th
+      style={{ ...style, position: "relative" }}
+      ref={isOpen ? menuRef : null}
+    >
+      <button
+        style={styles.headerButton}
+        onClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          setMenuPos(getMenuCoords(rect));
+          setOpenKey(isOpen ? null : label);
+        }}
+      >
+        <span>{label}</span>
+        <span style={styles.caret}>{isOpen ? "▲" : "▼"}</span>
+      </button>
+      {isOpen && (
+        <div
+          style={{
+            ...styles.sortMenu,
+            left: menuPos.left,
+            top: menuPos.top,
+            width: menuPos.width,
+          }}
+        >
+          <button
+            style={{
+              ...styles.sortMenuItem,
+              ...(active === sortDesc ? styles.sortMenuItemActive : {}),
+            }}
+            onClick={() => {
+              onSelect(sortDesc);
+              setOpenKey(null);
+            }}
+          >
+            내림차순 정렬
+          </button>
+          <button
+            style={{
+              ...styles.sortMenuItem,
+              ...(active === sortAsc ? styles.sortMenuItemActive : {}),
+            }}
+            onClick={() => {
+              onSelect(sortAsc);
+              setOpenKey(null);
+            }}
+          >
+            오름차순 정렬
+          </button>
+        </div>
+      )}
+    </th>
+  );
+}
+
+function TypeHeader({
+  activeType,
+  onSelect,
+  menuRef,
+  openKey,
+  setOpenKey,
+  setMenuPos,
+  menuPos,
+  width,
+  style,
+}) {
+  const options = [
+    { value: "all", label: "전체" },
+    ...Object.entries(BOARD_TYPES).map(([value, meta]) => ({
+      value,
+      label: meta.label,
+    })),
+  ];
+  const isOpen = openKey === "type";
+  return (
+    <th
+      style={{ ...style, position: "relative" }}
+      ref={isOpen ? menuRef : null}
+    >
+      <button
+        style={styles.headerButton}
+        onClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const menuWidth = width ?? 220;
+          const left = Math.min(
+            Math.max(8, rect.left),
+            window.innerWidth - menuWidth - 8
+          );
+          const top = rect.bottom + 8;
+          setMenuPos({ left, top, width: menuWidth });
+          setOpenKey(isOpen ? null : "type");
+        }}
+      >
+        <span>유형</span>
+        <span style={styles.caret}>{isOpen ? "▲" : "▼"}</span>
+      </button>
+      {isOpen && (
+        <div
+          style={{
+            ...styles.sortMenu,
+            left: menuPos.left,
+            top: menuPos.top,
+            width: menuPos.width,
+          }}
+        >
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              style={{
+                ...styles.sortMenuItem,
+                ...(activeType === opt.value ? styles.sortMenuItemActive : {}),
+              }}
+              onClick={() => {
+                onSelect(opt.value);
+                setOpenKey(null);
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </th>
+  );
+}
+
 const styles = {
   container: {
     padding: "30px",
@@ -605,6 +761,7 @@ const styles = {
     margin: "0 auto",
     fontFamily: "'Pretendard', sans-serif",
     color: "#fff",
+    overflow: "visible",
   },
   header: {
     display: "flex",
@@ -674,6 +831,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "8px",
+    marginLeft: "auto",
   },
   pageSizeLabel: {
     fontSize: "14px",
@@ -754,8 +912,9 @@ const styles = {
     backgroundColor: "#0d1117",
     borderRadius: "12px",
     border: "1px solid #1f232a",
-    overflow: "hidden",
+    overflow: "visible",
     boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+    position: "relative",
   },
   table: {
     width: "100%",
@@ -872,6 +1031,57 @@ const styles = {
     backgroundColor: "#1976d2",
     borderColor: "#1976d2",
     fontWeight: "bold",
+  },
+  headerButton: {
+    background: "transparent",
+    border: "none",
+    color: "#dce2f7",
+    fontWeight: 700,
+    fontSize: "14px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    cursor: "pointer",
+    width: "100%",
+    justifyContent: "center",
+  },
+  caret: {
+    fontSize: "10px",
+    color: "#e5e7eb",
+  },
+  sortMenu: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    backgroundColor: "#0f172a",
+    border: "1px solid #1f2937",
+    borderRadius: "12px",
+    boxShadow: "0 12px 24px rgba(0,0,0,0.35)",
+    overflowY: "auto",
+    overflowX: "hidden",
+    maxWidth: "calc(100vw - 16px)",
+    maxHeight: "420px",
+    zIndex: 9999,
+    whiteSpace: "nowrap",
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    padding: "6px",
+    boxSizing: "border-box",
+  },
+  sortMenuItem: {
+    width: "100%",
+    textAlign: "left",
+    background: "transparent",
+    border: "none",
+    padding: "10px 14px",
+    color: "#e2e8f0",
+    cursor: "pointer",
+    fontSize: "13px",
+  },
+  sortMenuItemActive: {
+    backgroundColor: "rgba(59,130,246,0.16)",
+    color: "#ffffff",
   },
 };
 

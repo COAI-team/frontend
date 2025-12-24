@@ -18,13 +18,28 @@ const donutColors = [
   "#0EA5E9",
   "#94A3B8",
 ];
+const analysisTypePalette = [
+  "#8B5CF6",
+  "#0EA5E9",
+  "#22C55E",
+  "#F59E0B",
+  "#EC4899",
+  "#6366F1",
+  "#14B8A6",
+  "#F97316",
+  "#A855F7",
+  "#3B82F6",
+];
+
+// const BATCH_DASHBOARD_API = "https://api.co-ai.run/admin/batch";
+// const BATCH_DAILY_RANGE_API = "https://api.co-ai.run/admin/dailystats";
+// const BATCH_USER_MONTHLY_STATS_API = "https://api.co-ai.run/admin/userstats";
+// const BATCH_SALES_MONTHLY_STATS_API = "https://api.co-ai.run/admin/salesstats";
 
 const BATCH_DASHBOARD_API = "http://localhost:9443/admin/batch";
 const BATCH_DAILY_RANGE_API = "http://localhost:9443/admin/dailystats";
-const BATCH_USER_MONTHLY_STATS_API =
-  "http://localhost:9443/admin/userstats";
-const BATCH_SALES_MONTHLY_STATS_API =
-  "http://localhost:9443/admin/salesstats";
+const BATCH_USER_MONTHLY_STATS_API = "http://localhost:9443/admin/userstats";
+const BATCH_SALES_MONTHLY_STATS_API = "http://localhost:9443/admin/salesstats";
 const RECENT_MONTHLY_RANGE_OPTIONS = [
   { label: "최근 6개월", value: 6 },
   { label: "최근 12개월", value: 12 },
@@ -172,12 +187,63 @@ export default function AdminBatchTestDashboard() {
     fetchUserMonthlyStats(initialLimit);
   }, [fetchUserMonthlyStats, recentMonthlyRangeOptions]);
 
-  const summary = dashboardData?.summary ?? {
-    statDate: null,
-    totalUsers: 0,
-    newUsers: 0,
-    paymentCount: 0,
-    revenue: 0,
+  const summarySource = dashboardData?.summary ?? {};
+  const summary = {
+    statDate: summarySource.statDate ?? summarySource.stat_date ?? null,
+    totalUsers:
+      Number(
+        summarySource.totalUsers ??
+          summarySource.totalUserCount ??
+          summarySource.total_user_count ??
+          0
+      ) || 0,
+    newUsers:
+      Number(
+        summarySource.newUsers ??
+          summarySource.newUserCount ??
+          summarySource.new_user_count ??
+          0
+      ) || 0,
+    paymentCount:
+      Number(
+        summarySource.paymentCount ??
+          summarySource.payment_count ??
+          summarySource.payments ??
+          0
+      ) || 0,
+    revenue:
+      Number(
+        summarySource.revenue ??
+          summarySource.totalSales ??
+          summarySource.total_sales ??
+          0
+      ) || 0,
+    freeBoardPostCount:
+      Number(
+        summarySource.freeBoardPostCount ??
+          summarySource.free_board_post_count ??
+          summarySource.freeBoardCount ??
+          0
+      ) || 0,
+    codeBoardPostCount:
+      Number(
+        summarySource.codeBoardPostCount ??
+          summarySource.codeBoardPostCunt ??
+          summarySource.code_board_post_count ??
+          0
+      ) || 0,
+    algoBoardPostCount:
+      Number(
+        summarySource.algoBoardPostCount ??
+          summarySource.algo_board_post_count ??
+          0
+      ) || 0,
+    totalBoardPostCount:
+      Number(
+        summarySource.totalBoardPostCount ??
+          summarySource.total_board_post_count ??
+          0
+      ) || 0,
   };
 
   const userMonthlyStatsFromDashboard = Array.isArray(
@@ -400,6 +466,129 @@ export default function AdminBatchTestDashboard() {
   )
     ? dashboardData.codeAnalysisRankingTop5
     : [];
+  const analysisTypeMonthlyStatsRaw = Array.isArray(
+    dashboardData?.analysisTypeMonthlyStats
+  )
+    ? dashboardData.analysisTypeMonthlyStats
+    : [];
+  const analysisTypeRows = useMemo(() => {
+    if (!analysisTypeMonthlyStatsRaw.length) return [];
+    return [...analysisTypeMonthlyStatsRaw]
+      .map((item) => ({
+        id: `${item.statYear}-${item.statMonth}-${item.analysisType}`,
+        statYear: Number(item.statYear ?? 0),
+        statMonth: Number(item.statMonth ?? 0),
+        analysisType: item.analysisType || item.analysis_type || "-",
+        analysisCount: Number(item.analysisCount ?? item.analysis_count ?? 0),
+      }))
+      .sort((a, b) => {
+        const aKey = a.statYear * 100 + a.statMonth;
+        const bKey = b.statYear * 100 + b.statMonth;
+        return bKey - aKey;
+      });
+  }, [analysisTypeMonthlyStatsRaw]);
+  const analysisTypeTotals = useMemo(() => {
+    if (!analysisTypeRows.length) return [];
+    const totals = analysisTypeRows.reduce((acc, item) => {
+      acc[item.analysisType] =
+        (acc[item.analysisType] ?? 0) + Number(item.analysisCount ?? 0);
+      return acc;
+    }, {});
+    return Object.entries(totals)
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [analysisTypeRows]);
+  const analysisTypeColorMap = useMemo(() => {
+    return analysisTypeTotals.reduce((acc, item, index) => {
+      acc[item.type] = analysisTypePalette[index % analysisTypePalette.length];
+      return acc;
+    }, {});
+  }, [analysisTypeTotals]);
+  const analysisTypeYearKeys = useMemo(() => {
+    const years = new Set();
+    analysisTypeRows.forEach((item) => {
+      if (item.statYear) years.add(String(item.statYear));
+    });
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [analysisTypeRows]);
+  const [activeAnalysisYear, setActiveAnalysisYear] = useState(null);
+  useEffect(() => {
+    if (!analysisTypeYearKeys.length) {
+      setActiveAnalysisYear(null);
+      return;
+    }
+    if (
+      !activeAnalysisYear ||
+      !analysisTypeYearKeys.includes(String(activeAnalysisYear))
+    ) {
+      setActiveAnalysisYear(analysisTypeYearKeys[0]);
+    }
+  }, [analysisTypeYearKeys, activeAnalysisYear]);
+  const analysisTypeByMonth = useMemo(() => {
+    return analysisTypeRows.reduce((acc, item) => {
+      const key = `${item.statYear}.${String(item.statMonth).padStart(2, "0")}`;
+      acc[key] = acc[key] ?? [];
+      acc[key].push(item);
+      return acc;
+    }, {});
+  }, [analysisTypeRows]);
+  const analysisTypeMonthKeys = useMemo(() => {
+    return Object.keys(analysisTypeByMonth)
+      .filter((key) =>
+        activeAnalysisYear ? key.startsWith(`${activeAnalysisYear}.`) : true
+      )
+      .sort((a, b) => {
+        const [yearA, monthA] = a.split(".").map(Number);
+        const [yearB, monthB] = b.split(".").map(Number);
+        return yearB !== yearA ? yearB - yearA : monthB - monthA;
+      });
+  }, [analysisTypeByMonth, activeAnalysisYear]);
+  const [activeAnalysisMonth, setActiveAnalysisMonth] = useState(null);
+
+  useEffect(() => {
+    if (!analysisTypeMonthKeys.length) {
+      setActiveAnalysisMonth(null);
+      return;
+    }
+    if (
+      !activeAnalysisMonth ||
+      !analysisTypeMonthKeys.includes(activeAnalysisMonth)
+    ) {
+      setActiveAnalysisMonth(analysisTypeMonthKeys[0]);
+    }
+  }, [analysisTypeMonthKeys, activeAnalysisMonth]);
+
+  const rowsForActiveYear = useMemo(() => {
+    if (!activeAnalysisYear) return analysisTypeRows;
+    return analysisTypeRows.filter(
+      (item) => String(item.statYear) === String(activeAnalysisYear)
+    );
+  }, [analysisTypeRows, activeAnalysisYear]);
+  const filteredAnalysisTypeRows =
+    activeAnalysisMonth && analysisTypeByMonth[activeAnalysisMonth]
+      ? analysisTypeByMonth[activeAnalysisMonth]
+      : rowsForActiveYear;
+  const topAnalysisPerMonth = useMemo(() => {
+    if (!activeAnalysisYear) return [];
+    return analysisTypeMonthKeys
+      .map((key) => {
+        const items = analysisTypeByMonth[key] ?? [];
+        if (!items.length) return null;
+        const [year, month] = key.split(".").map(Number);
+        const sorted = [...items].sort(
+          (a, b) => Number(b.analysisCount) - Number(a.analysisCount)
+        );
+        const top = sorted[0];
+        return {
+          key,
+          statYear: year,
+          statMonth: month,
+          analysisType: top.analysisType,
+          analysisCount: top.analysisCount,
+        };
+      })
+      .filter(Boolean);
+  }, [analysisTypeByMonth, analysisTypeMonthKeys, activeAnalysisYear]);
   const sortedRangeStats = useMemo(() => {
     if (!rangeStats.length) return [];
     return [...rangeStats].sort(
@@ -434,6 +623,34 @@ export default function AdminBatchTestDashboard() {
       color: "#0EA5E9",
       suffix: "",
       isCurrency: true,
+    },
+    {
+      id: "totalBoardPostCount",
+      label: "전체 게시글",
+      color: "#22C55E",
+      suffix: "건",
+      isCurrency: false,
+    },
+    {
+      id: "freeBoardPostCount",
+      label: "자유 게시판",
+      color: "#A855F7",
+      suffix: "건",
+      isCurrency: false,
+    },
+    {
+      id: "codeBoardPostCount",
+      label: "코드 게시판",
+      color: "#F97316",
+      suffix: "건",
+      isCurrency: false,
+    },
+    {
+      id: "algoBoardPostCount",
+      label: "알고리즘 게시판",
+      color: "#F43F5E",
+      suffix: "건",
+      isCurrency: false,
     },
   ];
   const rangeMetricMap = rangeMetricOptions.reduce((acc, option) => {
@@ -493,6 +710,44 @@ export default function AdminBatchTestDashboard() {
           bgClass="bg-blue-100 dark:bg-blue-600/20"
           label="매출"
           value={formatCurrency(summary.revenue ?? 0)}
+        />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <SummaryCard
+          icon={ChartBarIcon}
+          iconClass="text-sky-600"
+          bgClass="bg-sky-100 dark:bg-sky-600/20"
+          label="전체 게시글"
+          value={`${Number(
+            summary.totalBoardPostCount ?? 0
+          ).toLocaleString()}건`}
+        />
+        <SummaryCard
+          icon={ChartBarIcon}
+          iconClass="text-emerald-600"
+          bgClass="bg-emerald-100 dark:bg-emerald-600/20"
+          label="자유 게시판"
+          value={`${Number(
+            summary.freeBoardPostCount ?? 0
+          ).toLocaleString()}건`}
+        />
+        <SummaryCard
+          icon={ChartBarIcon}
+          iconClass="text-purple-600"
+          bgClass="bg-purple-100 dark:bg-purple-600/20"
+          label="코드 게시판"
+          value={`${Number(
+            summary.codeBoardPostCount ?? 0
+          ).toLocaleString()}건`}
+        />
+        <SummaryCard
+          icon={ChartBarIcon}
+          iconClass="text-amber-600"
+          bgClass="bg-amber-100 dark:bg-amber-600/20"
+          label="알고리즘 게시판"
+          value={`${Number(
+            summary.algoBoardPostCount ?? 0
+          ).toLocaleString()}건`}
         />
       </div>
 
@@ -633,6 +888,10 @@ export default function AdminBatchTestDashboard() {
                       <th className="pb-2 text-right">신규 유저 수</th>
                       <th className="pb-2 text-right">결제 수</th>
                       <th className="pb-2 text-right">매출</th>
+                      <th className="pb-2 text-right">전체 게시글</th>
+                      <th className="pb-2 text-right">자유 게시판</th>
+                      <th className="pb-2 text-right">코드 게시판</th>
+                      <th className="pb-2 text-right">알고리즘 게시판</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -650,6 +909,30 @@ export default function AdminBatchTestDashboard() {
                         </td>
                         <td className="py-2 text-right font-semibold">
                           {formatCurrency(item.revenue ?? 0)}
+                        </td>
+                        <td className="py-2 text-right font-semibold">
+                          {Number(
+                            item.totalBoardPostCount ?? 0
+                          ).toLocaleString()}
+                          건
+                        </td>
+                        <td className="py-2 text-right font-semibold">
+                          {Number(
+                            item.freeBoardPostCount ?? 0
+                          ).toLocaleString()}
+                          건
+                        </td>
+                        <td className="py-2 text-right font-semibold">
+                          {Number(
+                            item.codeBoardPostCount ?? 0
+                          ).toLocaleString()}
+                          건
+                        </td>
+                        <td className="py-2 text-right font-semibold">
+                          {Number(
+                            item.algoBoardPostCount ?? 0
+                          ).toLocaleString()}
+                          건
                         </td>
                       </tr>
                     ))}
@@ -740,7 +1023,8 @@ export default function AdminBatchTestDashboard() {
             {availableUserYears.length > 0 && (
               <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
                 {availableUserYears.map((year) => {
-                  const isActive = !activeMonthlyRange && year === selectedUserYear;
+                  const isActive =
+                    !activeMonthlyRange && year === selectedUserYear;
                   return (
                     <button
                       key={`user-year-${year}`}
@@ -886,7 +1170,8 @@ export default function AdminBatchTestDashboard() {
             {availablePaymentYears.length > 0 && (
               <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
                 {availablePaymentYears.map((year) => {
-                  const isActive = !activeSalesRange && year === selectedPaymentYear;
+                  const isActive =
+                    !activeSalesRange && year === selectedPaymentYear;
                   return (
                     <button
                       key={`payment-year-${year}`}
@@ -981,6 +1266,235 @@ export default function AdminBatchTestDashboard() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800 space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">분석 유형별 월간 통계</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              월별로 어떤 분석 유형이 얼마나 수행됐는지 확인하세요.
+            </p>
+          </div>
+          {analysisTypeRows.length === 0 ? (
+            <p className="text-center text-gray-500">데이터가 없습니다.</p>
+          ) : (
+            <div className="space-y-4">
+              {analysisTypeYearKeys.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-500">
+                    연도 선택 후, 월별 대표(1위) 분석 유형을 확인하거나 특정
+                    월을 선택하세요.
+                  </p>
+                  <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                    {analysisTypeYearKeys.map((year) => {
+                      const isActive =
+                        String(year) === String(activeAnalysisYear);
+                      return (
+                        <button
+                          key={`analysis-year-chip-${year}`}
+                          type="button"
+                          onClick={() => {
+                            setActiveAnalysisYear(year);
+                            setActiveAnalysisMonth(null);
+                          }}
+                          className={`px-3 py-1 rounded-full border transition-colors ${
+                            isActive
+                              ? "bg-indigo-700 text-white border-indigo-700"
+                              : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          }`}
+                        >
+                          {year}년
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {analysisTypeMonthKeys.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-500">
+                    월별로 클릭하면 해당 월의 분석 유형 모자이크를 보여줍니다.
+                    (연도별 1위만 보려면 월 미선택)
+                  </p>
+                  <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                    <button
+                      type="button"
+                      onClick={() => setActiveAnalysisMonth(null)}
+                      className={`px-3 py-1 rounded-full border transition-colors ${
+                        activeAnalysisMonth === null
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      연도별 1위만 보기
+                    </button>
+                    {analysisTypeMonthKeys.map((key) => {
+                      const isActive = key === activeAnalysisMonth;
+                      return (
+                        <button
+                          key={`analysis-month-chip-${key}`}
+                          type="button"
+                          onClick={() => setActiveAnalysisMonth(key)}
+                          className={`px-3 py-1 rounded-full border transition-colors ${
+                            isActive
+                              ? "bg-indigo-600 text-white border-indigo-600"
+                              : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          }`}
+                        >
+                          {key}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {activeAnalysisMonth && (
+                    <div className="rounded-lg border dark:border-gray-700 p-3 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <span className="text-gray-500">선택한 월</span>
+                        <span>{activeAnalysisMonth}</span>
+                      </div>
+                      <div
+                        className="grid gap-2"
+                        style={{
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(120px, 1fr))",
+                          gridAutoRows: "80px",
+                        }}
+                      >
+                        {analysisTypeByMonth[activeAnalysisMonth]
+                          ?.sort((a, b) => b.analysisCount - a.analysisCount)
+                          .map((item, idx) => {
+                            const color =
+                              analysisTypeColorMap[item.analysisType] ??
+                              analysisTypePalette[
+                                (idx +
+                                  analysisTypeByMonth[activeAnalysisMonth]
+                                    .length) %
+                                  analysisTypePalette.length
+                              ];
+                            const rowSpan = Math.min(
+                              3,
+                              Math.max(1, Math.ceil(item.analysisCount / 3))
+                            );
+                            return (
+                              <div
+                                key={`${activeAnalysisMonth}-${item.analysisType}`}
+                                className="rounded-lg text-white p-3 flex flex-col justify-between shadow-inner"
+                                style={{
+                                  backgroundColor: color,
+                                  gridRowEnd: `span ${rowSpan}`,
+                                  boxShadow:
+                                    "inset 0 0 0 1px rgba(255,255,255,0.08)",
+                                }}
+                              >
+                                <p className="text-xs opacity-85 font-semibold">
+                                  {item.analysisType}
+                                </p>
+                                <p className="text-lg font-bold">
+                                  {item.analysisCount.toLocaleString()}회
+                                </p>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+                  {!activeAnalysisMonth && topAnalysisPerMonth.length > 0 && (
+                    <div className="rounded-lg border dark:border-gray-700 p-3 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <span className="text-gray-500">선택한 연도</span>
+                        <span>{activeAnalysisYear}</span>
+                        <span className="text-gray-400 text-xs">
+                          각 월 1위만 표시
+                        </span>
+                      </div>
+                      <div
+                        className="grid gap-2"
+                        style={{
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(140px, 1fr))",
+                          gridAutoRows: "90px",
+                        }}
+                      >
+                        {topAnalysisPerMonth
+                          .sort((a, b) => a.statMonth - b.statMonth)
+                          .map((item, idx) => {
+                            const color =
+                              analysisTypeColorMap[item.analysisType] ??
+                              analysisTypePalette[
+                                (idx + topAnalysisPerMonth.length) %
+                                  analysisTypePalette.length
+                              ];
+                            return (
+                              <div
+                                key={`top-month-${item.key}`}
+                                className="rounded-lg text-white p-3 flex flex-col justify-between shadow-inner"
+                                style={{
+                                  backgroundColor: color,
+                                  boxShadow:
+                                    "inset 0 0 0 1px rgba(255,255,255,0.08)",
+                                }}
+                              >
+                                <p className="text-xs opacity-85 font-semibold">
+                                  {formatMonthlyLabel(
+                                    item.statYear,
+                                    item.statMonth
+                                  )}
+                                </p>
+                                <div>
+                                  <p className="text-sm font-bold leading-tight">
+                                    {item.analysisType}
+                                  </p>
+                                  <p className="text-lg font-extrabold leading-none">
+                                    {Number(
+                                      item.analysisCount ?? 0
+                                    ).toLocaleString()}
+                                    회
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-500 uppercase text-xs">
+                      <th className="pb-2">월</th>
+                      <th className="pb-2">분석 유형</th>
+                      <th className="pb-2 text-right">분석 수</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {filteredAnalysisTypeRows.map((item) => (
+                      <tr key={item.id}>
+                        <td className="py-2">
+                          {formatMonthlyLabel(item.statYear, item.statMonth)}
+                        </td>
+                        <td
+                          className="py-2 font-semibold"
+                          style={{
+                            color:
+                              analysisTypeColorMap[item.analysisType] ??
+                              "#E5E7EB",
+                          }}
+                        >
+                          {item.analysisType}
+                        </td>
+                        <td className="py-2 text-right font-semibold">
+                          {item.analysisCount.toLocaleString()}회
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800">
           <h2 className="text-lg font-semibold mb-2">언어 랭킹 Top 5</h2>
           <p className="text-xs text-gray-500 mb-2">
@@ -1487,6 +2001,10 @@ function normalizeSummaryEntry(entry) {
       newUsers: 0,
       paymentCount: 0,
       revenue: 0,
+      freeBoardPostCount: 0,
+      codeBoardPostCount: 0,
+      algoBoardPostCount: 0,
+      totalBoardPostCount: 0,
     };
   }
 
@@ -1497,6 +2015,20 @@ function normalizeSummaryEntry(entry) {
   const paymentCount =
     entry.paymentCount ?? entry.payment_count ?? entry.payments ?? 0;
   const revenue = entry.revenue ?? entry.totalSales ?? entry.total_sales ?? 0;
+  const freeBoardPostCount =
+    entry.freeBoardPostCount ??
+    entry.free_board_post_count ??
+    entry.freeBoardCount ??
+    0;
+  const codeBoardPostCount =
+    entry.codeBoardPostCount ??
+    entry.codeBoardPostCunt ??
+    entry.code_board_post_count ??
+    0;
+  const algoBoardPostCount =
+    entry.algoBoardPostCount ?? entry.algo_board_post_count ?? 0;
+  const totalBoardPostCount =
+    entry.totalBoardPostCount ?? entry.total_board_post_count ?? 0;
 
   return {
     statDate: entry.statDate ?? entry.stat_date ?? null,
@@ -1504,5 +2036,9 @@ function normalizeSummaryEntry(entry) {
     newUsers: Number(newUsers ?? 0),
     paymentCount: Number(paymentCount ?? 0),
     revenue: Number(revenue ?? 0),
+    freeBoardPostCount: Number(freeBoardPostCount ?? 0),
+    codeBoardPostCount: Number(codeBoardPostCount ?? 0),
+    algoBoardPostCount: Number(algoBoardPostCount ?? 0),
+    totalBoardPostCount: Number(totalBoardPostCount ?? 0),
   };
 }

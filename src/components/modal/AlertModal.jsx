@@ -1,5 +1,5 @@
-import { useContext, useMemo, useCallback, useEffect } from 'react';
-import {useTheme} from '../../context/theme/useTheme';
+import { useContext, useMemo, useCallback, useEffect } from "react";
+import { useTheme } from "../../context/theme/useTheme";
 import { AlertModalPropTypes } from "../../utils/propTypes";
 import {
   Dialog,
@@ -15,8 +15,8 @@ import {
 } from "@heroicons/react/24/outline";
 
 // 상수 및 캐싱 (모듈 수준)
-const VALID_TYPES = new Set(['success', 'warning', 'error', 'info']);
-const DEFAULT_TYPE = 'success';
+const VALID_TYPES = new Set(["success", "warning", "error", "info"]);
+const DEFAULT_TYPE = "success";
 
 const COLOR_MAP = {
   light: {
@@ -41,23 +41,24 @@ const ICON_MAP = {
 };
 
 export default function AlertModal({
-                                     open = false,
-                                     onClose = () => {},
-                                     onConfirm,
-                                     onCancel,
-                                     type = DEFAULT_TYPE,
-                                     title,
-                                     message,
-                                     confirmText = "확인",
-                                     cancelText = "취소",
-                                   }) {
+  open = false,
+  onClose = () => {},
+  onConfirm,
+  onCancel,
+  type = DEFAULT_TYPE,
+  title,
+  message,
+  confirmText = "확인",
+  cancelText = "취소",
+}) {
   const context = useContext(useTheme);
-  const theme = context?.theme || 'light';
+  const theme = context?.theme || "light";
 
   // useMemo로 스타일/아이콘 캐싱 (리렌더링 방지)
   const styles = useMemo(() => {
     const validType = VALID_TYPES.has(type) ? type : DEFAULT_TYPE;
-    const currentBg = COLOR_MAP[theme]?.[validType] || COLOR_MAP.light[DEFAULT_TYPE];
+    const currentBg =
+      COLOR_MAP[theme]?.[validType] || COLOR_MAP.light[DEFAULT_TYPE];
     const Icon = ICON_MAP[validType] || ICON_MAP.success;
 
     return {
@@ -67,7 +68,10 @@ export default function AlertModal({
       panel: theme === "dark" ? "bg-gray-800" : "bg-white",
       title: theme === "dark" ? "text-gray-100" : "text-gray-900",
       text: theme === "dark" ? "text-gray-300" : "text-gray-600",
-      cancelBtn: theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-800",
+      cancelBtn:
+        theme === "dark"
+          ? "bg-gray-700 text-white"
+          : "bg-gray-200 text-gray-800",
     };
   }, [theme, type]);
 
@@ -87,17 +91,17 @@ export default function AlertModal({
     if (!open) return;
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Enter') {
+      if (e.key === "Enter") {
         e.preventDefault();
         handleConfirm();
-      } else if (e.key === 'Escape') {
+      } else if (e.key === "Escape") {
         onClose();
       }
     };
 
     // passive: true로 스크롤 성능 향상
-    globalThis.addEventListener('keydown', handleKeyDown, { passive: true });
-    return () => globalThis.removeEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener("keydown", handleKeyDown, { passive: true });
+    return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, [open, handleConfirm, onClose]);
 
   if (!open) return null;
@@ -126,7 +130,9 @@ export default function AlertModal({
               </div>
 
               <div className="mt-3 sm:ml-4 sm:mt-0 sm:text-left text-center">
-                <DialogTitle className={`text-base font-semibold ${styles.title}`}>
+                <DialogTitle
+                  className={`text-base font-semibold ${styles.title}`}
+                >
                   {title}
                 </DialogTitle>
                 <div className="mt-2">

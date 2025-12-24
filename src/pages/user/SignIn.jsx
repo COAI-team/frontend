@@ -24,17 +24,23 @@ export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
 
   // ✅ 테마 클래스 최적화 (객체 조회)
-  const THEME_CLASSES = useMemo(() => ({
-    loginBtn: theme === "light"
-      ? "bg-[#2DD4BF] hover:bg-[#24b3a6]"
-      : "bg-[#FFFA99] hover:bg-[#e2e07c]",
-    resetBtn: theme === "light"
-      ? "text-[#04BDF2] hover:text-[#0398c2]"
-      : "text-[#CC67FA] hover:text-[#a647d4]",
-  }), [theme]);
+  const THEME_CLASSES = useMemo(
+    () => ({
+      loginBtn:
+        theme === "light"
+          ? "bg-[#2DD4BF] hover:bg-[#24b3a6]"
+          : "bg-[#FFFA99] hover:bg-[#e2e07c]",
+      resetBtn:
+        theme === "light"
+          ? "text-[#04BDF2] hover:text-[#0398c2]"
+          : "text-[#CC67FA] hover:text-[#a647d4]",
+    }),
+    [theme]
+  );
 
   const redirect = useMemo(() => {
-    const redirectParam = new URLSearchParams(location.search).get("redirect") || "/";
+    const redirectParam =
+      new URLSearchParams(location.search).get("redirect") || "/";
     return redirectParam.startsWith("/signin") ? "/" : redirectParam;
   }, [location.search]);
 
@@ -42,64 +48,94 @@ export default function SignIn() {
   const handleGitHubLogin = useCallback(() => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
     const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
-    globalThis.location.href = `https://github.com/login/oauth/authorize` +
+    globalThis.location.href =
+      `https://github.com/login/oauth/authorize` +
       `?client_id=${clientId}` +
       `&redirect_uri=${redirectUri}` +
       `&scope=read:user user:email`;
   }, []);
 
   // ✅ 핵심 수정: try-catch + finally로 최적화 API 호환
-  const handleLogin = useCallback(async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const handleLogin = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setIsLoading(true);
 
-    const email = e.target.email.value;
-    const password = e.target.password.value;
+      const email = e.target.email.value;
+      const password = e.target.password.value;
 
-    // ✅ 입력 검증
-    if (!email || !password) {
-      setIsLoading(false);
-      showAlert({
-        type: "warning",
-        title: "입력이 필요합니다",
-        message: "이메일과 비밀번호를 모두 입력해주세요.",
-      });
-      return;
-    }
+      // ✅ 입력 검증
+      if (!email || !password) {
+        setIsLoading(false);
+        showAlert({
+          type: "warning",
+          title: "입력이 필요합니다",
+          message: "이메일과 비밀번호를 모두 입력해주세요.",
+        });
+        return;
+      }
 
-    try {
-      // ✅ 최적화된 API (에러 throw)
-      const result = await apiLogin({ userEmail: email, userPw: password });
+      try {
+        // ✅ 최적화된 API (에러 throw)
+        const result = await apiLogin({ userEmail: email, userPw: password });
+        console.log("result ==>>", JSON.stringify(result, null, 2));
 
-      // ✅ 로그인 성공
-      setLoginResult(result);
-      loginContextLogin(result, true);
+        // 현목 추가
+        const role =
+          result?.user?.userRole ||
+          result?.user?.role ||
+          result?.userRole ||
+          result?.role ||
+          "";
+        const isAdmin = role === "ROLE_ADMIN";
+        const nextPath = isAdmin ? "/admin/otp" : redirect;
+        // ========
 
-      showAlert({
-        type: "success",
-        title: "로그인 성공",
-        message: "환영합니다!",
-        onConfirm: () => {
-          setIsAlertOpen(false);
-          navigate(redirect);
-        },
-      });
-    } catch (error) {
-      // ✅ Axios 인터셉터가 처리한 에러 catch
-      const errorMessage = error.response?.data?.message ||
-        error.response?.data?.error ||
-        "로그인에 실패했습니다.";
+        // ✅ 로그인 성공
+        setLoginResult(result);
+        loginContextLogin(result, true);
 
-      showAlert({
-        type: "error",
-        title: "로그인 실패",
-        message: errorMessage,
-      });
-    } finally {
-      // ✅ 로딩 상태 확실 종료
-      setIsLoading(false);
-    }
-  }, [showAlert, setLoginResult, loginContextLogin, setIsAlertOpen, navigate, redirect]);
+        showAlert({
+          type: "success",
+          title: "로그인 성공",
+          // ===== 현목 ======
+          message: isAdmin // 여기 현목
+            ? "관리자 OTP 확인 페이지로 이동합니다."
+            : "환영합니다!",
+          //=================
+          onConfirm: () => {
+            setIsAlertOpen(false);
+            // === 현목 ===========
+            navigate(nextPath);
+            // ===navigate(redirect); ==>   navigate(nextPath);
+          },
+        });
+      } catch (error) {
+        // ✅ Axios 인터셉터가 처리한 에러 catch
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          "로그인에 실패했습니다.";
+
+        showAlert({
+          type: "error",
+          title: "로그인 실패",
+          message: errorMessage,
+        });
+      } finally {
+        // ✅ 로딩 상태 확실 종료
+        setIsLoading(false);
+      }
+    },
+    [
+      showAlert,
+      setLoginResult,
+      loginContextLogin,
+      setIsAlertOpen,
+      navigate,
+      redirect,
+    ]
+  );
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -124,7 +160,10 @@ export default function SignIn() {
             <form onSubmit={handleLogin} className="space-y-6">
               {/* EMAIL */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium dark:text-gray-100">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium dark:text-gray-100"
+                >
                   이메일 주소
                 </label>
                 <input
@@ -139,7 +178,10 @@ export default function SignIn() {
 
               {/* PASSWORD */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium dark:text-gray-100">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium dark:text-gray-100"
+                >
                   비밀번호
                 </label>
                 <div className="relative">
@@ -198,9 +240,15 @@ export default function SignIn() {
                 className="flex flex-col items-center"
               >
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white border border-gray-100 hover:bg-gray-100 hover:border-gray-100">
-                  <img src="/socialLogos/GitHub.svg" alt="github" className="w-6 h-6" />
+                  <img
+                    src="/socialLogos/GitHub.svg"
+                    alt="github"
+                    className="w-6 h-6"
+                  />
                 </div>
-                <span className="mt-2 text-xs font-bold dark:text-gray-300">GITHUB</span>
+                <span className="mt-2 text-xs font-bold dark:text-gray-300">
+                  GITHUB
+                </span>
               </button>
             </div>
           </div>
