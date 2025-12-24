@@ -87,6 +87,17 @@ export const disconnectGithub = () =>
 
 // 🔗 GitHub 계정 연동 (로그인된 사용자)
 export const linkGithubAccount = (gitHubUser) =>
-  axiosInstance
-    .post("/auth/github/link", gitHubUser)
-    .then(res => res.data);
+  axiosInstance.post(
+    "/auth/github/link",
+    {
+      id: gitHubUser.id,
+      login: gitHubUser.login,
+      email: gitHubUser.email,
+      avatarUrl: gitHubUser.avatarUrl,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  ).then(res => res.data);

@@ -98,8 +98,17 @@ export default function ProfilePage() {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
     const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
 
-    globalThis.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=link`;
+    console.log("🔗 [GitHub Connect] 버튼 클릭");
+    console.log("🔗 clientId:", clientId);
+    console.log("🔗 redirectUri:", redirectUri);
+
+    globalThis.location.href =
+      `https://github.com/login/oauth/authorize` +
+      `?client_id=${clientId}` +
+      `&redirect_uri=${redirectUri}` +
+      `&state=link`;
   };
+
 
   /** 🔥 GitHub 연결 해제 */
   const handleGithubDisconnect = async () => {
