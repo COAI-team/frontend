@@ -271,7 +271,7 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
         gap: '0.75rem',
         padding: isReply ? '0.75rem 0' : '1rem 0'
       }}>
-        {/* 아바타 */}
+        {/* 프로필 사진 */}
         <div style={{
           width: isReply ? '1.75rem' : '2.25rem',
           height: isReply ? '1.75rem' : '2.25rem',
@@ -283,9 +283,22 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
           fontSize: isReply ? '0.75rem' : '0.875rem',
           fontWeight: '500',
           backgroundColor: isDark ? '#374151' : '#e5e7eb',
-          color: isDark ? '#d1d5db' : '#4b5563'
+          color: isDark ? '#d1d5db' : '#4b5563',
+          overflow: 'hidden'
         }}>
-          {comment.userNickname?.charAt(0)?.toUpperCase() || '?'}
+          {comment.userImage ? (
+            <img 
+              src={comment.userImage} 
+              alt={comment.userNickname}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+            />
+          ) : (
+            comment.userNickname?.charAt(0)?.toUpperCase() || '?'
+          )}
         </div>
 
         {/* 콘텐츠 */}

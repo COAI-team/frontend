@@ -66,11 +66,7 @@ export default function SignUp() {
   /* 이메일 발송 */
   const handleSendEmail = async () => {
     if (emailError) {
-      showAlert({
-        type: "error",
-        title: "이메일 오류",
-        message: emailError,
-      });
+      showAlert("error", "이메일 오류", emailError);
       return;
     }
 
@@ -152,14 +148,47 @@ export default function SignUp() {
     e.preventDefault();
 
     const nameErr = validateNameError(name);
-    if (nameErr) return showAlert("error", "이름 오류", nameErr);
-    if (nicknameError) return showAlert("error", "닉네임 오류", nicknameError);
-    if (emailError) return showAlert("error", "이메일 오류", emailError);
-    if (passwordMessage) return showAlert("error", "비밀번호 오류", passwordMessage);
+    if (nameErr)
+      return showAlert({
+        type: "error",
+        title: "이름 오류",
+        message: nameErr,
+      });
+
+    if (nicknameError)
+      return showAlert({
+        type: "error",
+        title: "닉네임 오류",
+        message: nicknameError,
+      });
+
+    if (emailError)
+      return showAlert({
+        type: "error",
+        title: "이메일 오류",
+        message: emailError,
+      });
+
+    if (passwordMessage)
+      return showAlert({
+        type: "error",
+        title: "비밀번호 오류",
+        message: passwordMessage,
+      });
+
     if (!isPasswordMatch)
-      return showAlert("error", "불일치", "비밀번호가 일치하지 않습니다.");
+      return showAlert({
+        type: "error",
+        title: "불일치",
+        message: "비밀번호가 일치하지 않습니다.",
+      });
+
     if (!isVerified)
-      return showAlert("error", "인증 필요", "이메일 인증이 필요합니다.");
+      return showAlert({
+        type: "error",
+        title: "인증 필요",
+        message: "이메일 인증이 필요합니다.",
+      });
 
     await withLoading(setLoadingSignup, async () => {
       const formData = createFormData(e.target, password, profileFile);
@@ -168,22 +197,29 @@ export default function SignUp() {
         const res = await signup(formData);
 
         if (res && res.error) {
-          showAlert("error", "회원가입 실패", res.message);
+          showAlert({
+            type: "error",
+            title: "회원가입 실패",
+            message: res.message,
+          });
           return;
         }
 
-        showAlert(
-          "success",
-          "회원가입 성공!",
-          "회원가입이 완료되었습니다!",
-          () => navigate("/signin")
-        );
+        showAlert({
+          type: "success",
+          title: "회원가입 성공!",
+          message: "회원가입이 완료되었습니다!",
+          onConfirm: () => navigate("/signin"),
+        });
       } catch (error) {
-        const msg =
-          error?.response?.data?.message ||
-          error?.response?.data?.error ||
-          "회원가입 중 오류가 발생했습니다.";
-        showAlert("error", "회원가입 실패", msg);
+        showAlert({
+          type: "error",
+          title: "회원가입 실패",
+          message:
+            error?.response?.data?.message ||
+            error?.response?.data?.error ||
+            "회원가입 중 오류가 발생했습니다.",
+        });
       }
     });
   };
@@ -230,7 +266,7 @@ export default function SignUp() {
   const [profileFile, setProfileFile] = useState(null);
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden dark:bg-[#131313]">
       <div className="hidden lg:block w-1/2 relative">
         <img
           alt=""
@@ -240,7 +276,7 @@ export default function SignUp() {
       </div>
 
       <div className="w-full py-4 lg:w-1/2 flex flex-col justify-center px-6 sm:px-10 lg:px-16">
-        <div className="mx-auto w-full max-w-xl border dark:border-gray-700 rounded-xl shadow-lg p-8 dark:bg-gray-900">
+        <div className="mx-auto w-full max-w-xl bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-[#2e2e2e] rounded-xl shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-8">
           <h2 className="text-2xl font-bold dark:text-white text-center">
             회원가입
           </h2>

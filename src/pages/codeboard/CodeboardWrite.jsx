@@ -6,6 +6,8 @@ import WriteEditor from '../../components/editor/WriteEditor';
 import {getAnalysisResult} from '../../service/codeAnalysis/analysisApi';
 import {getSmellKeyword} from '../../utils/codeAnalysisUtils';
 import hljs from 'highlight.js';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
 const CodeboardWrite = () => {
   const {analysisId} = useParams();
@@ -13,11 +15,12 @@ const CodeboardWrite = () => {
   const {theme} = useTheme();
   const codeViewerRef = useRef(null);
 
-  // 분석 결과 상태
   const [fileContent, setFileContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
+
+  const {alert, showAlert, closeAlert} = useAlert();
 
   // highlight.js 테마 관리
   useEffect(() => {
@@ -40,7 +43,6 @@ const CodeboardWrite = () => {
     };
   }, [theme]);
 
-  // 파일 확장자로 언어 감지
   const detectLanguage = (filePath) => {
     if (!filePath) return 'plaintext';
     const ext = filePath.split('.').pop().toLowerCase();
@@ -65,7 +67,6 @@ const CodeboardWrite = () => {
     return langMap[ext] || 'plaintext';
   };
 
-  // 코드 하이라이팅 적용
   useEffect(() => {
     if (!codeViewerRef.current || !fileContent) return;
 
@@ -80,7 +81,6 @@ const CodeboardWrite = () => {
     return () => clearTimeout(timer);
   }, [fileContent, theme]);
 
-  // 분석 결과 로드
   useEffect(() => {
     const loadAnalysis = async () => {
       try {
@@ -89,7 +89,6 @@ const CodeboardWrite = () => {
         const data = result.data;
         setAnalysisResult(data);
 
-        // 파일 내용 로드
         if (data.repositoryUrl && data.filePath) {
           try {
             const parts = data.repositoryUrl.split('/');
@@ -145,14 +144,18 @@ const CodeboardWrite = () => {
       .catch((err) => {
         console.error("등록 실패:", err);
         console.error("에러 상세:", err.response?.data);
-        alert("게시글 등록에 실패했습니다.");
+        showAlert({
+          type: 'error',
+          title: '등록 실패',
+          message: '게시글 등록에 실패했습니다.'
+        });
       });
   };
 
   if (isLoading) {
     return (
       <div
-        className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-[#131313]' : 'bg-white'}`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>분석 결과를 불러오는 중...</p>
@@ -164,7 +167,7 @@ const CodeboardWrite = () => {
   if (error || !analysisResult) {
     return (
       <div
-        className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-[#131313]' : 'bg-white'}`}>
         <div className="text-center">
           <p className={`text-xl mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
             {error || "분석 결과를 찾을 수 없습니다."}
@@ -183,8 +186,7 @@ const CodeboardWrite = () => {
   const language = detectLanguage(analysisResult.filePath);
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
-      {/* 상단 헤더 */}
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#131313]' : 'bg-white'}`}>
       <div
         className={`shadow-sm border-b ${theme === 'dark' ? 'border-gray-800 bg-gray-900' : 'border-gray-200 bg-white'}`}>
         <div className="container mx-auto px-4 py-4">
@@ -205,18 +207,14 @@ const CodeboardWrite = () => {
         </div>
       </div>
 
-      {/* 메인 컨텐츠 */}
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* 왼쪽 패널: 코드 뷰어 + 분석 결과 */}
           <div className="space-y-6">
-            {/* 코드 뷰어 */}
             <div
               className={`border rounded-lg overflow-hidden ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}
               ref={codeViewerRef}
             >
-              {/* 헤더 */}
               <div
                 className={`px-4 py-2 border-b flex justify-between items-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'}`}>
                 <div className="flex items-center gap-2">
@@ -230,7 +228,11 @@ const CodeboardWrite = () => {
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(fileContent);
-                    alert("코드가 클립보드에 복사되었습니다.");
+                    showAlert({
+                      type: 'success',
+                      title: '복사 완료',
+                      message: '코드가 클립보드에 복사되었습니다.'
+                    });
                   }}
                   className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}
                 >
@@ -242,7 +244,6 @@ const CodeboardWrite = () => {
                 </button>
               </div>
 
-              {/* 코드 영역 - hljs 사용 */}
               <div className="overflow-auto" style={{maxHeight: '500px'}}>
                 <pre style={{ margin: 0, backgroundColor: theme === 'dark' ? '#1e1e1e' : '#f6f8fa' }}>
                   <code className={`language-${language}`} style={{
@@ -258,11 +259,9 @@ const CodeboardWrite = () => {
               </div>
             </div>
 
-            {/* 분석 결과 */}
             <div
               className={`border rounded-lg overflow-hidden ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
 
-              {/* 헤더 */}
               <div
                 className={`px-4 py-2 border-b flex justify-between items-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'}`}>
                 <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -298,11 +297,9 @@ const CodeboardWrite = () => {
                 })()}
               </div>
 
-              {/* 내용 */}
               <div className="p-4 space-y-4 overflow-auto" style={{maxHeight: '600px'}}>
                 {analysisResult && (
                   <>
-                    {/* Code Smells */}
                     {analysisResult.codeSmells && (typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).length > 0 && (
                       <div>
                         <h3
@@ -328,7 +325,6 @@ const CodeboardWrite = () => {
                       </div>
                     )}
 
-                    {/* Suggestions */}
                     {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).length > 0 && (
                       <div>
                         <h3
@@ -386,7 +382,6 @@ const CodeboardWrite = () => {
             </div>
           </div>
 
-          {/* 오른쪽 패널: 글쓰기 영역 */}
           <div className="space-y-6">
             <WriteEditor
               onSubmit={handleSubmit}
@@ -395,6 +390,15 @@ const CodeboardWrite = () => {
           </div>
         </div>
       </div>
+
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={closeAlert}
+        onClose={closeAlert}
+      />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { SOURCE_OPTIONS } from '../../../service/algorithm/algorithmApi';
+import { SOURCE_OPTIONS } from '../../../service/algorithm/AlgorithmApi';
 import DifficultyBadge from './DifficultyBadge';
 
 /**

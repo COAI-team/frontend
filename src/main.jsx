@@ -2,7 +2,8 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { ThemeProvider } from "./context/theme/ThemeProvider";
 import LoginProvider from "./context/login/LoginProvider";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 // 레이아웃 및 메인
 import Layout from "./components/layout/mainLayout/Layout";
 import Main from "./pages/Main";
@@ -36,6 +37,10 @@ import MySubmissions from "./pages/algorithm/MySubmissions";
 import AlgorithmTutorial from "./pages/algorithm/AlgorithmTutorial";
 import AlgorithmTutorial2 from "./pages/algorithm/AlgorithmTutorial2";
 import AlgorithmTutorial3 from "./pages/algorithm/AlgorithmTutorial3";
+import AlgorithmTutorialGenerator from "./pages/algorithm/AlgorithmTutorialGenerator";
+import AlgorithmTutorialMode from "./pages/algorithm/AlgorithmTutorialMode";
+import AlgorithmTutorialSolve from "./pages/algorithm/AlgorithmTutorialSolve";
+import AlgorithmTutorialResult from "./pages/algorithm/AlgorithmTutorialResult";
 import DailyMission from "./pages/myPage/DailyMission";
 
 // 코드 분석 도메인
@@ -43,8 +48,10 @@ import CodeAnalysisMain from "./pages/codeAnalysis/CodeAnalysisMain";
 import AnalysisPage from "./pages/codeAnalysis/AnalysisPage";
 import MistakeReportPage from "./pages/myPage/MistakeReportPage";
 
+import CodeAnalysisTutorial3 from "./pages/codeAnalysis/CodeAnalysisTutorial3";
+
 // 코드게시판
-import CodeboardList from "./pages/codeboard/codeboardList";
+import CodeboardList from "./pages/codeboard/CodeboardList";
 import CodeboardDetail from "./pages/codeboard/CodeboardDetail";
 import CodeboardWrite from "./pages/codeboard/CodeboardWrite";
 import CodeboardEdit from "./pages/codeboard/CodeboardEdit";
@@ -68,6 +75,7 @@ createRoot(document.getElementById("root")).render(
   <ThemeProvider>
     <LoginProvider>
       <BrowserRouter>
+        <SpeedInsights />
         <Routes>
           {/* GitHub OAuth Callback (레이아웃 없이) */}
           <Route path="/auth/github/callback" element={<GitHubCallback />} />
@@ -145,9 +153,13 @@ createRoot(document.getElementById("root")).render(
             <Route path="pages/payment/PaymentFail" element={<PaymentFail />} />
 
             {/* 알고리즘 튜토리얼 */}
-            <Route path="tutorial" element={<AlgorithmTutorial />} />
-            <Route path="tutorial2" element={<AlgorithmTutorial2 />} />
-            <Route path="tutorial3" element={<AlgorithmTutorial3 />} />
+            <Route path="tutorial" element={<AlgorithmTutorial/>}/>
+            <Route path="tutorial2" element={<AlgorithmTutorial2/>}/>
+            <Route path="tutorial3" element={<AlgorithmTutorial3/>}/>
+            <Route path="algorithm/tutorial/generator" element={<AlgorithmTutorialGenerator/>}/>
+            <Route path="algorithm/tutorial/mode" element={<AlgorithmTutorialMode/>}/>
+            <Route path="algorithm/tutorial/solve" element={<AlgorithmTutorialSolve/>}/>
+            <Route path="algorithm/tutorial/result" element={<AlgorithmTutorialResult/>}/>
 
             {/* 알고리즘 */}
             <Route path="algorithm" element={<ProblemList />} />
@@ -170,9 +182,12 @@ createRoot(document.getElementById("root")).render(
             />
 
             {/* 코드 분석 (CodeNose) */}
-            <Route path="codeAnalysis" element={<CodeAnalysisMain />} />
-            <Route path="codeAnalysis/new" element={<AnalysisPage />} />
-            <Route path="codeAnalysis/:analysisId" element={<AnalysisPage />} />
+            <Route path="codeAnalysis" element={<CodeAnalysisMain/>}/>
+            <Route path="codeAnalysis/new" element={<AnalysisPage/>}/>
+            <Route path="codeAnalysis/:analysisId" element={<AnalysisPage/>}/>
+            
+
+            <Route path="codeAnalysis/tutorial3" element={<CodeAnalysisTutorial3/>}/>
 
             {/* 멘탈 케어 (Repetitive Mistake Report) */}
             <Route path="mistake-report" element={<MistakeReportPage />} />

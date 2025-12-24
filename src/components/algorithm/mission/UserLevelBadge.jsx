@@ -1,5 +1,13 @@
 import { ALGO_LEVEL_INFO } from '../../../service/algorithm/AlgorithmApi';
 
+// 레벨별 이미지 경로 매핑
+const LEVEL_IMAGES = {
+    EMERALD: '/LevelImg/emerald.png',
+    SAPPHIRE: '/LevelImg/sapphire.png',
+    RUBY: '/LevelImg/ruby.png',
+    DIAMOND: '/LevelImg/diamond.png'
+};
+
 /**
  * 사용자 알고리즘 레벨 표시 컴포넌트
  * - 레벨 뱃지 (EMERALD/SAPPHIRE/RUBY/DIAMOND)
@@ -14,13 +22,13 @@ import { ALGO_LEVEL_INFO } from '../../../service/algorithm/AlgorithmApi';
 const UserLevelBadge = ({ userLevel }) => {
     if (!userLevel) {
         return (
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="rounded-2xl shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-[#e2e8f0] dark:border-[#2e2e2e] p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     나의 레벨
                 </h3>
                 <div className="animate-pulse">
-                    <div className="h-12 bg-gray-200 rounded-full w-12 mx-auto mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                    <div className="h-12 bg-gray-200 dark:bg-zinc-700 rounded-full w-12 mx-auto mb-4"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-zinc-700 rounded w-1/2 mx-auto"></div>
                 </div>
             </div>
         );
@@ -62,47 +70,51 @@ const UserLevelBadge = ({ userLevel }) => {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="rounded-2xl shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border border-[#e2e8f0] dark:border-[#2e2e2e] p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 나의 레벨
             </h3>
 
             {/* 레벨 뱃지 */}
             <div className="text-center mb-6">
-                <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full ${levelInfo.bgColor} mb-3`}>
-                    <span className="text-4xl">{levelInfo.icon}</span>
+                <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full ${levelInfo.bgColor} mb-3 overflow-hidden`}>
+                    <img
+                        src={LEVEL_IMAGES[algoLevel] || LEVEL_IMAGES.EMERALD}
+                        alt={`${levelInfo.name} 레벨`}
+                        className="w-14 h-14 object-contain"
+                    />
                 </div>
                 <div className={`text-xl font-bold ${levelInfo.textColor}`}>
                     {levelInfo.name}
                 </div>
-                <div className="text-sm text-gray-500 mt-1">
+                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     미션 보상: +{levelInfo.rewardPoints}P
                 </div>
             </div>
 
             {/* 통계 */}
             <div className="grid grid-cols-3 gap-2 mb-6">
-                <div className="text-center p-2 bg-gray-50 rounded-md">
-                    <div className="text-lg font-bold text-blue-600">
+                <div className="text-center p-2 bg-gray-50 dark:bg-zinc-800 rounded-md">
+                    <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                         {totalXp.toLocaleString()}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                         총 XP
                     </div>
                 </div>
-                <div className="text-center p-2 bg-gray-50 rounded-md">
-                    <div className="text-lg font-bold text-orange-500">
+                <div className="text-center p-2 bg-gray-50 dark:bg-zinc-800 rounded-md">
+                    <div className="text-lg font-bold text-orange-500 dark:text-orange-400">
                         {currentStreak}일
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                         연속
                     </div>
                 </div>
-                <div className="text-center p-2 bg-gray-50 rounded-md">
-                    <div className="text-lg font-bold text-gray-600">
+                <div className="text-center p-2 bg-gray-50 dark:bg-zinc-800 rounded-md">
+                    <div className="text-lg font-bold text-gray-600 dark:text-gray-300">
                         {totalSolved}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                         총 풀이
                     </div>
                 </div>
@@ -112,14 +124,14 @@ const UserLevelBadge = ({ userLevel }) => {
             {nextLevel ? (
                 <div>
                     <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-600">
+                        <span className="text-gray-600 dark:text-gray-400">
                             다음 레벨까지
                         </span>
                         <span className={nextLevel.info.textColor}>
                             {nextLevel.info.name}
                         </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
                         <div
                             className={`h-2 rounded-full transition-all duration-500`}
                             style={{
@@ -133,15 +145,15 @@ const UserLevelBadge = ({ userLevel }) => {
                     </div>
                 </div>
             ) : (
-                <div className="text-center py-2 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-md">
-                    <span className="text-cyan-600 font-medium">
+                <div className="text-center py-2 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-md">
+                    <span className="text-cyan-600 dark:text-cyan-400 font-medium">
                         최고 레벨 달성!
                     </span>
                 </div>
             )}
 
             {/* 레벨 안내 */}
-            <div className="mt-4 pt-4 border-t">
+            <div className="mt-4 pt-4 border-t border-[#e2e8f0] dark:border-[#2e2e2e]">
                 <div className="text-xs text-gray-400 text-center">
                     XP 기준: EMERALD(0) → SAPPHIRE(300) → RUBY(1000) → DIAMOND(3000)
                 </div>

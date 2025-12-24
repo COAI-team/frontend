@@ -4,7 +4,7 @@ import {
     sendMonitoringViolation,
     endMonitoringSession,
     recordMonitoringWarning
-} from '../../service/algorithm/algorithmApi';
+} from '../../service/algorithm/AlgorithmApi';
 
 /**
  * WebGazer 기반 시선 추적 커스텀 훅 (모니터링 시스템 연동)

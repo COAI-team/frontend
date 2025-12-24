@@ -7,7 +7,7 @@ import {
   getTodayMissions,
   getSolveBonusStatus,
   MISSION_TYPE_INFO
-} from '../../service/algorithm/algorithmApi';
+} from '../../service/algorithm/AlgorithmApi';
 import TopicSelector from '../../components/common/TopicSelector';
 import Pagination from '../../components/common/Pagination';
 import AlgorithmListStats from '../../components/algorithm/AlgorithmListStats';
@@ -31,7 +31,7 @@ const ProblemList = () => {
   // 사이드바 열림/닫힘 상태 (localStorage에서 복원)
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('problemListSidebarOpen');
-    return saved === 'true'; // 기본값: 닫힘(false)
+    return saved !== 'false'; // 기본값: 열림(true)
   });
 
   // 사이드바 상태 변경 시 localStorage에 저장
@@ -73,7 +73,7 @@ const ProblemList = () => {
   // URL 파라미터 업데이트 헬퍼 함수
   const updateParams = useCallback((updates, resetPage = false) => {
     const newParams = new URLSearchParams(searchParams);
-    
+
     Object.entries(updates).forEach(([key, value]) => {
       if (value === null || value === undefined || value === '') {
         newParams.delete(key);
@@ -274,7 +274,7 @@ const ProblemList = () => {
 
   const getTopicDisplayName = (tags) => {
     if (!tags) return '-';
-    
+
     try {
       // JSON 배열 형태인 경우
       if (tags.startsWith('[')) {
@@ -298,7 +298,7 @@ const ProblemList = () => {
             <div className="problem-header-row">
               <h1 className="problem-title">알고리즘 문제</h1>
               <Link to="/algorithm/problems/generate" className="ai-generate-btn">
-              🚀 나만의 문제 만들러 가기 →
+                🚀 나만의 문제 만들러 가기 →
               </Link>
             </div>
             <p className="problem-subtitle">다양한 알고리즘 문제를 만들고 풀어보세요</p>
@@ -373,55 +373,55 @@ const ProblemList = () => {
               <div className="problem-table-container">
                 <table className="problem-table">
                   <thead>
-                    <tr>
-                      <th style={{width: '60px'}}>상태</th>
-                      <th style={{width: '60px'}}>번호</th>
-                      <th>제목</th>
-                      <th style={{width: '100px'}}>난이도</th>
-                      <th style={{width: '180px'}}>유형</th>
-                      <th style={{width: '80px'}}>제출수</th>
-                      <th style={{width: '80px'}}>정답률</th>
-                    </tr>
+                  <tr>
+                    <th style={{width: '60px'}}>상태</th>
+                    <th style={{width: '60px'}}>번호</th>
+                    <th>제목</th>
+                    <th style={{width: '100px'}}>난이도</th>
+                    <th style={{width: '180px'}}>유형</th>
+                    <th style={{width: '80px'}}>제출수</th>
+                    <th style={{width: '80px'}}>정답률</th>
+                  </tr>
                   </thead>
                   <tbody>
-                    {problems.length === 0 ? (
-                      <tr>
-                        <td colSpan="7" style={{textAlign: 'center', padding: '60px 20px'}}>
-                          검색 결과가 없습니다.
-                        </td>
-                      </tr>
-                    ) : (
-                      problems.map((problem, index) => (
-                        <tr
-                          key={problem.algoProblemId}
-                          onClick={() => handleProblemClick(problem.algoProblemId)}
-                        >
-                          <td>
-                            {problem.isSolved ? (
-                              <span className="status-icon solved">
+                  {problems.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{textAlign: 'center', padding: '60px 20px'}}>
+                        검색 결과가 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    problems.map((problem, index) => (
+                      <tr
+                        key={problem.algoProblemId}
+                        onClick={() => handleProblemClick(problem.algoProblemId)}
+                      >
+                        <td>
+                          {problem.isSolved ? (
+                            <span className="status-icon solved">
                                 <svg fill="currentColor" viewBox="0 0 20 20" style={{color: '#22c55e'}}>
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>
                               </span>
-                            ) : (
-                              <span className="status-icon unsolved"></span>
-                            )}
-                          </td>
-                          <td>
-                            {(pagination.currentPage - 1) * pageSize + index + 1}
-                          </td>
-                          <td style={{textAlign: 'left'}}>
-                            {problem.algoProblemTitle}
-                          </td>
-                          <td className={getDifficultyClass(problem.algoProblemDifficulty)}>
-                            {problem.algoProblemDifficulty}
-                          </td>
-                          <td>{getTopicDisplayName(problem.algoProblemTags)}</td>
-                          <td>{problem.totalSubmissions || 0}</td>
-                          <td>{problem.accuracy ? `${problem.accuracy}%` : '0%'}</td>
-                        </tr>
-                      ))
-                    )}
+                          ) : (
+                            <span className="status-icon unsolved"></span>
+                          )}
+                        </td>
+                        <td>
+                          {(pagination.currentPage - 1) * pageSize + index + 1}
+                        </td>
+                        <td style={{textAlign: 'left'}}>
+                          {problem.algoProblemTitle}
+                        </td>
+                        <td className={getDifficultyClass(problem.algoProblemDifficulty)}>
+                          {problem.algoProblemDifficulty}
+                        </td>
+                        <td>{getTopicDisplayName(problem.algoProblemTags)}</td>
+                        <td>{problem.totalSubmissions || 0}</td>
+                        <td>{problem.accuracy ? `${problem.accuracy}%` : '0%'}</td>
+                      </tr>
+                    ))
+                  )}
                   </tbody>
                 </table>
               </div>

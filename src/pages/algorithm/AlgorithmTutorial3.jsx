@@ -12,7 +12,7 @@ import { useLogin } from '../../context/login/useLogin';
  */
 
 // localStorage 키
-const TUTORIAL_STORAGE_KEY = 'coai_algorithm_tutorial_v3';
+const TUTORIAL_STORAGE_KEY_ALGO = 'coai_algorithm_tutorial_v3';
 
 // 튜토리얼 단계 정의
 const TUTORIAL_STEPS = [
@@ -156,9 +156,18 @@ const AlgorithmTutorial3 = () => {
   const currentPage = currentStepInfo?.page || 'generator';
   const progress = ((currentStep + 1) / TUTORIAL_STEPS.length) * 100;
 
-  // localStorage에서 상태 로드
+  // localStorage에서 상태 로드 및 URL 파라미터 처리
   useEffect(() => {
-    const saved = localStorage.getItem(TUTORIAL_STORAGE_KEY);
+    const searchParams = new URLSearchParams(window.location.search);
+    const stepParam = searchParams.get('step');
+    
+    if (stepParam !== null) {
+        // URL 파라미터가 있으면 강제로 해당 단계로 이동 (localStorage 무시)
+        setCurrentStep(parseInt(stepParam, 10));
+        return;
+    }
+
+    const saved = localStorage.getItem(TUTORIAL_STORAGE_KEY_ALGO);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -175,7 +184,7 @@ const AlgorithmTutorial3 = () => {
 
   // 상태 저장
   const saveProgress = useCallback((step, isComplete = false) => {
-    localStorage.setItem(TUTORIAL_STORAGE_KEY, JSON.stringify({
+    localStorage.setItem(TUTORIAL_STORAGE_KEY_ALGO, JSON.stringify({
       lastStep: step,
       tutorialCompleted: isComplete,
       timestamp: Date.now(),
@@ -211,7 +220,7 @@ const AlgorithmTutorial3 = () => {
 
   // 초기화
   const handleReset = useCallback(() => {
-    localStorage.removeItem(TUTORIAL_STORAGE_KEY);
+    localStorage.removeItem(TUTORIAL_STORAGE_KEY_ALGO);
     setCurrentStep(0);
     setTutorialCompleted(false);
   }, []);
@@ -514,7 +523,7 @@ const MockProblemGenerator = ({ highlightRefs }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-main py-8 pt-20">
+    <div className="min-h-screen bg-main py-8 pt-20 pb-32">
       <div className="max-w-7xl mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-main mb-2">AI 문제 생성</h1>
@@ -523,22 +532,22 @@ const MockProblemGenerator = ({ highlightRefs }) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 왼쪽: 설정 폼 */}
-          <div className="bg-panel rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-main mb-6">문제 생성 설정</h2>
+          <div className="bg-panel rounded-lg shadow-md p-5">
+            <h2 className="text-xl font-bold text-main mb-4">문제 생성 설정</h2>
 
             {/* 난이도 선택 */}
             <div
               ref={el => highlightRefs.current['difficulty'] = el}
-              className="mb-6"
+              className="mb-4"
             >
-              <label className="block text-sm font-medium text-sub mb-3">
+              <label className="block text-sm font-medium text-sub mb-2">
                 난이도 <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {difficulties.map((diff) => (
                   <button
                     key={diff.value}
-                    className={`p-4 rounded-lg border transition-all ${
+                    className={`p-3 rounded-lg border transition-all ${
                       diff.value === 'SILVER'
                         ? `${diff.color} border-current`
                         : 'border-gray-200 dark:border-zinc-600'
@@ -553,15 +562,15 @@ const MockProblemGenerator = ({ highlightRefs }) => {
             {/* 알고리즘 유형 */}
             <div
               ref={el => highlightRefs.current['topic'] = el}
-              className="mb-6"
+              className="mb-4"
             >
-              <label className="block text-sm font-medium text-sub mb-3">
+              <label className="block text-sm font-medium text-sub mb-2">
                 알고리즘 유형 <span className="text-red-500">*</span>
               </label>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {topics.map((cat) => (
                   <div key={cat.category}>
-                    <div className="text-xs font-semibold text-muted mb-1.5">{cat.category}</div>
+                    <div className="text-xs font-semibold text-muted mb-1">{cat.category}</div>
                     <div className="flex flex-wrap gap-2">
                       {cat.items.map((item) => (
                         <button
@@ -584,9 +593,9 @@ const MockProblemGenerator = ({ highlightRefs }) => {
             {/* 스토리 테마 */}
             <div
               ref={el => highlightRefs.current['theme'] = el}
-              className="mb-6"
+              className="mb-4"
             >
-              <label className="block text-sm font-medium text-sub mb-3">
+              <label className="block text-sm font-medium text-sub mb-2">
                 스토리 테마 <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-3 gap-2">

@@ -35,13 +35,13 @@ const FreeboardContent = React.memo(({ content, isDark, boardId }) => {
         preview.innerHTML = "";
         preview.className = `link-preview-card ${isDark ? "dark" : "light"}`;
         preview.style.cssText = `
-          border: 1px solid ${isDark ? "#374151" : "#e5e7eb"};
+          border: 1px solid ${isDark ? "#2b2b2b" : "#e5e7eb"};
           border-radius: 0.5rem;
           padding: 1rem;
           margin: 1rem 0;
           display: flex;
           gap: 1rem;
-          background: ${isDark ? "#1f2937" : "#ffffff"};
+          background: ${isDark ? "#1f1f1f" : "#ffffff"};
           cursor: pointer;
           transition: all 0.2s;
         `;
@@ -51,7 +51,7 @@ const FreeboardContent = React.memo(({ content, isDark, boardId }) => {
         });
 
         preview.addEventListener("mouseleave", () => {
-          preview.style.borderColor = isDark ? "#374151" : "#e5e7eb";
+          preview.style.borderColor = isDark ? "#2b2b2b" : "#e5e7eb";
         });
 
         preview.addEventListener("click", () => {

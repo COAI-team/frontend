@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import {AiOutlineMessage, AiOutlineClose, AiFillRobot, AiOutlineArrowDown} from "react-icons/ai";
 import {LoginContext} from "../../context/login/LoginContext";
 import {sendChatMessage, getChatMessages} from "../../service/chat/Chatbot.js";
-import { MarkdownComponents } from "../common/MarkdownConfig.js";
+import { MarkdownComponents } from "../common/markdownConfig.js";
 import { useNavigate } from "react-router-dom";
 
 const BILLING_KEYWORDS = [
@@ -229,7 +229,7 @@ export default function ChatbotButton() {
       {isOpen && (
         <div
           className="fixed right-35 w-96 h-9/12 bg-white dark:bg-neutral-900
-                               rounded-3xl shadow-2xl border dark:border-neutral-800
+                               rounded-3xl shadow-2xl border border-slate-200 dark:border-neutral-800
                                z-9999 flex flex-col overflow-hidden transition-all duration-300"
           style={chatWindowStyle}
         >
@@ -262,7 +262,7 @@ export default function ChatbotButton() {
               max-h-48 overflow-y-auto text-[12px]
               ${
                     msg.sender === "ai"
-                      ? "bg-white dark:bg-neutral-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-neutral-700 rounded-tl-sm"
+                      ? "bg-white dark:bg-neutral-800 text-gray-800 dark:text-gray-100 border border-slate-200 dark:border-neutral-700 rounded-tl-sm"
                       : "bg-linear-to-br from-blue-500 via-blue-600 to-blue-700 text-white rounded-tr-sm"
                   }`}
                 >

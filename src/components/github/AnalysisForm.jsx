@@ -19,7 +19,7 @@ const toneLevels = [
     { level: 5, label: '매우 엄격함', desc: '까다롭고 심술궂은 고양이 같은 톤', emoji: '😾' },
 ];
 
-const AnalysisForm = ({ onSubmit, isLoading, disabled = false }) => {
+const AnalysisForm = ({ onSubmit, isLoading, disabled = false, buttonRef }) => {
     const { theme } = useTheme();
     const [selectedTypes, setSelectedTypes] = useState(['code_smell']);
     const [toneLevel, setToneLevel] = useState(3);
@@ -219,6 +219,7 @@ const AnalysisForm = ({ onSubmit, isLoading, disabled = false }) => {
             )}
 
             <button
+                ref={buttonRef}
                 type="submit"
                 disabled={isLoading || selectedTypes.length === 0 || disabled}
                 className="w-full bg-indigo-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors shadow-md"

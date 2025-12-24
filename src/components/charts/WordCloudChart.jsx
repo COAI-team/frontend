@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
-// import 'echarts-wordcloud';
-import '@echarts-readymade/wordcloud';
+import 'echarts-wordcloud';
 
 /**
  * ECharts WordCloud 컴포넌트

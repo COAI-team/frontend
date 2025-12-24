@@ -4,7 +4,7 @@ import {
     sendMonitoringViolation,
     endMonitoringSession,
     recordMonitoringWarning
-} from '../../service/algorithm/algorithmApi';
+} from '../../service/algorithm/AlgorithmApi';
 
 /**
  * MediaPipe 기반 시선/얼굴 추적 커스텀 훅
@@ -1138,6 +1138,10 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     // 메인 추적 루프 (ref 기반 - setState 최소화)
     const trackingLoop = useCallback(async () => {
         if (!faceLandmarkerRef.current || !videoRef.current || isCleaningUpRef.current) {
+            // FaceLandmarker가 아직 준비 안됐으면 다음 프레임에 다시 시도
+            if (!isCleaningUpRef.current) {
+                animationFrameRef.current = requestAnimationFrame(trackingLoop);
+            }
             return;
         }
 
@@ -1639,7 +1643,7 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             setSessionId(newSessionId);
             setIsTracking(true);
 
-            console.log('🎯 MediaPipe monitoring session started, sessionId:', newSessionId, 'sessionIdRef:', sessionIdRef.current);
+            console.log('🎯 MediaPipe monitoring session started, sessionId:', newSessionId);
 
             // 추적 루프 시작
             trackingLoop();

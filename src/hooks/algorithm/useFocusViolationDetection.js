@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import devtools from 'devtools-detect';
-import { sendMonitoringViolation } from '../../service/algorithm/algorithmApi';
+import { sendMonitoringViolation } from '../../service/algorithm/AlgorithmApi';
 
 /**
  * 집중 모드 위반 감지 커스텀 훅

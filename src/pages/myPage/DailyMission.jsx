@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import {
     getTodayMissions,
     getUsageInfo,
     getUserLevel,
     getSolveBonusStatus,
     getContributions,
-    MISSION_TYPE_INFO,
-    DIFFICULTY_OPTIONS
 } from '../../service/algorithm/AlgorithmApi';
 import UsageDisplay from '../../components/algorithm/mission/UsageDisplay';
 import UserLevelBadge from '../../components/algorithm/mission/UserLevelBadge';
@@ -38,8 +35,6 @@ const DailyMission = () => {
     const [lastUpdated, setLastUpdated] = useState(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [bonusStatusMap, setBonusStatusMap] = useState({});
-
-    const navigate = useNavigate();
 
     const fetchBonusStatuses = useCallback(async (missionList) => {
         const targets = missionList.filter(
@@ -190,28 +185,6 @@ const DailyMission = () => {
         };
     }, [hydrated, isLoggedIn, loadData]);
 
-    // ===== 미션 카드 클릭 핸들러 =====
-    const handleMissionClick = (mission) => {
-        if (mission.completed) return;
-
-        const typeInfo = MISSION_TYPE_INFO[mission.missionType];
-        if (mission.missionType === 'PROBLEM_GENERATE') {
-            navigate(typeInfo.link);
-        } else if (mission.missionType === 'PROBLEM_SOLVE' && mission.problemId) {
-            navigate(`${typeInfo.linkPrefix}${mission.problemId}`);
-        }
-    };
-
-    // ===== 난이도 라벨 가져오기 =====
-    const getDifficultyLabel = (difficulty) => {
-        const option = DIFFICULTY_OPTIONS.find(opt => opt.value === difficulty);
-        return option ? option.label : difficulty;
-    };
-
-    // ===== 완료된 미션 수 계산 =====
-    const completedCount = missions.filter(m => m.completed).length;
-    const totalMissions = missions.length;
-
     // ===== 렌더링 =====
 
     // hydration 완료 전 또는 로딩 중 표시
@@ -231,10 +204,10 @@ const DailyMission = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-3xl font-bold text-main mb-2">
-                                오늘의 미션
+                                나의 활동
                             </h1>
                             <p className="text-muted">
-                                매일 미션을 완료하고 포인트를 획득하세요!
+                                활동을 확인하세요!
                             </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
@@ -289,7 +262,7 @@ const DailyMission = () => {
                         </div>
 
                         {/* 🌱 GitHub 스타일 잔디 캘린더 */}
-                        <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 mb-6 grass-calendar-container">
+                        <div className="rounded-2xl border border-[#e2e8f0] dark:border-[#2e2e2e] shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-6 mb-6 grass-calendar-container">
                             <div className="flex items-center justify-between mb-4 calendar-header pb-0">
                                 <h2 className="text-lg font-semibold text-main flex items-center gap-2">
                                     🌱 문제 풀이 기록
@@ -477,7 +450,7 @@ const DailyMission = () => {
                                                 </div>
 
                                                 {/* 통계 + 범례 */}
-                                                <div className="mt-4 pt-4 border-t dark:border-gray-700 flex items-center justify-between text-sm">
+                                                <div className="mt-4 pt-4 border-t border-[#e2e8f0] dark:border-[#2e2e2e] flex items-center justify-between text-sm">
                                                     {/* 통계 (좌측) */}
                                                     <div className="text-muted">
                                                         올해 활동일 <span className="font-bold text-main">{activeDays}</span>일
@@ -499,195 +472,6 @@ const DailyMission = () => {
                                     })()}
                                 </div>
                             </div>
-                        </div>
-
-                        {/* 미션 진행 상황 */}
-                        <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 mb-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-semibold text-main">
-                                    미션 진행률
-                                </h2>
-                                <span className="text-sm text-muted">
-                                    {completedCount} / {totalMissions} 완료
-                                </span>
-                            </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                                <div
-                                    className="bg-green-500 h-3 rounded-full transition-all duration-500"
-                                    style={{
-                                        width: totalMissions > 0
-                                            ? `${(completedCount / totalMissions) * 100}%`
-                                            : '0%'
-                                    }}
-                                ></div>
-                            </div>
-                            {completedCount === totalMissions && totalMissions > 0 && (
-                                <p className="mt-3 text-center text-green-600 dark:text-green-400 font-medium">
-                                    오늘의 모든 미션을 완료했습니다!
-                                </p>
-                            )}
-                        </div>
-
-                        {/* 미션 목록 */}
-                        <div className="space-y-4">
-                            <h2 className="text-lg font-semibold text-main">
-                                오늘의 미션 목록
-                            </h2>
-
-                            {missions.length === 0 ? (
-                                <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-8 text-center">
-                                    <p className="text-muted">
-                                        오늘의 미션이 없습니다.
-                                    </p>
-                                </div>
-                            ) : (
-                                missions.map((mission, index) => {
-                                    const typeInfo = MISSION_TYPE_INFO[mission.missionType] || {};
-                                    const isCompleted = mission.completed;
-
-                                    return (
-                                        <div
-                                            key={mission.missionId || index}
-                                            onClick={() => handleMissionClick(mission)}
-                                            className={`bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 transition-all ${
-                                                isCompleted
-                                                    ? 'opacity-70 cursor-default'
-                                                    : 'hover:shadow-md cursor-pointer hover:border-blue-300 dark:hover:border-blue-500'
-                                            }`}
-                                        >
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-start gap-4">
-                                                    {/* 아이콘 */}
-                                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
-                                                        isCompleted
-                                                            ? 'bg-green-100 dark:bg-green-900/30'
-                                                            : 'bg-blue-100 dark:bg-blue-900/30'
-                                                    }`}>
-                                                        {isCompleted ? '✅' : typeInfo.icon}
-                                                    </div>
-
-                                                    {/* 미션 정보 */}
-                                                    <div>
-                                                        <h3 className={`font-semibold text-lg ${
-                                                            isCompleted
-                                                                ? 'text-muted line-through'
-                                                                : 'text-main'
-                                                        }`}>
-                                                            {typeInfo.name || mission.missionType}
-                                                        </h3>
-                                                        <p className="text-muted text-sm mt-1">
-                                                            {typeInfo.description}
-                                                        </p>
-
-                                                        {/* 문제 정보 (PROBLEM_SOLVE인 경우) */}
-                                                        {mission.missionType === 'PROBLEM_SOLVE' && mission.problemTitle && (
-                                                            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
-                                                                <p className="text-sm text-sub">
-                                                                    <span className="font-medium">문제:</span> {mission.problemTitle}
-                                                                </p>
-                                                                {mission.problemDifficulty && (
-                                                                    <p className="text-sm text-muted">
-                                                                        <span className="font-medium">난이도:</span>{' '}
-                                                                        {getDifficultyLabel(mission.problemDifficulty)}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* 보상 포인트 */}
-                                                <div className="text-right">
-                                                    <div className={`text-lg font-bold ${
-                                                        isCompleted
-                                                            ? 'text-green-600 dark:text-green-400'
-                                                            : 'text-yellow-600 dark:text-yellow-400'
-                                                    }`}>
-                                                        +{mission.rewardPoints}P
-                                                    </div>
-                                                    <div className="text-xs text-muted mt-1">
-                                                        {isCompleted ? '획득 완료' : '보상'}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* 선착순 보너스 상태 (문제 풀이 미션 전용) */}
-                                            {mission.missionType === 'PROBLEM_SOLVE' && (
-                                                <div className="mt-3 text-sm">
-                                                    {(() => {
-                                                        const bonusKey = mission.missionId || mission.problemId;
-                                                        const bonusStatus = bonusStatusMap[bonusKey];
-                                                        const current = bonusStatus?.currentCount ?? 0;
-                                                        const limit = bonusStatus?.limit ?? 3;
-
-                                                        if (!bonusStatus) {
-                                                            return (
-                                                                <span className="text-gray-500 dark:text-gray-400">
-                                                                    선착순 보너스 상태 확인 중...
-                                                                </span>
-                                                            );
-                                                        }
-
-                                                        if (isCompleted) {
-                                                            return (
-                                                                <span className="text-green-600 dark:text-green-400 font-medium">
-                                                                    오늘 {current}번째로 보너스 지급 완료 ({current}/{limit}명)
-                                                                </span>
-                                                            );
-                                                        }
-
-                                                        if (bonusStatus.eligible) {
-                                                            return (
-                                                                <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                                                    선착순 보너스 가능 ({current}/{limit}명)
-                                                                </span>
-                                                            );
-                                                        }
-
-                                                        return (
-                                                            <span className="text-gray-500 dark:text-gray-400 font-medium">
-                                                                보너스 마감 ({current}/{limit}명)
-                                                            </span>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            )}
-
-                                            {/* 완료 시간 */}
-                                            {isCompleted && mission.completedAt && (
-                                                <div className="mt-3 pt-3 border-t dark:border-gray-700 text-sm text-muted">
-                                                    완료 시간: {new Date(mission.completedAt).toLocaleTimeString('ko-KR')}
-                                                </div>
-                                            )}
-
-                                            {/* 미완료 시 안내 */}
-                                            {!isCompleted && (
-                                                <div className="mt-4 pt-3 border-t dark:border-gray-700">
-                                                    <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
-                                                        클릭하여 미션 시작하기 →
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-
-                        {/* 하단 링크 */}
-                        <div className="mt-8 flex justify-center gap-4">
-                            <Link
-                                to="/algorithm/problems"
-                                className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
-                            >
-                                문제 목록 보기
-                            </Link>
-                            <Link
-                                to="/algorithm/problems/generate"
-                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-                            >
-                                AI 문제 생성
-                            </Link>
                         </div>
                     </>
                 )}
