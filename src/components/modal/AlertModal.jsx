@@ -129,7 +129,9 @@ export default function AlertModal({
               </div>
 
               <div className="mt-3 sm:ml-4 sm:mt-0 sm:text-left text-center">
-                <DialogTitle className={`text-base font-semibold ${styles.title}`}>
+                <DialogTitle
+                  className={`text-base font-semibold ${styles.title}`}
+                >
                   {title}
                 </DialogTitle>
                 <div className="mt-2">
