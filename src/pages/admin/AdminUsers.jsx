@@ -3,8 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import AdminUserDetailModal from "./AdminUserDetailModal";
 
 export default function AdminUsers() {
-  // const API_BASE_URL = "https://api.co-ai.run/admin";
-  const API_BASE_URL = "http://localhost:9443/admin";
+  const API_BASE_URL = "https://api.co-ai.run/admin";
+  // const API_BASE_URL = "http://localhost:9443/admin";
   const [users, setUsers] = useState([]);
   const [pageInfo, setPageInfo] = useState({
     page: 1,
