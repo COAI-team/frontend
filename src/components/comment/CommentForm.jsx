@@ -30,6 +30,15 @@ export default function CommentForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // 디버깅 로그 추가
+    console.log('댓글 작성 요청:', {
+      boardId,
+      boardType,
+      parentCommentId,
+      content: content.trim(),
+      auth
+    });
+
     if (!content.trim()) {
       showAlert({
         type: "warning",
@@ -51,8 +60,11 @@ export default function CommentForm({
       setContent('');
       onSuccess();
     } catch (error) {
-      console.error('작성 실패:', error);
-      showAlert({
+    console.error('작성 실패:', error);
+    console.error('에러 응답:', error.response?.data); // 백엔드 에러 메시지 확인
+    console.error('에러 상태:', error.response?.status); // HTTP 상태 코드 확인
+      
+  showAlert({
         type: "error",
         title: "작성 실패",
         message: `${isReply ? "답글" : "댓글"} 작성에 실패했습니다.`,
