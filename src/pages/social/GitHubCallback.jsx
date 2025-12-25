@@ -5,6 +5,7 @@ import { useLogin } from "../../context/login/useLogin";
 import axiosInstance from "../../server/AxiosConfig";
 import {saveAuth, getAuth} from "../../utils/auth/token";
 import {useAlert} from "../../hooks/common/useAlert.js";
+import AlertModal from "../../components/modal/AlertModal";
 
 export default function GitHubCallback() {
   const navigate = useNavigate();
