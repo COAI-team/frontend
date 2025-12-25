@@ -57,15 +57,14 @@ export const updateMyInfo = (payload) =>
   axiosInstance.put("/users/me", createFormData(payload)).then(res => res.data);
 
 // ✅ GitHub API
-export const loginWithGithub = async (code, mode) => {
+export const loginWithGithub = async (code, state) => {
+  console.log("깃헙로그인이다??????");
   try {
-    const query = mode ? `?code=${code}&mode=${mode}` : `?code=${code}`;
+    const query = state ? `?code=${code}&state=${state}` : `?code=${code}`;
     const response = await axiosInstance.get(`/auth/github/callback${query}`, {
       _skipAuthRedirect: true
     });
-    console.log("query", query);
-    console.log("response", response);
-
+    console.log("요고요고" + JSON.stringify(response.data));
     return response.data;
   } catch (error) {
     console.error("❌ [GitHub Login] 오류:", error);
@@ -88,8 +87,9 @@ export const getGithubUserInfo = () =>
 export const disconnectGithub = () =>
   axiosInstance.post("/auth/github/disconnect", {}).then(res => res.data);
 
-// 🔗 GitHub 계정 연동 (로그인된 사용자)
-export const linkGithubAccount = (gitHubUser) =>
-  axiosInstance
-    .post("/auth/github/link", gitHubUser)
-    .then(res => res.data);
+export const linkGithubAccount = (gitHubUser, config = {}) => {
+  return axiosInstance.post("/users/github/link", gitHubUser, {
+    ...config,
+    headers: {'Content-Type': 'application/json', ...config.headers},
+  }).then(res => res.data);
+};

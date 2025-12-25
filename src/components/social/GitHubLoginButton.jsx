@@ -4,7 +4,7 @@ const GitHubLoginButton = () => {
   // ✅ useCallback으로 함수 메모이제이션
   const handleGitHubLogin = useCallback(() => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-    const redirectUri = `${globalThis.location.origin}/oauth/github/callback`;
+    const redirectUri = `${globalThis.location.origin}/auth/github/callback`;
 
     globalThis.location.href =
       "https://github.com/login/oauth/authorize" +
