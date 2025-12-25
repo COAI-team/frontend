@@ -42,6 +42,21 @@ const ProblemSolve = () => {
   const navigate = useNavigate();
   const { user } = useLogin();
 
+  useEffect(() => {
+    if (localStorage.getItem('pageReloaded') === 'true') {
+      localStorage.removeItem('pageReloaded');  // 플래그 정리
+      return;
+    }
+
+    localStorage.setItem('pageReloaded', 'true');  // 플래그 설정
+
+    const timer = setTimeout(() => {
+      globalThis.location.reload();
+    }, 10);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // [Tutorial Redirection]
   // Redirect to tutorial if accessing 'Problem Solve' and relevant sections not completed
   useEffect(() => {
