@@ -1,21 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { confirmPayment } from "../../service/payment/PaymentApi";
+import { getUserInfo } from "../../service/user/User";
+import { useLogin } from "../../context/login/useLogin";
 import "./css/payment-screens.css";
-
 
 function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { setUser } = useLogin() || {};
 
   const paymentKey = searchParams.get("paymentKey");
   const orderId = searchParams.get("orderId");
   const amount = searchParams.get("amount");
   const pointOnly = searchParams.get("pointOnly") === "true";
 
-  const [statusMessage, setStatusMessage] = useState(
-    "결제 확인 처리 중입니다..."
-  );
+  const [statusMessage, setStatusMessage] = useState("결제 확인 처리 중입니다...");
   const [orderLine, setOrderLine] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -36,6 +36,17 @@ function PaymentSuccess() {
     if (confirmCalledRef.current) return;
     confirmCalledRef.current = true;
 
+    const refreshUser = async () => {
+      try {
+        const res = await getUserInfo();
+        if (res && setUser) {
+          setUser(res);
+        }
+      } catch (e) {
+        console.warn("결제 후 사용자 정보 갱신 실패:", e?.message || e);
+      }
+    };
+
     // 포인트 전액 결제 플로우
     if (pointOnly) {
       if (!orderId) {
@@ -47,14 +58,13 @@ function PaymentSuccess() {
       setStatusMessage("포인트 전액 사용으로 구독이 활성화되었습니다.");
       setOrderLine(`주문 ID: ${orderId}`);
       setIsSuccess(true);
+      refreshUser();
       return;
     }
 
     // 일반 Toss 결제 플로우
     if (!paymentKey || !orderId || !amount) {
-      setStatusMessage(
-        "승인 결제 정보(paymentKey, orderId, amount)가 누락되었습니다."
-      );
+      setStatusMessage("유효한 결제 정보(paymentKey, orderId, amount)가 누락되었습니다.");
       setIsSuccess(false);
       return;
     }
@@ -71,10 +81,9 @@ function PaymentSuccess() {
           setStatusMessage("결제가 성공적으로 완료되었습니다.");
           setOrderLine(`주문 ID: ${response.data.orderId}`);
           setIsSuccess(true);
+          refreshUser();
         } else {
-          setStatusMessage(
-            "결제는 처리되었으나 응답 형식이 이상합니다. 관리자에게 문의해 주세요."
-          );
+          setStatusMessage("결제가 처리되었으나 응답이 비정상적입니다. 관리자에게 문의해 주세요.");
           setIsSuccess(false);
         }
       } catch (error) {
@@ -94,17 +103,13 @@ function PaymentSuccess() {
     };
 
     doConfirmPayment();
-  }, [paymentKey, orderId, amount, pointOnly]);
+  }, [paymentKey, orderId, amount, pointOnly, setUser]);
 
   return (
     <div className="payment-screen">
       <div className="payment-card">
-        <h1
-          className={
-            isSuccess ? "payment-title-success" : "payment-title-warning"
-          }
-        >
-          {isSuccess ? "결제 및 구독 활성화 완료" : "결제 처리 중 / 오류"}
+        <h1 className={isSuccess ? "payment-title-success" : "payment-title-warning"}>
+          {isSuccess ? "결제 및 구독 활성화 완료" : "결제 처리 중/오류"}
         </h1>
 
         <p className="payment-status">{statusMessage}</p>
@@ -128,10 +133,7 @@ function PaymentSuccess() {
             홈으로
           </button>
 
-          <button
-            className="payment-btn-secondary"
-            onClick={() => navigate("/mypage/profile")}
-          >
+          <button className="payment-btn-secondary" onClick={() => navigate("/mypage/profile")}>
             마이페이지
           </button>
         </div>

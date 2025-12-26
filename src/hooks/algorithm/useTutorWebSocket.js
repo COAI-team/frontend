@@ -19,12 +19,17 @@ export function useTutorWebSocket({
   const [messages, setMessages] = useState([]);
   const [isPending, setIsPending] = useState(false);
 
+  const isPendingRef = useRef(false);
   const clientRef = useRef(null);
   const subscriptionRef = useRef(null);
   const lastCodeChangeAtRef = useRef(Date.now());
   const pendingAutoRef = useRef(false);
   const lastAutoCodeHashRef = useRef(null);
   const pendingAutoTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    isPendingRef.current = isPending;
+  }, [isPending]);
 
   // 코드 바뀌는 시점 기록
   useEffect(() => {
@@ -62,11 +67,9 @@ export function useTutorWebSocket({
       tokenPreview: accessToken ? accessToken.slice(0, 15) + '...' : null
     });
 
-    const tokenParam = accessToken ? `?access_token=${encodeURIComponent(accessToken)}` : '';
-
     const client = new Client({
       webSocketFactory: () =>
-        new SockJS(`${API_URL}/ws/tutor${tokenParam}`, null, {
+        new SockJS(`${API_URL}/ws/tutor`, null, {
           withCredentials: true,
           transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
           transportOptions: {
@@ -90,7 +93,7 @@ export function useTutorWebSocket({
           subscriptionRef.current.unsubscribe();
         }
 
-      subscriptionRef.current = client.subscribe(`/topic/tutor.${problemId}`, (frame) => {
+      subscriptionRef.current = client.subscribe('/user/queue/tutor', (frame) => {
         // 🔍 서버가 보낸 원본 메시지 그대로 찍기
         console.log('[TutorWS] RECEIVED RAW', frame.body);
 
@@ -98,12 +101,25 @@ export function useTutorWebSocket({
           const payload = JSON.parse(frame.body);
           const enriched = { ...payload, _receivedAt: new Date().toISOString() };
 
-          if (typeof payload.triggerType === 'string' && payload.triggerType.toUpperCase() === 'AUTO') {
+          const isAuto = typeof payload.triggerType === 'string' && payload.triggerType.toUpperCase() === 'AUTO';
+          const isInfo = typeof payload.type === 'string' && payload.type.toUpperCase() === 'INFO';
+          const isFinal = !isInfo;
+
+          if (isAuto && isFinal) {
             pendingAutoRef.current = false;
           }
 
-          setMessages((prev) => [...prev.slice(-19), enriched]);
-          setIsPending(false);
+          if (isInfo && isAuto) {
+            // 자동 힌트 건너뜀 등의 안내 INFO는 기록하지 않고 로딩도 해제
+            setIsPending(false);
+          }
+
+          if (!isInfo) {
+            setMessages((prev) => [...prev.slice(-19), enriched]);
+            if (isFinal) {
+              setIsPending(false);
+            }
+          }
         } catch (err) {
           console.error('[TutorWS] Failed to parse message', err);
         }
@@ -192,7 +208,7 @@ export function useTutorWebSocket({
     const interval = setInterval(() => {
       const now = Date.now();
       if (!userId) return;
-      if (isPending) return; // 튜터 답변 대기 중에는 자동 힌트 대기
+      if (isPendingRef.current) return; // 튜터 답변 대기 중에는 자동 힌트 대기
       if (pendingAutoRef.current) return;
       if (!code || !code.trim()) return;
 

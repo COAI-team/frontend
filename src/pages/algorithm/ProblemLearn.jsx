@@ -11,6 +11,7 @@ import { useTutorWebSocket } from '../../hooks/algorithm/useTutorWebSocket';
 import { useLogin } from '../../context/login/useLogin';
 import { getAuth } from '../../utils/auth/token';
 import { useLoginRequiredModal } from '../../hooks/common/useLoginRequiredModal.jsx';
+import { getUserInfo } from '../../service/user/User';
 import { useTheme } from '../../context/theme/useTheme';
 
 const TUTOR_AUTO_INTERVAL_MS = 8000;
@@ -156,7 +157,7 @@ const ProblemLearn = () => {
   const editorRef = useRef(null);
   const chatContainerRef = useRef(null);
   const judgeCooldownRef = useRef(0);
-  const { user } = useLogin();
+  const { user, setUser } = useLogin();
   const { theme } = useTheme();
   const { openLoginRequired, LoginRequiredModalElement } = useLoginRequiredModal(
     'Live Tutor를 사용하려면 먼저 로그인해 주세요.'
@@ -196,6 +197,7 @@ const ProblemLearn = () => {
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [hasNewMessages, setHasNewMessages] = useState(false);
   const [lastSeenMessageCount, setLastSeenMessageCount] = useState(0);
+  const [lastUserRefreshAt, setLastUserRefreshAt] = useState(0);
 
   const [testResult, setTestResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -209,6 +211,28 @@ const ProblemLearn = () => {
   const isFree = subscriptionTier === 'FREE';
   const isBasic = subscriptionTier === 'BASIC';
   const isPro = subscriptionTier === 'PRO';
+
+  // 구독 정보 최신화(페이지 입장 시 1회, 이후 일정 시간 지난 경우만)
+  useEffect(() => {
+    const now = Date.now();
+    const FIVE_MIN = 5 * 60 * 1000;
+    if (!accessToken) return;
+    if (now - lastUserRefreshAt < FIVE_MIN) return;
+
+    const refreshUser = async () => {
+      try {
+        const res = await getUserInfo();
+        if (res && setUser) {
+          setUser(res);
+          setLastUserRefreshAt(Date.now());
+        }
+      } catch (e) {
+        console.warn('구독 정보 갱신 실패:', e?.message || e);
+      }
+    };
+
+    refreshUser();
+  }, [accessToken, lastUserRefreshAt, setUser]);
 
   // PRO가 아니거나 AC가 되면 AUTO HINT 중단(토글도 OFF)
   useEffect(() => {
@@ -593,7 +617,11 @@ const ProblemLearn = () => {
       openLoginRequired();
       return;
     }
-    if (!isPro) return;
+    if (!isPro) {
+      alert('BASIC 구독에서는 자동 힌트를 사용할 수 없습니다. PRO 플랜에서 이용해 주세요.');
+      setAutoHintEnabled(false);
+      return;
+    }
 
     setAutoHintEnabled((prevEnabled) => {
       const nextEnabled = !prevEnabled;
