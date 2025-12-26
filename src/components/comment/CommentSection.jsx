@@ -3,7 +3,7 @@ import CommentList from './CommentList';
 import CommentForm from './CommentForm';
 import { axiosInstance } from '../../server/AxiosConfig';
 
-export default function CommentSection({ boardId, boardType, isDark, onCommentCountChange, currentUserId }) {
+export default function CommentSection({ boardId, boardType, isDark, onCommentCountChange, currentUserId, onLineClick }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [cursor, setCursor] = useState(null);
@@ -112,6 +112,7 @@ export default function CommentSection({ boardId, boardType, isDark, onCommentCo
             onCommentUpdated={fetchComments}
             isDark={isDark}
             currentUserId={currentUserId}
+            onLineClick={onLineClick}
           />
 
           {hasNext && (
