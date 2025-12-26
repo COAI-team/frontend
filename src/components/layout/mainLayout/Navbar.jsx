@@ -26,10 +26,10 @@ export default function Navbar() {
   );
 
   const { theme, setTheme } = useTheme();
+  const { user, logout, hydrated, accessToken } = useLogin();
   const [mounted, setMounted] = useState(false);
 
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const { user, logout, hydrated, accessToken } = useLogin();
 
   useEffect(() => setMounted(true), []);
 
@@ -52,16 +52,25 @@ export default function Navbar() {
   };
 
   const [showMoai, setShowMoai] = useState(() => {
+<<<<<<< HEAD
     if (globalThis.window === undefined) return true;
+=======
+    if (typeof window === "undefined") return true;
+>>>>>>> c849fc9 (nav에러 _수정)
     return JSON.parse(localStorage.getItem("walkingMoai") ?? "true");
   });
 
   useEffect(() => {
-    const handleStorageChange = () => {
+    const handler = () => {
       setShowMoai(JSON.parse(localStorage.getItem("walkingMoai") ?? "true"));
     };
+<<<<<<< HEAD
     globalThis.addEventListener("storage", handleStorageChange);
     return () => globalThis.removeEventListener("storage", handleStorageChange);
+=======
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+>>>>>>> c849fc9 (nav에러 _수정)
   }, []);
 
   if (!mounted) return null;
@@ -69,6 +78,7 @@ export default function Navbar() {
   return (
     <Disclosure
       as="nav"
+<<<<<<< HEAD
       className="relative z-50 bg-white text-gray-900 border-b border-gray-200 shadow-sm
         dark:bg-[#0a0a0a] dark:text-white dark:border-transparent
         dark:shadow-[0_1px_3px_0_rgba(255,255,255,0.05),0_1px_2px_-1px_rgba(255,255,255,0.03)]"
@@ -152,6 +162,38 @@ export default function Navbar() {
 
             <div className="hidden sm:flex sm:flex-1 sm:justify-center">
               <div className="flex space-x-6">
+=======
+      className="relative z-50 bg-white text-gray-900 border-b border-gray-200
+      dark:bg-[#0a0a0a] dark:text-white"
+    >
+      <>
+        {/* ===== Moai Banner ===== */}
+        {showMoai && (
+          <div className="header-banner-area">
+            {Array.from({ length: 50 }).map((_, i) => (
+              <div
+                key={`snow-${i}`}
+                className="snowflake"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 5}s`,
+                  animationDuration: `${5 + Math.random() * 10}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* ===== Navbar ===== */}
+        <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <MobileMenuButton theme={theme} />
+
+            <div className="flex flex-1 items-center justify-center sm:justify-start">
+              <Logo theme={theme} />
+
+              <div className="hidden sm:flex sm:flex-1 sm:justify-center">
+>>>>>>> c849fc9 (nav에러 _수정)
                 <NavLinks
                   navigation={navigation}
                   onLinkClick={handleLinkClick}
@@ -159,22 +201,23 @@ export default function Navbar() {
                 />
               </div>
             </div>
+
+            <RightActions
+              theme={theme}
+              setTheme={setTheme}
+              user={user}
+              logout={logout}
+              navigate={navigate}
+              BASE_URL={BASE_URL}
+              accessToken={accessToken}
+              hydrated={hydrated}
+            />
           </div>
-
-          <RightActions
-            theme={theme}
-            setTheme={setTheme}
-            user={user}
-            logout={logout}
-            navigate={navigate}
-            BASE_URL={BASE_URL}
-            accessToken={accessToken}
-            hydrated={hydrated}
-          />
         </div>
-      </div>
 
-      <MobileNav navigation={navigation} onLinkClick={handleLinkClick} />
+        {/* ===== Mobile Menu ===== */}
+        <MobileNav navigation={navigation} onLinkClick={handleLinkClick} />
+      </>
     </Disclosure>
   );
 }
