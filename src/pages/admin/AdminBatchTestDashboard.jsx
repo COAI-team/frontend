@@ -6,7 +6,6 @@ import {
   ShoppingCartIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import axios from "axios";
 
 import { mockBatchTestDashboardData } from "./mockBatchTestDashboardData";
 import axiosInstance from "../../server/AxiosConfig";
@@ -63,6 +62,7 @@ export default function AdminBatchTestDashboard() {
   const [activeMauYear, setActiveMauYear] = useState(null);
   const [mauYearInitialized, setMauYearInitialized] = useState(false);
   const [activeMauRange, setActiveMauRange] = useState(null);
+  const [rangeShowAll, setRangeShowAll] = useState(false);
   const recentMonthlyRangeOptions = RECENT_MONTHLY_RANGE_OPTIONS;
 
   const fetchRangeStats = useCallback(async (startDate, endDate) => {
@@ -922,6 +922,9 @@ export default function AdminBatchTestDashboard() {
       (a, b) => new Date(a.statDate).getTime() - new Date(b.statDate).getTime()
     );
   }, [rangeStats]);
+  const rangeStatsPreview = rangeShowAll
+    ? sortedRangeStats
+    : sortedRangeStats.slice(0, 5);
   const rangeMetricOptions = [
     {
       id: "totalUsers",
@@ -1078,8 +1081,8 @@ export default function AdminBatchTestDashboard() {
         />
       </div>
 
-      <div className="rounded-xl shadow-md border dark:bg-gray-800">
-        <div className="p-5 border-b dark:border-gray-700 space-y-4">
+      <div className="rounded-xl shadow-md border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-800">
+        <div className="p-5 border-b border-slate-200/70 dark:border-slate-700/60 space-y-4">
           <div className="flex flex-col gap-2">
             <h2 className="text-lg font-semibold">일별 범위 통계</h2>
             <p className="text-sm text-gray-500">
@@ -1221,8 +1224,8 @@ export default function AdminBatchTestDashboard() {
                       <th className="pb-2 text-right">알고리즘 게시판</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {sortedRangeStats.map((item) => (
+                  <tbody className="divide-y divide-slate-200/70 dark:divide-slate-700/70">
+                    {rangeStatsPreview.map((item) => (
                       <tr key={item.statDate}>
                         <td className="py-2">{formatDate(item.statDate)}</td>
                         <td className="py-2 text-right font-semibold">
@@ -1265,14 +1268,25 @@ export default function AdminBatchTestDashboard() {
                     ))}
                   </tbody>
                 </table>
+                {sortedRangeStats.length > 5 && (
+                  <div className="mt-3 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setRangeShowAll((prev) => !prev)}
+                      className="px-4 py-2 rounded-full border text-sm text-gray-600 dark:text-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                      {rangeShowAll ? "접기" : "더보기"}
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}
         </div>
       </div>
 
-      <div className="rounded-xl shadow-md border dark:bg-gray-800">
-        <div className="p-5 border-b dark:border-gray-700 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="rounded-xl shadow-md border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-800">
+        <div className="p-5 border-b border-slate-200/70 dark:border-slate-700/60 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-lg font-semibold">유저 증감 추이</h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -1303,7 +1317,7 @@ export default function AdminBatchTestDashboard() {
           </div>
         </div>
         {userStatsView === "monthly" && (
-          <div className="px-5 py-4 border-b dark:border-gray-700 space-y-3">
+          <div className="px-5 py-4 border-b border-slate-200/70 dark:border-slate-700/60 space-y-3">
             <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
               {recentMonthlyRangeOptions.map((option) => {
                 const isActive = activeMonthlyRange === option.value;
@@ -1410,8 +1424,8 @@ export default function AdminBatchTestDashboard() {
         </div>
       </div>
 
-      <div className="rounded-xl shadow-md border dark:bg-gray-800">
-        <div className="p-5 border-b dark:border-gray-700 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="rounded-xl shadow-md border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-800">
+        <div className="p-5 border-b border-slate-200/70 dark:border-slate-700/60 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-lg font-semibold">매출 추이</h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -1450,7 +1464,7 @@ export default function AdminBatchTestDashboard() {
           </div>
         </div>
         {paymentStatsView === "monthly" && (
-          <div className="px-5 py-4 border-b dark:border-gray-700 space-y-3">
+          <div className="px-5 py-4 border-b border-slate-200/70 dark:border-slate-700/60 space-y-3">
             <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
               {recentMonthlyRangeOptions.map((option) => {
                 const isActive = activeSalesRange === option.value;
@@ -1560,15 +1574,15 @@ export default function AdminBatchTestDashboard() {
         </div>
       </div>
 
-      <div className="rounded-xl shadow-md border dark:bg-gray-800">
-        <div className="p-5 border-b dark:border-gray-700">
+      <div className="rounded-xl shadow-md border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-800">
+        <div className="p-5 border-b border-slate-200/70 dark:border-slate-700/60">
           <h2 className="text-lg font-semibold">MAU 추이</h2>
           <p className="text-sm text-gray-500 mt-1">
             배치 테스트에서 계산된 월간 활성 사용자(MAU)를 확인하세요.
           </p>
         </div>
         {availableMauYears.length > 0 && (
-          <div className="px-5 py-4 border-b dark:border-gray-700">
+          <div className="px-5 py-4 border-b border-slate-200/70 dark:border-slate-700/60">
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
                 <button
@@ -1657,7 +1671,7 @@ export default function AdminBatchTestDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800 space-y-4">
+        <div className="rounded-xl shadow-md p-5 border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-800 space-y-4">
           <div>
             <h2 className="text-lg font-semibold">분석 유형별 월간 통계</h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -1858,7 +1872,7 @@ export default function AdminBatchTestDashboard() {
                       <th className="pb-2 text-right">분석 수</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tbody className="divide-y divide-slate-200/70 dark:divide-slate-700/70">
                     {filteredAnalysisTypeRows.map((item) => (
                       <tr key={item.id}>
                         <td className="py-2">
@@ -1886,7 +1900,7 @@ export default function AdminBatchTestDashboard() {
           )}
         </div>
 
-        <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800">
+        <div className="rounded-xl shadow-md p-5 border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-800">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -1991,7 +2005,7 @@ export default function AdminBatchTestDashboard() {
                 {languageRankingTop5.map((item) => (
                   <li
                     key={`${item.languageName}-${item.ranking}`}
-                    className="flex justify-between border-b pb-2"
+                    className="flex justify-between border-b border-slate-200/70 dark:border-slate-700/70 pb-2"
                   >
                     <span className="flex items-center gap-2">
                       <span
@@ -2144,7 +2158,7 @@ export default function AdminBatchTestDashboard() {
 
 function SummaryCard({ icon: Icon, iconClass, bgClass, label, value }) {
   return (
-    <div className="p-5 rounded-xl shadow-md flex items-center gap-4 border dark:bg-gray-800">
+    <div className="p-5 rounded-xl shadow-md flex items-center gap-4 border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-800">
       <div className={`p-3 rounded-xl ${bgClass}`}>
         <Icon className={`w-6 h-6 ${iconClass}`} />
       </div>
@@ -2177,11 +2191,11 @@ function DiffCards({
 
   return (
     <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-      <div className="p-4 rounded-lg border bg-gray-50 dark:bg-gray-900/40 dark:border-gray-800">
+      <div className="p-4 rounded-lg border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-900/40">
         <p className="text-gray-500">{latestLabel}</p>
         <p className="text-2xl font-semibold">{formattedLatest}</p>
       </div>
-      <div className="p-4 rounded-lg border bg-gray-50 dark:bg-gray-900/40 dark:border-gray-800">
+      <div className="p-4 rounded-lg border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-900/40">
         <p className="text-gray-500">{diffLabel}</p>
         <p
           className={`text-2xl font-semibold ${
@@ -2192,7 +2206,7 @@ function DiffCards({
           {formattedDiffValue}
         </p>
       </div>
-      <div className="p-4 rounded-lg border bg-gray-50 dark:bg-gray-900/40 dark:border-gray-800">
+      <div className="p-4 rounded-lg border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-900/40">
         <p className="text-gray-500">{rateLabel}</p>
         <p
           className={`text-2xl font-semibold ${
@@ -2209,7 +2223,7 @@ function DiffCards({
 
 function RankingCard({ title, emptyMessage, headers, rows, actions }) {
   return (
-    <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800">
+    <div className="rounded-xl shadow-md p-5 border border-slate-200/70 bg-white dark:border-slate-700/60 dark:bg-gray-800">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <h2 className="text-lg font-semibold">{title}</h2>
         {actions}
@@ -2339,9 +2353,10 @@ function TrendAreaChart({
               y1={tick.y}
               x2={width - paddingX}
               y2={tick.y}
-              strokeDasharray="4 4"
+              strokeDasharray="2 6"
               stroke="currentColor"
-              className="stroke-gray-200 dark:stroke-gray-700"
+              className="stroke-slate-200 dark:stroke-slate-700"
+              strokeOpacity="0.6"
             />
             <text
               x={paddingX - 10}

@@ -1,9 +1,11 @@
-import axios from "axios";
-import { useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import AdminUserDetailModal from "./AdminUserDetailModal";
 import axiosInstance from "../../server/AxiosConfig";
+import { useTheme } from "../../context/theme/useTheme";
 
 export default function AdminUsers() {
+  const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const [users, setUsers] = useState([]);
   const [pageInfo, setPageInfo] = useState({
     page: 1,
@@ -229,6 +231,7 @@ export default function AdminUsers() {
                       menuRef={sortMenuRef}
                       openKey={sortMenuOpen}
                       setOpenKey={setSortMenuOpen}
+                      styles={styles}
                       style={{ ...styles.th, width: "10%" }}
                     />
                     <th
@@ -254,6 +257,7 @@ export default function AdminUsers() {
                       menuRef={sortMenuRef}
                       openKey={sortMenuOpen}
                       setOpenKey={setSortMenuOpen}
+                      styles={styles}
                       style={{ ...styles.th, width: "10%" }}
                     />
                     <StatusHeader
@@ -265,6 +269,7 @@ export default function AdminUsers() {
                       menuRef={sortMenuRef}
                       openKey={sortMenuOpen}
                       setOpenKey={setSortMenuOpen}
+                      styles={styles}
                       style={{ ...styles.th, width: "12%" }}
                     />
                     <RoleHeader
@@ -276,6 +281,7 @@ export default function AdminUsers() {
                       menuRef={sortMenuRef}
                       openKey={sortMenuOpen}
                       setOpenKey={setSortMenuOpen}
+                      styles={styles}
                       style={{ ...styles.th, width: "13%" }}
                     />
                   </tr>
@@ -289,7 +295,7 @@ export default function AdminUsers() {
                         onClick={() => handleUserClick(user.userId)}
                         onMouseEnter={(e) =>
                           (e.currentTarget.style.backgroundColor =
-                            "rgba(25, 118, 210, 0.25)")
+                            styles.rowHoverBg)
                         }
                         onMouseLeave={(e) =>
                           (e.currentTarget.style.backgroundColor =
@@ -397,227 +403,240 @@ export default function AdminUsers() {
   );
 }
 
-const styles = {
-  container: {
-    padding: "30px",
-    maxWidth: "1100px",
-    margin: "0 auto",
-    fontFamily: "'Pretendard', sans-serif",
-    color: "#e5e7eb",
-  },
-  headerRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "12px",
-    flexWrap: "wrap",
-    marginBottom: "16px",
-  },
-  title: {
-    fontSize: "22px",
-    fontWeight: "700",
-    margin: 0,
-    color: "#fff",
-  },
-  subtitle: {
-    fontSize: "13px",
-    color: "#94a3b8",
-    marginTop: "4px",
-  },
-  card: {
-    backgroundColor: "#0f172a",
-    borderRadius: "14px",
-    border: "1px solid #1f2937",
-    padding: "18px",
-    boxShadow: "0 2px 14px rgba(0,0,0,0.35)",
-    color: "#e5e7eb",
-  },
-  searchBox: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "12px",
-    marginBottom: "16px",
-    flexWrap: "wrap",
-  },
-  sortHint: {
-    color: "#94a3b8",
-    fontSize: "13px",
-  },
-  searchGroup: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  searchInput: {
-    width: "320px",
-    maxWidth: "60vw",
-    padding: "10px 12px",
-    borderRadius: "8px",
-    border: "1px solid #1f2937",
-    backgroundColor: "#111827",
-    color: "#fff",
-  },
-  primaryButton: {
-    backgroundColor: "#1976d2",
-    color: "#fff",
-    border: "1px solid #1976d2",
-    padding: "10px 14px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontWeight: "700",
-  },
-  sortSelect: {
-    backgroundColor: "#111827",
-    color: "#fff",
-    border: "1px solid #1f2937",
-    borderRadius: "8px",
-    padding: "10px 12px",
-    cursor: "pointer",
-  },
-  tableContainer: {
-    width: "100%",
-    borderRadius: "10px",
-    overflow: "visible",
-    border: "1px solid #1f2937",
-    backgroundColor: "#0d1117",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
-    position: "relative",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    color: "#e5e7eb",
-  },
-  thead: {
-    backgroundColor: "#1c1f26",
-  },
-  th: {
-    padding: "12px 10px",
-    textAlign: "center",
-    borderBottom: "1px solid #1f2937",
-    fontSize: "13px",
-  },
-  tdLeft: {
-    padding: "10px 10px",
-    textAlign: "left",
-    borderBottom: "1px solid #1f2937",
-    fontSize: "13px",
-  },
-  tdCenter: {
-    padding: "10px 10px",
-    textAlign: "center",
-    borderBottom: "1px solid #1f2937",
-    fontSize: "13px",
-  },
-  trHover: {
-    transition: "background-color 0.25s ease",
-  },
-  emptyRow: {
-    padding: "20px",
-    color: "#94a3b8",
-  },
-  pagination: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: "6px",
-    marginTop: "16px",
-    flexWrap: "wrap",
-  },
-  pageButton: {
-    padding: "8px 12px",
-    backgroundColor: "#0b1220",
-    color: "#e5e7eb",
-    border: "1px solid #1f2937",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontWeight: "700",
-  },
-  pageButtonDisabled: {
-    backgroundColor: "#111827",
-    cursor: "not-allowed",
-    color: "#475569",
-    borderColor: "#1f2937",
-  },
-  pageNumber: {
-    border: "1px solid #1f2937",
-    backgroundColor: "#111827",
-    color: "#e5e7eb",
-    padding: "8px 10px",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontWeight: "700",
-  },
-  activePage: {
-    backgroundColor: "#1976d2",
-    borderColor: "#1976d2",
-    fontWeight: "800",
-  },
-  sortMenu: {
-    position: "absolute",
-    top: "105%",
-    left: 0,
-    backgroundColor: "#0d1117",
-    border: "1px solid #1f2937",
-    borderRadius: "10px",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.35)",
-    overflow: "hidden",
-    minWidth: "190px",
-    maxWidth: "calc(100vw - 24px)",
-    zIndex: 1000,
-  },
-  sortMenuItem: {
-    width: "100%",
-    textAlign: "left",
-    background: "transparent",
-    border: "none",
-    padding: "10px 12px",
-    color: "#dbe4ff",
-    cursor: "pointer",
-    fontSize: "13px",
-  },
-  sortMenuItemActive: {
-    backgroundColor: "rgba(124,141,245,0.18)",
-    color: "#e5ecff",
-  },
-  headerButton: {
-    background: "transparent",
-    border: "none",
-    color: "#b4c2e0",
-    fontWeight: 800,
-    fontSize: "13px",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    cursor: "pointer",
-    width: "100%",
-    justifyContent: "center",
-  },
-  caret: {
-    fontSize: "10px",
-    color: "#94a3b8",
-  },
-  role: {
-    color: "#fff",
-    padding: "4px 10px",
-    borderRadius: "12px",
-    fontSize: "12px",
-    fontWeight: "bold",
-  },
-  statusBadge: (bg) => ({
-    display: "inline-block",
-    padding: "4px 10px",
-    borderRadius: "12px",
-    fontSize: "12px",
-    fontWeight: "bold",
-    color: "#0f172a",
-    backgroundColor: bg || "#94a3b8",
-  }),
-  subText: {
-    color: "#94a3b8",
-    fontSize: "13px",
-  },
+const getStyles = (theme) => {
+  const isLight = theme === "light";
+  return {
+    container: {
+      padding: "30px",
+      maxWidth: "1100px",
+      margin: "0 auto",
+      fontFamily: "'Pretendard', sans-serif",
+      color: isLight ? "#0f172a" : "#e5e7eb",
+    },
+    headerRow: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: "12px",
+      flexWrap: "wrap",
+      marginBottom: "16px",
+    },
+    title: {
+      fontSize: "22px",
+      fontWeight: "700",
+      margin: 0,
+      color: isLight ? "#0f172a" : "#fff",
+    },
+    subtitle: {
+      fontSize: "13px",
+      color: isLight ? "#64748b" : "#94a3b8",
+      marginTop: "4px",
+    },
+    card: {
+      backgroundColor: isLight ? "#ffffff" : "#0f172a",
+      borderRadius: "14px",
+      border: `1px solid ${isLight ? "#e2e8f0" : "#1f2937"}`,
+      padding: "18px",
+      boxShadow: isLight
+        ? "0 2px 14px rgba(15, 23, 42, 0.08)"
+        : "0 2px 14px rgba(0,0,0,0.35)",
+      color: isLight ? "#0f172a" : "#e5e7eb",
+    },
+    searchBox: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "12px",
+      marginBottom: "16px",
+      flexWrap: "wrap",
+    },
+    sortHint: {
+      color: isLight ? "#64748b" : "#94a3b8",
+      fontSize: "13px",
+    },
+    searchGroup: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+    },
+    searchInput: {
+      width: "320px",
+      maxWidth: "60vw",
+      padding: "10px 12px",
+      borderRadius: "8px",
+      border: `1px solid ${isLight ? "#cbd5e1" : "#1f2937"}`,
+      backgroundColor: isLight ? "#f8fafc" : "#111827",
+      color: isLight ? "#0f172a" : "#fff",
+    },
+    primaryButton: {
+      backgroundColor: "#1976d2",
+      color: "#fff",
+      border: "1px solid #1976d2",
+      padding: "10px 14px",
+      borderRadius: "8px",
+      cursor: "pointer",
+      fontWeight: "700",
+    },
+    sortSelect: {
+      backgroundColor: isLight ? "#f8fafc" : "#111827",
+      color: isLight ? "#0f172a" : "#fff",
+      border: `1px solid ${isLight ? "#cbd5e1" : "#1f2937"}`,
+      borderRadius: "8px",
+      padding: "10px 12px",
+      cursor: "pointer",
+    },
+    tableContainer: {
+      width: "100%",
+      borderRadius: "10px",
+      overflow: "visible",
+      border: `1px solid ${isLight ? "#e2e8f0" : "#1f2937"}`,
+      backgroundColor: isLight ? "#ffffff" : "#0d1117",
+      boxShadow: isLight
+        ? "0 2px 10px rgba(15, 23, 42, 0.08)"
+        : "0 2px 10px rgba(0,0,0,0.35)",
+      position: "relative",
+    },
+    table: {
+      width: "100%",
+      borderCollapse: "collapse",
+      color: isLight ? "#0f172a" : "#e5e7eb",
+    },
+    thead: {
+      backgroundColor: isLight ? "#f1f5f9" : "#1c1f26",
+    },
+    th: {
+      padding: "12px 10px",
+      textAlign: "center",
+      borderBottom: `1px solid ${isLight ? "#e2e8f0" : "#1f2937"}`,
+      fontSize: "13px",
+    },
+    tdLeft: {
+      padding: "10px 10px",
+      textAlign: "left",
+      borderBottom: `1px solid ${isLight ? "#e2e8f0" : "#1f2937"}`,
+      fontSize: "13px",
+    },
+    tdCenter: {
+      padding: "10px 10px",
+      textAlign: "center",
+      borderBottom: `1px solid ${isLight ? "#e2e8f0" : "#1f2937"}`,
+      fontSize: "13px",
+    },
+    trHover: {
+      transition: "background-color 0.25s ease",
+    },
+    rowHoverBg: isLight ? "rgba(37, 99, 235, 0.12)" : "rgba(25, 118, 210, 0.25)",
+    emptyRow: {
+      padding: "20px",
+      color: isLight ? "#64748b" : "#94a3b8",
+    },
+    pagination: {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: "6px",
+      marginTop: "16px",
+      flexWrap: "wrap",
+    },
+    pageButton: {
+      padding: "8px 12px",
+      backgroundColor: isLight ? "#f8fafc" : "#0b1220",
+      color: isLight ? "#0f172a" : "#e5e7eb",
+      border: `1px solid ${isLight ? "#e2e8f0" : "#1f2937"}`,
+      borderRadius: "6px",
+      cursor: "pointer",
+      fontWeight: "700",
+    },
+    pageButtonDisabled: {
+      backgroundColor: isLight ? "#f1f5f9" : "#111827",
+      cursor: "not-allowed",
+      color: isLight ? "#94a3b8" : "#475569",
+      borderColor: isLight ? "#e2e8f0" : "#1f2937",
+    },
+    pageNumber: {
+      border: `1px solid ${isLight ? "#e2e8f0" : "#1f2937"}`,
+      backgroundColor: isLight ? "#ffffff" : "#111827",
+      color: isLight ? "#0f172a" : "#e5e7eb",
+      padding: "8px 10px",
+      borderRadius: "6px",
+      cursor: "pointer",
+      fontWeight: "700",
+    },
+    activePage: {
+      backgroundColor: "#1976d2",
+      borderColor: "#1976d2",
+      fontWeight: "800",
+      color: "#fff",
+    },
+    sortMenu: {
+      position: "absolute",
+      top: "105%",
+      left: 0,
+      backgroundColor: isLight ? "#ffffff" : "#0d1117",
+      border: `1px solid ${isLight ? "#e2e8f0" : "#1f2937"}`,
+      borderRadius: "10px",
+      boxShadow: isLight
+        ? "0 10px 25px rgba(15, 23, 42, 0.12)"
+        : "0 10px 25px rgba(0,0,0,0.35)",
+      overflow: "hidden",
+      minWidth: "190px",
+      maxWidth: "calc(100vw - 24px)",
+      zIndex: 1000,
+    },
+    sortMenuItem: {
+      width: "100%",
+      textAlign: "left",
+      background: "transparent",
+      border: "none",
+      padding: "10px 12px",
+      color: isLight ? "#1e293b" : "#dbe4ff",
+      cursor: "pointer",
+      fontSize: "13px",
+    },
+    sortMenuItemActive: {
+      backgroundColor: isLight
+        ? "rgba(59, 130, 246, 0.12)"
+        : "rgba(124,141,245,0.18)",
+      color: isLight ? "#0f172a" : "#e5ecff",
+    },
+    headerButton: {
+      background: "transparent",
+      border: "none",
+      color: isLight ? "#334155" : "#b4c2e0",
+      fontWeight: 800,
+      fontSize: "13px",
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      cursor: "pointer",
+      width: "100%",
+      justifyContent: "center",
+    },
+    caret: {
+      fontSize: "10px",
+      color: "#94a3b8",
+    },
+    role: {
+      color: "#fff",
+      padding: "4px 10px",
+      borderRadius: "12px",
+      fontSize: "12px",
+      fontWeight: "bold",
+    },
+    statusBadge: (bg) => ({
+      display: "inline-block",
+      padding: "4px 10px",
+      borderRadius: "12px",
+      fontSize: "12px",
+      fontWeight: "bold",
+      color: "#0f172a",
+      backgroundColor: bg || "#94a3b8",
+    }),
+    subText: {
+      color: isLight ? "#64748b" : "#94a3b8",
+      fontSize: "13px",
+    },
+  };
 };
 
 function HeaderWithSort({
@@ -629,6 +648,7 @@ function HeaderWithSort({
   menuRef,
   openKey,
   setOpenKey,
+  styles,
   style,
 }) {
   const isOpen = openKey === label;
@@ -676,7 +696,15 @@ function HeaderWithSort({
   );
 }
 
-function RoleHeader({ active, onSelect, menuRef, openKey, setOpenKey, style }) {
+function RoleHeader({
+  active,
+  onSelect,
+  menuRef,
+  openKey,
+  setOpenKey,
+  styles,
+  style,
+}) {
   const isOpen = openKey === "role";
   const options = [
     { value: "all", label: "전체보기" },
@@ -724,6 +752,7 @@ function StatusHeader({
   menuRef,
   openKey,
   setOpenKey,
+  styles,
   style,
 }) {
   const isOpen = openKey === "status";
