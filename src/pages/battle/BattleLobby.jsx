@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLogin } from "../../context/login/useLogin";
+import { removeAuth } from "../../utils/auth/token";
 import {
   createRoom,
   fetchDurationPolicy,
@@ -151,7 +152,7 @@ const formatBet = (amount) => {
 
 export default function BattleLobby() {
   const navigate = useNavigate();
-  const { accessToken } = useLogin();
+  const { accessToken, user } = useLogin();
 
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -170,11 +171,37 @@ export default function BattleLobby() {
   const [infoModal, setInfoModal] = useState({ open: false, message: "" });
   const [refreshCooldown, setRefreshCooldown] = useState(0);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [authMismatch, setAuthMismatch] = useState(false);
 
   const listRef = useRef(null);
   const sentinelRef = useRef(null);
   const problemTitleRef = useRef({});
   const filteredRoomsRef = useRef([]);
+
+  const tokenUserId = useMemo(() => {
+    if (!accessToken) return null;
+    const parts = accessToken.split(".");
+    if (parts.length < 2 || typeof atob !== "function") return null;
+    try {
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+      const raw = payload?.id ?? payload?.userId ?? null;
+      const numeric = Number(raw);
+      return Number.isFinite(numeric) ? numeric : null;
+    } catch {
+      return null;
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (tokenUserId && user?.userId && tokenUserId !== user.userId) {
+      setAuthMismatch(true);
+    }
+  }, [tokenUserId, user?.userId]);
+
+  const handleAuthMismatch = () => {
+    removeAuth();
+    navigate("/signin", { replace: true });
+  };
 
   const loadLanguages = useCallback(async () => {
     const res = await getLanguages();
@@ -347,10 +374,15 @@ export default function BattleLobby() {
       handleJoinError(res);
       return;
     }
+    const targetRoomId = res?.roomId || roomId;
     try {
-      sessionStorage.removeItem(`battleRoomPassword:${roomId}`);
+      sessionStorage.setItem(`battlePendingJoin:${targetRoomId}`, "1");
+      sessionStorage.setItem(`battleJoinSnapshot:${targetRoomId}`, JSON.stringify(res));
     } catch {}
-    navigate(`/battle/room/${roomId}`);
+    try {
+      sessionStorage.removeItem(`battleRoomPassword:${targetRoomId}`);
+    } catch {}
+    navigate(`/battle/room/${targetRoomId}`);
   };
 
   const handleJoinError = (res) => {
@@ -411,12 +443,17 @@ export default function BattleLobby() {
       setJoinModal((prev) => ({ ...prev, error: friendly }));
       return;
     }
+    const targetRoomId = res?.roomId || joinModal.roomId;
     try {
-      sessionStorage.setItem(`battleRoomPassword:${joinModal.roomId}`, joinPassword);
+      sessionStorage.setItem(`battlePendingJoin:${targetRoomId}`, "1");
+      sessionStorage.setItem(`battleJoinSnapshot:${targetRoomId}`, JSON.stringify(res));
+    } catch {}
+    try {
+      sessionStorage.setItem(`battleRoomPassword:${targetRoomId}`, joinPassword);
     } catch {}
     setJoinModal({ open: false, roomId: null, error: "" });
     setJoinPassword("");
-    navigate(`/battle/room/${joinModal.roomId}`);
+    navigate(`/battle/room/${targetRoomId}`);
   };
 
   const languageItems = useMemo(
@@ -638,6 +675,25 @@ export default function BattleLobby() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#131313]">
+      {authMismatch && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60]">
+          <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl w-full max-w-md p-6 border border-gray-200 dark:border-[#3f3f46] space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">로그인 정보 불일치</h3>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              현재 로그인 정보와 토큰 정보가 달라 배틀 입장 상태가 꼬였습니다. 다시 로그인해 주세요.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleAuthMismatch}
+                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+              >
+                다시 로그인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto px-4 py-8 text-gray-900 dark:text-gray-100">
         <div className="border rounded-3xl bg-white dark:bg-[#161b22] shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border-gray-200 dark:border-[#3f3f46] p-6 space-y-4">
         <header className="flex flex-col gap-4">

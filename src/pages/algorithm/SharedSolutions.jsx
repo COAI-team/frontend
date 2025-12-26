@@ -547,12 +547,6 @@ const SolutionDetail = ({solution, onLike}) => {
           </div>
         </div>
         <div className="score-card">
-          <div className="score-card-label">채점 점수</div>
-          <div className="score-card-value">
-            {solution.scoreBreakdown?.judgeScore || 0}
-          </div>
-        </div>
-        <div className="score-card">
           <div className="score-card-label">AI 점수</div>
           <div className="score-card-value">
             {solution.aiScore || 0}

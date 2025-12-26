@@ -408,7 +408,7 @@ const ProblemList = () => {
                           )}
                         </td>
                         <td>
-                          {(pagination.currentPage - 1) * pageSize + index + 1}
+                          {problem.algoProblemId}
                         </td>
                         <td style={{textAlign: 'left'}}>
                           {problem.algoProblemTitle}

@@ -1,5 +1,16 @@
 ﻿import axiosInstance from "../../server/AxiosConfig";
-import { getAuth } from "../../utils/auth/token";
+const readStoredAccessToken = () => {
+  try {
+    const raw = localStorage.getItem("auth") || sessionStorage.getItem("auth");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.accessToken) return parsed.accessToken;
+    }
+  } catch {}
+  const legacyAccess = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+  return legacyAccess || null;
+};
+
 
 const unwrap = (res) => res?.data?.data ?? res?.data;
 
@@ -13,8 +24,7 @@ const handleError = (err, fallback) => {
 };
 
 const buildConfig = () => {
-  const auth = getAuth();
-  const accessToken = auth?.accessToken;
+  const accessToken = readStoredAccessToken();
   return {
     headers: {
       "X-Skip-Auth-Redirect": "true",
