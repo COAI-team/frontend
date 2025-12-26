@@ -1,5 +1,6 @@
 export default function AdminLogs() {
-  const kibanaUrl = "http://15.165.112.34:5601/app/r/s/x2Ah6";
+  const kibanaUrl =
+    "https://ki.co-ai.run/app/dashboards#/view/baf36e90-dc9c-11f0-9f23-b3e73eca1853?_g=(refreshInterval:(pause:!t,value:60000),time:(from:now-14d,to:now))";
 
   return (
     <div className="p-6 space-y-4">

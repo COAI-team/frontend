@@ -15,9 +15,8 @@ const adminMenu = [
     name: "관리자",
     icon: ShieldCheckIcon,
     children: [
-      { name: "통계 대시보드", href: "/admin/stats", icon: ChartBarIcon },
       {
-        name: "배치 통계 대시보드",
+        name: "배치 통계",
         href: "/admin/batch-stats",
         icon: ArrowTrendingUpIcon,
       },

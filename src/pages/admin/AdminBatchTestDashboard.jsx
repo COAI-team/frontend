@@ -9,6 +9,7 @@ import {
 import axios from "axios";
 
 import { mockBatchTestDashboardData } from "./mockBatchTestDashboardData";
+import axiosInstance from "../../server/AxiosConfig";
 
 const donutColors = [
   "#6366F1",
@@ -31,15 +32,6 @@ const analysisTypePalette = [
   "#3B82F6",
 ];
 
-// const BATCH_DASHBOARD_API = "https://api.co-ai.run/admin/batch";
-// const BATCH_DAILY_RANGE_API = "https://api.co-ai.run/admin/dailystats";
-// const BATCH_USER_MONTHLY_STATS_API = "https://api.co-ai.run/admin/userstats";
-// const BATCH_SALES_MONTHLY_STATS_API = "https://api.co-ai.run/admin/salesstats";
-
-const BATCH_DASHBOARD_API = "http://localhost:9443/admin/batch";
-const BATCH_DAILY_RANGE_API = "http://localhost:9443/admin/dailystats";
-const BATCH_USER_MONTHLY_STATS_API = "http://localhost:9443/admin/userstats";
-const BATCH_SALES_MONTHLY_STATS_API = "http://localhost:9443/admin/salesstats";
 const RECENT_MONTHLY_RANGE_OPTIONS = [
   { label: "최근 6개월", value: 6 },
   { label: "최근 12개월", value: 12 },
@@ -68,6 +60,9 @@ export default function AdminBatchTestDashboard() {
   const [userStatsError, setUserStatsError] = useState(null);
   const [salesStatsLoading, setSalesStatsLoading] = useState(false);
   const [salesStatsError, setSalesStatsError] = useState(null);
+  const [activeMauYear, setActiveMauYear] = useState(null);
+  const [mauYearInitialized, setMauYearInitialized] = useState(false);
+  const [activeMauRange, setActiveMauRange] = useState(null);
   const recentMonthlyRangeOptions = RECENT_MONTHLY_RANGE_OPTIONS;
 
   const fetchRangeStats = useCallback(async (startDate, endDate) => {
@@ -77,7 +72,7 @@ export default function AdminBatchTestDashboard() {
     setRangeLoading(true);
     setRangeError(null);
     try {
-      const response = await axios.get(BATCH_DAILY_RANGE_API, {
+      const response = await axiosInstance.get("/admin/dailystats", {
         params: { startDate, endDate },
       });
       const payload = response.data?.data ?? response.data ?? [];
@@ -97,7 +92,7 @@ export default function AdminBatchTestDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(BATCH_DASHBOARD_API);
+        const response = await axiosInstance.get("/admin/batch");
         if (response.data?.data) {
           setDashboardData(response.data.data);
         } else if (response.data) {
@@ -126,7 +121,7 @@ export default function AdminBatchTestDashboard() {
     setUserStatsLoading(true);
     setUserStatsError(null);
     try {
-      const response = await axios.get(BATCH_USER_MONTHLY_STATS_API, {
+      const response = await axiosInstance.get("/admin/userstats", {
         params: { limit },
       });
       const payload = response.data?.data ?? response.data ?? [];
@@ -155,7 +150,7 @@ export default function AdminBatchTestDashboard() {
     setSalesStatsLoading(true);
     setSalesStatsError(null);
     try {
-      const response = await axios.get(BATCH_SALES_MONTHLY_STATS_API, {
+      const response = await axiosInstance.get("/admin/salesstats", {
         params: { limit },
       });
       const payload = response.data?.data ?? response.data ?? [];
@@ -412,17 +407,55 @@ export default function AdminBatchTestDashboard() {
   const mauMonthlyStats = Array.isArray(dashboardData?.mauMonthlyStats)
     ? dashboardData.mauMonthlyStats
     : [];
-  const mauChartData = mauMonthlyStats
-    .map((item) => ({
-      label: `${item.statYear}.${String(item.statMonth).padStart(2, "0")}`,
-      value: Number(item.mauCount ?? 0),
-    }))
-    .sort((a, b) => {
-      const [yearA, monthA] = a.label.split(".").map(Number);
-      const [yearB, monthB] = b.label.split(".").map(Number);
-      if (yearA === yearB) return monthA - monthB;
-      return yearA - yearB;
-    });
+  const mauStatsByYear = useMemo(() => {
+    return mauMonthlyStats.reduce((acc, item) => {
+      const yearKey = String(item.statYear ?? "기타");
+      acc[yearKey] = acc[yearKey] ?? [];
+      acc[yearKey].push(item);
+      return acc;
+    }, {});
+  }, [mauMonthlyStats]);
+  const availableMauYears = Object.keys(mauStatsByYear).sort(
+    (a, b) => Number(a) - Number(b)
+  );
+
+  useEffect(() => {
+    if (!availableMauYears.length) {
+      if (activeMauYear !== null) {
+        setActiveMauYear(null);
+      }
+      return;
+    }
+    const latestYear = availableMauYears[availableMauYears.length - 1];
+    if (!mauYearInitialized) {
+      setActiveMauYear(latestYear);
+      setMauYearInitialized(true);
+      return;
+    }
+    if (activeMauYear && !availableMauYears.includes(activeMauYear)) {
+      setActiveMauYear(latestYear);
+    }
+  }, [availableMauYears, activeMauYear, mauYearInitialized]);
+
+  const mauMonthlyStatsForYear =
+    activeMauYear && mauStatsByYear[activeMauYear]
+      ? mauStatsByYear[activeMauYear]
+      : mauMonthlyStats;
+  const mauSortedStats = [...mauMonthlyStatsForYear].sort((a, b) => {
+    const aKey = Number(a.statYear ?? 0) * 100 + Number(a.statMonth ?? 0);
+    const bKey = Number(b.statYear ?? 0) * 100 + Number(b.statMonth ?? 0);
+    return aKey - bKey;
+  });
+  const mauStatsForRange =
+    activeMauRange && mauSortedStats.length > 0
+      ? mauSortedStats.slice(
+          Math.max(mauSortedStats.length - activeMauRange, 0)
+        )
+      : mauSortedStats;
+  const mauChartData = mauStatsForRange.map((item) => ({
+    label: `${item.statYear}.${String(item.statMonth).padStart(2, "0")}`,
+    value: Number(item.mauCount ?? 0),
+  }));
   const mauDiffInfo = calculateDiffInfo(mauChartData);
 
   const languageRankingTop5Raw = Array.isArray(
@@ -430,18 +463,164 @@ export default function AdminBatchTestDashboard() {
   )
     ? dashboardData.languageRankingTop5
     : [];
-  const languageRankingTop5 = useMemo(() => {
+  const languageRankingRows = useMemo(() => {
     if (!languageRankingTop5Raw.length) return [];
-    const sorted = [...languageRankingTop5Raw].sort(
-      (a, b) => Number(b.usageCount ?? 0) - Number(a.usageCount ?? 0)
-    );
-    return sorted.slice(0, 5);
+    return languageRankingTop5Raw.map((item) => {
+      if (Array.isArray(item)) {
+        return {
+          statYear: Number(item[0] ?? 0),
+          statMonth: Number(item[1] ?? 0),
+          ranking: Number(item[2] ?? 0),
+          languageName: item[3] ?? "-",
+          usageCount: Number(item[4] ?? 0),
+        };
+      }
+      return {
+        statYear: Number(item.statYear ?? item.stat_year ?? item.year ?? 0),
+        statMonth: Number(item.statMonth ?? item.stat_month ?? item.month ?? 0),
+        ranking: Number(item.ranking ?? item.rank ?? item.rank_no ?? 0),
+        languageName:
+          item.languageName ??
+          item.language_name ??
+          item.language ??
+          item.lang ??
+          item.lang_name ??
+          "-",
+        usageCount: Number(
+          item.usageCount ??
+            item.usage_count ??
+            item.usageCnt ??
+            item.count ??
+            0
+        ),
+      };
+    });
   }, [languageRankingTop5Raw]);
+  const availableLanguageYears = useMemo(() => {
+    const years = new Set();
+    languageRankingRows.forEach((item) => {
+      if (item.statYear) years.add(String(item.statYear));
+    });
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [languageRankingRows]);
+  const hasLanguageDate = availableLanguageYears.length > 0;
+  const [languageStatsView, setLanguageStatsView] = useState("monthly");
+  const [activeLanguageYear, setActiveLanguageYear] = useState(null);
+  const [activeLanguageMonth, setActiveLanguageMonth] = useState(null);
+
+  useEffect(() => {
+    if (!availableLanguageYears.length) {
+      setActiveLanguageYear(null);
+      return;
+    }
+    if (
+      !activeLanguageYear ||
+      !availableLanguageYears.includes(String(activeLanguageYear))
+    ) {
+      setActiveLanguageYear(availableLanguageYears[0]);
+    }
+  }, [availableLanguageYears, activeLanguageYear]);
+
+  const availableLanguageMonths = useMemo(() => {
+    if (!activeLanguageYear) return [];
+    const months = new Set();
+    languageRankingRows.forEach((item) => {
+      if (
+        String(item.statYear) === String(activeLanguageYear) &&
+        item.statMonth
+      ) {
+        months.add(String(item.statMonth).padStart(2, "0"));
+      }
+    });
+    return Array.from(months).sort((a, b) => Number(b) - Number(a));
+  }, [languageRankingRows, activeLanguageYear]);
+
+  useEffect(() => {
+    if (languageStatsView !== "monthly") {
+      setActiveLanguageMonth(null);
+      return;
+    }
+    if (!availableLanguageMonths.length) {
+      setActiveLanguageMonth(null);
+      return;
+    }
+    const latestMonth = `${activeLanguageYear}.${availableLanguageMonths[0]}`;
+    const currentMonthToken = activeLanguageMonth?.split(".")[1];
+    const isSameYear =
+      activeLanguageMonth &&
+      activeLanguageMonth.startsWith(`${activeLanguageYear}.`);
+    const isValidMonth =
+      currentMonthToken && availableLanguageMonths.includes(currentMonthToken);
+    if (!isSameYear || !isValidMonth) {
+      setActiveLanguageMonth(latestMonth);
+    }
+  }, [
+    availableLanguageMonths,
+    activeLanguageMonth,
+    activeLanguageYear,
+    languageStatsView,
+  ]);
+
+  const languageRankingTop5 = useMemo(() => {
+    if (!languageRankingRows.length) return [];
+    if (!hasLanguageDate) {
+      return [...languageRankingRows]
+        .sort((a, b) => Number(b.usageCount ?? 0) - Number(a.usageCount ?? 0))
+        .slice(0, 5);
+    }
+    const yearToUse = activeLanguageYear ?? availableLanguageYears[0] ?? null;
+    if (!yearToUse) return [];
+    if (languageStatsView === "yearly") {
+      const totals = languageRankingRows
+        .filter((row) => String(row.statYear) === String(yearToUse))
+        .reduce((acc, row) => {
+          acc[row.languageName] =
+            (acc[row.languageName] ?? 0) + Number(row.usageCount ?? 0);
+          return acc;
+        }, {});
+      return Object.entries(totals)
+        .map(([languageName, usageCount], index) => ({
+          statYear: Number(yearToUse),
+          statMonth: null,
+          ranking: index + 1,
+          languageName,
+          usageCount,
+        }))
+        .sort((a, b) => Number(b.usageCount) - Number(a.usageCount))
+        .slice(0, 5);
+    }
+    const targetKey =
+      activeLanguageMonth ??
+      (availableLanguageMonths.length
+        ? `${yearToUse}.${availableLanguageMonths[0]}`
+        : null);
+    if (!targetKey) return [];
+    const [targetYear, targetMonth] = targetKey.split(".").map(Number);
+    const monthlyRows = languageRankingRows.filter(
+      (row) => row.statYear === targetYear && row.statMonth === targetMonth
+    );
+    const sorted = [...monthlyRows].sort((a, b) => {
+      const rankDiff = Number(a.ranking ?? 0) - Number(b.ranking ?? 0);
+      if (rankDiff !== 0) return rankDiff;
+      return Number(b.usageCount ?? 0) - Number(a.usageCount ?? 0);
+    });
+    return sorted.slice(0, 5);
+  }, [
+    languageRankingRows,
+    activeLanguageYear,
+    activeLanguageMonth,
+    availableLanguageYears,
+    availableLanguageMonths,
+    languageStatsView,
+  ]);
+
   const topLanguage = languageRankingTop5[0] ?? null;
   const topLanguageMonthLabel =
-    topLanguage && topLanguage.statYear
+    languageStatsView === "monthly" && topLanguage?.statYear
       ? formatMonthlyLabel(topLanguage.statYear, topLanguage.statMonth)
-      : null;
+      : activeLanguageYear
+      ? `${activeLanguageYear}년 누적`
+      : "최근 집계";
   const donutChartData = languageRankingTop5.map((item, index) => ({
     label: item.languageName,
     value: Number(item.usageCount ?? 0),
@@ -461,11 +640,159 @@ export default function AdminBatchTestDashboard() {
   )
     ? dashboardData.algoSolveRankingTop5
     : [];
+  const algoSolveRankingRows = useMemo(() => {
+    if (!algoSolveRankingTop5.length) return [];
+    return algoSolveRankingTop5.map((item) => ({
+      statYear: Number(item.statYear ?? item.stat_year ?? item.year ?? 0),
+      statMonth: Number(item.statMonth ?? item.stat_month ?? item.month ?? 0),
+      ranking: Number(item.ranking ?? item.rank ?? 0),
+      userNickname:
+        item.userNickname || item.userNickName || item.user_nickname || "-",
+      userEmail: item.userEmail || item.user_email || item.email || "-",
+      solveCount: Number(item.solveCount ?? item.solve_count ?? 0),
+    }));
+  }, [algoSolveRankingTop5]);
+  const availableAlgoYears = useMemo(() => {
+    const years = new Set();
+    algoSolveRankingRows.forEach((item) => {
+      if (item.statYear) years.add(String(item.statYear));
+    });
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [algoSolveRankingRows]);
+  const [activeAlgoYear, setActiveAlgoYear] = useState(null);
+  const [activeAlgoMonth, setActiveAlgoMonth] = useState(null);
+
+  useEffect(() => {
+    if (!availableAlgoYears.length) {
+      setActiveAlgoYear(null);
+      return;
+    }
+    if (
+      !activeAlgoYear ||
+      !availableAlgoYears.includes(String(activeAlgoYear))
+    ) {
+      setActiveAlgoYear(availableAlgoYears[0]);
+    }
+  }, [availableAlgoYears, activeAlgoYear]);
+
+  const availableAlgoMonths = useMemo(() => {
+    if (!activeAlgoYear) return [];
+    const months = new Set();
+    algoSolveRankingRows.forEach((item) => {
+      if (String(item.statYear) === String(activeAlgoYear) && item.statMonth) {
+        months.add(String(item.statMonth).padStart(2, "0"));
+      }
+    });
+    return Array.from(months).sort((a, b) => Number(b) - Number(a));
+  }, [algoSolveRankingRows, activeAlgoYear]);
+
+  useEffect(() => {
+    if (!availableAlgoMonths.length) {
+      setActiveAlgoMonth(null);
+      return;
+    }
+    const latestMonth = `${activeAlgoYear}.${availableAlgoMonths[0]}`;
+    const currentMonthToken = activeAlgoMonth?.split(".")[1];
+    const isSameYear =
+      activeAlgoMonth && activeAlgoMonth.startsWith(`${activeAlgoYear}.`);
+    const isValidMonth =
+      currentMonthToken && availableAlgoMonths.includes(currentMonthToken);
+    if (!isSameYear || !isValidMonth) {
+      setActiveAlgoMonth(latestMonth);
+    }
+  }, [availableAlgoMonths, activeAlgoMonth, activeAlgoYear]);
+
+  const filteredAlgoSolveRanking = useMemo(() => {
+    if (!algoSolveRankingRows.length) return [];
+    if (!activeAlgoYear || !activeAlgoMonth) {
+      return [...algoSolveRankingRows].sort(
+        (a, b) => Number(a.ranking ?? 0) - Number(b.ranking ?? 0)
+      );
+    }
+    const [year, month] = activeAlgoMonth.split(".").map(Number);
+    return algoSolveRankingRows
+      .filter((item) => item.statYear === year && item.statMonth === month)
+      .sort((a, b) => Number(a.ranking ?? 0) - Number(b.ranking ?? 0));
+  }, [algoSolveRankingRows, activeAlgoYear, activeAlgoMonth]);
   const codeAnalysisRankingTop5 = Array.isArray(
     dashboardData?.codeAnalysisRankingTop5
   )
     ? dashboardData.codeAnalysisRankingTop5
     : [];
+  const codeAnalysisRankingRows = useMemo(() => {
+    if (!codeAnalysisRankingTop5.length) return [];
+    return codeAnalysisRankingTop5.map((item) => ({
+      statYear: Number(item.statYear ?? item.stat_year ?? item.year ?? 0),
+      statMonth: Number(item.statMonth ?? item.stat_month ?? item.month ?? 0),
+      ranking: Number(item.ranking ?? item.rank ?? 0),
+      userNickname:
+        item.userNickname || item.userNickName || item.user_nickname || "-",
+      userEmail: item.userEmail || item.user_email || item.email || "-",
+      analysisCount: Number(item.analysisCount ?? item.analysis_count ?? 0),
+    }));
+  }, [codeAnalysisRankingTop5]);
+  const availableAnalysisYears = useMemo(() => {
+    const years = new Set();
+    codeAnalysisRankingRows.forEach((item) => {
+      if (item.statYear) years.add(String(item.statYear));
+    });
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [codeAnalysisRankingRows]);
+  const [activeCodeYear, setActiveCodeYear] = useState(null);
+  const [activeCodeMonth, setActiveCodeMonth] = useState(null);
+
+  useEffect(() => {
+    if (!availableAnalysisYears.length) {
+      setActiveCodeYear(null);
+      return;
+    }
+    if (
+      !activeCodeYear ||
+      !availableAnalysisYears.includes(String(activeCodeYear))
+    ) {
+      setActiveCodeYear(availableAnalysisYears[0]);
+    }
+  }, [availableAnalysisYears, activeCodeYear]);
+
+  const availableCodeMonths = useMemo(() => {
+    if (!activeCodeYear) return [];
+    const months = new Set();
+    codeAnalysisRankingRows.forEach((item) => {
+      if (String(item.statYear) === String(activeCodeYear) && item.statMonth) {
+        months.add(String(item.statMonth).padStart(2, "0"));
+      }
+    });
+    return Array.from(months).sort((a, b) => Number(b) - Number(a));
+  }, [codeAnalysisRankingRows, activeCodeYear]);
+
+  useEffect(() => {
+    if (!availableCodeMonths.length) {
+      setActiveCodeMonth(null);
+      return;
+    }
+    const latestMonth = `${activeCodeYear}.${availableCodeMonths[0]}`;
+    const currentMonthToken = activeCodeMonth?.split(".")[1];
+    const isSameYear =
+      activeCodeMonth && activeCodeMonth.startsWith(`${activeCodeYear}.`);
+    const isValidMonth =
+      currentMonthToken && availableCodeMonths.includes(currentMonthToken);
+    if (!isSameYear || !isValidMonth) {
+      setActiveCodeMonth(latestMonth);
+    }
+  }, [availableCodeMonths, activeCodeMonth, activeCodeYear]);
+
+  const filteredCodeAnalysisRanking = useMemo(() => {
+    if (!codeAnalysisRankingRows.length) return [];
+    if (!activeCodeYear || !activeCodeMonth) {
+      return [...codeAnalysisRankingRows].sort(
+        (a, b) => Number(a.ranking ?? 0) - Number(b.ranking ?? 0)
+      );
+    }
+    const [year, month] = activeCodeMonth.split(".").map(Number);
+    return codeAnalysisRankingRows
+      .filter((item) => item.statYear === year && item.statMonth === month)
+      .sort((a, b) => Number(a.ranking ?? 0) - Number(b.ranking ?? 0));
+  }, [codeAnalysisRankingRows, activeCodeYear, activeCodeMonth]);
   const analysisTypeMonthlyStatsRaw = Array.isArray(
     dashboardData?.analysisTypeMonthlyStats
   )
@@ -1240,6 +1567,70 @@ export default function AdminBatchTestDashboard() {
             배치 테스트에서 계산된 월간 활성 사용자(MAU)를 확인하세요.
           </p>
         </div>
+        {availableMauYears.length > 0 && (
+          <div className="px-5 py-4 border-b dark:border-gray-700">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                <button
+                  type="button"
+                  onClick={() => setActiveMauYear(null)}
+                  className={`px-2.5 py-1 rounded-md border transition-colors ${
+                    activeMauYear === null
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-200 dark:border-emerald-500"
+                      : "border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  전체
+                </button>
+                {availableMauYears.map((year) => {
+                  const isActive = activeMauYear === year;
+                  return (
+                    <button
+                      key={`mau-year-${year}`}
+                      type="button"
+                      onClick={() => setActiveMauYear(year)}
+                      className={`px-2.5 py-1 rounded-md border transition-colors ${
+                        isActive
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-200 dark:border-emerald-500"
+                          : "border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      {year}년
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                {recentMonthlyRangeOptions.map((option) => {
+                  const isActive = activeMauRange === option.value;
+                  return (
+                    <button
+                      key={`mau-range-${option.value}`}
+                      type="button"
+                      onClick={() => setActiveMauRange(option.value)}
+                      className={`px-3 py-1 rounded-full border transition-colors ${
+                        isActive
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+                {activeMauRange && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveMauRange(null)}
+                    className="px-3 py-1 rounded-full border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    전체 기간
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         <div className="p-5">
           {mauChartData.length === 0 ? (
             <p className="text-center text-gray-500">
@@ -1265,7 +1656,7 @@ export default function AdminBatchTestDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800 space-y-4">
           <div>
             <h2 className="text-lg font-semibold">분석 유형별 월간 통계</h2>
@@ -1496,10 +1887,85 @@ export default function AdminBatchTestDashboard() {
         </div>
 
         <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800">
-          <h2 className="text-lg font-semibold mb-2">언어 랭킹 Top 5</h2>
-          <p className="text-xs text-gray-500 mb-2">
-            최근 집계된 상위 5개 언어 제출 횟수
-          </p>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">언어 랭킹 Top 5</h2>
+                <p className="text-xs text-gray-500">
+                  월별 또는 연도별로 상위 5개 언어 제출 횟수를 확인합니다.
+                </p>
+              </div>
+              {hasLanguageDate && (
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                  {[
+                    { id: "monthly", label: "월별" },
+                    { id: "yearly", label: "연도별" },
+                  ].map((option) => {
+                    const isActive = languageStatsView === option.id;
+                    return (
+                      <button
+                        key={`lang-view-${option.id}`}
+                        type="button"
+                        onClick={() => setLanguageStatsView(option.id)}
+                        className={`px-3 py-1 rounded-full border transition-colors ${
+                          isActive
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {hasLanguageDate && availableLanguageYears.length > 0 && (
+              <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                {availableLanguageYears.map((year) => {
+                  const isActive = String(year) === String(activeLanguageYear);
+                  return (
+                    <button
+                      key={`lang-year-${year}`}
+                      type="button"
+                      onClick={() => setActiveLanguageYear(year)}
+                      className={`px-2.5 py-1 rounded-md border transition-colors ${
+                        isActive
+                          ? "bg-indigo-50 text-indigo-600 border-indigo-300 dark:bg-indigo-900/40 dark:text-indigo-200 dark:border-indigo-500"
+                          : "border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      {year}년
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {hasLanguageDate &&
+              languageStatsView === "monthly" &&
+              availableLanguageMonths.length > 0 && (
+                <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                  {availableLanguageMonths.map((month) => {
+                    const key = `${activeLanguageYear}.${month}`;
+                    const isActive = key === activeLanguageMonth;
+                    return (
+                      <button
+                        key={`lang-month-${key}`}
+                        type="button"
+                        onClick={() => setActiveLanguageMonth(key)}
+                        className={`px-2.5 py-1 rounded-md border transition-colors ${
+                          isActive
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        }`}
+                      >
+                        {Number(month)}월
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+          </div>
           {topLanguage && (
             <div className="mb-4 flex items-center justify-between rounded-lg border px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 dark:border-indigo-800">
               <div className="flex items-center gap-2 text-sm">
@@ -1547,24 +2013,64 @@ export default function AdminBatchTestDashboard() {
           )}
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid gap-6 md:grid-cols-2">
           <RankingCard
             title="알고리즘 풀이 랭킹"
             emptyMessage="데이터가 없습니다."
             headers={["순위", "닉네임", "이메일", "풀이 수"]}
-            rows={algoSolveRankingTop5.map((item) => {
-              const nickname =
-                item.userNickname ||
-                item.userNickName ||
-                item.user_nickname ||
-                "-";
-              const email =
-                item.userEmail || item.user_email || item.email || "-";
+            actions={
+              availableAlgoYears.length > 0 && (
+                <div className="flex flex-col gap-2 text-xs sm:text-sm">
+                  <div className="flex flex-wrap gap-2">
+                    {availableAlgoYears.map((year) => {
+                      const isActive = String(year) === String(activeAlgoYear);
+                      return (
+                        <button
+                          key={`algo-year-${year}`}
+                          type="button"
+                          onClick={() => setActiveAlgoYear(year)}
+                          className={`px-2.5 py-1 rounded-md border transition-colors ${
+                            isActive
+                              ? "bg-indigo-50 text-indigo-600 border-indigo-300 dark:bg-indigo-900/40 dark:text-indigo-200 dark:border-indigo-500"
+                              : "border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          }`}
+                        >
+                          {year}년
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {availableAlgoMonths.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {availableAlgoMonths.map((month) => {
+                        const key = `${activeAlgoYear}.${month}`;
+                        const isActive = key === activeAlgoMonth;
+                        return (
+                          <button
+                            key={`algo-month-${key}`}
+                            type="button"
+                            onClick={() => setActiveAlgoMonth(key)}
+                            className={`px-2.5 py-1 rounded-md border transition-colors ${
+                              isActive
+                                ? "bg-indigo-600 text-white border-indigo-600"
+                                : "border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            }`}
+                          >
+                            {Number(month)}월
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+            rows={filteredAlgoSolveRanking.map((item) => {
               return {
-                id: `${email}-${item.ranking}`,
+                id: `${item.userEmail}-${item.ranking}-${item.statYear}-${item.statMonth}`,
                 rank: item.ranking,
-                label: nickname,
-                extra: email,
+                label: item.userNickname,
+                extra: item.userEmail,
                 value: `${Number(item.solveCount ?? 0).toLocaleString()}문제`,
               };
             })}
@@ -1573,19 +2079,59 @@ export default function AdminBatchTestDashboard() {
             title="코드 분석 랭킹"
             emptyMessage="데이터가 없습니다."
             headers={["순위", "닉네임", "이메일", "분석 수"]}
-            rows={codeAnalysisRankingTop5.map((item) => {
-              const nickname =
-                item.userNickname ||
-                item.userNickName ||
-                item.user_nickname ||
-                "-";
-              const email =
-                item.userEmail || item.user_email || item.email || "-";
+            actions={
+              availableAnalysisYears.length > 0 && (
+                <div className="flex flex-col gap-2 text-xs sm:text-sm">
+                  <div className="flex flex-wrap gap-2">
+                    {availableAnalysisYears.map((year) => {
+                      const isActive = String(year) === String(activeCodeYear);
+                      return (
+                        <button
+                          key={`code-year-${year}`}
+                          type="button"
+                          onClick={() => setActiveCodeYear(year)}
+                          className={`px-2.5 py-1 rounded-md border transition-colors ${
+                            isActive
+                              ? "bg-sky-50 text-sky-600 border-sky-300 dark:bg-sky-900/40 dark:text-sky-200 dark:border-sky-500"
+                              : "border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          }`}
+                        >
+                          {year}년
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {availableCodeMonths.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {availableCodeMonths.map((month) => {
+                        const key = `${activeCodeYear}.${month}`;
+                        const isActive = key === activeCodeMonth;
+                        return (
+                          <button
+                            key={`code-month-${key}`}
+                            type="button"
+                            onClick={() => setActiveCodeMonth(key)}
+                            className={`px-2.5 py-1 rounded-md border transition-colors ${
+                              isActive
+                                ? "bg-sky-600 text-white border-sky-600"
+                                : "border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            }`}
+                          >
+                            {Number(month)}월
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+            rows={filteredCodeAnalysisRanking.map((item) => {
               return {
-                id: `${email}-${item.ranking}`,
+                id: `${item.userEmail}-${item.ranking}-${item.statYear}-${item.statMonth}`,
                 rank: item.ranking,
-                label: nickname,
-                extra: email,
+                label: item.userNickname,
+                extra: item.userEmail,
                 value: `${Number(item.analysisCount ?? 0).toLocaleString()}회`,
               };
             })}
@@ -1661,10 +2207,13 @@ function DiffCards({
   );
 }
 
-function RankingCard({ title, emptyMessage, headers, rows }) {
+function RankingCard({ title, emptyMessage, headers, rows, actions }) {
   return (
     <div className="rounded-xl shadow-md p-5 border dark:bg-gray-800">
-      <h2 className="text-lg font-semibold mb-4">{title}</h2>
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {actions}
+      </div>
       {!rows.length ? (
         <p className="text-center text-gray-500">{emptyMessage}</p>
       ) : (
@@ -1717,11 +2266,14 @@ function TrendAreaChart({
     );
   }
 
-  const width = 640;
-  const height = 280;
-  const padding = 36;
-  const chartHeight = height - padding * 2;
-  const chartWidth = width - padding * 2;
+  const paddingX = 56;
+  const paddingTop = 28;
+  const paddingBottom = 80;
+  const minPointGap = 44;
+  const width = Math.max(640, paddingX * 2 + (data.length - 1) * minPointGap);
+  const height = 320;
+  const chartHeight = height - paddingTop - paddingBottom;
+  const chartWidth = width - paddingX * 2;
   const values = data.map((item) => item.value);
   const maxValue = Math.max(...values, 1);
   const minValue = Math.min(...values, 0);
@@ -1729,21 +2281,27 @@ function TrendAreaChart({
   const points = data.map((item, index) => {
     const x =
       data.length === 1
-        ? padding + chartWidth / 2
-        : padding + (index / (data.length - 1)) * chartWidth;
+        ? paddingX + chartWidth / 2
+        : paddingX + (index / (data.length - 1)) * chartWidth;
     const y =
-      height - padding - ((item.value - minValue) / valueRange) * chartHeight;
+      height -
+      paddingBottom -
+      ((item.value - minValue) / valueRange) * chartHeight;
     return { x, y, label: item.label, value: item.value };
   });
-  const areaPath = `M ${points[0].x} ${height - padding} L ${points
+  const areaPath = `M ${points[0].x} ${height - paddingBottom} L ${points
     .map((p) => `${p.x} ${p.y}`)
-    .join(" L ")} L ${points[points.length - 1].x} ${height - padding} Z`;
+    .join(" L ")} L ${points[points.length - 1].x} ${height - paddingBottom} Z`;
   const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(" ");
   const yTicks = 4;
+  const showPointValueLabels = true;
+  const shouldRenderValueLabel = () => true;
+  const valueFontSize = data.length > 20 ? 9 : 11;
+  const valueOffset = data.length > 20 ? 16 : 12;
   const tickElements = Array.from({ length: yTicks + 1 }, (_, idx) => {
     const value = minValue + (valueRange * idx) / yTicks;
     const y =
-      height - padding - ((value - minValue) / valueRange) * chartHeight;
+      height - paddingBottom - ((value - minValue) / valueRange) * chartHeight;
     return { y, value };
   });
   const resolveTickValue = (value) => {
@@ -1763,7 +2321,8 @@ function TrendAreaChart({
     <div className="w-full overflow-x-auto">
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-64"
+        className="w-full h-72 overflow-visible"
+        style={{ overflow: "visible" }}
         role="img"
         aria-label={ariaLabel}
       >
@@ -1776,16 +2335,16 @@ function TrendAreaChart({
         {tickElements.map((tick, idx) => (
           <g key={`grid-${idx}`}>
             <line
-              x1={padding}
+              x1={paddingX}
               y1={tick.y}
-              x2={width - padding}
+              x2={width - paddingX}
               y2={tick.y}
               strokeDasharray="4 4"
               stroke="currentColor"
               className="stroke-gray-200 dark:stroke-gray-700"
             />
             <text
-              x={padding - 10}
+              x={paddingX - 10}
               y={tick.y + 4}
               textAnchor="end"
               fontSize="10"
@@ -1805,7 +2364,7 @@ function TrendAreaChart({
           strokeLinejoin="round"
           strokeLinecap="round"
         />
-        {points.map((point) => (
+        {points.map((point, index) => (
           <g key={point.label}>
             <circle
               cx={point.x}
@@ -1815,23 +2374,28 @@ function TrendAreaChart({
               stroke={color}
               strokeWidth="2"
             />
+            {showPointValueLabels && shouldRenderValueLabel() && (
+              <text
+                x={point.x}
+                y={point.y - valueOffset - (index % 2 === 0 ? 0 : 10)}
+                textAnchor="middle"
+                fontSize={valueFontSize}
+                fill={color}
+                className="font-semibold"
+              >
+                {resolvePointValue(point.value)}
+              </text>
+            )}
             <text
               x={point.x}
-              y={point.y - 12}
+              y={height - paddingBottom + 36}
               textAnchor="middle"
-              fontSize="11"
-              fill={color}
-              className="font-semibold"
-            >
-              {resolvePointValue(point.value)}
-            </text>
-            <text
-              x={point.x}
-              y={height - padding + 16}
-              textAnchor="middle"
-              fontSize="11"
+              fontSize="10"
               fill="currentColor"
               className="text-gray-500 dark:text-gray-400"
+              transform={`rotate(-30 ${point.x} ${
+                height - paddingBottom + 36
+              })`}
             >
               {point.label}
             </text>
