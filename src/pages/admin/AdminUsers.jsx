@@ -1,10 +1,9 @@
 import axios from "axios";
 import { useState, useEffect, useRef } from "react";
 import AdminUserDetailModal from "./AdminUserDetailModal";
+import axiosInstance from "../../server/AxiosConfig";
 
 export default function AdminUsers() {
-  const API_BASE_URL = "https://api.co-ai.run/admin";
-  // const API_BASE_URL = "http://localhost:9443/admin";
   const [users, setUsers] = useState([]);
   const [pageInfo, setPageInfo] = useState({
     page: 1,
@@ -45,8 +44,9 @@ export default function AdminUsers() {
       const querySort = `&sortField=${sortField}&sortOrder=${sortOrder}`;
       const queryRole = `&roleFilter=${role}`;
       const queryStatus = `&statusFilter=${status}`;
-      const res = await axios.get(
-        `${API_BASE_URL}/users?page=${page}&size=10${queryEmail}${querySort}${queryRole}${queryStatus}`
+
+      const res = await axiosInstance.get(
+        `/admin/users?page=${page}&size=10${queryEmail}${querySort}${queryRole}${queryStatus}`
       );
 
       if (res.data.message === "success") {

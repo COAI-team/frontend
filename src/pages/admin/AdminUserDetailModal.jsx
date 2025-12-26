@@ -1,9 +1,9 @@
 import axios from "axios";
 import { ChevronsRightLeft } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import axiosInstance from "../../server/AxiosConfig";
 
 const AdminUserDetailModal = ({ userId, onClose }) => {
-  const API_BASE_URL = "https://api.co-ai.run/admin";
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -21,7 +21,7 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
         setStatusMessage(""); // ✅ 이전 상태 초기화
         setUser(null); // ✅ 이전 유저 정보 초기화 (중복 방지)
 
-        const res = await axios.get(`${API_BASE_URL}/userdetail/${userId}`);
+        const res = await axiosInstance.get(`/admin/userdetail/${userId}`);
         if (res.data.message === "success") {
           setUser(res.data.data);
         } else {
@@ -42,15 +42,16 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
   if (error) return <div style={styles.error}>{error}</div>;
   if (!user) return null;
 
-  const isSubscribed = user.subscriptionStatus === "ACTIVE" ? true : false;
-  const subscriptionTypeText =
-    user.subscriptionType && user.subscriptionType.trim().length > 0
-      ? user.subscriptionType
-      : "구독중이지 않습니다.";
+  const hasSubscriptionType =
+    user.subscriptionType && user.subscriptionType.trim().length > 0;
+  const isSubscribed = Boolean(hasSubscriptionType);
+  const subscriptionTypeText = hasSubscriptionType
+    ? user.subscriptionType
+    : "구독중이지 않습니다.";
 
   const handleBanUser = async (userId) => {
     try {
-      const res = await axios.post(`${API_BASE_URL}/banuser/${userId}`);
+      const res = await axiosInstance.post(`/admin/banuser/${userId}`);
       if (res.data.message === "success") {
         console.log("✅ 추방 성공:", res.data.data); // 2025-12-11T17:46:29
 
@@ -72,7 +73,7 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
   const handleCheckSubscription = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/subscribecheck/${userId}`);
+      const res = await axiosInstance.get(`/admin/subscribecheck/${userId}`);
       if (res.data.message === "success") {
         const isActive = Boolean(res.data.data);
 
@@ -90,8 +91,8 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
         );
 
         // 구독 상태를 다시 반영하기 위해 유저 정보를 새로 가져옴
-        const detailRes = await axios.get(
-          `${API_BASE_URL}/userdetail/${userId}`
+        const detailRes = await axiosInstance.get(
+          `/admin/userdetail/${userId}`
         );
         if (detailRes.data.message === "success") {
           setUser(detailRes.data.data);
