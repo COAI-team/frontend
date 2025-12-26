@@ -141,6 +141,17 @@ export function useBattleWebSocket({
   }, [accessToken, deactivateClient, subscribeBase, subscribeRoom]);
 
   useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key !== "auth") return;
+      if (event.newValue) return;
+      tokenRef.current = null;
+      deactivateClient();
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [deactivateClient]);
+
+  useEffect(() => {
     if (roomIdRef.current !== roomId) {
       subscribeRoom(roomId);
     }

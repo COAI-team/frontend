@@ -46,6 +46,43 @@ const normalizeQuery = (q = "") =>
     .replace(/#/g, "sharp")
     .replace(/[^a-z0-9가-힣]/g, "");
 
+const sortProblemsByIdAsc = (items) => {
+  const list = Array.isArray(items) ? [...items] : [];
+  return list.sort((a, b) => {
+    const aId = Number(a?.algoProblemId ?? a?.problemId ?? a?.id ?? Number.MAX_SAFE_INTEGER);
+    const bId = Number(b?.algoProblemId ?? b?.problemId ?? b?.id ?? Number.MAX_SAFE_INTEGER);
+    if (Number.isNaN(aId) && Number.isNaN(bId)) return 0;
+    if (Number.isNaN(aId)) return 1;
+    if (Number.isNaN(bId)) return -1;
+    return aId - bId;
+  });
+};
+
+const buildProblemItems = (items) => {
+  const base = sortProblemsByIdAsc(items).map((p) => {
+    const id = p.algoProblemId ?? p.problemId ?? p.id;
+    const title = p.algoProblemTitle || p.title || `문제 #${id}`;
+    const difficulty = (p.algoProblemDifficulty || p.difficulty || "").toUpperCase();
+    return {
+      value: id,
+      label: `#${id} · ${title}`,
+      subLabel: difficulty ? `난이도: ${difficulty}` : null,
+      badge: difficulty || null,
+      searchText: `${id} ${title} ${difficulty}`,
+    };
+  });
+  return [
+    {
+      value: "",
+      label: "#? RANDOM",
+      subLabel: "문제가 랜덤으로 선택됨",
+      badge: null,
+      searchText: "random 랜덤 무작위",
+    },
+    ...base,
+  ];
+};
+
 const getAliasesByKey = (key) => {
   if (LANGUAGE_ALIAS_TABLE[key]) return LANGUAGE_ALIAS_TABLE[key];
   if (key === "go") return LANGUAGE_ALIAS_TABLE.golang || [];
@@ -71,6 +108,7 @@ export default function BattleRoom() {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [joinPassword, setJoinPassword] = useState("");
   const [joinError, setJoinError] = useState("");
+  const [problemDescription, setProblemDescription] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const [settingsError, setSettingsError] = useState("");
@@ -93,6 +131,7 @@ export default function BattleRoom() {
 
   const containerRef = useRef(null);
   const violationStateRef = useRef({});
+  const submitTimeoutRef = useRef(null);
 
   const myUserId = user?.userId;
 
@@ -108,6 +147,24 @@ export default function BattleRoom() {
     const key = myUserId != null ? String(myUserId) : "anonymous";
     violationStateRef.current[key] = { count: 0, lastAt: 0, auto: false };
   }, [myUserId]);
+
+  const clearSubmitTimeout = useCallback(() => {
+    if (submitTimeoutRef.current) {
+      clearTimeout(submitTimeoutRef.current);
+      submitTimeoutRef.current = null;
+    }
+  }, []);
+
+  const startSubmitTimeout = useCallback(() => {
+    clearSubmitTimeout();
+    submitTimeoutRef.current = setTimeout(() => {
+      setSubmitState((prev) => {
+        if (prev !== "SENDING") return prev;
+        setMessage("채점 응답이 지연됩니다. 다시 제출해 주세요.");
+        return "IDLE";
+      });
+    }, 25000);
+  }, [clearSubmitTimeout]);
 
   const triggerAutoSurrender = async () => {
     const state = getViolationState();
@@ -208,6 +265,8 @@ export default function BattleRoom() {
     })();
   }, [roomId]);
 
+  useEffect(() => () => clearSubmitTimeout(), [clearSubmitTimeout]);
+
   useEffect(() => {
     resetViolations();
   }, [roomId, resetViolations]);
@@ -232,21 +291,7 @@ export default function BattleRoom() {
     }
   }, [room?.status]);
 
-  const problemItems = useMemo(
-    () =>
-      problems.map((p) => {
-        const id = p.algoProblemId ?? p.problemId ?? p.id;
-        const title = p.algoProblemTitle || p.title || `문제 #${id}`;
-        const difficulty = (p.algoProblemDifficulty || p.difficulty || "").toUpperCase();
-        return {
-          value: id,
-          label: `#${id} · ${title}`,
-          subLabel: difficulty ? `난이도: ${difficulty}` : null,
-          badge: difficulty || null,
-        };
-      }),
-    [problems]
-  );
+  const problemItems = useMemo(() => buildProblemItems(problems), [problems]);
 
   const languageItems = useMemo(
     () =>
@@ -289,7 +334,17 @@ export default function BattleRoom() {
   }, [durationPolicy, selectedSettingsDefault, selectedSettingsProblem]);
 
   useEffect(() => {
-    if (!room?.algoProblemId) return;
+    if (!room) return;
+    if (room.randomProblem && !room.algoProblemId) {
+      setProblemTitle("? RANDOM");
+      setProblemDescription("");
+      return;
+    }
+    if (!room.algoProblemId) {
+      setProblemTitle("");
+      setProblemDescription("");
+      return;
+    }
     (async () => {
       const res = await getProblem(room.algoProblemId);
       const title =
@@ -298,8 +353,15 @@ export default function BattleRoom() {
         res?.data?.title ||
         `문제 #${room.algoProblemId}`;
       setProblemTitle(title);
+      const description =
+        res?.data?.algoProblemDescription ||
+        res?.algoProblemDescription ||
+        res?.data?.description ||
+        res?.description ||
+        "";
+      setProblemDescription(description || "");
     })();
-  }, [room?.algoProblemId]);
+  }, [room?.algoProblemId, room?.randomProblem]);
 
   useEffect(() => {
     if (!room?.startedAt || room.status !== "RUNNING") {
@@ -456,7 +518,11 @@ export default function BattleRoom() {
       }
     });
     if (!payload.participants && prev?.participants) {
-      merged.participants = prev.participants;
+      const hostChanged =
+        payload.hostUserId !== undefined && payload.hostUserId !== prev?.hostUserId;
+      const guestChanged =
+        payload.guestUserId !== undefined && payload.guestUserId !== prev?.guestUserId;
+      merged.participants = hostChanged || guestChanged ? {} : prev.participants;
     }
     return merged;
   };
@@ -476,6 +542,7 @@ export default function BattleRoom() {
       setTimeout(() => setStartOverlay(null), 1500);
     },
     onSubmitResult: (payload) => {
+      clearSubmitTimeout();
       if (payload?.userId === myUserId) {
         const accepted = payload?.accepted !== false;
         if (!accepted) {
@@ -497,6 +564,7 @@ export default function BattleRoom() {
       }
     },
     onFinish: (payload) => {
+      clearSubmitTimeout();
       if (payload?.matchId) {
         setResultData(payload);
       }
@@ -516,6 +584,9 @@ export default function BattleRoom() {
       const code = payload?.code;
       const msg = payload?.message || "서버 오류가 발생했습니다.";
       setMessage(msg);
+      setReadyLoading(false);
+      setSubmitState((prev) => (prev === "SENDING" ? "IDLE" : prev));
+      clearSubmitTimeout();
       if (code === "B025" || code === "B026") {
         const notice = "방에서 강퇴당하였습니다.";
         try {
@@ -603,7 +674,11 @@ export default function BattleRoom() {
       setSurrenderConfirmOpen(true);
       return;
     }
-    await leaveRoom(roomId);
+    const res = await leaveRoom(roomId);
+    if (res?.error) {
+      setMessage(res?.message || "방 나가기에 실패했습니다.");
+      return;
+    }
     navigate("/battle");
   };
 
@@ -658,6 +733,7 @@ export default function BattleRoom() {
       return;
     }
     setSubmitState("SENDING");
+    startSubmitTimeout();
     sendSubmit({
       roomId,
       languageId: room.languageId,
@@ -691,7 +767,7 @@ export default function BattleRoom() {
     if (!room) return;
     setSettings({
       title: room.title || "",
-      algoProblemId: room.algoProblemId,
+      algoProblemId: room.randomProblem && !room.algoProblemId ? "" : room.algoProblemId ?? "",
       languageId: room.languageId,
       levelMode: room.levelMode,
       betAmount: room.betAmount,
@@ -706,8 +782,10 @@ export default function BattleRoom() {
 
   if (!room) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-10">
-        <p className="text-gray-600">방 정보를 불러오는 중...</p>
+      <div className="min-h-screen bg-white dark:bg-[#131313]">
+        <div className="max-w-5xl mx-auto px-4 py-10 text-gray-900 dark:text-gray-100">
+          <p className="text-gray-600 dark:text-gray-400">방 정보를 불러오는 중...</p>
+        </div>
       </div>
     );
   }
@@ -722,18 +800,19 @@ export default function BattleRoom() {
   const winReasonDetail = formatWinReasonDetail(winReason, resultWinnerId, resultHost, resultGuest);
 
   return (
-    <div ref={containerRef} className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+    <div className="min-h-screen bg-white dark:bg-[#131313]">
+      <div ref={containerRef} className="max-w-5xl mx-auto px-4 py-6 space-y-4 text-gray-900 dark:text-gray-100">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">{room.title || `방 ${roomId}`}</h1>
-          {room.isPrivate && <span className="text-sm text-gray-600">비밀방</span>}
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{room.title || `방 ${roomId}`}</h1>
+          {room.isPrivate && <span className="text-sm text-gray-600 dark:text-gray-400">비밀방</span>}
         </div>
         <div className="flex items-center gap-2">
           {iAmHost && room.status === "WAITING" && (
             <button
               type="button"
               onClick={openSettings}
-              className="px-4 py-2 rounded border border-gray-200 hover:border-gray-300"
+              className="px-4 py-2 rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
             >
               설정
             </button>
@@ -741,20 +820,23 @@ export default function BattleRoom() {
           <button
             type="button"
             onClick={handleLeave}
-            className="px-4 py-2 rounded border border-gray-200 hover:border-gray-300"
+            className="px-4 py-2 rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
           >
             나가기
           </button>
         </div>
       </div>
 
-      {message && <div className="text-sm text-red-600">{message}</div>}
+      {message && <div className="text-sm text-red-600 dark:text-red-400">{message}</div>}
 
       <div className="flex flex-wrap gap-2 items-center">
         <InfoChip label="상태" value={STATUS_LABEL[room.status] || room.status} />
         <InfoChip label="인원" value={`${headCount}/2`} />
         <InfoChip label="베팅" value={formatPoint(room.betAmount)} />
-        <InfoChip label="문제" value={problemTitle || "-"} />
+        <InfoChip
+          label="문제"
+          value={problemTitle || (room.randomProblem && !room.algoProblemId ? "? RANDOM" : "-")}
+        />
         <InfoChip label="언어" value={languageName || `언어 #${room.languageId || "-"}`} />
         <InfoChip label="매칭" value={levelModeText(room.levelMode)} />
         <InfoChip label="최대 진행" value={`${room.maxDurationMinutes || "-"}분`} />
@@ -777,11 +859,11 @@ export default function BattleRoom() {
       </div>
 
       {isParticipant ? (
-        <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
+        <div className="border rounded-lg p-4 bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] space-y-3">
           {room.status !== "RUNNING" && (
-            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
               <span>준비 후 두 명 모두 준비 완료 시 자동으로 카운트다운 후 시작합니다.</span>
-              {room.betAmount > 0 && <span className="text-red-600">베팅 방은 포인트가 홀드됩니다.</span>}
+              {room.betAmount > 0 && <span className="text-red-600 dark:text-red-400">베팅 방은 포인트가 홀드됩니다.</span>}
             </div>
           )}
           <div className="flex items-center gap-2">
@@ -807,13 +889,20 @@ export default function BattleRoom() {
             )}
           </div>
           {readyCooldownSeconds > 0 && (
-            <div className="text-xs text-gray-600">
+            <div className="text-xs text-gray-600 dark:text-gray-400">
               방 설정이 변경되어 {readyCooldownSeconds}s 후 준비 가능합니다.
             </div>
           )}
           {room.status === "RUNNING" && (
             <div className="space-y-2">
-              <div className="text-sm text-gray-700">문제: {problemTitle}</div>
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                문제: {problemTitle || (room.randomProblem && !room.algoProblemId ? "? RANDOM" : "-")}
+              </div>
+              {problemDescription && (
+                <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap border rounded bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#3f3f46] px-3 py-2">
+                  {problemDescription}
+                </div>
+              )}
               <CodeEditor
                 language={languageName}
                 value={code}
@@ -824,14 +913,14 @@ export default function BattleRoom() {
             </div>
           )}
           {room.status === "FINISHED" && (
-            <div className="text-sm text-gray-700">
+            <div className="text-sm text-gray-700 dark:text-gray-300">
               게임이 종료되었습니다. 결과를 확인하세요.
             </div>
           )}
         </div>
       ) : (
-        <div className="border rounded-lg p-4 bg-gray-50 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+        <div className="border rounded-lg p-4 bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] flex items-center justify-between">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             방에 참가하려면 입장을 눌러주세요.
           </div>
           <button
@@ -846,9 +935,9 @@ export default function BattleRoom() {
       )}
 
       {room && (
-        <div className="text-sm text-gray-700 space-y-1">
+        <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
           <div>생성 시간: {room.createdAt ? new Date(room.createdAt).toLocaleString() : "-"}</div>
-          {savedPassword && <div className="text-xs text-gray-500">저장된 비밀번호가 있습니다.</div>}
+          {savedPassword && <div className="text-xs text-gray-500 dark:text-gray-400">저장된 비밀번호가 있습니다.</div>}
         </div>
       )}
 
@@ -864,21 +953,21 @@ export default function BattleRoom() {
         </div>
       )}
       {joinModalOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-5">
+        <div className="fixed inset-0 bg-black/30 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full max-w-sm p-5 border border-gray-200 dark:border-[#3f3f46]">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">비밀방 입장</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">비밀방 입장</h3>
               <button
                 type="button"
                 onClick={() => setJoinModalOpen(false)}
-                className="text-gray-500 text-sm"
+                className="text-gray-500 dark:text-gray-400 text-sm"
               >
                 닫기
               </button>
             </div>
             <div className="space-y-2">
-              <label className="block text-sm text-gray-700">비밀번호 (숫자 4자리)</label>
-              <div className="flex items-center border rounded px-2 py-1 bg-white">
+              <label className="block text-sm text-gray-700 dark:text-gray-300">비밀번호 (숫자 4자리)</label>
+              <div className="flex items-center border rounded px-2 py-1 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46]">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={joinPassword}
@@ -890,24 +979,24 @@ export default function BattleRoom() {
                       setJoinError("");
                     }
                   }}
-                  className="flex-1 outline-none text-sm"
+                  className="flex-1 outline-none text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   placeholder="****"
                 />
                 <button
                   type="button"
-                  className="text-xs text-gray-600 ml-1"
+                  className="text-xs text-gray-600 dark:text-gray-400 ml-1"
                   onClick={() => setShowPassword((v) => !v)}
                 >
                   {showPassword ? "숨김" : "보기"}
                 </button>
               </div>
-              {joinError && <div className="text-xs text-red-600">{joinError}</div>}
+              {joinError && <div className="text-xs text-red-600 dark:text-red-400">{joinError}</div>}
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <button
                 type="button"
                 onClick={() => setJoinModalOpen(false)}
-                className="px-3 py-2 text-sm rounded border border-gray-200 hover:border-gray-300"
+                className="px-3 py-2 text-sm rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
               >
                 취소
               </button>
@@ -924,13 +1013,13 @@ export default function BattleRoom() {
       )}
 
       {settingsOpen && settings && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+        <div className="fixed inset-0 bg-black/30 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full max-w-lg p-6 border border-gray-200 dark:border-[#3f3f46]">
             <div className="flex items-start justify-between mb-4">
-              <h3 className="text-xl font-semibold">방 설정</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">방 설정</h3>
               <div className="flex flex-col items-end gap-1">
                 <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-1 text-sm text-gray-700">
+                  <label className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
                     <input
                       type="checkbox"
                       checked={settings.isPrivate}
@@ -941,7 +1030,7 @@ export default function BattleRoom() {
                     <span>🔒 비밀방</span>
                   </label>
                   {settings.isPrivate && (
-                    <div className="flex items-center border rounded px-2 py-1 bg-white">
+                    <div className="flex items-center border rounded px-2 py-1 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46]">
                       <input
                         type={showSettingsPassword ? "text" : "password"}
                         maxLength={4}
@@ -952,13 +1041,13 @@ export default function BattleRoom() {
                             newPassword: e.target.value.replace(/\D/g, "").slice(0, 4),
                           }))
                         }
-                        className="w-24 outline-none text-sm"
+                        className="w-24 outline-none text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                         placeholder="숫자4자리"
                       />
                       <button
                         type="button"
                         onClick={() => setShowSettingsPassword((v) => !v)}
-                        className="text-gray-600 text-xs ml-1"
+                        className="text-gray-600 dark:text-gray-400 text-xs ml-1"
                         aria-label="비밀번호 보기"
                       >
                         {showSettingsPassword ? "🙈" : "👁"}
@@ -967,17 +1056,17 @@ export default function BattleRoom() {
                   )}
                 </div>
                 {settings.isPrivate && settings.newPassword.length > 0 && settings.newPassword.length < 4 && (
-                  <div className="text-xs text-red-600 text-right">비밀번호는 숫자 4자리로 입력해 주세요.</div>
+                  <div className="text-xs text-red-600 dark:text-red-400 text-right">비밀번호는 숫자 4자리로 입력해 주세요.</div>
                 )}
               </div>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">방 제목</label>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">방 제목</label>
                 <input
                   value={settings.title}
                   onChange={(e) => setSettings((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100"
                   placeholder="방 제목"
                   maxLength={50}
                 />
@@ -985,12 +1074,12 @@ export default function BattleRoom() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="inline-flex items-center gap-2 mb-1">
-                    <label className="text-sm font-semibold text-gray-700">문제 선택</label>
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">문제 선택</label>
                     {settings.algoProblemId && (
                       <button
                         type="button"
                         onClick={() => setSettings((prev) => ({ ...prev, algoProblemId: "" }))}
-                        className="w-9 h-9 flex items-center justify-center rounded-md border border-red-200 text-red-600 text-lg"
+                        className="w-9 h-9 flex items-center justify-center rounded-md border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-lg"
                         aria-label="문제 선택 해제"
                       >
                         ×
@@ -1003,16 +1092,17 @@ export default function BattleRoom() {
                     value={settings.algoProblemId}
                     onChange={(val) => setSettings((prev) => ({ ...prev, algoProblemId: val }))}
                     placeholder="문제를 선택해 주세요"
+                    helperText="설정 하지 않으면 랜덤 선택"
                   />
                 </div>
                 <div>
                   <div className="inline-flex items-center gap-2 mb-1">
-                    <label className="text-sm font-semibold text-gray-700">언어 선택</label>
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">언어 선택</label>
                     {settings.languageId && (
                       <button
                         type="button"
                         onClick={() => setSettings((prev) => ({ ...prev, languageId: "" }))}
-                        className="w-9 h-9 flex items-center justify-center rounded-md border border-red-200 text-red-600 text-lg"
+                        className="w-9 h-9 flex items-center justify-center rounded-md border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-lg"
                         aria-label="언어 선택 해제"
                       >
                         ×
@@ -1030,47 +1120,47 @@ export default function BattleRoom() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">매칭 규칙</label>
+                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">매칭 규칙</label>
                   <select
                     value={settings.levelMode}
                     onChange={(e) => setSettings((prev) => ({ ...prev, levelMode: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100"
                   >
                     <option value="SAME">동일 레벨만</option>
                     <option value="ANY">제한 없음</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">베팅 금액(P)</label>
+                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">베팅 금액(P)</label>
                   <input
                     type="number"
                     min="0"
                     max="99999"
                     value={settings.betAmount}
                     onChange={(e) => setSettings((prev) => ({ ...prev, betAmount: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">최대 진행시간</label>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">최대 진행시간</label>
                 <input
                   type="number"
                   min="1"
                   max="120"
                   value={settings.maxDurationMinutes || ""}
                   onChange={(e) => setSettings((prev) => ({ ...prev, maxDurationMinutes: e.target.value }))}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100"
                 />
-                <div className="text-xs text-gray-600 mt-2 space-y-1">
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 space-y-1">
                   <div>
                     비워두면 서버 기본값 적용 (허용 범위 {settingsDurationHelper.min}~{settingsDurationHelper.max}분)
                   </div>
                   {settingsDurationHelper.defaults &&
                     Object.keys(settingsDurationHelper.defaults).length > 0 && (
-                      <div className="border rounded p-2 bg-gray-50">
-                        <div className="font-semibold text-gray-700 mb-1">난이도별 기본시간</div>
-                        <div className="grid grid-cols-2 gap-1 text-gray-700">
+                      <div className="border rounded p-2 bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46]">
+                        <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">난이도별 기본시간</div>
+                        <div className="grid grid-cols-2 gap-1 text-gray-700 dark:text-gray-300">
                           {["BRONZE", "SILVER", "GOLD", "PLATINUM"]
                             .filter((k) => settingsDurationHelper.defaults[k] !== undefined)
                             .map((k) => (
@@ -1081,7 +1171,7 @@ export default function BattleRoom() {
                             ))}
                         </div>
                         {settingsDurationHelper.defaults.DEFAULT !== undefined && (
-                          <div className="text-[11px] text-gray-600 mt-2">
+                          <div className="text-[11px] text-gray-600 dark:text-gray-400 mt-2">
                             * 난이도 정보가 없으면 DEFAULT: {settingsDurationHelper.defaults.DEFAULT}분 적용
                           </div>
                         )}
@@ -1097,13 +1187,13 @@ export default function BattleRoom() {
                   )}
                 </div>
               </div>
-              {settingsError && <div className="text-sm text-red-600">{settingsError}</div>}
+              {settingsError && <div className="text-sm text-red-600 dark:text-red-400">{settingsError}</div>}
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setSettingsOpen(false)}
-                className="px-3 py-2 text-sm rounded border border-gray-200 hover:border-gray-300"
+                className="px-3 py-2 text-sm rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
               >
                 취소
               </button>
@@ -1116,8 +1206,8 @@ export default function BattleRoom() {
                     setSettingsError("방 제목을 입력해 주세요.");
                     return;
                   }
-                  if (!settings.algoProblemId || !settings.languageId) {
-                    setSettingsError("문제와 언어를 선택해 주세요.");
+                  if (!settings.languageId) {
+                    setSettingsError("언어를 선택해 주세요.");
                     return;
                   }
                   if (settings.isPrivate && (!settings.newPassword || settings.newPassword.length !== 4)) {
@@ -1126,7 +1216,7 @@ export default function BattleRoom() {
                   }
                   const payload = {
                     title: settings.title.trim(),
-                    algoProblemId: Number(settings.algoProblemId),
+                    algoProblemId: settings.algoProblemId ? Number(settings.algoProblemId) : null,
                     languageId: Number(settings.languageId),
                     levelMode: settings.levelMode,
                     betAmount: Number(settings.betAmount || 0),
@@ -1165,24 +1255,24 @@ export default function BattleRoom() {
       )}
 
       {kickConfirmOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-5">
+        <div className="fixed inset-0 bg-black/30 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full max-w-sm p-5 border border-gray-200 dark:border-[#3f3f46]">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">강퇴 확인</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">강퇴 확인</h3>
               <button
                 type="button"
                 onClick={() => setKickConfirmOpen(false)}
-                className="text-gray-500 text-sm"
+                className="text-gray-500 dark:text-gray-400 text-sm"
               >
                 닫기
               </button>
             </div>
-            <p className="text-sm text-gray-800">상대를 강퇴하시겠습니까?</p>
+            <p className="text-sm text-gray-800 dark:text-gray-200">상대를 강퇴하시겠습니까?</p>
             <div className="flex justify-end gap-2 mt-4">
               <button
                 type="button"
                 onClick={() => setKickConfirmOpen(false)}
-                className="px-3 py-2 text-sm rounded border border-gray-200 hover:border-gray-300"
+                className="px-3 py-2 text-sm rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
               >
                 취소
               </button>
@@ -1199,26 +1289,26 @@ export default function BattleRoom() {
       )}
 
       {surrenderConfirmOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-5 space-y-3">
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full max-w-sm p-5 space-y-3 border border-gray-200 dark:border-[#3f3f46]">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">나가기 경고</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">나가기 경고</h3>
               <button
                 type="button"
                 onClick={() => setSurrenderConfirmOpen(false)}
-                className="text-sm text-gray-500"
+                className="text-sm text-gray-500 dark:text-gray-400"
               >
                 닫기
               </button>
             </div>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
               지금 나가면 몰수패 처리됩니다. 나가시겠습니까?
             </p>
             <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setSurrenderConfirmOpen(false)}
-                className="px-3 py-2 text-sm rounded border border-gray-200 hover:border-gray-300"
+                className="px-3 py-2 text-sm rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
               >
                 계속하기
               </button>
@@ -1235,22 +1325,22 @@ export default function BattleRoom() {
       )}
 
       {judgeModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full max-w-3xl p-6 space-y-4 border border-gray-200 dark:border-[#3f3f46]">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold">제출 완료! AI 평가</h3>
-              <span className="text-sm text-gray-500">상대방 제출 대기 중...</span>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">제출 완료! AI 평가</h3>
+              <span className="text-sm text-gray-500 dark:text-gray-400">상대방 제출 대기 중...</span>
             </div>
-            <div className="text-sm text-gray-700">
+            <div className="text-sm text-gray-700 dark:text-gray-300">
               AI 점수: {formatScore(judgeScore)} / 100.00
-              <span className="text-xs text-gray-500 ml-2">(시간 보너스는 정산에서 합산)</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">(시간 보너스는 정산에서 합산)</span>
             </div>
             {judgeSummary && (
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-gray-700 dark:text-gray-300">
                 한줄평: {judgeSummary}
               </div>
             )}
-            <div className="text-sm text-gray-700 whitespace-pre-wrap border rounded p-3 bg-gray-50 max-h-[50vh] overflow-y-auto">
+            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap border rounded p-3 bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] max-h-[50vh] overflow-y-auto">
               {judgeDetail || "평가 결과가 없습니다."}
             </div>
           </div>
@@ -1258,15 +1348,15 @@ export default function BattleRoom() {
       )}
 
       {showResult && (room.status === "FINISHED" || room.status === "CANCELED") && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full max-w-4xl p-6 space-y-4 border border-gray-200 dark:border-[#3f3f46]">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold">정산 중</h3>
-              <span className="text-sm text-gray-500">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">정산 중</h3>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 {postGameSeconds != null ? `자동 복귀 ${postGameSeconds}s` : ""}
               </span>
             </div>
-            <div className="text-sm text-gray-700 space-y-1">
+            <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
               <div>
                 승자: {resultWinnerId
                   ? (resultWinnerId === resultHost?.userId
@@ -1279,14 +1369,14 @@ export default function BattleRoom() {
               <div>정산: {resultData?.settlementStatus || "정보 없음"}</div>
               <div>베팅: {resultData?.betAmount != null ? formatPoint(resultData.betAmount) : "0 P"}</div>
               {winReason && <div>승리 사유: {winReasonDetail}</div>}
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 시간차는 1초당 0.01점 보너스를 지급합니다.
               </div>
             </div>
             {room.status === "FINISHED" && (
               <div>
-                <table className="min-w-full text-sm border rounded">
-                  <thead className="bg-gray-100">
+                <table className="min-w-full text-sm border rounded border-gray-200 dark:border-[#3f3f46]">
+                  <thead className="bg-gray-100 dark:bg-zinc-800">
                     <tr>
                       <th className="px-3 py-2 text-left">참가자</th>
                       <th className="px-3 py-2 text-right">Base</th>
@@ -1332,7 +1422,7 @@ export default function BattleRoom() {
                               <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>{badgeText}</span>
                             </div>
                             {row.data.judgeMessage && (
-                              <div className="text-xs text-gray-500 mt-1 max-w-[420px] truncate">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-[420px] truncate">
                                 평가: {row.data.judgeMessage}
                               </div>
                             )}
@@ -1354,7 +1444,7 @@ export default function BattleRoom() {
                 onClick={() => {
                   resetToWaiting();
                 }}
-                className="px-4 py-2 rounded border border-gray-200 hover:border-gray-300"
+                className="px-4 py-2 rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
               >
                 방으로 돌아가기
               </button>
@@ -1378,6 +1468,7 @@ export default function BattleRoom() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -1468,8 +1559,8 @@ function DifficultyBadge({ value }) {
 
 function InfoChip({ label, value }) {
   return (
-    <span className="flex items-center gap-2 px-3 py-1 rounded bg-gray-100 text-gray-800">
-      <span className="text-xs text-gray-500">{label}</span>
+    <span className="flex items-center gap-2 px-3 py-1 rounded bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200">
+      <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
       <span className="font-semibold">{value}</span>
     </span>
   );
@@ -1478,7 +1569,7 @@ function InfoChip({ label, value }) {
 function ParticipantCard({ title, userId, state, onKick }) {
   if (!userId) {
     return (
-      <div className="border rounded p-3 bg-gray-50 text-gray-500">
+      <div className="border rounded p-3 bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-500 dark:text-gray-400">
         {title} 대기중
       </div>
     );
@@ -1493,21 +1584,21 @@ function ParticipantCard({ title, userId, state, onKick }) {
   const pointBalance = state?.pointBalance;
   const grade = state?.grade ?? state?.userGrade ?? state?.level ?? null;
   return (
-    <div className={`relative border rounded p-3 ${highlight ? "bg-green-50 border-green-200" : "bg-white"}`}>
+    <div className={`relative border rounded p-3 ${highlight ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900/40" : "bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#3f3f46]"}`}>
       <div className="flex justify-between items-start gap-2">
         <div>
-          <div className="text-sm text-gray-500">{title}</div>
-          <div className="font-semibold text-gray-900 flex items-center gap-1">
+          <div className="text-sm text-gray-500 dark:text-gray-400">{title}</div>
+          <div className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1">
             <GradeGem grade={grade} size={14} />
             <span>{displayName}</span>
           </div>
-          <div className="text-xs text-gray-600 mt-1">보유 포인트: {formatPoint(pointBalance)}</div>
+          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">보유 포인트: {formatPoint(pointBalance)}</div>
         </div>
         {onKick && (
           <button
             type="button"
             onClick={onKick}
-            className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50"
+            className="text-xs px-2 py-1 rounded border border-red-300 dark:border-red-900/40 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
           >
             강퇴
           </button>
@@ -1515,7 +1606,9 @@ function ParticipantCard({ title, userId, state, onKick }) {
       </div>
       <div
         className={`absolute bottom-2 right-2 text-xs px-2 py-1 rounded ${
-          highlight ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"
+          highlight
+            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+            : "bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-gray-300"
         }`}
       >
         {highlight ? "준비완료" : "대기"}
@@ -1553,7 +1646,6 @@ const GRADE_GEMS = {
   2: { name: "사파이어", main: "#60a5fa", light: "#bfdbfe", dark: "#2563eb" },
   3: { name: "루비", main: "#f87171", light: "#fecaca", dark: "#dc2626" },
   4: { name: "다이아", main: "#67e8f9", light: "#cffafe", dark: "#0891b2" },
-  5: { name: "아메시스트", main: "#c084fc", light: "#e9d5ff", dark: "#7c3aed" },
 };
 
 function GradeGem({ grade, size = 12 }) {

@@ -18,21 +18,21 @@ const PAGE_SIZE = 20;
 const STATUS_META = {
   WAITING: {
     label: "대기 중",
-    badge: "bg-emerald-100 text-emerald-700",
-    border: "border-emerald-200",
-    tint: "bg-emerald-50/40",
+    badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+    border: "border-emerald-200 dark:border-emerald-900/40",
+    tint: "bg-emerald-50/40 dark:bg-emerald-900/10",
   },
   RUNNING: {
     label: "게임 중",
-    badge: "bg-rose-100 text-rose-700",
-    border: "border-rose-200",
-    tint: "bg-rose-50/40",
+    badge: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+    border: "border-rose-200 dark:border-rose-900/40",
+    tint: "bg-rose-50/40 dark:bg-rose-900/10",
   },
   FINISHED: {
     label: "정산 중",
-    badge: "bg-amber-100 text-amber-700",
-    border: "border-amber-200",
-    tint: "bg-amber-50/40",
+    badge: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    border: "border-amber-200 dark:border-amber-900/40",
+    tint: "bg-amber-50/40 dark:bg-amber-900/10",
   },
 };
 
@@ -45,7 +45,7 @@ const DEFAULT_FILTERS = {
   bet: "ALL",
   languageId: "",
   problemId: "",
-  levelMode: "ALL",
+  grade: "ALL",
   time: "ALL",
 };
 
@@ -69,6 +69,50 @@ const normalizeQuery = (q = "") =>
     .replace(/\+\+/g, "pp")
     .replace(/#/g, "sharp")
     .replace(/[^a-z0-9가-힣]/g, "");
+
+const GRADE_GEMS = {
+  1: { name: "에메랄드", main: "#34d399", light: "#bbf7d0", dark: "#059669" },
+  2: { name: "사파이어", main: "#60a5fa", light: "#bfdbfe", dark: "#2563eb" },
+  3: { name: "루비", main: "#f87171", light: "#fecaca", dark: "#dc2626" },
+  4: { name: "다이아", main: "#67e8f9", light: "#cffafe", dark: "#0891b2" },
+};
+
+const sortProblemsByIdAsc = (items) => {
+  const list = Array.isArray(items) ? [...items] : [];
+  return list.sort((a, b) => {
+    const aId = Number(a?.algoProblemId ?? a?.problemId ?? a?.id ?? Number.MAX_SAFE_INTEGER);
+    const bId = Number(b?.algoProblemId ?? b?.problemId ?? b?.id ?? Number.MAX_SAFE_INTEGER);
+    if (Number.isNaN(aId) && Number.isNaN(bId)) return 0;
+    if (Number.isNaN(aId)) return 1;
+    if (Number.isNaN(bId)) return -1;
+    return aId - bId;
+  });
+};
+
+const buildProblemItems = (items, randomValue = "") => {
+  const base = sortProblemsByIdAsc(items).map((p) => {
+    const id = p.algoProblemId ?? p.problemId ?? p.id;
+    const title = p.algoProblemTitle || p.title || `문제 #${id}`;
+    const difficulty = (p.algoProblemDifficulty || p.difficulty || "").toUpperCase();
+    return {
+      value: id,
+      label: `#${id} · ${title}`,
+      subLabel: difficulty ? `난이도: ${difficulty}` : null,
+      badge: difficulty || null,
+      searchText: `${id} ${title} ${difficulty}`,
+    };
+  });
+  return [
+    {
+      value: randomValue,
+      label: "#? RANDOM",
+      subLabel: "문제가 랜덤으로 선택됨",
+      badge: null,
+      searchText: "random 랜덤 무작위",
+    },
+    ...base,
+  ];
+};
 
 const getAliasesByKey = (key) => {
   if (LANGUAGE_ALIAS_TABLE[key]) return LANGUAGE_ALIAS_TABLE[key];
@@ -390,22 +434,7 @@ export default function BattleLobby() {
     [languages]
   );
 
-  const problemItems = useMemo(
-    () =>
-      problems.map((p) => {
-        const id = p.algoProblemId ?? p.problemId ?? p.id;
-        const title = p.algoProblemTitle || p.title || `문제 #${id}`;
-        const difficulty = (p.algoProblemDifficulty || p.difficulty || "").toUpperCase();
-        return {
-          value: id,
-          label: `#${id} · ${title}`,
-          subLabel: difficulty ? `난이도: ${difficulty}` : null,
-          badge: difficulty || null,
-          searchText: `${id} ${title} ${difficulty}`,
-        };
-      }),
-    [problems]
-  );
+  const problemItems = useMemo(() => buildProblemItems(problems, "RANDOM"), [problems]);
   const formattedRooms = useMemo(() => {
     const normalizedSearch = normalizeQuery(filters.search);
     let list = rooms.map((room) => {
@@ -422,13 +451,15 @@ export default function BattleLobby() {
       const isOpen = room.status === "WAITING" && headCount < 2;
       const roomIsPrivate =
         room.isPrivate ?? room.private ?? room.privateRoom ?? room.passwordRequired ?? false;
+      const isRandomHidden = Boolean(room.randomProblem && !room.algoProblemId);
       const meta = problemMetaMap[room.algoProblemId] || {};
-      const problemTitle =
-        room.problemTitle ||
-        room.algoProblemTitle ||
-        meta.title ||
-        problemTitles[room.algoProblemId] ||
-        `문제 #${room.algoProblemId || "-"}`;
+      const problemTitle = isRandomHidden
+        ? "? RANDOM"
+        : room.problemTitle ||
+          room.algoProblemTitle ||
+          meta.title ||
+          problemTitles[room.algoProblemId] ||
+          `문제 #${room.algoProblemId || "-"}`;
       const difficultyRaw =
         room.problemDifficulty ||
         room.algoProblemDifficulty ||
@@ -436,7 +467,7 @@ export default function BattleLobby() {
         room.problemLevel ||
         meta.difficulty ||
         "";
-      const problemDifficulty = String(difficultyRaw || "").toUpperCase() || null;
+      const problemDifficulty = isRandomHidden ? null : String(difficultyRaw || "").toUpperCase() || null;
       const languageName = languages[room.languageId] || `언어 #${room.languageId || "-"}`;
       const hostName = getParticipantName(room, room.hostUserId, "방장");
       const guestName = getParticipantName(room, room.guestUserId, "유저");
@@ -504,13 +535,24 @@ export default function BattleLobby() {
     }
 
     if (filters.problemId) {
-      list = list.filter((room) => String(room.algoProblemId) === String(filters.problemId));
+      if (filters.problemId === "RANDOM") {
+        list = list.filter((room) => Boolean(room.randomProblem));
+      } else {
+        list = list.filter((room) => String(room.algoProblemId) === String(filters.problemId));
+      }
     }
 
-    if (filters.levelMode !== "ALL") {
-      list = list.filter(
-        (room) => normalizeLevelMode(room.levelMode) === normalizeLevelMode(filters.levelMode)
-      );
+    if (filters.grade !== "ALL") {
+      if (filters.grade === "ANY") {
+        list = list.filter((room) => normalizeLevelMode(room.levelMode) === "ANY");
+      } else {
+        const targetGrade = Number(filters.grade);
+        list = list.filter((room) => {
+          const sameLevelOnly = normalizeLevelMode(room.levelMode) === "SAME_LINE_ONLY";
+          if (!sameLevelOnly) return false;
+          return Number(room.hostGrade) === targetGrade;
+        });
+      }
     }
 
     if (filters.time !== "ALL") {
@@ -570,14 +612,23 @@ export default function BattleLobby() {
       chips.push({ key: "languageId", label });
     }
     if (filters.problemId) {
-      const item = problemItems.find((p) => String(p.value) === String(filters.problemId));
-      chips.push({ key: "problemId", label: item?.label || `문제 #${filters.problemId}` });
+      if (filters.problemId === "RANDOM") {
+        chips.push({ key: "problemId", label: "#? RANDOM" });
+      } else {
+        const item = problemItems.find((p) => String(p.value) === String(filters.problemId));
+        chips.push({ key: "problemId", label: item?.label || `문제 #${filters.problemId}` });
+      }
     }
-    if (filters.levelMode !== "ALL") {
-      chips.push({
-        key: "levelMode",
-        label: levelModeText(filters.levelMode),
-      });
+    if (filters.grade !== "ALL") {
+      if (filters.grade === "ANY") {
+        chips.push({ key: "grade", label: "제한 없음" });
+      } else {
+        const meta = GRADE_GEMS[Number(filters.grade)];
+        chips.push({
+          key: "grade",
+          label: meta ? meta.name : `레벨 ${filters.grade}`,
+        });
+      }
     }
     if (filters.time !== "ALL") {
       chips.push({ key: "time", label: `${filters.time}분 이하` });
@@ -586,18 +637,19 @@ export default function BattleLobby() {
   }, [filters, languages, problemItems]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="border rounded-3xl bg-white shadow-sm p-6 space-y-4">
+    <div className="min-h-screen bg-white dark:bg-[#131313]">
+      <div className="max-w-6xl mx-auto px-4 py-8 text-gray-900 dark:text-gray-100">
+        <div className="border rounded-3xl bg-white dark:bg-[#161b22] shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border-gray-200 dark:border-[#3f3f46] p-6 space-y-4">
         <header className="flex flex-col gap-4">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500">알고리즘 · 1vs1</p>
-              <h1 className="text-2xl font-bold text-gray-900">1vs1 배틀 로비</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">알고리즘 · 1vs1</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">1vs1 배틀 로비</h1>
             </div>
             <div className="flex items-center gap-2">
               <Link
                 to="/algorithm"
-                className="px-4 py-2 text-sm rounded border border-gray-200 hover:border-gray-400"
+                className="px-4 py-2 text-sm rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-400 dark:hover:border-gray-500 dark:text-gray-100"
               >
                 알고리즘 홈
               </Link>
@@ -622,7 +674,7 @@ export default function BattleLobby() {
                   setFilters((prev) => ({ ...prev, search: value }));
                   setDraftFilters((prev) => ({ ...prev, search: value }));
                 }}
-                className="flex-1 min-w-[220px] px-3 py-2 border rounded"
+                className="flex-1 min-w-[220px] px-3 py-2 border rounded bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
               <button
                 type="button"
@@ -632,10 +684,10 @@ export default function BattleLobby() {
                   setRefreshCooldown(5);
                 }}
                 disabled={refreshCooldown > 0}
-                className={`px-3 py-2 text-sm rounded border border-gray-200 flex items-center gap-1 transition ${
+                className={`px-3 py-2 text-sm rounded border border-gray-200 dark:border-[#3f3f46] flex items-center gap-1 transition ${
                   refreshCooldown > 0
-                    ? "bg-red-100 text-red-700 cursor-not-allowed"
-                    : "bg-green-100 text-green-700 hover:bg-green-200"
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-not-allowed"
+                    : "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
                 }`}
               >
                 <span className="text-lg leading-none">↻</span>
@@ -647,7 +699,7 @@ export default function BattleLobby() {
                   setDraftFilters(filters);
                   setFiltersOpen(true);
                 }}
-                className="px-4 py-2 rounded border border-gray-200 hover:border-gray-400"
+                className="px-4 py-2 rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-400 dark:hover:border-gray-500"
               >
                 필터
               </button>
@@ -658,13 +710,13 @@ export default function BattleLobby() {
                 {activeFilterChips.map((chip) => (
                   <span
                     key={chip.key}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700"
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-gray-300"
                   >
                     {chip.label}
                     <button
                       type="button"
                       onClick={() => setFilters((prev) => ({ ...prev, [chip.key]: DEFAULT_FILTERS[chip.key] }))}
-                      className="text-gray-500 hover:text-gray-700"
+                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                       aria-label="필터 해제"
                     >
                       ×
@@ -677,13 +729,13 @@ export default function BattleLobby() {
                     setFilters(DEFAULT_FILTERS);
                     setDraftFilters(DEFAULT_FILTERS);
                   }}
-                  className="text-xs text-gray-500 underline"
+                  className="text-xs text-gray-500 dark:text-gray-400 underline"
                 >
                   전체 해제
                 </button>
               </div>
             )}
-            {error && <span className="text-red-600 text-sm">{error}</span>}
+            {error && <span className="text-red-600 dark:text-red-400 text-sm">{error}</span>}
           </div>
         </header>
 
@@ -693,9 +745,9 @@ export default function BattleLobby() {
           style={{ maxHeight: "calc(100vh - 360px)" }}
         >
           {loading && formattedRooms.length === 0 ? (
-            <div className="p-6 text-center text-gray-500">방 목록을 불러오는 중...</div>
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400">방 목록을 불러오는 중...</div>
           ) : visibleRooms.length === 0 ? (
-            <div className="p-6 text-center text-gray-500">표시할 방이 없습니다.</div>
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400">표시할 방이 없습니다.</div>
           ) : (
             <>
               {visibleRooms.map((room) => (
@@ -709,7 +761,7 @@ export default function BattleLobby() {
               ))}
               <div ref={sentinelRef} />
               {visibleRooms.length < formattedRooms.length && (
-                <div className="text-center text-sm text-gray-500 py-3">로딩 중...</div>
+                <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-3">로딩 중...</div>
               )}
             </>
           )}
@@ -717,14 +769,14 @@ export default function BattleLobby() {
       </div>
 
       {filtersOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50">
-          <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl p-6 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/70 z-50">
+          <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-white dark:bg-[#161b22] shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-6 overflow-y-auto border-l border-gray-200 dark:border-[#3f3f46]">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">필터</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">필터</h2>
               <button
                 type="button"
                 onClick={() => setFiltersOpen(false)}
-                className="text-sm text-gray-500"
+                className="text-sm text-gray-500 dark:text-gray-400"
               >
                 닫기
               </button>
@@ -732,7 +784,7 @@ export default function BattleLobby() {
 
             <div className="space-y-5">
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-gray-700">상태</p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">상태</p>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { key: "WAITING", label: "대기 중" },
@@ -747,7 +799,7 @@ export default function BattleLobby() {
                       className={`px-3 py-1.5 rounded-full text-xs border ${
                         draftFilters.status === item.key
                           ? "bg-blue-600 text-white border-blue-600"
-                          : "border-gray-200 text-gray-700"
+                          : "border-gray-200 dark:border-[#3f3f46] text-gray-700 dark:text-gray-300"
                       }`}
                     >
                       {item.label}
@@ -757,7 +809,7 @@ export default function BattleLobby() {
               </div>
 
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
                     checked={draftFilters.joinableOnly}
@@ -767,7 +819,7 @@ export default function BattleLobby() {
                   />
                   입장 가능한 방만 보기
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
                     checked={draftFilters.hideFull}
@@ -777,7 +829,7 @@ export default function BattleLobby() {
                   />
                   꽉 찬 방 숨기기
                 </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
                     checked={draftFilters.includePrivate}
@@ -790,7 +842,7 @@ export default function BattleLobby() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-gray-700">베팅</p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">베팅</p>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { key: "ALL", label: "전체" },
@@ -804,7 +856,7 @@ export default function BattleLobby() {
                       className={`px-3 py-1.5 rounded-full text-xs border ${
                         draftFilters.bet === item.key
                           ? "bg-blue-600 text-white border-blue-600"
-                          : "border-gray-200 text-gray-700"
+                          : "border-gray-200 dark:border-[#3f3f46] text-gray-700 dark:text-gray-300"
                       }`}
                     >
                       {item.label}
@@ -815,12 +867,12 @@ export default function BattleLobby() {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold text-gray-700">문제 검색</span>
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">문제 검색</span>
                   {draftFilters.problemId && (
                     <button
                       type="button"
                       onClick={() => setDraftFilters((prev) => ({ ...prev, problemId: "" }))}
-                      className="w-8 h-8 flex items-center justify-center rounded-md border border-red-200 text-red-600 text-lg"
+                      className="w-8 h-8 flex items-center justify-center rounded-md border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-lg"
                       aria-label="문제 선택 해제"
                     >
                       ×
@@ -838,12 +890,12 @@ export default function BattleLobby() {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold text-gray-700">언어 검색</span>
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">언어 검색</span>
                   {draftFilters.languageId && (
                     <button
                       type="button"
                       onClick={() => setDraftFilters((prev) => ({ ...prev, languageId: "" }))}
-                      className="w-8 h-8 flex items-center justify-center rounded-md border border-red-200 text-red-600 text-lg"
+                      className="w-8 h-8 flex items-center justify-center rounded-md border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-lg"
                       aria-label="언어 선택 해제"
                     >
                       ×
@@ -860,31 +912,41 @@ export default function BattleLobby() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-gray-700">매칭 규칙</p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">레벨</p>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { key: "ALL", label: "전체" },
-                    { key: "SAME_LINE_ONLY", label: "동일 레벨만" },
                     { key: "ANY", label: "제한 없음" },
+                    ...Object.entries(GRADE_GEMS).map(([grade, meta]) => ({
+                      key: String(grade),
+                      label: meta.name,
+                    })),
                   ].map((item) => (
                     <button
                       key={item.key}
                       type="button"
-                      onClick={() => setDraftFilters((prev) => ({ ...prev, levelMode: item.key }))}
+                      onClick={() => setDraftFilters((prev) => ({ ...prev, grade: item.key }))}
                       className={`px-3 py-1.5 rounded-full text-xs border ${
-                        draftFilters.levelMode === item.key
+                        draftFilters.grade === item.key
                           ? "bg-blue-600 text-white border-blue-600"
-                          : "border-gray-200 text-gray-700"
+                          : "border-gray-200 dark:border-[#3f3f46] text-gray-700 dark:text-gray-300"
                       }`}
                     >
-                      {item.label}
+                      {item.key === "ALL" || item.key === "ANY" ? (
+                        item.label
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          <GradeGem grade={item.key} size={12} />
+                          <span>{item.label}</span>
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-gray-700">시간</p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">시간</p>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { key: "ALL", label: "전체" },
@@ -899,7 +961,7 @@ export default function BattleLobby() {
                       className={`px-3 py-1.5 rounded-full text-xs border ${
                         draftFilters.time === item.key
                           ? "bg-blue-600 text-white border-blue-600"
-                          : "border-gray-200 text-gray-700"
+                          : "border-gray-200 dark:border-[#3f3f46] text-gray-700 dark:text-gray-300"
                       }`}
                     >
                       {item.label}
@@ -913,7 +975,7 @@ export default function BattleLobby() {
               <button
                 type="button"
                 onClick={() => setDraftFilters(DEFAULT_FILTERS)}
-                className="px-4 py-2 rounded border border-gray-200 hover:border-gray-300"
+                className="px-4 py-2 rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
               >
                 초기화
               </button>
@@ -946,21 +1008,21 @@ export default function BattleLobby() {
       )}
 
       {joinModal.open && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-5">
+        <div className="fixed inset-0 bg-black/30 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full max-w-sm p-5 border border-gray-200 dark:border-[#3f3f46]">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">비밀방 입장</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">비밀방 입장</h3>
               <button
                 type="button"
                 onClick={() => setJoinModal({ open: false, roomId: null, error: "" })}
-                className="text-gray-500 text-sm"
+                className="text-gray-500 dark:text-gray-400 text-sm"
               >
                 닫기
               </button>
             </div>
             <div className="space-y-2">
-              <label className="block text-sm text-gray-700">비밀번호 (숫자 4자리)</label>
-              <div className="flex items-center border rounded px-2 py-1 bg-white">
+              <label className="block text-sm text-gray-700 dark:text-gray-300">비밀번호 (숫자 4자리)</label>
+              <div className="flex items-center border rounded px-2 py-1 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46]">
                 <input
                   type="password"
                   value={joinPassword}
@@ -972,17 +1034,17 @@ export default function BattleLobby() {
                       setJoinModal((prev) => ({ ...prev, error: "" }));
                     }
                   }}
-                  className="flex-1 outline-none text-sm"
+                  className="flex-1 outline-none text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   placeholder="****"
                 />
               </div>
-              {joinModal.error && <div className="text-xs text-red-600">{joinModal.error}</div>}
+              {joinModal.error && <div className="text-xs text-red-600 dark:text-red-400">{joinModal.error}</div>}
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <button
                 type="button"
                 onClick={() => setJoinModal({ open: false, roomId: null, error: "" })}
-                className="px-3 py-2 text-sm rounded border border-gray-200 hover:border-gray-300"
+                className="px-3 py-2 text-sm rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
               >
                 취소
               </button>
@@ -1000,19 +1062,19 @@ export default function BattleLobby() {
       )}
 
       {infoModal.open && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-5">
+        <div className="fixed inset-0 bg-black/30 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full max-w-sm p-5 border border-gray-200 dark:border-[#3f3f46]">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">안내</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">안내</h3>
               <button
                 type="button"
                 onClick={() => setInfoModal({ open: false, message: "" })}
-                className="text-gray-500 text-sm"
+                className="text-gray-500 dark:text-gray-400 text-sm"
               >
                 닫기
               </button>
             </div>
-            <p className="text-sm text-gray-800">{infoModal.message}</p>
+            <p className="text-sm text-gray-800 dark:text-gray-200">{infoModal.message}</p>
             <div className="flex justify-end gap-2 mt-4">
               <button
                 type="button"
@@ -1028,6 +1090,7 @@ export default function BattleLobby() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -1061,18 +1124,18 @@ function RoomCard({ room, countdownSeconds, onJoin, joining }) {
 
   return (
     <div
-      className={`border rounded-2xl p-4 shadow-sm ${statusMeta.border} ${statusMeta.tint}`}
+      className={`border rounded-2xl p-4 shadow-sm ${statusMeta.border} ${statusMeta.tint} text-gray-900 dark:text-gray-100`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-semibold text-gray-900 truncate" title={room.title || "제목 없음"}>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate" title={room.title || "제목 없음"}>
               <span className="mr-1">{room.isPrivate ? "🔒" : ""}</span>
               {room.title || "제목 없음"}
             </h3>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-700">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-700 dark:text-gray-300">
             <div className="flex items-center gap-1">
               <span className="font-semibold">문제:</span>
               <span className="truncate">{room.problemTitle}</span>
@@ -1095,7 +1158,7 @@ function RoomCard({ room, countdownSeconds, onJoin, joining }) {
             </div>
           </div>
 
-          <div className="text-xs text-gray-600 text-center">
+          <div className="text-xs text-gray-600 dark:text-gray-400 text-center">
             방장{" "}
             <span className="inline-flex items-center gap-1">
               <GradeGem grade={room.hostGrade} size={12} />
@@ -1120,7 +1183,7 @@ function RoomCard({ room, countdownSeconds, onJoin, joining }) {
             {statusMeta.label}
           </span>
           {countdownSeconds != null && room.displayStatusKey === "RUNNING" && (
-            <span className="text-xs text-gray-500">{countdownSeconds}초</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{countdownSeconds}초</span>
           )}
           <button
             type="button"
@@ -1150,14 +1213,6 @@ function DifficultyBadge({ value }) {
     </span>
   );
 }
-
-const GRADE_GEMS = {
-  1: { name: "에메랄드", main: "#34d399", light: "#bbf7d0", dark: "#059669" },
-  2: { name: "사파이어", main: "#60a5fa", light: "#bfdbfe", dark: "#2563eb" },
-  3: { name: "루비", main: "#f87171", light: "#fecaca", dark: "#dc2626" },
-  4: { name: "다이아", main: "#67e8f9", light: "#cffafe", dark: "#0891b2" },
-  5: { name: "아메시스트", main: "#c084fc", light: "#e9d5ff", dark: "#7c3aed" },
-};
 
 function GradeGem({ grade, size = 12 }) {
   const meta = GRADE_GEMS[Number(grade)];
@@ -1206,22 +1261,7 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
     loadPolicy();
   }, []);
 
-  const problemItems = useMemo(
-    () =>
-      problems.map((p) => {
-        const id = p.algoProblemId ?? p.problemId ?? p.id;
-        const title = p.algoProblemTitle || p.title || `문제 #${id}`;
-        const difficulty = (p.algoProblemDifficulty || p.difficulty || "").toUpperCase();
-        return {
-          value: id,
-          label: `#${id} · ${title}`,
-          subLabel: difficulty ? `난이도: ${difficulty}` : null,
-          badge: difficulty || null,
-          searchText: `${id} ${title} ${difficulty}`,
-        };
-      }),
-    [problems]
-  );
+  const problemItems = useMemo(() => buildProblemItems(problems, ""), [problems]);
 
   const languageItems = useMemo(
     () =>
@@ -1275,8 +1315,8 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
       setError("방 제목은 50자 이내로 입력해 주세요.");
       return;
     }
-    if (!problemId || !languageId) {
-      setError("문제와 언어를 모두 선택해 주세요.");
+    if (!languageId) {
+      setError("언어를 선택해 주세요.");
       return;
     }
     if (Number(betAmount) < 0) {
@@ -1296,7 +1336,7 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
     setError(null);
     const payload = {
       title: title.trim(),
-      algoProblemId: Number(problemId),
+      algoProblemId: problemId ? Number(problemId) : null,
       languageId: Number(languageId),
       levelMode,
       betAmount: Number(betAmount || 0),
@@ -1321,13 +1361,13 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+    <div className="fixed inset-0 bg-black/30 dark:bg-black/70 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full max-w-lg p-6 border border-gray-200 dark:border-[#3f3f46]">
         <div className="flex items-start justify-between mb-4">
-          <h2 className="text-xl font-bold">방 만들기</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">방 만들기</h2>
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1 text-sm text-gray-700">
+              <label className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
                 <input
                   type="checkbox"
                   checked={isPrivate}
@@ -1339,7 +1379,7 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
                 <span>🔒 비밀방</span>
               </label>
               {isPrivate && (
-                <div className="flex items-center border rounded px-2 py-1 bg-white">
+                <div className="flex items-center border rounded px-2 py-1 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46]">
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
@@ -1348,13 +1388,13 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
                       const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
                       setPassword(digits);
                     }}
-                    className="w-24 outline-none text-sm"
+                    className="w-24 outline-none text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     placeholder="숫자4자리"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="text-gray-600 text-xs ml-1"
+                    className="text-gray-600 dark:text-gray-400 text-xs ml-1"
                     aria-label="비밀번호 보기"
                   >
                     {showPassword ? "🙈" : "👁"}
@@ -1363,13 +1403,13 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
               )}
             </div>
             {isPrivate && password.length < 4 && (
-              <div className="text-xs text-red-600 text-right">비밀번호는 숫자 4자리로 입력해 주세요.</div>
+              <div className="text-xs text-red-600 dark:text-red-400 text-right">비밀번호는 숫자 4자리로 입력해 주세요.</div>
             )}
           </div>
         </div>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">방 제목</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">방 제목</label>
             <input
               value={title}
               onChange={(e) => {
@@ -1382,19 +1422,19 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
                 setTitle(next);
                 if (error) setError(null);
               }}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               placeholder="방 제목을 입력해 주세요"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <label className="text-sm font-semibold text-gray-700">문제 선택</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">문제 선택</label>
                 {problemId && (
                   <button
                     type="button"
                     onClick={() => setProblemId("")}
-                    className="w-8 h-8 flex items-center justify-center rounded-md border border-red-200 text-red-600 text-lg"
+                    className="w-8 h-8 flex items-center justify-center rounded-md border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-lg"
                     aria-label="문제 선택 해제"
                   >
                     ×
@@ -1407,19 +1447,20 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
                 value={problemId}
                 onChange={(val) => setProblemId(val)}
                 placeholder="문제를 선택해 주세요"
+                helperText="설정 하지 않으면 랜덤 선택"
               />
               {problemItems.length === 0 && (
-                <p className="text-xs text-gray-500 mt-1">문제 목록을 불러오는 중입니다...</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">문제 목록을 불러오는 중입니다...</p>
               )}
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <label className="text-sm font-semibold text-gray-700">언어 선택</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">언어 선택</label>
                 {languageId && (
                   <button
                     type="button"
                     onClick={() => setLanguageId("")}
-                    className="w-8 h-8 flex items-center justify-center rounded-md border border-red-200 text-red-600 text-lg"
+                    className="w-8 h-8 flex items-center justify-center rounded-md border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-lg"
                     aria-label="언어 선택 해제"
                   >
                     ×
@@ -1437,18 +1478,18 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-600 mb-1">매칭 규칙</label>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">매칭 규칙</label>
               <select
                 value={levelMode}
                 onChange={(e) => setLevelMode(e.target.value)}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100"
               >
                 <option value="SAME">동일 레벨만</option>
                 <option value="ANY">제한 없음</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">베팅 금액 (P)</label>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">베팅 금액 (P)</label>
               <input
                 type="number"
                 min="0"
@@ -1464,27 +1505,27 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
                   setBetAmount(value);
                   if (error) setError(null);
                 }}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">최대 진행시간</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">최대 진행시간</label>
             <input
               type="number"
               min="1"
               max="120"
               value={maxDuration}
               onChange={(e) => setMaxDuration(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100"
               placeholder="비워두면 기본값 적용"
             />
-            <div className="text-xs text-gray-600 mt-2 space-y-1">
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 space-y-1">
               <div>비워두면 서버 기본값 적용 (허용 범위 {durationHelper.min}~{durationHelper.max}분)</div>
               {durationHelper.defaults && Object.keys(durationHelper.defaults).length > 0 && (
-                <div className="border rounded p-2 bg-gray-50">
-                  <div className="font-semibold text-gray-700 mb-1">난이도별 기본시간</div>
-                  <div className="grid grid-cols-2 gap-1 text-gray-700">
+                <div className="border rounded p-2 bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46]">
+                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">난이도별 기본시간</div>
+                  <div className="grid grid-cols-2 gap-1 text-gray-700 dark:text-gray-300">
                     {["BRONZE", "SILVER", "GOLD", "PLATINUM"]
                       .filter((k) => durationHelper.defaults[k] !== undefined)
                       .map((k) => (
@@ -1495,7 +1536,7 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
                       ))}
                   </div>
                   {durationHelper.defaults.DEFAULT !== undefined && (
-                    <div className="text-[11px] text-gray-600 mt-2">
+                    <div className="text-[11px] text-gray-600 dark:text-gray-400 mt-2">
                       * 난이도 정보가 없으면 DEFAULT: {durationHelper.defaults.DEFAULT}분 적용
                     </div>
                   )}
@@ -1509,12 +1550,12 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
               )}
             </div>
           </div>
-          {error && <div className="text-sm text-red-600">{error}</div>}
+          {error && <div className="text-sm text-red-600 dark:text-red-400">{error}</div>}
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded border border-gray-200 hover:border-gray-300"
+              className="px-4 py-2 rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
             >
               취소
             </button>
