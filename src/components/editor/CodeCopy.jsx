@@ -18,29 +18,42 @@ const CodeCopy = forwardRef(({ code, language, onCopy, showLineNumbers = true },
 
   // 부모 컴포넌트에서 호출할 수 있는 함수 노출
   useImperativeHandle(ref, () => ({
-    highlightLines: (startLine, endLine) => {
-      console.log('CodeCopy highlightLines 호출됨:', startLine, endLine);
-      console.log('containerRef.current:', containerRef.current);
+  highlightLines: (startLine, endLine) => {
+    console.log('CodeCopy highlightLines 호출됨:', startLine, endLine);
+    console.log('containerRef.current:', containerRef.current);
+    
+    setHighlightedLines({ start: startLine, end: endLine });
+    
+    // 해당 라인으로 스크롤
+    if (containerRef.current) {
+      const lineHeight = 21; // 1.5 * 14px (fontSize 0.875rem)
+      const targetScrollTop = (startLine - 1) * lineHeight;
       
-      setHighlightedLines({ start: startLine, end: endLine });
+      // 뷰포트 중앙에 오도록 조정
+      const containerHeight = containerRef.current.clientHeight;
+      const offset = containerHeight / 3; // 상단 1/3 지점에 위치
       
-      // 해당 라인으로 스크롤
-      if (containerRef.current) {
-        const lineHeight = 21; // 1.5 * 14px (fontSize 0.875rem)
-        const scrollTop = (startLine - 1) * lineHeight - 100;
-        console.log('스크롤 위치:', scrollTop);
-        containerRef.current.scrollTop = Math.max(0, scrollTop);
-      } else {
-        console.log('containerRef.current가 null입니다');
-      }
-
-      // 3초 후 하이라이트 제거
-      setTimeout(() => {
-        console.log('하이라이트 제거');
-        setHighlightedLines(null);
-      }, 3000);
+      const scrollTop = Math.max(0, targetScrollTop - offset);
+      
+      console.log('스크롤 위치:', scrollTop);
+      containerRef.current.scrollTop = scrollTop;
+      
+      // 부드러운 스크롤
+      containerRef.current.scrollTo({
+        top: scrollTop,
+        behavior: 'smooth'
+      });
+    } else {
+      console.log('containerRef.current가 null입니다');
     }
-  }));
+
+    // 3초 후 하이라이트 제거
+    setTimeout(() => {
+      console.log('하이라이트 제거');
+      setHighlightedLines(null);
+    }, 3000);
+  }
+}));
 
   // highlight.js 적용
   useEffect(() => {
@@ -181,7 +194,7 @@ const CodeCopy = forwardRef(({ code, language, onCopy, showLineNumbers = true },
                   height: `${(highlightedLines.end - highlightedLines.start + 1) * lineHeight}px`,
                   backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)',
                   pointerEvents: 'none',
-                  zIndex: 3  // 코드 뒤에 배치
+                  zIndex: 3 
                 }}
               />
             )}
