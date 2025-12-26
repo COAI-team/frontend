@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import AdminBoardDetailModal from "./AdminBoardDetailModal";
 import AlertModal from "../../components/modal/AlertModal";
 import { useAlert } from "../../hooks/common/useAlert";
+import axiosInstance from "../../server/AxiosConfig";
 
 const API_BASE_URL = "https://api.co-ai.run/admin";
 const DEFAULT_PAGE_SIZE = 10;
@@ -96,8 +97,8 @@ const AdminUserBoards = () => {
         SORT_QUERY_MAP[sortOption] ?? SORT_QUERY_MAP.recent;
       params.append("sortField", field);
       params.append("sortOrder", order);
-      const res = await axios.get(
-        `${API_BASE_URL}/userboards?${params.toString()}`
+      const res = await axiosInstance.get(
+        `/admin/userboards?${params.toString()}`
       );
 
       if (res.data?.message === "success" && res.data?.data) {
@@ -137,8 +138,8 @@ const AdminUserBoards = () => {
       setDetailLoading(true);
       setDetailError("");
       setIsDetailModalOpen(true);
-      const res = await axios.get(
-        `${API_BASE_URL}/boarddetail/${normalizedType}/${boardId}`
+      const res = await axiosInstance.get(
+        `/admin/boarddetail/${normalizedType}/${boardId}`
       );
       if (res.data?.message === "success" && res.data?.data) {
         setSelectedBoardDetail(res.data.data);

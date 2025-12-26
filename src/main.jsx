@@ -126,9 +126,10 @@ createRoot(document.getElementById("root")).render(
               <Route index element={<Navigate to="stats" replace />} />
               <Route path="stats" element={<AdminStatsDashboard />} />
               <Route path="users" element={<AdminUsers />} />
-              <Route path="batch-stats" element={<AdminBatchTestDashboard />} />
-              <Route path="userboards" element={<AdminUserBoards />} />
-            </Route>
+            <Route path="batch-stats" element={<AdminBatchTestDashboard />} />
+            <Route path="userboards" element={<AdminUserBoards />} />
+            <Route path="logs" element={<AdminLogs />} />
+          </Route>
 
             {/* 자유게시판 - 리스트를 레이아웃으로 */}
             <Route path="freeboard" element={<FreeboardList />} />

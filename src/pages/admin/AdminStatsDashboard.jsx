@@ -9,6 +9,7 @@ import {
 import axios from "axios";
 
 import { mockDashboardData } from "./mockDashboardData";
+import axiosInstance from "../../server/AxiosConfig";
 
 const donutColors = [
   "#6366F1",
@@ -30,7 +31,7 @@ export default function AdminStatsDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get("http://localhost:9443/admin/dashboard");
+        const res = await axiosInstance.get("/admin/dashboard");
 
         if (res.data?.data) {
           setData(res.data.data); // 성공 시 API 데이터로 교체
