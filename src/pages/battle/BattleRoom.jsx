@@ -4,6 +4,7 @@ import CodeEditor from "../../components/algorithm/editor/CodeEditor";
 import SearchableCombobox from "../../components/battle/SearchableCombobox";
 import { getDifficultyColorClasses } from "../../constants/difficultyColors";
 import { useLogin } from "../../context/login/useLogin";
+import { removeAuth } from "../../utils/auth/token";
 import {
   fetchRoom,
   leaveRoom,
@@ -45,6 +46,67 @@ const normalizeQuery = (q = "") =>
     .replace(/\+\+/g, "pp")
     .replace(/#/g, "sharp")
     .replace(/[^a-z0-9가-힣]/g, "");
+
+const decodeJwtPayload = (token) => {
+  if (!token || typeof token !== "string") return null;
+  if (typeof atob !== "function") return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+  const pad = payload.length % 4;
+  const padded = pad ? payload + "=".repeat(4 - pad) : payload;
+  try {
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+};
+
+const decodeJwtId = (token) => {
+  const payload = decodeJwtPayload(token);
+  if (!payload) return null;
+  const raw = payload.id ?? payload.userId ?? null;
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const readStoredAccessToken = () => {
+  try {
+    const raw = localStorage.getItem("auth") || sessionStorage.getItem("auth");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.accessToken || null;
+  } catch {
+    return null;
+  }
+};
+
+const readJoinSnapshot = (roomId) => {
+  if (!roomId) return null;
+  try {
+    const raw = sessionStorage.getItem(`battleJoinSnapshot:${roomId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || (parsed.roomId && parsed.roomId !== roomId)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writeJoinSnapshot = (roomId, payload) => {
+  if (!roomId || !payload) return;
+  try {
+    sessionStorage.setItem(`battleJoinSnapshot:${roomId}`, JSON.stringify(payload));
+  } catch {}
+};
+
+const clearJoinSnapshot = (roomId) => {
+  if (!roomId) return;
+  try {
+    sessionStorage.removeItem(`battleJoinSnapshot:${roomId}`);
+  } catch {}
+};
 
 const sortProblemsByIdAsc = (items) => {
   const list = Array.isArray(items) ? [...items] : [];
@@ -128,12 +190,32 @@ export default function BattleRoom() {
   const [judgeDetail, setJudgeDetail] = useState(null);
   const [judgeScore, setJudgeScore] = useState(null);
   const [readyCooldownSeconds, setReadyCooldownSeconds] = useState(0);
+  const [pendingJoin, setPendingJoin] = useState(false);
+  const [joiningRoom, setJoiningRoom] = useState(false);
+  const [pendingJudgeReview, setPendingJudgeReview] = useState(false);
+  const [authMismatch, setAuthMismatch] = useState(false);
 
   const containerRef = useRef(null);
   const violationStateRef = useRef({});
   const submitTimeoutRef = useRef(null);
+  const lastMatchIdRef = useRef(null);
+  const lastStatusRef = useRef(null);
+  const lastDesyncAtRef = useRef(0);
 
-  const myUserId = user?.userId;
+  const tokenCandidate = readStoredAccessToken() || accessToken;
+  const tokenUserId = useMemo(() => decodeJwtId(tokenCandidate), [tokenCandidate]);
+  const myUserId = tokenUserId ?? user?.userId ?? null;
+
+  useEffect(() => {
+    if (tokenUserId && user?.userId && tokenUserId !== user.userId) {
+      setAuthMismatch(true);
+    }
+  }, [tokenUserId, user?.userId]);
+
+  const handleAuthMismatch = () => {
+    removeAuth();
+    navigate("/signin", { replace: true });
+  };
 
   const getViolationState = () => {
     const key = myUserId != null ? String(myUserId) : "anonymous";
@@ -153,6 +235,14 @@ export default function BattleRoom() {
       clearTimeout(submitTimeoutRef.current);
       submitTimeoutRef.current = null;
     }
+  }, []);
+
+  const closeJudgeReview = useCallback(() => {
+    setJudgeModalOpen(false);
+    setJudgeSummary(null);
+    setJudgeDetail(null);
+    setJudgeScore(null);
+    setPendingJudgeReview(false);
   }, []);
 
   const startSubmitTimeout = useCallback(() => {
@@ -194,7 +284,11 @@ export default function BattleRoom() {
     }
   };
 
-  const loadRoom = async () => {
+  const loadRoom = useCallback(async () => {
+    const snapshot = readJoinSnapshot(roomId);
+    if (snapshot) {
+      setRoom(snapshot);
+    }
     const res = await fetchRoom(roomId);
     if (res?.error) {
       const msg = res.message || "존재하지 않는 방입니다.";
@@ -202,14 +296,19 @@ export default function BattleRoom() {
         try {
           sessionStorage.setItem("battleLobbyNotice", msg);
         } catch {}
-        navigate("/battle", { replace: true });
+        if (!snapshot) {
+          navigate("/battle", { replace: true });
+          return;
+        }
+        setMessage(msg);
         return;
       }
       setMessage(msg);
       return;
     }
     setRoom(res);
-  };
+    clearJoinSnapshot(roomId);
+  }, [roomId, navigate]);
 
   const resetToWaiting = useCallback(async () => {
     const res = await resetRoom(roomId);
@@ -221,15 +320,22 @@ export default function BattleRoom() {
     setShowResult(false);
     setResultData(null);
     setMessage(null);
+    setCode("");
     resetViolations();
-    setJudgeModalOpen(false);
-    setJudgeSummary(null);
-    setJudgeDetail(null);
-    setJudgeScore(null);
+    if (pendingJudgeReview && (judgeSummary || judgeDetail || judgeScore != null)) {
+      setJudgeModalOpen(true);
+      setPendingJudgeReview(false);
+    } else {
+      setJudgeModalOpen(false);
+      setJudgeSummary(null);
+      setJudgeDetail(null);
+      setJudgeScore(null);
+      setPendingJudgeReview(false);
+    }
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
     }
-  }, [roomId, resetViolations]);
+  }, [roomId, resetViolations, pendingJudgeReview, judgeSummary, judgeDetail, judgeScore]);
 
   useEffect(() => {
     loadRoom();
@@ -239,6 +345,12 @@ export default function BattleRoom() {
     } catch {
       setSavedPassword("");
     }
+    try {
+      const pending = sessionStorage.getItem(`battlePendingJoin:${roomId}`);
+      if (pending) {
+        setPendingJoin(true);
+      }
+    } catch {}
     (async () => {
       const langRes = await getLanguages();
       const list = langRes?.data || langRes?.languages || langRes;
@@ -263,7 +375,7 @@ export default function BattleRoom() {
         setDurationPolicy(res);
       }
     })();
-  }, [roomId]);
+  }, [roomId, loadRoom]);
 
   useEffect(() => () => clearSubmitTimeout(), [clearSubmitTimeout]);
 
@@ -279,6 +391,23 @@ export default function BattleRoom() {
     if (room?.status === "WAITING") {
       resetViolations();
     }
+  }, [room?.status]);
+
+  useEffect(() => {
+    if (!room?.matchId) return;
+    if (lastMatchIdRef.current && lastMatchIdRef.current !== room.matchId) {
+      setCode("");
+    }
+    lastMatchIdRef.current = room.matchId;
+  }, [room?.matchId]);
+
+  useEffect(() => {
+    if (!room?.status) return;
+    if ((lastStatusRef.current === "FINISHED" || lastStatusRef.current === "CANCELED")
+        && room.status === "WAITING") {
+      setCode("");
+    }
+    lastStatusRef.current = room.status;
   }, [room?.status]);
 
   useEffect(() => {
@@ -456,6 +585,10 @@ export default function BattleRoom() {
       e.preventDefault();
       registerViolation("우클릭이 제한되었습니다.");
     };
+    const handleClipboard = (e) => {
+      e.preventDefault();
+      registerViolation("복사/붙여넣기 행위가 감지되었습니다.");
+    };
     const handleBeforeUnload = (e) => {
       e.preventDefault();
       e.returnValue = "";
@@ -470,12 +603,18 @@ export default function BattleRoom() {
     };
     window.addEventListener("keydown", handleKey);
     window.addEventListener("contextmenu", handleContext);
+    window.addEventListener("copy", handleClipboard);
+    window.addEventListener("cut", handleClipboard);
+    window.addEventListener("paste", handleClipboard);
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("blur", handleBlur);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       window.removeEventListener("keydown", handleKey);
       window.removeEventListener("contextmenu", handleContext);
+      window.removeEventListener("copy", handleClipboard);
+      window.removeEventListener("cut", handleClipboard);
+      window.removeEventListener("paste", handleClipboard);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("blur", handleBlur);
       document.removeEventListener("visibilitychange", handleVisibility);
@@ -527,8 +666,48 @@ export default function BattleRoom() {
     return merged;
   };
 
+  const wsAccessToken = tokenCandidate;
+  const resyncParticipation = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastDesyncAtRef.current < 2500) return;
+    lastDesyncAtRef.current = now;
+
+    const fresh = await fetchRoom(roomId);
+    if (fresh?.error) {
+      setMessage(fresh.message || "방 정보를 불러오는 중 오류가 발생했습니다.");
+      return;
+    }
+    setRoom(fresh);
+    const isNowParticipant =
+      myUserId != null && (fresh.hostUserId === myUserId || fresh.guestUserId === myUserId);
+    if (isNowParticipant) {
+      clearJoinSnapshot(roomId);
+      setPendingJoin(false);
+      return;
+    }
+    if (!(fresh.status === "WAITING" || fresh.status === "COUNTDOWN")) return;
+    if (fresh.isPrivate && !savedPassword) {
+      setMessage("비밀번호가 필요한 방입니다. 다시 입장해 주세요.");
+      return;
+    }
+    if (joiningRoom) return;
+    setJoiningRoom(true);
+    const res = await joinRoom(roomId, fresh.isPrivate ? savedPassword : null);
+    setJoiningRoom(false);
+    if (res?.error) {
+      setMessage(mapJoinError(res));
+      return;
+    }
+    setRoom(res);
+    writeJoinSnapshot(roomId, res);
+    setPendingJoin(true);
+    try {
+      sessionStorage.setItem(`battlePendingJoin:${roomId}`, "1");
+    } catch {}
+  }, [roomId, myUserId, savedPassword, joiningRoom]);
+
   const { status: wsStatus, sendReady, sendSubmit } = useBattleWebSocket({
-    accessToken,
+    accessToken: wsAccessToken,
     roomId,
     onRoomState: (payload) => {
       setRoom((prev) => mergeRoomState(prev, payload));
@@ -554,10 +733,20 @@ export default function BattleRoom() {
         setJudgeScore(payload?.baseScore ?? null);
         const summary = payload?.judgeSummary || payload?.message || null;
         const detail = payload?.judgeDetail || payload?.message || null;
-        if (summary || detail) {
+        const finished =
+          lastStatusRef.current === "FINISHED" ||
+          lastStatusRef.current === "CANCELED" ||
+          room?.status === "FINISHED" ||
+          room?.status === "CANCELED";
+        if (summary || detail || payload?.baseScore != null) {
           setJudgeSummary(summary);
           setJudgeDetail(detail);
-          setJudgeModalOpen(true);
+          if (finished) {
+            setPendingJudgeReview(true);
+            setJudgeModalOpen(false);
+          } else {
+            setJudgeModalOpen(true);
+          }
         } else if (payload?.message) {
           setMessage(payload.message);
         }
@@ -577,6 +766,9 @@ export default function BattleRoom() {
       }));
       setSubmitState("DONE");
       setShowResult(true);
+      if (judgeModalOpen) {
+        setPendingJudgeReview(true);
+      }
       setJudgeModalOpen(false);
       loadRoom();
     },
@@ -585,8 +777,14 @@ export default function BattleRoom() {
       const msg = payload?.message || "서버 오류가 발생했습니다.";
       setMessage(msg);
       setReadyLoading(false);
+      setPendingJoin(false);
+      setJoiningRoom(false);
       setSubmitState((prev) => (prev === "SENDING" ? "IDLE" : prev));
       clearSubmitTimeout();
+      if (code === "B004") {
+        resyncParticipation();
+        return;
+      }
       if (code === "B025" || code === "B026") {
         const notice = "방에서 강퇴당하였습니다.";
         try {
@@ -613,7 +811,19 @@ export default function BattleRoom() {
     },
   });
 
+  useEffect(() => {
+    if (!roomId) return undefined;
+    if (wsStatus === "CONNECTED") return undefined;
+    const intervalId = setInterval(() => {
+      loadRoom();
+    }, 3000);
+    return () => clearInterval(intervalId);
+  }, [roomId, wsStatus, loadRoom]);
+
   const participants = useMemo(() => room?.participants || {}, [room]);
+  const myParticipant = myUserId != null
+    ? (participants[myUserId] || participants[String(myUserId)] || null)
+    : null;
   const host = room?.hostUserId ? participants[room.hostUserId] : null;
   const guest = room?.guestUserId ? participants[room.guestUserId] : null;
   const buildResultParticipant = (userId, state) => {
@@ -640,7 +850,7 @@ export default function BattleRoom() {
   const winReason = resultData?.winReason ?? room?.winReason ?? null;
   const iAmHost = room?.hostUserId && room.hostUserId === myUserId;
   const iAmGuest = room?.guestUserId && room.guestUserId === myUserId;
-  const isParticipant = iAmHost || iAmGuest;
+  const isParticipant = iAmHost || iAmGuest || Boolean(myParticipant);
   const isJudgeLocked = judgeModalOpen && room?.status === "RUNNING";
   const headCount = useMemo(() => {
     if (room?.headCount != null) return room.headCount;
@@ -650,6 +860,48 @@ export default function BattleRoom() {
     Object.keys(participants || {}).forEach((id) => ids.add(Number(id)));
     return ids.size;
   }, [room?.headCount, room?.hostUserId, room?.guestUserId, participants]);
+
+  useEffect(() => {
+    if (!pendingJoin) return;
+    if (myParticipant || iAmHost || iAmGuest) {
+      setPendingJoin(false);
+      try {
+        sessionStorage.removeItem(`battlePendingJoin:${roomId}`);
+      } catch {}
+      clearJoinSnapshot(roomId);
+    }
+  }, [pendingJoin, myParticipant, iAmHost, iAmGuest, roomId]);
+
+  useEffect(() => {
+    if (!pendingJoin) return;
+    if (!room || isParticipant) return;
+    if (joiningRoom) return;
+    if (!(room.status === "WAITING" || room.status === "COUNTDOWN")) return;
+    if (room.isPrivate && !savedPassword) return;
+    (async () => {
+      setJoiningRoom(true);
+      const res = await joinRoom(roomId, room.isPrivate ? savedPassword : null);
+      setJoiningRoom(false);
+      if (res?.error) {
+        setPendingJoin(false);
+        try {
+          sessionStorage.removeItem(`battlePendingJoin:${roomId}`);
+        } catch {}
+        setMessage(mapJoinError(res));
+        return;
+      }
+      const targetRoomId = res?.roomId || roomId;
+      writeJoinSnapshot(targetRoomId, res);
+      if (targetRoomId !== roomId) {
+        navigate(`/battle/room/${targetRoomId}`, { replace: true });
+        return;
+      }
+      setRoom(res);
+      try {
+        sessionStorage.removeItem(`battlePendingJoin:${roomId}`);
+      } catch {}
+    })();
+  }, [pendingJoin, room, isParticipant, joiningRoom, savedPassword, roomId, navigate]);
 
   const roomOpen =
     room &&
@@ -676,17 +928,37 @@ export default function BattleRoom() {
     }
     const res = await leaveRoom(roomId);
     if (res?.error) {
+      if (res.code === "B017") {
+        setMessage("나가기 처리 중입니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
       setMessage(res?.message || "방 나가기에 실패했습니다.");
       return;
     }
+    setPendingJoin(false);
+    setJoiningRoom(false);
+    clearJoinSnapshot(roomId);
     navigate("/battle");
   };
 
   const handleJoin = async () => {
     if (!room?.isPrivate) {
+      if (joiningRoom) return;
+      setJoiningRoom(true);
       const res = await joinRoom(roomId, null);
+      setJoiningRoom(false);
       if (res?.error) {
         setMessage(mapJoinError(res));
+        return;
+      }
+      const targetRoomId = res?.roomId || roomId;
+      setPendingJoin(true);
+      try {
+        sessionStorage.setItem(`battlePendingJoin:${targetRoomId}`, "1");
+      } catch {}
+      writeJoinSnapshot(targetRoomId, res);
+      if (targetRoomId !== roomId) {
+        navigate(`/battle/room/${targetRoomId}`, { replace: true });
         return;
       }
       setRoom(res);
@@ -702,7 +974,10 @@ export default function BattleRoom() {
       setJoinError("비밀번호는 숫자 4자리로 입력해 주세요.");
       return;
     }
+    if (joiningRoom) return;
+    setJoiningRoom(true);
     const res = await joinRoom(roomId, joinPassword);
+    setJoiningRoom(false);
     if (res?.error) {
       setJoinError(mapJoinError(res));
       return;
@@ -711,6 +986,16 @@ export default function BattleRoom() {
       sessionStorage.setItem(`battleRoomPassword:${roomId}`, joinPassword);
       setSavedPassword(joinPassword);
     } catch {}
+    const targetRoomId = res?.roomId || roomId;
+    setPendingJoin(true);
+    try {
+      sessionStorage.setItem(`battlePendingJoin:${targetRoomId}`, "1");
+    } catch {}
+    writeJoinSnapshot(targetRoomId, res);
+    if (targetRoomId !== roomId) {
+      navigate(`/battle/room/${targetRoomId}`, { replace: true });
+      return;
+    }
     setRoom(res);
     setJoinModalOpen(false);
     setJoinPassword("");
@@ -745,7 +1030,11 @@ export default function BattleRoom() {
   const handleKick = async () => {
     const res = await kickGuest(roomId);
     if (res?.error) {
-      setMessage(res.message);
+      if (res.code === "B017") {
+        setMessage("강퇴 처리 중입니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      setMessage(res.message || "강퇴에 실패했습니다.");
       return;
     }
     setRoom(res);
@@ -918,6 +1207,15 @@ export default function BattleRoom() {
             </div>
           )}
         </div>
+      ) : pendingJoin ? (
+        <div className="border rounded-lg p-4 bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] flex items-center justify-between">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
+            입장 처리 중입니다. 잠시만 기다려 주세요.
+          </div>
+          <div className="px-4 py-2 rounded bg-gray-200 text-gray-600 dark:bg-zinc-700 dark:text-gray-200">
+            입장 중...
+          </div>
+        </div>
       ) : (
         <div className="border rounded-lg p-4 bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] flex items-center justify-between">
           <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -926,10 +1224,10 @@ export default function BattleRoom() {
           <button
             type="button"
             onClick={handleJoin}
-            disabled={!roomOpen}
+            disabled={!roomOpen || joiningRoom}
             className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
           >
-            입장
+            {joiningRoom ? "입장 중..." : "입장"}
           </button>
         </div>
       )}
@@ -938,6 +1236,26 @@ export default function BattleRoom() {
         <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
           <div>생성 시간: {room.createdAt ? new Date(room.createdAt).toLocaleString() : "-"}</div>
           {savedPassword && <div className="text-xs text-gray-500 dark:text-gray-400">저장된 비밀번호가 있습니다.</div>}
+        </div>
+      )}
+
+      {authMismatch && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-[60]">
+          <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl w-full max-w-md p-6 border border-gray-200 dark:border-[#3f3f46] space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">로그인 정보 불일치</h3>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              현재 로그인 정보와 토큰 정보가 달라 배틀 참여 상태가 꼬였습니다. 다시 로그인해 주세요.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleAuthMismatch}
+                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+              >
+                다시 로그인
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1003,9 +1321,10 @@ export default function BattleRoom() {
               <button
                 type="button"
                 onClick={submitJoinWithPassword}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                disabled={joiningRoom}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
               >
-                입장
+                {joiningRoom ? "입장 중..." : "입장"}
               </button>
             </div>
           </div>
@@ -1228,6 +1547,10 @@ export default function BattleRoom() {
                   const res = await updateRoom(roomId, payload);
                   setSavingSettings(false);
                   if (res?.error) {
+                    if (res.code === "B017") {
+                      setSettingsError("설정 처리 중입니다. 잠시 후 다시 시도해 주세요.");
+                      return;
+                    }
                     setSettingsError(res.message || "설정 변경에 실패했습니다.");
                     return;
                   }
@@ -1329,7 +1652,17 @@ export default function BattleRoom() {
           <div className="bg-white dark:bg-[#161b22] rounded-lg shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] w-full max-w-3xl p-6 space-y-4 border border-gray-200 dark:border-[#3f3f46]">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">제출 완료! AI 평가</h3>
-              <span className="text-sm text-gray-500 dark:text-gray-400">상대방 제출 대기 중...</span>
+              {room?.status === "RUNNING" ? (
+                <span className="text-sm text-gray-500 dark:text-gray-400">상대방 제출 대기 중...</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={closeJudgeReview}
+                  className="text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-[#3f3f46] rounded px-3 py-1 hover:border-gray-300 dark:hover:border-gray-500"
+                >
+                  닫기
+                </button>
+              )}
             </div>
             <div className="text-sm text-gray-700 dark:text-gray-300">
               AI 점수: {formatScore(judgeScore)} / 100.00
@@ -1376,7 +1709,7 @@ export default function BattleRoom() {
             {room.status === "FINISHED" && (
               <div>
                 <table className="min-w-full text-sm border rounded border-gray-200 dark:border-[#3f3f46]">
-                  <thead className="bg-gray-100 dark:bg-zinc-800">
+                  <thead className="bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-gray-100">
                     <tr>
                       <th className="px-3 py-2 text-left">참가자</th>
                       <th className="px-3 py-2 text-right">Base</th>
@@ -1385,7 +1718,7 @@ export default function BattleRoom() {
                       <th className="px-3 py-2 text-right">시간</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="text-gray-900 dark:text-gray-100">
                     {[
                       { role: "방장", data: resultHost },
                       { role: "유저", data: resultGuest },
@@ -1395,15 +1728,15 @@ export default function BattleRoom() {
                       const isDraw = !resultWinnerId;
                       const isForfeit = isForfeitReason(winReason);
                       const rowClass = isDraw
-                        ? "bg-green-50"
+                        ? "bg-green-50 dark:bg-emerald-900/30"
                         : isWinner
-                          ? "bg-blue-50"
-                          : "bg-red-50";
+                          ? "bg-blue-50 dark:bg-blue-900/30"
+                          : "bg-red-50 dark:bg-rose-900/30";
                       const badgeClass = isDraw
-                        ? "bg-green-100 text-green-700"
+                        ? "bg-green-100 text-green-700 dark:bg-emerald-900/40 dark:text-emerald-200"
                         : isWinner
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-red-100 text-red-700";
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200"
+                          : "bg-red-100 text-red-700 dark:bg-rose-900/40 dark:text-rose-200";
                       const badgeText = isDraw
                         ? "무승부"
                         : isWinner
@@ -1634,6 +1967,7 @@ function formatPoint(val) {
 function mapJoinError(res) {
   const code = res?.code;
   const msg = res?.message || "";
+  if (code === "B017") return "입장 처리 중입니다. 잠시 후 다시 시도해 주세요.";
   if (code === "B018") return "잘못된 비밀번호이거나 존재하지 않는 방입니다.";
   if (code === "B002") return "가득 찬 방입니다.";
   if (code === "B027") return msg || "아직 게임이 종료되지 않았습니다.";
