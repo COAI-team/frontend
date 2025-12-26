@@ -314,14 +314,14 @@
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  overflow: hidden;
-  background: var(--bg-tertiary, #374151);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  background: var(--avatar-bg, #374151);
   flex-shrink: 0;
 }
 
@@ -329,6 +329,14 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
+}
+
+.user-avatar .user-initial {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--avatar-text, #d1d5db);
+  text-transform: uppercase;
 }
 
 .user-initial {
@@ -546,65 +554,6 @@
   font-weight: 600;
 }
 
-/* 글쓰기 버튼 - 다크모드 */
-html.dark .floating-write-btn {
-  position: fixed;
-  right: 13rem;  
-  bottom: 4.3rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-  transition: all 0.2s ease;
-  z-index: 1000;
-}
-
-html.dark .floating-write-btn:hover {
-  background: #2563eb;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-}
-
-/* 글쓰기 버튼 - 라이트모드 */
-html:not(.dark) .floating-write-btn {
-  position: fixed;
-  right: 13rem;  
-  bottom: 4.3rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
-  background: #1f2937;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
-  z-index: 1000;
-}
-
-html:not(.dark) .floating-write-btn:hover {
-  background: #111827;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.floating-write-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-}
-
 /* 반응형 */
 @media (max-width: 768px) {
   .freeboard-controls {
@@ -649,14 +598,14 @@ html:not(.dark) .floating-write-btn:hover {
 /* 다크모드 CSS 변수 */
 html.dark,
 html.dark .freeboard-list-container {
-  --bg-primary: #111827;
-  --bg-secondary: #1f2937;
-  --bg-tertiary: #374151;
-  --bg-hover: #374151;
+  --bg-primary: #131313;
+  --bg-secondary: #1f1f1f;
+  --bg-tertiary: #2e2e2e;
+  --bg-hover: #2e2e2e;
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
   --text-tertiary: #6b7280;
-  --border-color: #374151;
+  --border-color: #2b2b2b;
   --primary-color: #3b82f6;
   --primary-hover: #2563eb;
   --tag-bg: rgba(59, 130, 246, 0.1);
@@ -740,4 +689,39 @@ html.dark .smell-bad {
 .codeboard-content {
   min-width: 0;
   overflow-x: auto;
+}
+
+.analysis-list-btn {
+  /* 아이콘과 텍스트를 한 줄로, 가운데 정렬, 간격 주기 */
+  display: flex; 
+  align-items: center;
+  gap: 8px; /* 아이콘과 텍스트 사이 간격 */
+  
+  /* 기타 버튼 스타일 (배경, 패딩, 테두리 등) */
+  padding: 8px 16px;
+  border-radius: 6px;
+  background-color: #007bff; /* 예시 색상 */
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.smell-visual-card {
+    width: 200px;
+    height: 140px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.smell-visual-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.5;
 }

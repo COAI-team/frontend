@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useLogin } from '../../context/login/useLogin'; // Add Import
+import { useLogin } from '../../context/login/useLogin';
 
 import RepositorySelector from '../../components/github/RepositorySelector';
 import BranchSelector from '../../components/github/BranchSelector';
 import FileTree from '../../components/github/FileTree';
 import AnalysisForm from '../../components/github/AnalysisForm';
 import { saveFile, analyzeStoredFile, getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
+import { getUsageInfo } from '../../service/algorithm/AlgorithmApi';
 import AnalysisLoading from '../../components/codeAnalysis/AnalysisLoading';
+import AnalysisResultCard from '../../components/codeAnalysis/AnalysisResultCard';
 import axiosInstance from '../../server/AxiosConfig';
-import { getSmellKeyword, getScoreBadgeColor } from '../../utils/codeAnalysisUtils';
 
 import { getAuth } from "../../utils/auth/token";
 import AlertModal from "../../components/modal/AlertModal";
 
 
 const AnalysisPage = () => {
-    const { user } = useLogin(); // Get User
+    const { user } = useLogin();
     const { analysisId } = useParams();
 
     const navigate = useNavigate();
 
-    // Auht State
+    // Auth State
     const [isAuthed, setIsAuthed] = useState(!!getAuth()?.accessToken);
     const [showLoginAlert, setShowLoginAlert] = useState(false);
 
@@ -33,6 +34,54 @@ const AnalysisPage = () => {
         }
     }, []);
     const isNew = !analysisId;
+
+    // [Tutorial Redirection] 
+    // Redirect to tutorial if accessing 'New Analysis' and tutorial not completed
+    // [Tutorial Redirection] 
+    // Redirect to tutorial if accessing 'New Analysis' and tutorial not completed
+    // Condition: User is new (created today or tomorrow) AND tutorial not done
+    useEffect(() => {
+        if (isNew && user) {
+            // Check if user is "new" (created today or tomorrow)
+            // Assuming user.createdAt is ISO string or YYYY-MM-DD
+            if (user.createdAt) {
+                const createdDate = new Date(user.createdAt);
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+
+                const isSameDate = (d1, d2) => 
+                    d1.getFullYear() === d2.getFullYear() &&
+                    d1.getMonth() === d2.getMonth() &&
+                    d1.getDate() === d2.getDate();
+
+                const isCreatedTodayOrTomorrow = isSameDate(createdDate, today) || isSameDate(createdDate, tomorrow);
+
+                if (!isCreatedTodayOrTomorrow) {
+                    return; // Skip redirection for old users
+                }
+            }
+
+            const TUTORIAL_KEY = 'coai_code_analysis_tutorial_v3';
+            const saved = localStorage.getItem(TUTORIAL_KEY);
+            
+            let isCompleted = false;
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.tutorialCompleted) {
+                        isCompleted = true;
+                    }
+                } catch (e) {
+                    // Ignore parsing error, treat as incomplete
+                }
+            }
+
+            if (!isCompleted) {
+                navigate('/codeAnalysis/tutorial3', { replace: true });
+            }
+        }
+    }, [isNew, user, navigate]);
 
     // Selection State
     const [selectedRepo, setSelectedRepo] = useState(null);
@@ -49,6 +98,12 @@ const AnalysisPage = () => {
     // RAG Toggle State
     const [useRag, setUseRag] = useState(true);
     const [ragMessage, setRagMessage] = useState("");
+
+    // 사용량 제한 상태
+    const [usageInfo, setUsageInfo] = useState(null);
+    const rawTier = user?.subscriptionTier;
+    const subscriptionTier = rawTier === 'BASIC' || rawTier === 'PRO' ? rawTier : 'FREE';
+    const isUsageLimitExceeded = usageInfo && !usageInfo.isSubscriber && usageInfo.remaining <= 0;
     
     // RAG Message Logic
     useEffect(() => {
@@ -63,21 +118,33 @@ const AnalysisPage = () => {
         // return () => clearTimeout(timer);
     }, [useRag]);
 
-    // Smart Suggestion Logic
     // Smart Suggestion Logic (Move to onSearch handler)
-    const handleOwnerSearch = (owner) => {
-        if (!owner || !user) return;
-        
-        // Assumption: owner matches user.nickname or name
-        const isMyRepo = owner.toLowerCase() === (user.nickname || user.name || user.githubId || "").toLowerCase();
-        
-        if (isMyRepo) {
-            setUseRag(true);
-        } else {
+    const handleOwnerSearch = (owner, isOwnRepo) => {
+        if (!owner) return;
+
+        // isOwnRepo: RepositorySelector에서 사용자의 githubId와 비교한 결과
+        // 본인 레포일 경우만 RAG 활성화 유지, 다른 사용자면 noRAG로 전환
+        if (!isOwnRepo) {
             setUseRag(false);
         }
+        // 사용자가 자유롭게 토글할 수 있도록, 본인 레포일 때는 기존 상태 유지
     };
 
+    // 사용량 정보 조회
+    useEffect(() => {
+        const fetchUsageInfo = async () => {
+            if (!user?.userId) return;
+            try {
+                const response = await getUsageInfo(user.userId);
+                if (response.data) {
+                    setUsageInfo(response.data);
+                }
+            } catch (err) {
+                console.error('사용량 조회 실패:', err);
+            }
+        };
+        fetchUsageInfo();
+    }, [user?.userId]);
 
     // Load existing analysis if ID is present
     useEffect(() => {
@@ -158,69 +225,7 @@ const AnalysisPage = () => {
         return trimmed;
     };
 
-    // const handleAnalysisSubmit = async (formState) => {
-    //     if (!selectedFile || !selectedRepo) return;
-
-    //     setIsLoading(true);
-    //     setError(null);
-    //     setAnalysisResult(null);
-    //     setStreamedContent('');
-
-    //     try {
-    //         // 1. 파일 저장
-    //         const saveResponse = await saveFile({
-    //             repositoryUrl: selectedRepo.url,
-    //             owner: selectedRepo.owner,
-    //             repo: selectedRepo.name,
-    //             filePath: selectedFile.path,
-    //             userId: user?.userId 
-    //         });
-
-    //         // 2. 분석 요청 (동기 -> 결과 한 번에 수신)
-    //         const response = await analyzeStoredFile({
-    //             analysisId: saveResponse.data.fileId,
-    //             repositoryUrl: selectedRepo.url,
-    //             filePath: selectedFile.path,
-    //             analysisTypes: formState.analysisTypes,
-    //             toneLevel: formState.toneLevel,
-    //             customRequirements: formState.customRequirements,
-    //             userId: user?.userId 
-    //         });
-
-    //         const accumulated = response.data; // API returns success(data) or just data depending on ApiResponse wrapping. 
-    //         // The controller returns ApiResponse.success(result), so response.data should be the ApiResponse object.
-    //         // Let's check AnalysisController.java: return ResponseEntity.ok(ApiResponse.success(result));
-    //         // And analysisApi.js: return res.data;
-    //         // So 'response' here is 'res.data' from axios, which is the ApiResponse JSON. 
-    //         // The actual content is in response.data (if ApiResponse has 'data' field).
-    //         // Wait, analyzeStoredFile in analysisApi.js returns res.data.
-    //         // So 'response' variable here holds the body of the HTTP response.
-    //         // The body is ApiResponse<String>. So response.data is the string content (the analysis result).
-    //         // Let's verify ApiResponse structure. Usually it has 'status', 'message', 'data'.
-    //         // So accumulated = response.data;
-
-
-    //         // 3. 결과 파싱
-    //         try {
-    //             const jsonStr = cleanMarkdownCodeBlock(accumulated);
-    //             const result = JSON.parse(jsonStr);
-    //             setAnalysisResult(result);
-    //         } catch (parseErr) {
-    //             console.error("JSON Parse Error:", parseErr);
-    //             console.log("Raw Content:", accumulated);
-    //             // 파싱 실패 시 원본 텍스트라도 보여주기 위해 더미 객체에 넣거나 에러 처리
-    //             setError("분석 결과를 처리하는 중 오류가 발생했습니다. (JSON 파싱 실패)");
-    //         }
-            
-    //     } catch (err) {
-    //         console.error(err);
-    //         setError("분석 중 오류가 발생했습니다.");
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
-
-        const handleAnalysisSubmit = async (formState) => {
+    const handleAnalysisSubmit = async (formState) => {
         if (!selectedFile || !selectedRepo) return;
 
         setIsLoading(true);
@@ -238,58 +243,55 @@ const AnalysisPage = () => {
                 userId: user?.userId 
             });
 
+            // 2. 분석 요청 (동기 -> 결과 한 번에 수신)
+            const response = await analyzeStoredFile({
+                analysisId: saveResponse.data.fileId,
+                repositoryUrl: selectedRepo.url,
+                filePath: selectedFile.path,
+                analysisTypes: formState.analysisTypes,
+                toneLevel: formState.toneLevel,
+                customRequirements: formState.customRequirements,
+                userId: user?.userId 
+            });
 
-            // 2. 분석 요청 (Toggle에 따라 분기)
-            let response;
-            if (useRag) {
-                 // RAG Mode (Original)
-                 response = await analyzeStoredFile({
-                    analysisId: saveResponse.data.fileId,
-                    repositoryUrl: selectedRepo.url,
-                    filePath: selectedFile.path,
-                    analysisTypes: formState.analysisTypes,
-                    toneLevel: formState.toneLevel,
-                    customRequirements: formState.customRequirements,
-                    userId: user?.userId 
-                });
-            } else {
-                // No RAG Mode
-                const noRagResponse = await axiosInstance.post('/api/analysis/norag/analyze-stored', {
-                    analysisId: saveResponse.data.fileId,
-                    repositoryUrl: selectedRepo.url,
-                    filePath: selectedFile.path,
-                    analysisTypes: formState.analysisTypes,
-                    toneLevel: formState.toneLevel,
-                    customRequirements: formState.customRequirements,
-                    userId: user?.userId
-                });
-
-                response = { data: noRagResponse.data.data }; 
-            }
-            const accumulated = response.data; 
+            const accumulated = response.data; // API returns success(data) or just data depending on ApiResponse wrapping. 
+            // The controller returns ApiResponse.success(result), so response.data should be the ApiResponse object.
+            // And analysisApi.js: return res.data;
+            // So 'response' here is 'res.data' from axios, which is the ApiResponse JSON. 
+            // The actual content is in response.data (if ApiResponse has 'data' field).
+            // Wait, analyzeStoredFile in analysisApi.js returns res.data.
+            // So 'response' variable here holds the body of the HTTP response.
+            // The body is ApiResponse<String>. So response.data is the string content (the analysis result).
+            // Let's verify ApiResponse structure. Usually it has 'status', 'message', 'data'.
+            // So accumulated = response.data;
 
 
             // 3. 결과 파싱
             try {
                 const jsonStr = cleanMarkdownCodeBlock(accumulated);
                 const result = JSON.parse(jsonStr);
+                setAnalysisResult(result);
                 
-                // 분석 결과 저장 API 호출
-                const saveAnalysisResponse = await axiosInstance.post('/analysis/save', {
-                    fileId: saveResponse.data.fileId,  // 1단계에서 받은 fileId
-                    repositoryUrl: selectedRepo.url,
-                    filePath: selectedFile.path,
-                    analysisResult: result  // 파싱된 결과 객체
-                });
+                // 백엔드에서 이미 analysisId를 포함해서 보냄
+                setAnalysisResult(result);
+
+                // // 분석 결과 저장 API 호출
+                // const saveAnalysisResponse = await axiosInstance.post('/analysis/save', {
+                //     fileId: saveResponse.data.fileId,  // 1단계에서 받은 fileId
+                //     repositoryUrl: selectedRepo.url,
+                //     filePath: selectedFile.path,
+                //     analysisResult: result  // 파싱된 결과 객체
+                // });
                 
-                const savedAnalysisId = saveAnalysisResponse.data.data.analysisId;  // ApiResponse 구조 고려
+                // const savedAnalysisId = saveAnalysisResponse.data.data.analysisId;  // ApiResponse 구조 고려
                 
-                // URL 업데이트
-                navigate(`/codeAnalysis/${savedAnalysisId}`);
+                // // URL 업데이트
+                // navigate(`/codeAnalysis/${savedAnalysisId}`);
                 
             } catch (parseErr) {
                 console.error("JSON Parse Error:", parseErr);
                 console.log("Raw Content:", accumulated);
+                // 파싱 실패 시 원본 텍스트라도 보여주기 위해 더미 객체에 넣거나 에러 처리
                 setError("분석 결과를 처리하는 중 오류가 발생했습니다. (JSON 파싱 실패)");
             }
             
@@ -301,10 +303,12 @@ const AnalysisPage = () => {
         }
     };
 
+    const resolvedAnalysisId = analysisResult?.analysisId ?? analysisId; // 게시판 글쓰기 버튼
+
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-white dark:bg-[#131313]">
             {/* 상단 헤더 */}
-            <div className="shadow-sm border-b">
+            <div className="shadow-sm border-b border-[#e2e8f0] dark:border-[#3f3f46]">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -330,7 +334,7 @@ const AnalysisPage = () => {
                     {/* 왼쪽 패널: 파일 선택 및 코드 뷰어 */}
                     <div className="space-y-6">
                         {isNew && (
-                            <div className="rounded-lg shadow-sm border p-6">
+                            <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] p-6">
                                 <h2 className="text-lg font-semibold mb-4">📂 파일 선택</h2>
                                 <div className="space-y-4">
                                     <RepositorySelector onSelect={handleRepoSelect} onSearch={handleOwnerSearch} />
@@ -340,8 +344,8 @@ const AnalysisPage = () => {
                             </div>
                         )}
 
-                        <div className="rounded-lg shadow-sm border overflow-hidden">
-                            <div className="p-4 border-b flex justify-between items-center">
+                        <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] overflow-hidden">
+                            <div className="p-4 border-b border-[#e2e8f0] dark:border-[#3f3f46] flex justify-between items-center">
                                 <h3 className="font-semibold">
                                     💻 코드 뷰어 {selectedFile && `- ${selectedFile.path}`}
                                 </h3>
@@ -361,16 +365,16 @@ const AnalysisPage = () => {
                     {/* 오른쪽 패널: 분석 설정 및 결과 */}
                     <div className="space-y-6">
                         {isNew && !analysisResult && !isLoading && (
-                            <div className="rounded-lg shadow-sm border p-6">
+                            <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] p-6">
                                 <h2 className="text-lg font-semibold mb-4">⚙️ 분석 설정</h2>
                                 
                                 {/* RAG Toggle Switch */}
-                                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="mb-6 p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg border border-[#e2e8f0] dark:border-[#3f3f46]">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-medium text-gray-700">RAG (과거 이력 참조) 모드</span>
+                                        <span className="font-medium">RAG (과거 이력 참조) 모드</span>
                                         <button 
                                             onClick={() => setUseRag(!useRag)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${useRag ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${useRag ? 'bg-indigo-600' : 'bg-gray-200'} cursor-pointer`}
                                         >
                                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useRag ? 'translate-x-6' : 'translate-x-1'}`} />
                                         </button>
@@ -384,7 +388,7 @@ const AnalysisPage = () => {
                                     </div>
                                 </div>
 
-                                <AnalysisForm onSubmit={handleAnalysisSubmit} isLoading={isLoading} />
+                                <AnalysisForm onSubmit={handleAnalysisSubmit} isLoading={isLoading} disabled={isUsageLimitExceeded} />
                                 {error && (
                                     <div className="mt-4 p-3 bg-red-50 text-red-700 rounded border border-red-200">
                                         {error}
@@ -398,133 +402,17 @@ const AnalysisPage = () => {
 
                         {/* 분석 결과 */}
                         {!isLoading && analysisResult && (
-                            <div className="rounded-lg shadow-sm border p-6 bg-white dark:bg-gray-800">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-xl font-bold">
-                                        분석 결과
-                                    </h2>
-                                    {analysisResult && (
-                                        <div className="flex items-center gap-2">
-                                            <span className={`px-3 py-1 rounded-full font-bold text-sm ${getScoreBadgeColor(analysisResult.aiScore)}`}>
-                                                {getSmellKeyword(analysisResult.aiScore).text}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* RAG References Section */}
-                                {analysisResult.relatedAnalysisIds && (
-                                    <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                                        <h3 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                                            📚 참고된 과거 분석 이력 (RAG Context)
-                                        </h3>
-                                        <div className="space-y-2">
-                                            {(() => {
-                                                try {
-                                                    const refs = typeof analysisResult.relatedAnalysisIds === 'string' 
-                                                        ? JSON.parse(analysisResult.relatedAnalysisIds) 
-                                                        : analysisResult.relatedAnalysisIds;
-                                                    
-                                                    if (!refs || refs.length === 0) return <span className="text-xs text-blue-600">참조된 과거 이력이 없습니다.</span>;
-
-                                                    return refs.map((ref, idx) => (
-                                                        <div key={idx} 
-                                                            className="flex items-center justify-between bg-white p-2 rounded border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors"
-                                                            onClick={() => window.open(`/codeAnalysis/result/${ref.id}`, '_blank')}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs font-mono bg-blue-100 text-blue-700 px-1 rounded">REF #{idx + 1}</span>
-                                                                <span className="text-sm font-medium text-gray-700">{ref.fileName}</span>
-                                                            </div>
-                                                            <span className="text-xs text-gray-400">{new Date(ref.timestamp).toLocaleString()}</span>
-                                                        </div>
-                                                    ));
-                                                } catch (e) {
-                                                    return <span className="text-xs text-red-400">참조 데이터 로드 실패</span>;
-                                                }
-                                            })()}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="space-y-6">
-                                    {/* Code Smells */}
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-red-600 mb-3">🚨 발견된 문제점 (Code Smells)</h3>
-                                        <div className="space-y-3">
-                                            {analysisResult.codeSmells && (typeof analysisResult.codeSmells === 'string' ? JSON.parse(analysisResult.codeSmells) : analysisResult.codeSmells).map((smell, idx) => (
-                                                <div key={idx} className="p-3 bg-red-50 border border-red-100 rounded">
-                                                    <div className="font-medium text-red-800">{smell.name}</div>
-                                                    <div className="text-sm text-red-600 mt-1">{smell.description}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Suggestions */}
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-green-600 mb-3">💡 개선 제안</h3>
-                                        <div className="space-y-4">
-                                            {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
-                                                <div key={idx} className="border rounded-lg overflow-hidden">
-                                                    <div className="p-3 border-b text-sm font-medium flex justify-between items-center">
-                                                        <span>제안 #{idx + 1}</span>
-                                                        {suggestion.habitContext && (
-                                                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold animate-pulse">
-                                                                👀 {suggestion.habitContext}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="p-3 bg-white">
-                                                        <div className="text-xs text-gray-500 mb-1">변경 전:</div>
-                                                        <pre className="bg-red-50 p-2 rounded text-xs mb-3 overflow-x-auto text-red-700">
-                                                            {suggestion.problematicSnippet || suggestion.problematicCode}
-                                                        </pre>
-                                                        <div className="text-xs text-gray-500 mb-1">변경 후:</div>
-                                                        <pre className="bg-green-50 p-2 rounded text-xs overflow-x-auto text-green-700">
-                                                            {suggestion.proposedReplacement}
-                                                        </pre>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                {isNew && (
-                                    <div className="mt-6 pt-6 border-t text-center">
-                                        <button
-                                            onClick={() => window.location.href = '/codeAnalysis/new'}
-                                            className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                                        >
-                                            새로운 분석하기
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                            <AnalysisResultCard 
+                                analysisResult={analysisResult} 
+                                isRagMode={isNew ? useRag : undefined}
+                                resolvedAnalysisId={resolvedAnalysisId}
+                                onNewAnalysis={() => window.location.href = '/codeAnalysis/new'}
+                                onShare={() => navigate(`/codeboard/write/${resolvedAnalysisId}`)}
+                            />
                         )}
                     </div>
                 </div>
             </div>
-
-            {/* Floating Write Button */}
-            <button 
-                onClick={() => {
-                    const id = analysisResult?.analysisId || analysisId;
-                    if (id) {
-                        navigate(`/codeboard/write/${id}`);
-                    } else {
-                        alert('분석 결과 ID를 찾을 수 없습니다.');
-                    }
-                }}
-                className="floating-write-btn"
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
-                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                글쓰기
-            </button>
 
             <AlertModal
                 open={showLoginAlert}

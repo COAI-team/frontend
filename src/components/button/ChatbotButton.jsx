@@ -1,9 +1,9 @@
-import {useState, useEffect, useContext, useRef} from "react";
+import {useState, useEffect, useContext, useRef, useCallback, useMemo} from "react";
 import ReactMarkdown from "react-markdown";
 import {AiOutlineMessage, AiOutlineClose, AiFillRobot, AiOutlineArrowDown} from "react-icons/ai";
 import {LoginContext} from "../../context/login/LoginContext";
 import {sendChatMessage, getChatMessages} from "../../service/chat/Chatbot.js";
-import { MarkdownComponents } from "../common/markdownConfig";
+import { MarkdownComponents } from "../common/markdownConfig.js";
 import { useNavigate } from "react-router-dom";
 
 const BILLING_KEYWORDS = [
@@ -18,8 +18,17 @@ const BILLING_KEYWORDS = [
   "환불해주세요",
 ];
 
+// ✅ 컴포넌트 외부로 이동 (매번 재생성 방지)
 const containsBillingKeyword = (text) =>
   BILLING_KEYWORDS.some((kw) => text.includes(kw));
+
+// ✅ 컴포넌트 외부로 이동 (매번 재생성 방지)
+const formatMessageText = (text) => {
+  if (!text) return "";
+  const max = 4000;
+  const trimmed = text.trim().replaceAll(/\n{3,}/g, "\n\n");
+  return trimmed.slice(0, max) + (trimmed.length > max ? "..." : "");
+};
 
 export default function ChatbotButton() {
   const {user, hydrated, isAlertOpen} = useContext(LoginContext);
@@ -36,24 +45,29 @@ export default function ChatbotButton() {
   const [nextId, setNextId] = useState(1);
   const messagesEndRef = useRef(null);
 
+  // ✅ useCallback으로 스크롤 함수 메모이제이션
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({behavior: "smooth"});
+  }, []);
+
+  // ✅ useCallback으로 스크롤 핸들러 메모이제이션
+  const handleScroll = useCallback(() => {
+    setBottomOffset(60);
+  }, []);
+
   // 스크롤 이벤트
   useEffect(() => {
     const scrollArea = document.getElementById("scrollArea");
     if (!scrollArea) return;
 
-    const handleScroll = () => setBottomOffset(60);
     scrollArea.addEventListener("scroll", handleScroll);
     return () => scrollArea.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [handleScroll]);
 
   // 자동 스크롤 맨 아래로 이동
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({behavior: "smooth"});
-  };
-
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   // 채팅창 열 때 히스토리 불러오기
   useEffect(() => {
@@ -93,17 +107,8 @@ export default function ChatbotButton() {
     fetchHistory();
   }, [isOpen]);
 
-  // 메시지 텍스트 formatting
-  const formatMessageText = (text) => {
-    if (!text) return "";
-    const max = 4000;
-    const trimmed = text.trim().replaceAll(/\n{3,}/g, "\n\n");
-    return trimmed.slice(0, max) + (trimmed.length > max ? "..." : "");
-  };
-
-  if (!hydrated || !user || isAlertOpen) return null;
-
-  const handleSend = async () => {
+  // ✅ useCallback으로 메시지 전송 함수 메모이제이션
+  const handleSend = useCallback(async () => {
     const content = inputValue.trim();
     if (!content) return;
 
@@ -130,7 +135,6 @@ export default function ChatbotButton() {
         setNextId((prev) => Math.max(prev, aiMsgId + 1));
 
         const formattedText = formatMessageText(lastAssistant.content);
-
         const showBillingButton = containsBillingKeyword(formattedText);
 
         setMessages((prev) => [
@@ -158,31 +162,61 @@ export default function ChatbotButton() {
         },
       ]);
     }
-  };
+  }, [inputValue, nextId, user?.userId]);
 
-  const handleKeyDown = (e) => {
+  // ✅ useCallback으로 키 이벤트 핸들러 메모이제이션
+  const handleKeyDown = useCallback((e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
-  };
+  }, [handleSend]);
 
-  const goBilling = () => {
+  // ✅ useCallback으로 결제 페이지 이동 함수 메모이제이션
+  const goBilling = useCallback(() => {
     navigate("/mypage/billing");
-  };
+  }, [navigate]);
+
+  // ✅ useCallback으로 채팅창 토글 함수 메모이제이션
+  const toggleChat = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+
+  // ✅ useCallback으로 input 변경 핸들러 메모이제이션
+  const handleInputChange = useCallback((e) => {
+    setInputValue(e.target.value);
+  }, []);
+
+  // ✅ useMemo로 버튼 비활성화 상태 계산
+  const isSendDisabled = useMemo(() =>
+      !inputValue.trim(),
+    [inputValue]
+  );
+
+  // ✅ useMemo로 스타일 계산 최적화
+  const floatingButtonStyle = useMemo(() => ({
+    bottom: bottomOffset + 5
+  }), [bottomOffset]);
+
+  const chatWindowStyle = useMemo(() => ({
+    bottom: bottomOffset + 80
+  }), [bottomOffset]);
+
+  if (!hydrated || !user || isAlertOpen) return null;
 
   return (
     <>
       {/* Floating Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleChat}
         className="fixed right-35 bottom-20 z-9999 w-16 h-16 rounded-full
                            bg-linear-to-br from-blue-500 via-blue-600 to-blue-700
                            hover:from-blue-600 hover:via-blue-700 hover:to-blue-800
                            flex items-center justify-center shadow-2xl
                            transition-all duration-300 active:scale-95
                            dark:from-blue-600 dark:via-blue-700 dark:to-blue-800"
-        style={{bottom: bottomOffset + 5}}
+        style={floatingButtonStyle}
+        aria-label={isOpen ? "채팅창 닫기" : "채팅창 열기"}
       >
         {isOpen ? (
           <AiOutlineArrowDown size={28} className="text-white"/>
@@ -195,9 +229,9 @@ export default function ChatbotButton() {
       {isOpen && (
         <div
           className="fixed right-35 w-96 h-9/12 bg-white dark:bg-neutral-900
-                               rounded-3xl shadow-2xl border dark:border-neutral-800
+                               rounded-3xl shadow-2xl border border-slate-200 dark:border-neutral-800
                                z-9999 flex flex-col overflow-hidden transition-all duration-300"
-          style={{bottom: bottomOffset + 80}}
+          style={chatWindowStyle}
         >
           {/* Header */}
           <div className="bg-linear-to-r from-blue-500 via-blue-600 to-blue-700
@@ -207,8 +241,9 @@ export default function ChatbotButton() {
               챗봇
             </h2>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={toggleChat}
               className="hover:bg-white/20 rounded-full p-1.5 transition-colors"
+              aria-label="채팅창 닫기"
             >
               <AiOutlineClose size={20}/>
             </button>
@@ -227,7 +262,7 @@ export default function ChatbotButton() {
               max-h-48 overflow-y-auto text-[12px]
               ${
                     msg.sender === "ai"
-                      ? "bg-white dark:bg-neutral-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-neutral-700 rounded-tl-sm"
+                      ? "bg-white dark:bg-neutral-800 text-gray-800 dark:text-gray-100 border border-slate-200 dark:border-neutral-700 rounded-tl-sm"
                       : "bg-linear-to-br from-blue-500 via-blue-600 to-blue-700 text-white rounded-tr-sm"
                   }`}
                 >
@@ -262,7 +297,7 @@ export default function ChatbotButton() {
                 type="text"
                 placeholder="메시지를 입력하세요"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 className="flex-1 border-2 border-gray-200 dark:border-neutral-700
                                            rounded-xl px-4 py-3 text-[15px] bg-gray-50 dark:bg-neutral-800
@@ -273,7 +308,7 @@ export default function ChatbotButton() {
               />
               <button
                 onClick={handleSend}
-                disabled={!inputValue.trim()}
+                disabled={isSendDisabled}
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-800
                                            text-white font-bold rounded-xl text-[15px] shadow-md
                                            hover:shadow-lg active:scale-95

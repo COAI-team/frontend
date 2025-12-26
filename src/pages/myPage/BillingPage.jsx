@@ -1,9 +1,11 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchPointInfo } from "../../service/mypage/MyPageApi";
 import { cancelPayment, fetchPaymentHistory } from "../../service/payment/PaymentApi";
 import Pagination from "../../components/common/Pagination";
 import { useLogin } from "../../context/login/useLogin";
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 import "./css/billing.css";
 
 const statusLabel = {
@@ -131,6 +133,7 @@ function getEndDate(row) {
 export default function BillingPage() {
   const navigate = useNavigate();
   const { auth, logout, hydrated } = useLogin();
+  const {alert, showAlert, closeAlert} = useAlert();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("history"); // history | point
@@ -399,13 +402,42 @@ export default function BillingPage() {
       return;
     }
     if (!row?.paymentKey || Number(row.amount || 0) === 0) {
-      alert("포인트 전액 결제 건은 환불할 수 없습니다.");
+      showAlert({
+        type: "warning",
+        title: "환불 불가",
+        message: "포인트 전액 결제 건은 환불할 수 없습니다.",
+      });
       return;
     }
 
     setReasonText("사용 취소");
     setReasonError("");
     setReasonModal({ open: true, row });
+    const reason = prompt("환불 사유를 입력해주세요", "사용 취소")?.trim() || "";
+    if (!reason) return;
+
+    try {
+      await cancelPayment({ paymentKey: row.paymentKey, cancelReason: reason });
+
+      showAlert({
+        type: "success",
+        title: "환불 완료",
+        message: "환불 요청이 처리되었습니다.",
+      });
+
+      const res = await fetchPaymentHistory({ from: startDate, to: endDate });
+      setHistory(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      const message =
+        err?.response?.data?.message ??
+        "환불 요청 처리 중 문제가 발생했습니다.";
+
+      showAlert({
+        type: "error",
+        title: "환불 실패",
+        message,
+      });
+    }
   };
 
   return (

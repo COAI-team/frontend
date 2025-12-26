@@ -2,8 +2,17 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axiosInstance from "../../server/AxiosConfig";
 import Pagination from '../../components/common/Pagination';
-import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
+import { getSmellKeyword, getSmellVisual } from '../../utils/codeAnalysisUtils';
 import "../../styles/CodeboardList.css";
+
+// debounce 유틸리티 함수
+const debounce = (func, delay) => {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
 
 const CodeboardList = () => {
   const navigate = useNavigate();
@@ -20,8 +29,9 @@ const CodeboardList = () => {
   const pageSize = Number(searchParams.get('size')) || 10;
   const sortBy = searchParams.get('sort') || 'CREATED_AT';
   const sortDirection = searchParams.get('direction') || 'DESC';
+  const scoreRange = searchParams.get('scoreRange') || '';
 
-  // 검색 입력용 로컬 state (입력 중에는 URL 업데이트 안 함)
+  // 검색 입력용 로컬 state
   const [searchInput, setSearchInput] = useState(keyword);
 
   // URL 파라미터 업데이트 헬퍼 함수
@@ -49,7 +59,7 @@ const CodeboardList = () => {
     setSearchInput(keyword);
   }, [keyword]);
 
-  // 게시글 목록 조회
+  // 게시글 목록 조회 (scoreRange 필터링 포함)
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
@@ -64,24 +74,42 @@ const CodeboardList = () => {
       });
       
       const data = response.data.data || response.data;
-      setPosts(data.content || []);
+      let filteredContent = data.content || [];
+      
+      // scoreRange가 있으면 클라이언트에서 필터링
+      if (scoreRange) {
+        const [min, max] = scoreRange.split('-').map(Number);
+        filteredContent = filteredContent.filter(post => 
+          post.aiScore != null && post.aiScore >= min && post.aiScore < max
+        );
+      }
+      
+      setPosts(filteredContent);
       setTotalPages(data.totalPages || 1);
     } catch (error) {
       console.error('게시글 목록 조회 실패:', error);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, sortBy, sortDirection, keyword]);
+  }, [currentPage, pageSize, sortBy, sortDirection, keyword, scoreRange]);
 
   // URL 파라미터가 변경될 때마다 게시글 조회
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  // 검색 폼 제출
-  const handleSearch = (e) => {
-    e.preventDefault();
-    updateParams({ keyword: searchInput }, true);
+  // 검색 입력 변경 시 debounce 적용하여 자동 검색
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      updateParams({ keyword: value }, true);
+    }, 300),
+    [updateParams]
+  );
+
+  const handleSearchInputChange = (e) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    debouncedSearch(value);
   };
 
   // 정렬 변경
@@ -101,8 +129,19 @@ const CodeboardList = () => {
 
   // 태그 클릭
   const handleTagClick = (tag) => {
-    // 새로운 params로 완전히 교체 (다른 조건 초기화)
     setSearchParams({ keyword: tag.trim() });
+  };
+
+  // AI 점수 태그 클릭 핸들러
+  const handleSmellTagClick = (score) => {
+    let range;
+    if (score >= 90) range = '90-100';
+    else if (score >= 70) range = '70-90';
+    else if (score >= 50) range = '50-70';
+    else if (score >= 30) range = '30-50';
+    else range = '0-30';
+    
+    setSearchParams({ scoreRange: range });
   };
 
   const handlePostClick = (postId) => {
@@ -110,7 +149,7 @@ const CodeboardList = () => {
   };
 
   const handleWriteClick = () => {
-    navigate('/codeAnalysis/new');
+    navigate('/codeAnalysis');
   };
 
   const getPreviewText = (content) => {
@@ -139,30 +178,54 @@ const CodeboardList = () => {
     return date.toLocaleDateString('ko-KR');
   };
 
+  const handleAnalysisListClick = () => {
+    navigate("/codeAnalysis");
+  };
+
   return (
     <div className="freeboard-list-container">
       <div className="freeboard-header">
-        <h1 className="freeboard-title">코드게시판</h1>
-        <p className="freeboard-subtitle">코드 리뷰와 분석을 통해 더 나은 코드를 작성해보세요</p>
+        <div className="freeboard-header-row">
+          <div className="freeboard-header-text">
+            <h1 className="freeboard-title">코드게시판</h1>
+            <p className="freeboard-subtitle">
+              코드 리뷰와 분석을 통해 더 나은 코드를 작성해보세요
+            </p>
+          </div>
+
+          <div className="freeboard-header-actions">
+            <button
+              className="analysis-list-btn"
+              onClick={handleAnalysisListClick}
+              title="코드 분석 내역 보기"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              코드분석 내역
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="freeboard-controls">
         <div className="control-left">
-          <form onSubmit={handleSearch} className="search-form">
+          <div className="search-form">
             <input
               type="text"
               placeholder="검색어를 입력하세요"
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={handleSearchInputChange}
               className="search-input"
             />
-            <button type="submit" className="search-button">
+            <button type="button" className="search-button" disabled>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" 
                       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-          </form>
+          </div>
         </div>
 
         <div className="control-right">
@@ -239,20 +302,13 @@ const CodeboardList = () => {
                   onClick={() => handlePostClick(post.codeboardId)}
                 >
                   <div className="post-content">
-                    <div className="post-title-with-badge">
-                      <h2 className="post-title">{post.codeboardTitle}</h2>
-                      {post.aiScore != null && (
-                        <span className={`smell-badge smell-${getSmellKeyword(post.aiScore).level}`}>
-                          {getSmellKeyword(post.aiScore).text}
-                        </span>
-                      )}
-                    </div>
+                    <h2 className="post-title">{post.codeboardTitle}</h2>
 
                     <p className="post-preview">{getPreviewText(post.codeboardSummary || post.codeboardContent)}</p>
 
-                    {post.codeboardTag && (
+                    {(post.codeboardTag || post.aiScore != null) && (
                       <div className="post-tags">
-                        {(Array.isArray(post.codeboardTag) ? post.codeboardTag : post.codeboardTag.split(',')).map((tag, index) => (
+                        {post.codeboardTag && (Array.isArray(post.codeboardTag) ? post.codeboardTag : post.codeboardTag.split(',')).map((tag, index) => (
                           <span 
                             key={index} 
                             className="post-tag"
@@ -265,15 +321,49 @@ const CodeboardList = () => {
                             #{tag.trim()}
                           </span>
                         ))}
+                        
+                        {post.aiScore != null && (
+                          <span 
+                            className="post-tag"
+                            style={{
+                              backgroundColor: post.aiScore >= 50 
+                                ? 'rgba(76, 175, 80, 0.15)' 
+                                : 'rgba(255, 82, 82, 0.15)',
+                              color: post.aiScore >= 50 
+                                ? '#4caf50' 
+                                : '#FF5E5B',
+                              cursor: 'pointer'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              handleSmellTagClick(post.aiScore);
+                            }}
+                          >
+                            {getSmellKeyword(post.aiScore).text.replace(/🌸|🍃|🤧|🤢|🤮/g, '').trim()}
+                          </span>
+                        )}
                       </div>
                     )}
 
                     <div className="post-footer">
                       <div className="post-user-info">
                         <div className="user-avatar">
-                          <span className="user-initial">
-                            {post.userNickname?.charAt(0) || 'U'}
-                          </span>
+                          {post.userImage ? (
+                            <img 
+                              src={post.userImage} 
+                              alt={post.userNickname}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
+                            <span className="user-initial">
+                              {post.userNickname?.charAt(0) || 'U'}
+                            </span>
+                          )}
                         </div>
                         <span className="user-nickname">{post.userNickname || 'User'}</span>
                       </div>
@@ -302,6 +392,30 @@ const CodeboardList = () => {
                       </span>
                     </div>
                   </div>
+
+                  {post.aiScore != null && (() => {
+                    const visual = getSmellVisual(post.aiScore);
+                    return (
+                      <div 
+                        className="smell-visual-card"
+                        style={{
+                          background: visual.gradient,
+                        }}
+                      >
+                        <div 
+                          style={{
+                            background: visual.pattern,
+                            position: 'absolute',
+                            inset: 0,
+                            opacity: 0.5
+                          }}
+                        />
+                        <span style={{ position: 'relative', zIndex: 1 }}>
+                          {visual.icon}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
@@ -317,28 +431,35 @@ const CodeboardList = () => {
                     <div className="card-header">
                       <div className="card-user-info">
                         <div className="user-avatar">
-                          <span className="user-initial">
-                            {post.userNickname?.charAt(0) || 'U'}
-                          </span>
+                          {post.userImage ? (
+                            <img 
+                              src={post.userImage} 
+                              alt={post.userNickname}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
+                            <span className="user-initial">
+                              {post.userNickname?.charAt(0) || 'U'}
+                            </span>
+                          )}
                         </div>
                         <span className="user-nickname">{post.userNickname || 'User'}</span>
                       </div>
                       <div className="card-header-right">
                         <span className="post-date">{formatDate(post.codeboardCreatedAt)}</span>
-                        {post.aiScore != null && (
-                          <span className={`smell-badge smell-${getSmellKeyword(post.aiScore).level}`}>
-                            {getSmellKeyword(post.aiScore).text}
-                          </span>
-                        )}
                       </div>
                     </div>
 
                     <h3 className="card-title">{post.codeboardTitle}</h3>
                     <p className="card-preview">{getPreviewText(post.codeboardSummary || post.codeboardContent)}</p>
 
-                    {post.codeboardTag && (
+                    {(post.codeboardTag || post.aiScore != null) && (
                       <div className="card-tags">
-                        {(Array.isArray(post.codeboardTag) ? post.codeboardTag : post.codeboardTag.split(',')).slice(0, 3).map((tag, index) => (
+                        {post.codeboardTag && (Array.isArray(post.codeboardTag) ? post.codeboardTag : post.codeboardTag.split(',')).slice(0, 3).map((tag, index) => (
                           <span 
                             key={index} 
                             className="post-tag"
@@ -351,6 +472,28 @@ const CodeboardList = () => {
                             #{tag.trim()}
                           </span>
                         ))}
+                        
+                        {post.aiScore != null && (
+                          <span 
+                            className="post-tag"
+                            style={{
+                              backgroundColor: post.aiScore >= 50 
+                                ? 'rgba(76, 175, 80, 0.15)' 
+                                : 'rgba(255, 82, 82, 0.15)',
+                              color: post.aiScore >= 50 
+                                ? '#4caf50' 
+                                : '#FF5E5B',
+                              cursor: 'pointer'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              handleSmellTagClick(post.aiScore);
+                            }}
+                          >
+                            {getSmellKeyword(post.aiScore).text.replace(/🌸|🍃|🤧|🤢|🤮/g, '').trim()}
+                          </span>
+                        )}
                       </div>
                     )}
 
@@ -392,13 +535,6 @@ const CodeboardList = () => {
         </>
       )}
 
-      <button className="floating-write-btn" onClick={handleWriteClick}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" 
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        분석하기
-      </button>
     </div>
   );
 };

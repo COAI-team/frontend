@@ -77,6 +77,33 @@ html:not(.dark) .freeboard-content p {
   line-height: 1.8;
 }
 
+/* ========== 유저 프로필 ========== */
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--avatar-bg, #374151); 
+  flex-shrink: 0;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.user-avatar .user-initial {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--avatar-text, #d1d5db); 
+  text-transform: uppercase;
+}
+
 /* ========== 이미지 ========== */
 .freeboard-content img {
   border-radius: 0.75rem;

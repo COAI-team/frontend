@@ -24,6 +24,14 @@ function PaymentPage() {
   const planKey = PLANS[planParam] ? planParam : "basic";
   const plan = PLANS[planKey];
 
+  // 결제 완료 후 돌아갈 경로 (sessionStorage에 저장)
+  const redirectPath = searchParams.get("redirect");
+  useEffect(() => {
+    if (redirectPath) {
+      sessionStorage.setItem("paymentRedirectPath", redirectPath);
+    }
+  }, [redirectPath]);
+
   const [orderId] = useState(() => `sub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
   const customerKey = useMemo(() => `USER_${orderId}`, [orderId]);
   const customerName = "CUSTOMER";

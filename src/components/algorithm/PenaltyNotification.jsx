@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import '../../styles/PenaltyNotification.css';
 
 /**
  * 패널티 알림 컴포넌트
@@ -7,6 +8,7 @@ import React, { useEffect } from 'react';
  * - warning: 단순 경고 (노란색)
  * - severe: 심각한 경고 (주황색)
  * - critical: 자동 제출 경고 (빨간색)
+ * - 라이트/다크 모드 지원
  */
 const PenaltyNotification = ({
   notification,
@@ -25,67 +27,61 @@ const PenaltyNotification = ({
 
   if (!notification) return null;
 
-  const getStyles = () => {
+  const getTypeClass = () => {
     switch (notification.type) {
       case 'critical':
-        return {
-          bg: 'bg-red-900/95',
-          border: 'border-red-500',
-          title: 'text-red-200',
-          icon: '🛑',
-          pulse: 'animate-pulse'
-        };
+        return 'penalty-critical';
       case 'severe':
-        return {
-          bg: 'bg-orange-900/95',
-          border: 'border-orange-500',
-          title: 'text-orange-200',
-          icon: '🚨',
-          pulse: ''
-        };
+        return 'penalty-severe';
       case 'warning':
       default:
-        return {
-          bg: 'bg-yellow-900/95',
-          border: 'border-yellow-500',
-          title: 'text-yellow-200',
-          icon: '⚠️',
-          pulse: ''
-        };
+        return 'penalty-warning';
     }
   };
 
-  const styles = getStyles();
+  const getIcon = () => {
+    switch (notification.type) {
+      case 'critical':
+        return '🛑';
+      case 'severe':
+        return '🚨';
+      case 'warning':
+      default:
+        return '⚠️';
+    }
+  };
+
+  const typeClass = getTypeClass();
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center">
-      <div className={`${styles.bg} ${styles.pulse} p-6 rounded-xl shadow-2xl border-2 ${styles.border} max-w-md mx-4`}>
+    <div className="penalty-overlay fixed inset-0 z-[9999] flex items-center justify-center">
+      <div className={`penalty-container ${typeClass} ${notification.type === 'critical' ? 'animate-pulse' : ''} p-6 rounded-xl shadow-2xl border-2 max-w-md mx-4`}>
         <div className="flex items-start gap-4">
-          <span className="text-4xl">{styles.icon}</span>
+          <span className="text-4xl">{getIcon()}</span>
           <div className="flex-1">
-            <h3 className={`font-bold text-xl ${styles.title}`}>
+            <h3 className="penalty-title font-bold text-xl">
               {notification.title}
             </h3>
-            <p className="text-gray-300 mt-2">
+            <p className="penalty-message mt-2">
               {notification.message}
             </p>
 
             {/* 패널티 상태 표시 */}
             {penaltyStatus && (
-              <div className="mt-4 p-3 bg-black/30 rounded-lg">
+              <div className="penalty-status-box mt-4 p-3 rounded-lg">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-gray-400">위반 점수:</span>
-                    <span className="ml-2 text-white font-bold">
+                    <span className="penalty-label">위반 점수:</span>
+                    <span className="penalty-score ml-2 font-bold">
                       {penaltyStatus.totalScore.toFixed(1)}점
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-400">현재 상태:</span>
+                    <span className="penalty-label">현재 상태:</span>
                     <span className={`ml-2 font-bold ${
-                      penaltyStatus.tier >= 3 ? 'text-red-400' :
-                      penaltyStatus.tier >= 2 ? 'text-orange-400' :
-                      'text-yellow-400'
+                      penaltyStatus.tier >= 3 ? 'text-red-500 dark:text-red-400' :
+                      penaltyStatus.tier >= 2 ? 'text-orange-500 dark:text-orange-400' :
+                      'text-yellow-600 dark:text-yellow-400'
                     }`}>
                       {penaltyStatus.tierLabel}
                     </span>
@@ -94,11 +90,11 @@ const PenaltyNotification = ({
 
                 {/* 프로그레스 바 */}
                 <div className="mt-3">
-                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                  <div className="penalty-progress-label flex justify-between text-xs mb-1">
                     <span>다음 단계까지</span>
                     <span>{penaltyStatus.nextTierAt.toFixed(1)}점 남음</span>
                   </div>
-                  <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                  <div className="penalty-progress-bg w-full h-2 rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all duration-300 ${
                         penaltyStatus.tier >= 3 ? 'bg-red-500' :
@@ -121,7 +117,7 @@ const PenaltyNotification = ({
             {notification.type !== 'critical' && (
               <button
                 onClick={onDismiss}
-                className={`mt-4 px-4 py-2 rounded-lg font-semibold transition-colors ${
+                className={`mt-4 px-4 py-2 rounded-lg font-semibold transition-colors cursor-pointer ${
                   notification.type === 'severe'
                     ? 'bg-orange-600 hover:bg-orange-700 text-white'
                     : 'bg-yellow-600 hover:bg-yellow-700 text-white'

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getMySubmissions } from "../../service/algorithm/algorithmApi";
+import { getMySubmissions } from "../../service/algorithm/AlgorithmApi";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import "../../styles/MySubmissions.css";
 
 const MySubmissions = () => {
   const navigate = useNavigate();
@@ -42,22 +43,22 @@ const MySubmissions = () => {
     }
   };
 
-  const getStatusColor = (result) => {
+  const getStatusBadgeClass = (result) => {
     switch (result) {
       case "AC":
-        return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30";
+        return "status-badge-ac";
       case "WA":
-        return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30";
+        return "status-badge-wa";
       case "TLE":
-        return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/30";
+        return "status-badge-tle";
       case "MLE":
-        return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/30";
+        return "status-badge-mle";
       case "RE":
-        return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/30";
+        return "status-badge-re";
       case "CE":
-        return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30";
+        return "status-badge-ce";
       default:
-        return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-700/50";
+        return "status-badge-default";
     }
   };
 
@@ -94,10 +95,10 @@ const MySubmissions = () => {
           {error}
         </div>
       ) : (
-        <div className="bg-panel shadow overflow-hidden sm:rounded-lg">
+        <div className="bg-white dark:bg-[#1f1f1f] shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] overflow-hidden sm:rounded-lg submissions-table-container border border-gray-200 dark:border-[#2e2e2e]">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-              <thead className="bg-gray-50 dark:bg-zinc-900/50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-[#2e2e2e]">
+              <thead className="bg-gray-50 dark:bg-[#1a1a1a]">
                 <tr>
                   <th
                     scope="col"
@@ -141,9 +142,15 @@ const MySubmissions = () => {
                   >
                     제출 일시
                   </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
+                  >
+                    공유
+                  </th>
                 </tr>
               </thead>
-              <tbody className="bg-panel divide-y divide-gray-200 dark:divide-zinc-700">
+              <tbody className="bg-white dark:bg-[#1f1f1f] divide-y divide-gray-200 dark:divide-[#2e2e2e]">
                 {submissions.map((submission) => (
                   <tr
                     key={submission.submissionId}
@@ -152,7 +159,7 @@ const MySubmissions = () => {
                         `/algorithm/submissions/${submission.submissionId}`
                       )
                     }
-                    className="hover:bg-gray-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors duration-150"
+                    className="hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer transition-colors duration-150"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       #{submission.submissionId}
@@ -165,21 +172,17 @@ const MySubmissions = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        className={
                           submission.solveMode === "FOCUS"
-                            ? "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/30"
-                            : "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30"
-                        }`}
+                            ? "solve-mode-badge-focus"
+                            : "solve-mode-badge-normal"
+                        }
                       >
                         {submission.solveMode === "FOCUS" ? "집중 모드" : "기본 모드"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                          submission.judgeResult
-                        )}`}
-                      >
+                      <span className={getStatusBadgeClass(submission.judgeResult)}>
                         {getStatusText(submission.judgeResult)}
                       </span>
                     </td>
@@ -202,6 +205,17 @@ const MySubmissions = () => {
                         { locale: ko }
                       )}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={
+                          submission.isShared
+                            ? "share-badge-shared"
+                            : "share-badge-not-shared"
+                        }
+                      >
+                        {submission.isShared ? "공유됨" : "미공유"}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -215,11 +229,11 @@ const MySubmissions = () => {
           )}
 
           {hasMore && (
-            <div className="bg-gray-50 dark:bg-zinc-900/50 px-4 py-4 sm:px-6 text-center border-t border-gray-200 dark:border-zinc-700">
+            <div className="bg-gray-50 dark:bg-[#1a1a1a] px-4 py-4 sm:px-6 text-center border-t border-gray-200 dark:border-[#2e2e2e] load-more-section">
               <button
                 onClick={() => setPage((prev) => prev + 1)}
                 disabled={loading}
-                className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 disabled:opacity-50"
+                className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "로딩 중..." : "더 보기"}
               </button>

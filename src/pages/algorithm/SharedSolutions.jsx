@@ -1,41 +1,108 @@
-import React, { useState, useEffect } from 'react';
-import { getSharedSubmissions } from '../../service/algorithm/algorithmApi';
+import React, {useState, useEffect, useRef} from 'react';
+import hljs from 'highlight.js';
+import {
+  getSharedSubmissions,
+  toggleLike as toggleSubmissionLike,
+  getComments as getSubmissionComments,
+  createComment as createSubmissionComment,
+  updateComment as updateSubmissionComment,
+  deleteComment as deleteSubmissionComment
+} from '../../service/algorithm/AlgorithmSocialApi';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
+import '../../styles/SharedSolutions.css';
+import {Code2, Bot, MessageSquare} from 'lucide-react';
 
-const SharedSolutions = ({ problemId }) => {
+const SharedSolutions = ({problemId}) => {
   const [solutions, setSolutions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [expandedId, setExpandedId] = useState(null);
+  const [sortBy, setSortBy] = useState('latest');
+  const [selectedLanguage, setSelectedLanguage] = useState('');
   const pageSize = 20;
+
+  // 다크모드 감지
+  const [isDark, setIsDark] = useState(() => 
+    document.documentElement.classList.contains('dark')
+  );
+
+  // highlight.js 테마 관리
+  useEffect(() => {
+    const loadHljsTheme = (darkMode) => {
+      document.querySelectorAll('link[data-hljs-theme-shared]').forEach(el => el.remove());
+      
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.dataset.hljsThemeShared = 'true';
+      link.href = darkMode 
+        ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css'
+        : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+      document.head.appendChild(link);
+    };
+
+    const checkDarkMode = () => {
+      const darkMode = document.documentElement.classList.contains('dark');
+      setIsDark(darkMode);
+      loadHljsTheme(darkMode);
+    };
+    
+    checkDarkMode();
+    
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => {
+      observer.disconnect();
+      document.querySelectorAll('link[data-hljs-theme-shared]').forEach(el => el.remove());
+    };
+  }, []);
 
   useEffect(() => {
     fetchSolutions(currentPage);
-  }, [problemId, currentPage]);
+  }, [problemId, currentPage, sortBy, selectedLanguage]);
 
   const fetchSolutions = async (page) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await getSharedSubmissions(problemId, page, pageSize);
-      
-      // API 응답 구조 확인
+
       console.log('API 응답:', response);
-      
+
       if (response.error) {
-        throw new Error(response.message || '공유된 풀이를 불러오는데 실패했습니다.');
+        // 권한 에러 특별 처리
+        if (response.code === 'FORBIDDEN') {
+          setError('이 문제를 먼저 풀어야 다른 사람의 풀이를 볼 수 있습니다. 💪');
+        } else if (response.code === 'UNAUTHORIZED') {
+          setError('로그인이 필요한 서비스입니다.');
+        } else {
+          setError(response.message || '공유된 풀이를 불러오는데 실패했습니다.');
+        }
+        return;
       }
-      
+
       const pageData = response.data || response;
-      
       setSolutions(pageData.content || []);
       setTotalPages(pageData.totalPages || 0);
-      
+
     } catch (err) {
       console.error('공유 풀이 조회 실패:', err);
-      setError(err.message || '공유된 풀이를 불러오는데 실패했습니다.');
+
+      // HTTP 상태 코드로 판단
+      if (err.response?.status === 403) {
+        setError('이 문제를 먼저 풀어야 다른 사람의 풀이를 볼 수 있습니다. 💪');
+      } else if (err.response?.status === 401) {
+        setError('로그인이 필요한 서비스입니다.');
+      } else {
+        setError(err.message || '공유된 풀이를 불러오는데 실패했습니다.');
+      }
     } finally {
       setLoading(false);
     }
@@ -45,45 +112,40 @@ const SharedSolutions = ({ problemId }) => {
     setExpandedId(expandedId === submissionId ? null : submissionId);
   };
 
-  const getStatusText = (status) => {
-    const statusMap = {
-      'AC': '맞았습니다',
-      'WA': '틀렸습니다',
-      'TLE': '시간초과',
-      'MLE': '메모리초과',
-      'RE': '런타임에러',
-      'CE': '컴파일에러'
-    };
-    return statusMap[status] || status;
-  };
+  const handleLike = async (submissionId) => {
+    try {
+      const response = await toggleSubmissionLike(submissionId);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'AC':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'WA':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'TLE':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-      case 'MLE':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-      case 'RE':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+      if (response.error) {
+        console.error('좋아요 처리 실패:', response.message);
+        return;
+      }
+
+      // solutions 상태 업데이트
+      setSolutions(prevSolutions =>
+        prevSolutions.map(solution =>
+          solution.submissionId === submissionId
+            ? {
+              ...solution,
+              isLiked: response.data.liked,
+              likeCount: response.data.likeCount
+            }
+            : solution
+        )
+      );
+    } catch (err) {
+      console.error('좋아요 처리 중 오류:', err);
     }
   };
 
   const formatDate = (dateValue) => {
     if (!dateValue) return '-';
-    
-    // 배열 형식인 경우
+
     if (Array.isArray(dateValue) && dateValue.length >= 6) {
       const [year, month, day, hour, minute, second] = dateValue;
       return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
     }
-    
-    // 문자열인 경우
+
     if (typeof dateValue === 'string') {
       try {
         const date = new Date(dateValue);
@@ -97,16 +159,20 @@ const SharedSolutions = ({ problemId }) => {
         return dateValue;
       }
     }
-    
+
     return '-';
   };
 
+  const availableLanguages = [...new Set(solutions.map(s => s.language))].filter(Boolean);
+
   if (loading && currentPage === 1) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-b-lg shadow-sm border border-t-0 p-8">
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">풀이를 불러오는 중...</p>
+      <div className="shared-solutions-container">
+        <div className="shared-solutions-content">
+          <div className="shared-solutions-loading">
+            <div className="shared-solutions-loading-spinner"></div>
+            <p className="shared-solutions-loading-text">풀이를 불러오는 중...</p>
+          </div>
         </div>
       </div>
     );
@@ -114,126 +180,162 @@ const SharedSolutions = ({ problemId }) => {
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-b-lg shadow-sm border border-t-0 p-8">
-        <div className="text-center py-12">
-          <p className="text-red-600 mb-4">⚠️ {error}</p>
-          <button
-            onClick={() => fetchSolutions(currentPage)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            다시 시도
-          </button>
+      <div className="shared-solutions-container">
+        <div className="shared-solutions-content">
+          <div className="shared-solutions-error">
+            <p className="shared-solutions-error-text">⚠️ {error}</p>
+            <button
+              onClick={() => fetchSolutions(currentPage)}
+              className="shared-solutions-retry-button"
+            >
+              다시 시도
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-b-lg shadow-sm border border-t-0">
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            다른 사람의 풀이
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            총 {solutions.length}개의 풀이
-          </p>
+    <div className="shared-solutions-container">
+      <div className="shared-solutions-content">
+        <div className="shared-solutions-header">
+          <div className="header-left">
+            <h2 className="shared-solutions-title">
+              다른 사람의 풀이
+            </h2>
+            <p className="shared-solutions-count">
+              총 {solutions.length}개의 풀이
+            </p>
+          </div>
+
+          <div className="header-filters">
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="filter-select-inline"
+            >
+              <option value="latest">최신순</option>
+              <option value="likes">좋아요순</option>
+            </select>
+
+            <select
+              value={selectedLanguage}
+              onChange={(e) => {
+                setSelectedLanguage(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="filter-select-inline"
+            >
+              <option value="">전체 언어</option>
+              {availableLanguages.map(lang => (
+                <option key={lang} value={lang}>{lang}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {solutions.length === 0 ? (
-          <div className="text-center py-12 text-gray-600 dark:text-gray-400">
-            아직 공유된 풀이가 없습니다.
+          <div className="shared-solutions-empty">
+            <p className="shared-solutions-empty-text">아직 공유된 풀이가 없습니다.</p>
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      제출 번호
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      결과
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      언어
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      점수
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      메모리 / 시간
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      제출 일시
-                    </th>
-                  </tr>
+            <div className="shared-solutions-table-wrapper">
+              <table className="shared-solutions-table">
+                <colgroup>
+                  <col style={{width: '90px'}}/>
+                  <col style={{width: '140px'}}/>
+                  <col style={{width: '100px'}}/>
+                  <col style={{width: '90px'}}/>
+                  <col style={{width: '90px'}}/>
+                  <col style={{width: '160px'}}/>
+                </colgroup>
+
+                <thead>
+                <tr>
+                  <th>제출 번호</th>
+                  <th>작성자</th>
+                  <th>언어</th>
+                  <th>점수</th>
+                  <th>좋아요</th>
+                  <th>제출 일시</th>
+                </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {solutions.map((solution) => (
-                    <React.Fragment key={solution.submissionId}>
-                      {/* 테이블 행 */}
-                      <tr
-                        onClick={() => toggleExpand(solution.submissionId)}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                          #{solution.submissionId}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(solution.judgeResult)}`}>
-                            {getStatusText(solution.judgeResult)}
+                <tbody>
+                {solutions.map((solution) => (
+                  <React.Fragment key={solution.submissionId}>
+                    <tr onClick={() => toggleExpand(solution.submissionId)}>
+                      <td>#{solution.submissionId}</td>
+                      <td style={{fontWeight: 500}}>
+                        {solution.userName || solution.userNickname || solution.nickname || '익명'}
+                      </td>
+                      <td>{solution.language || solution.languageName || '-'}</td>
+                      <td style={{fontWeight: 500}}>
+                        {solution.finalScore ? `${solution.finalScore}점` : '-'}
+                      </td>
+                      <td>
+                          <span className="like-count-display">
+                            <svg
+                              width="16"
+                              height="16"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              viewBox="0 0 24 24"
+                              style={{color: 'var(--text-secondary)'}}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                              />
+                            </svg>
+                            <span>{solution.likeCount || 0}</span>
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                          {solution.language}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {solution.finalScore ? `${solution.finalScore}점` : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                          {solution.memoryUsage ? `${Math.round(solution.memoryUsage / 1024)}KB` : '-'} /
-                          {solution.executionTime ? ` ${solution.executionTime}ms` : ' -'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                          {formatDate(solution.submittedAt)}
+                      </td>
+                      <td className="text-secondary">
+                        {formatDate(solution.submittedAt)}
+                      </td>
+                    </tr>
+
+                    {expandedId === solution.submissionId && (
+                      <tr className="solution-detail-row">
+                        <td colSpan="6" className="solution-detail-cell">
+                          <SolutionDetail
+                            solution={solution}
+                            onLike={() => handleLike(solution.submissionId)}
+                          />
                         </td>
                       </tr>
-
-                      {/* 펼쳐지는 상세 영역 */}
-                      {expandedId === solution.submissionId && (
-                        <tr>
-                          <td colSpan="6" className="px-6 py-6 bg-gray-50 dark:bg-gray-900">
-                            <SolutionDetail solution={solution} />
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
+                    )}
+                  </React.Fragment>
+                ))}
                 </tbody>
               </table>
             </div>
 
-            {/* 페이지네이션 */}
             {totalPages > 1 && (
-              <div className="mt-6 flex justify-center items-center gap-2">
+              <div className="pagination-container">
                 <button
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+                  className="pagination-button"
                 >
                   이전
                 </button>
-                
-                <span className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
+
+                <span className="pagination-info">
                   {currentPage} / {totalPages}
                 </span>
-                
+
                 <button
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+                  className="pagination-button"
                 >
                   다음
                 </button>
@@ -246,155 +348,411 @@ const SharedSolutions = ({ problemId }) => {
   );
 };
 
-const SolutionDetail = ({ solution }) => {
-  const [activeTab, setActiveTab] = useState('code'); // 'code', 'feedback', 'comments'
+const SolutionDetail = ({solution, onLike}) => {
+  const {alert, showAlert, closeAlert} = useAlert();
+  const [activeTab, setActiveTab] = useState('code');
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingContent, setEditingContent] = useState('');
+  
+  const codeBlockRef = useRef(null);
+
+  // 언어 매핑 함수
+  const getLanguageClass = (languageName) => {
+    const languageMap = {
+      'Python': 'python',
+      'JavaScript': 'javascript',
+      'TypeScript': 'typescript',
+      'Java': 'java',
+      'C++': 'cpp',
+      'C#': 'csharp',
+      'Go': 'go',
+      'Rust': 'rust',
+      'Kotlin': 'kotlin',
+      'Swift': 'swift',
+      'SQLite': 'sql',
+      'SQL': 'sql'
+    };
+    
+    return languageMap[languageName] || 'plaintext';
+  };
+
+  // 코드 하이라이팅 적용
+  useEffect(() => {
+    if (activeTab === 'code' && codeBlockRef.current) {
+      const timer = setTimeout(() => {
+        const codeElement = codeBlockRef.current.querySelector('code');
+        if (codeElement) {
+          codeElement.classList.remove('hljs');
+          delete codeElement.dataset.highlighted;
+          hljs.highlightElement(codeElement);
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, solution.sourceCode]);
+
+  // 댓글 불러오기
+  useEffect(() => {
+    if (activeTab === 'comments') {
+      fetchComments();
+    }
+  }, [activeTab]);
+
+  const fetchComments = async () => {
+    try {
+      setLoadingComments(true);
+      const response = await getSubmissionComments(solution.submissionId);
+
+      if (response.error) {
+        console.error('댓글 조회 실패:', response.message);
+        return;
+      }
+
+      setComments(response.data?.content || []);
+    } catch (err) {
+      console.error('댓글 조회 중 오류:', err);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  // 댓글 수정 시작
+  const handleCommentEdit = (comment) => {
+    setEditingCommentId(comment.commentId);
+    setEditingContent(comment.content);
+  };
+
+  // 댓글 수정 취소
+  const handleCommentEditCancel = () => {
+    setEditingCommentId(null);
+    setEditingContent('');
+  };
+
+  // 댓글 수정 저장
+  const handleCommentEditSubmit = async (commentId) => {
+    if (!editingContent.trim()) {
+      showAlert({
+        type: "warning",
+        title: "입력 필요",
+        message: "댓글 내용을 입력해주세요.",
+      });
+      return;
+    }
+
+    try {
+      const response = await updateSubmissionComment(commentId, editingContent);
+
+      if (response.error) {
+        console.error('댓글 수정 실패:', response.message);
+        showAlert({
+          type: "error",
+          title: "수정 실패",
+          message: "댓글 수정에 실패했습니다.",
+        });
+        return;
+      }
+
+      setEditingCommentId(null);
+      setEditingContent('');
+      fetchComments();
+    } catch (err) {
+      console.error('댓글 수정 중 오류:', err);
+      showAlert({
+        type: "error",
+        title: "수정 실패",
+        message: "댓글 수정에 실패했습니다.",
+      });
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!newComment.trim()) return;
+
+    try {
+      const response = await createSubmissionComment(solution.submissionId, newComment);
+
+      if (response.error) {
+        console.error('댓글 작성 실패:', response.message);
+        return;
+      }
+
+      setNewComment('');
+      fetchComments();
+    } catch (err) {
+      console.error('댓글 작성 중 오류:', err);
+    }
+  };
+
+  const handleCommentDelete = async (commentId) => {
+    if (!window.confirm('댓글을 삭제하시겠습니까?')) return;
+
+    try {
+      const response = await deleteSubmissionComment(commentId);
+
+      if (response.error) {
+        console.error('댓글 삭제 실패:', response.message);
+        return;
+      }
+
+      fetchComments();
+    } catch (err) {
+      console.error('댓글 삭제 중 오류:', err);
+    }
+  };
 
   const renderAIFeedback = () => {
     if (!solution.aiFeedback) {
-      return <div className="text-gray-500 dark:text-gray-400">AI 피드백이 없습니다.</div>;
+      return <div className="ai-feedback-empty">AI 피드백이 없습니다.</div>;
     }
 
     return (
-      <div className="prose dark:prose-invert max-w-none text-sm">
-        <div className="whitespace-pre-wrap">{solution.aiFeedback}</div>
+      <div className="ai-feedback-content">
+        {stripMarkdown(solution.aiFeedback)}
       </div>
     );
   };
 
-  const handleCommentSubmit = (e) => {
-    e.preventDefault();
-    // TODO: 댓글 등록 API 호출
-    console.log('댓글 등록:', newComment);
-    setNewComment('');
+  const stripMarkdown = (text) => {
+    if (!text) return '';
+
+    return text
+      .replace(/^#{1,6}\s*/gm, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/`([^`]*)`/g, '$1')
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/^-+\s*/gm, '')
+      .trim();
   };
 
   const tabs = [
-    { id: 'code', label: '제출 코드', icon: '💻' },
-    { id: 'feedback', label: 'AI 피드백', icon: '🤖' },
-    { id: 'comments', label: `댓글 (${comments.length})`, icon: '💬' }
+    {id: 'code', label: '제출 코드', icon: Code2},
+    {id: 'feedback', label: 'AI 피드백', icon: Bot},
+    {id: 'comments', label: `댓글 (${comments.length})`, icon: MessageSquare}
   ];
 
   return (
-    <div className="space-y-4">
-      {/* 점수 정보 - 항상 표시 */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">최종 점수</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+    <div>
+      <div className="score-grid">
+        <div className="score-card">
+          <div className="score-card-label">최종 점수</div>
+          <div className="score-card-value">
             {solution.finalScore || 0}
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">채점 점수</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="score-card">
+          <div className="score-card-label">채점 점수</div>
+          <div className="score-card-value">
             {solution.scoreBreakdown?.judgeScore || 0}
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">AI 점수</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="score-card">
+          <div className="score-card-label">AI 점수</div>
+          <div className="score-card-value">
             {solution.aiScore || 0}
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">시간 효율</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="score-card">
+          <div className="score-card-label">시간 효율</div>
+          <div className="score-card-value">
             {solution.timeEfficiencyScore || 0}
           </div>
         </div>
       </div>
 
-      {/* 탭 메뉴 */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <div className="flex space-x-8">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`
-                py-3 px-1 border-b-2 font-medium text-sm transition-colors
-                ${activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }
-              `}
-            >
-              <span className="mr-2">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
+      <div className="solution-tabs-container">
+        <div className="solution-tabs">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`solution-tab-button ${activeTab === tab.id ? 'active' : ''}`}
+              >
+                <Icon size={18} strokeWidth={1.8}/>
+                <span className="tab-label">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* 탭 컨텐츠 */}
-      <div className="py-4">
-        {/* 코드 탭 */}
+      <div className="solution-tab-content">
         {activeTab === 'code' && (
           <div>
-            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
-              <code>{solution.sourceCode}</code>
-            </pre>
+            <div ref={codeBlockRef}>
+              <pre className="solution-code-block">
+                <code className={`language-${getLanguageClass(solution.language || solution.languageName)}`}>
+                  {solution.sourceCode || '// 코드 없음'}
+                </code>
+              </pre>
+            </div>
+
+            <div className="solution-like-section">
+              <button
+                onClick={onLike}
+                className={`solution-like-button ${solution.isLiked ? 'liked' : ''}`}
+              >
+                <svg
+                  className="like-icon"
+                  viewBox="0 0 24 24"
+                  fill={solution.isLiked ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <span className="like-text">
+                  {solution.isLiked ? '좋아요 취소' : '좋아요'}
+                </span>
+                <span className="like-count">{solution.likeCount || 0}</span>
+              </button>
+            </div>
           </div>
         )}
 
-        {/* AI 피드백 탭 */}
         {activeTab === 'feedback' && (
           <div>
             {solution.aiFeedback ? (
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="ai-feedback-container">
                 {renderAIFeedback()}
               </div>
             ) : (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <div className="ai-feedback-empty">
                 AI 피드백이 아직 생성되지 않았습니다.
               </div>
             )}
+
+            <div className="solution-like-section">
+              <button
+                onClick={onLike}
+                className={`solution-like-button ${solution.isLiked ? 'liked' : ''}`}
+              >
+                <svg
+                  className="like-icon"
+                  viewBox="0 0 24 24"
+                  fill={solution.isLiked ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <span className="like-text">
+                  {solution.isLiked ? '좋아요 취소' : '좋아요'}
+                </span>
+                <span className="like-count">{solution.likeCount || 0}</span>
+              </button>
+            </div>
           </div>
         )}
 
-        {/* 댓글 탭 */}
         {activeTab === 'comments' && (
           <div>
-            {/* 댓글 목록 */}
-            <div className="space-y-3 mb-4">
-              {comments.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <div className="comments-list">
+              {loadingComments ? (
+                <div className="comments-loading">댓글을 불러오는 중...</div>
+              ) : comments.length === 0 ? (
+                <div className="comments-empty">
                   첫 댓글을 작성해보세요!
                 </div>
               ) : (
-                comments.map((comment, index) => (
-                  <div key={index} className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {comment.userName}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {comment.createdAt}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      {comment.content}
-                    </p>
+                comments.map((comment) => (
+                  <div key={comment.commentId} className="comment-item">
+                    {editingCommentId === comment.commentId ? (
+                      <>
+                        <div className="comment-header">
+                          <div className="comment-user-info">
+                            <span className="comment-username">
+                              {comment.userNickname || '익명'}
+                            </span>
+                          </div>
+                        </div>
+                        <textarea
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          className="comment-edit-textarea"
+                          rows={3}
+                          autoFocus
+                        />
+                        <div className="comment-edit-actions">
+                          <button
+                            onClick={handleCommentEditCancel}
+                            className="comment-action-button comment-cancel-button"
+                          >
+                            취소
+                          </button>
+                          <button
+                            onClick={() => handleCommentEditSubmit(comment.commentId)}
+                            className="comment-action-button comment-save-button"
+                            disabled={!editingContent.trim()}
+                          >
+                            저장
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="comment-header">
+                          <div className="comment-user-info">
+                            <span className="comment-username">
+                              {comment.userNickname || '익명'}
+                            </span>
+                            <span className="comment-date">
+                              {formatDate(comment.createdAt)}
+                            </span>
+                          </div>
+
+                          {comment.isAuthor && (
+                            <div className="comment-actions">
+                              <button
+                                onClick={() => handleCommentEdit(comment)}
+                                className="comment-action-button comment-edit-button"
+                                title="수정"
+                              >
+                                수정
+                              </button>
+                              <button
+                                onClick={() => handleCommentDelete(comment.commentId)}
+                                className="comment-action-button comment-delete-button"
+                                title="삭제"
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <p className="comment-content">
+                          {comment.content}
+                        </p>
+                      </>
+                    )}
                   </div>
                 ))
               )}
             </div>
 
-            {/* 댓글 작성 폼 */}
-            <form onSubmit={handleCommentSubmit} className="flex gap-2">
+            <form onSubmit={handleCommentSubmit} className="comment-form">
               <input
                 type="text"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="댓글을 입력하세요..."
-                className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                className="comment-input"
               />
               <button
                 type="submit"
                 disabled={!newComment.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="comment-submit-button"
               >
                 등록
               </button>
@@ -402,8 +760,41 @@ const SolutionDetail = ({ solution }) => {
           </div>
         )}
       </div>
+      <AlertModal
+        open={alert.open}
+        onClose={closeAlert}
+        onConfirm={alert.onConfirm}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+      />
     </div>
   );
+};
+
+const formatDate = (dateValue) => {
+  if (!dateValue) return '-';
+
+  if (Array.isArray(dateValue) && dateValue.length >= 6) {
+    const [year, month, day, hour, minute] = dateValue;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  }
+
+  if (typeof dateValue === 'string') {
+    try {
+      const date = new Date(dateValue);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hour = String(date.getHours()).padStart(2, '0');
+      const minute = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hour}:${minute}`;
+    } catch (e) {
+      return dateValue;
+    }
+  }
+
+  return '-';
 };
 
 export default SharedSolutions;

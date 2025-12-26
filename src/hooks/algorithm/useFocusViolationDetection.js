@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import devtools from 'devtools-detect';
-import { sendMonitoringViolation } from '../../service/algorithm/algorithmApi';
+import { sendMonitoringViolation } from '../../service/algorithm/AlgorithmApi';
 
 /**
  * 집중 모드 위반 감지 커스텀 훅
@@ -94,11 +94,9 @@ export const useFocusViolationDetection = ({ isActive, isDevtoolsCheckActive = f
     };
   }, [isActive, monitoringSessionId]);
 
-  // 마우스 화면 밖 이동 감지
+  // 마우스 화면 밖 이동 감지 (마우스 복귀 시 자동 닫힘)
   useEffect(() => {
     if (!isActive) return;
-
-    let timeoutId = null;
 
     const handleMouseLeave = () => {
       setShowMouseLeaveWarning(true);
@@ -107,17 +105,19 @@ export const useFocusViolationDetection = ({ isActive, isDevtoolsCheckActive = f
           description: 'Mouse left the browser window'
         });
       }
-      // 3초 후 자동으로 경고 숨기기
-      timeoutId = setTimeout(() => {
-        setShowMouseLeaveWarning(false);
-      }, 3000);
+    };
+
+    // 마우스 복귀 시 경고 자동 닫힘
+    const handleMouseEnter = () => {
+      setShowMouseLeaveWarning(false);
     };
 
     document.addEventListener('mouseleave', handleMouseLeave);
+    document.addEventListener('mouseenter', handleMouseEnter);
 
     return () => {
       document.removeEventListener('mouseleave', handleMouseLeave);
-      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('mouseenter', handleMouseEnter);
     };
   }, [isActive, monitoringSessionId]);
 

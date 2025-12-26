@@ -7,6 +7,8 @@ import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { axiosInstance } from "../../server/AxiosConfig";
 import imageCompression from "browser-image-compression";
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
 // toolbar
 import StickerPicker from "./toolbar/StickerPicker";
@@ -31,11 +33,14 @@ const WriteEditor = ({
   initialTitle = "",
   initialContent = "",
   initialTags = [],
+  boardType,
+  toolbarType,
 }) => {
   const [title, setTitle] = useState(initialTitle);
   const [tags, setTags] = useState(initialTags);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { theme, systemTheme } = useTheme();
+  const {alert, showAlert, closeAlert} = useAlert();
   
   // 초기 content 설정 여부 추적
   const isContentInitialized = useRef(false);
@@ -182,7 +187,11 @@ const WriteEditor = ({
         })
         .run();
     } catch (error) {
-      alert(`이미지 업로드 실패: ${error.message}`);
+      showAlert({
+        type: "error",
+        title: "이미지 업로드 실패",
+        message: error?.message ?? "이미지 업로드 중 문제가 발생했습니다.",
+      });
     }
   }
 
@@ -211,8 +220,8 @@ const WriteEditor = ({
       style={{
         maxWidth: "900px",
         borderRadius: "1rem",
-        backgroundColor: isDark ? "#101828" : "white",
-        border: `1px solid ${isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"}`,
+        backgroundColor: isDark ? "#1f1f1f" : "white",
+        border: `1px solid ${isDark ? "#2e2e2e" : "rgb(229,231,235)"}`,
         boxShadow: isDark
           ? "0 20px 25px -5px rgba(0,0,0,0.5)"
           : "0 20px 25px -5px rgba(0,0,0,0.1)",
@@ -224,7 +233,7 @@ const WriteEditor = ({
         style={{
           padding: "2rem",
           borderBottom: `1px solid ${
-            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
+            isDark ? "#2e2e2e" : "rgb(229,231,235)"
           }`,
         }}
       >
@@ -251,9 +260,9 @@ const WriteEditor = ({
           top: 0,
           zIndex: 10,
           padding: "1rem 1.5rem",
-          backgroundColor: isDark ? "#101828" : "white",
+          backgroundColor: isDark ? "#1f1f1f" : "white",
           borderBottom: `1px solid ${
-            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
+            isDark ? "#2e2e2e" : "rgb(229,231,235)"
           }`,
         }}
       >
@@ -262,6 +271,7 @@ const WriteEditor = ({
           insertCodeBlock={insertCodeBlock}
           theme={currentTheme}
           onToggleSticker={() => setShowStickerPicker((v) => !v)}
+          boardType={boardType || (toolbarType === "codeboard" || toolbarType === "minimal" ? "codeboard" : "freeboard")}
         />
 
         {showStickerPicker && (
@@ -289,7 +299,7 @@ const WriteEditor = ({
         style={{
           padding: "1.5rem 2rem",
           borderTop: `1px solid ${
-            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
+            isDark ? "#2e2e2e" : "rgb(229,231,235)"
           }`,
         }}
       >
@@ -304,30 +314,46 @@ const WriteEditor = ({
           justifyContent: "flex-end",
           gap: "0.75rem",
           borderTop: `1px solid ${
-            isDark ? "rgb(55,65,81)" : "rgb(229,231,235)"
+            isDark ? "#2e2e2e" : "rgb(229,231,235)"
           }`,
         }}
       >
         <button
-          onClick={() => window.history.back()}
+          onClick={() => globalThis.history.back()}
           style={{
             padding: "0.625rem 1.5rem",
-            backgroundColor: isDark ? "rgb(31,41,55)" : "rgb(229,231,235)",
+            backgroundColor: isDark ? "#2e2e2e" : "rgb(229,231,235)",
             color: isDark ? "rgb(209,213,219)" : "rgb(55,65,81)",
             borderRadius: "0.5rem",
-            border: "1px solid",
+            border: "none",
             cursor: "pointer",
           }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = isDark ? "#3f3f3f" : "rgb(209,213,219)"}
+          onMouseLeave={(e) => e.target.style.backgroundColor = isDark ? "#2e2e2e" : "rgb(229,231,235)"}
         >
           취소
         </button>
 
         <button
           onClick={() => {
-            if (!title.trim()) return alert("제목을 입력하세요.");
+            if (!title.trim()) {
+              showAlert({
+                type: "warning",
+                title: "입력 필요",
+                message: "제목을 입력하세요.",
+              });
+              return;
+            }
+
             const html = editor.getHTML();
-            if (!html || html === "<p></p>")
-              return alert("내용을 입력하세요.");
+            if (!html || html === "<p></p>") {
+              showAlert({
+                type: "warning",
+                title: "입력 필요",
+                message: "내용을 입력하세요.",
+              });
+              return;
+            }
 
             onSubmit({
               title: title.trim(),
@@ -338,17 +364,30 @@ const WriteEditor = ({
           }}
           style={{
             padding: "0.625rem 2rem",
-            backgroundColor: "#ec4899",
+            backgroundColor: "#3b82f6",
             color: "white",
             borderRadius: "0.5rem",
             border: "none",
             fontWeight: "bold",
             cursor: "pointer",
           }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = "#2563eb"}
+          onMouseLeave={(e) => e.target.style.backgroundColor = "#3b82f6"}
         >
           {mode === "edit" ? "수정하기" : "발행하기"}
         </button>
       </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
     </div>
   );
 };

@@ -242,7 +242,7 @@ const AnalysisPageWithoutRag = () => {
 
                         {/* 분석 결과 */}
                         {!isLoading && analysisResult && (
-                            <div className="rounded-lg shadow-sm border p-6 bg-white dark:bg-gray-800">
+                            <div className="rounded-lg shadow-sm border p-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-xl font-bold">
                                         분석 결과 (No RAG)
@@ -275,7 +275,7 @@ const AnalysisPageWithoutRag = () => {
                                         <h3 className="text-lg font-semibold text-green-600 mb-3">💡 개선 제안</h3>
                                         <div className="space-y-4">
                                             {analysisResult.suggestions && (typeof analysisResult.suggestions === 'string' ? JSON.parse(analysisResult.suggestions) : analysisResult.suggestions).map((suggestion, idx) => (
-                                                <div key={idx} className="border rounded-lg overflow-hidden">
+                                                <div key={idx} className="border border-[#e2e8f0] dark:border-[#3f3f46] p-6 rounded-lg overflow-hidden">
                                                     <div className="p-3 border-b text-sm font-medium">제안 #{idx + 1}</div>
                                                     <div className="p-3 bg-white">
                                                         <div className="text-xs text-gray-500 mb-1">변경 전:</div>

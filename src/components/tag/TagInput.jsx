@@ -98,8 +98,8 @@ const TagInput = ({ tags = [], onChange, maxTags = 5, isDark }) => {
         className={`
           min-h-[2.5rem] p-2 rounded-lg border cursor-text
           flex flex-wrap gap-2 items-center
-          ${isDark 
-            ? 'bg-gray-800 border-gray-600 focus-within:border-blue-500' 
+          ${isDark
+            ? 'bg-[#171717] border-[#2e2e2e] focus-within:border-blue-500'
             : 'bg-white border-gray-300 focus-within:border-blue-500'
           }
           ${error ? 'border-red-500' : ''}

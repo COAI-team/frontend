@@ -1,144 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getProblem } from '../../service/algorithm/algorithmApi';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { getProblem } from '../../service/algorithm/AlgorithmApi';
 import SharedSolutions from './SharedSolutions';
+import { extractPureDescription, renderFormattedText } from '../../components/algorithm/problem/markdownUtils';
+import '../../styles/ProblemDetail.css';
 
 const ProblemDetail = () => {
     const { problemId } = useParams();
-    const navigate = useNavigate();
+    const location = useLocation();
 
     const [problem, setProblem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('description');
-
-    // ===== 마크다운 렌더링 함수 =====
-    const renderFormattedText = (text) => {
-        if (!text) return null;
-
-        const lines = text.split('\n');
-
-        return lines.map((line, lineIndex) => {
-            // 빈 줄 처리
-            if (!line.trim()) {
-                return <div key={lineIndex} className="h-2" />;
-            }
-
-            // 리스트 아이템 (- 또는 * 로 시작)
-            const listMatch = line.match(/^(\s*)([-*])\s+(.*)$/);
-            if (listMatch) {
-                const [, indent, , content] = listMatch;
-                const indentLevel = Math.floor(indent.length / 2);
-                return (
-                    <div key={lineIndex} className="flex items-start gap-2" style={{ marginLeft: `${indentLevel * 16}px` }}>
-                        <span className="text-gray-400 mt-1">•</span>
-                        <span>{renderInlineFormatting(content)}</span>
-                    </div>
-                );
-            }
-
-            // 숫자 리스트 (1. 2. 3. 등)
-            const numListMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
-            if (numListMatch) {
-                const [, indent, num, content] = numListMatch;
-                const indentLevel = Math.floor(indent.length / 2);
-                return (
-                    <div key={lineIndex} className="flex items-start gap-2" style={{ marginLeft: `${indentLevel * 16}px` }}>
-                        <span className="text-gray-500 font-medium min-w-[20px]">{num}.</span>
-                        <span>{renderInlineFormatting(content)}</span>
-                    </div>
-                );
-            }
-
-            // 일반 줄
-            return <div key={lineIndex}>{renderInlineFormatting(line)}</div>;
-        });
-    };
-
-    // 인라인 포맷팅 처리 (**bold**, `code`)
-    const renderInlineFormatting = (text) => {
-        if (!text) return null;
-
-        const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-
-        return parts.map((part, index) => {
-            // **bold** 패턴
-            if (part.startsWith('**') && part.endsWith('**')) {
-                return (
-                    <strong key={index} className="font-bold text-gray-900">
-                        {part.slice(2, -2)}
-                    </strong>
-                );
-            }
-            // `code` 패턴
-            if (part.startsWith('`') && part.endsWith('`')) {
-                return (
-                    <code key={index} className="px-1.5 py-0.5 bg-gray-100 rounded text-sm font-mono text-red-600">
-                        {part.slice(1, -1)}
-                    </code>
-                );
-            }
-            // 일반 텍스트
-            return <span key={index}>{part}</span>;
-        });
-    };
-
-    // 문제 설명 파싱 (섹션별 분리)
-    const parseProblemDescription = (description) => {
-        if (!description) return null;
-
-        const sections = {
-            description: '',
-            input: '',
-            output: '',
-            constraints: '',
-        };
-
-        // 섹션 구분자 패턴
-        const patterns = {
-            input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-            output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-            constraints: /(?:^|\n)(?:\*\*)?(?:제한\s*사항|제한|조건|제약|Constraints?)(?:\*\*)?\s*(?::|：)?\s*\n?/i,
-        };
-
-        let remaining = description;
-        let firstSectionStart = remaining.length;
-
-        // 각 섹션의 시작 위치 찾기
-        const sectionPositions = [];
-        for (const [key, pattern] of Object.entries(patterns)) {
-            const match = remaining.match(pattern);
-            if (match) {
-                const position = remaining.indexOf(match[0]);
-                sectionPositions.push({ key, position, match: match[0] });
-                if (position < firstSectionStart) {
-                    firstSectionStart = position;
-                }
-            }
-        }
-
-        // 문제 설명 (첫 번째 섹션 이전의 텍스트)
-        sections.description = remaining.substring(0, firstSectionStart).trim();
-
-        // 섹션 위치순 정렬
-        sectionPositions.sort((a, b) => a.position - b.position);
-
-        // 각 섹션 내용 추출
-        for (let i = 0; i < sectionPositions.length; i++) {
-            const current = sectionPositions[i];
-            const nextPosition = i + 1 < sectionPositions.length
-                ? sectionPositions[i + 1].position
-                : remaining.length;
-
-            const sectionContent = remaining
-                .substring(current.position + current.match.length, nextPosition)
-                .trim();
-
-            sections[current.key] = sectionContent;
-        }
-
-        return sections;
-    };
+    const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'description');
 
     useEffect(() => {
         const fetchProblem = async () => {
@@ -164,22 +38,26 @@ const ProblemDetail = () => {
         }
     }, [problemId]);
 
-    const getDifficultyBadge = (diff) => {
-        const styles = {
-            'BRONZE': 'bg-orange-100 text-orange-800 border-orange-200',
-            'SILVER': 'bg-gray-100 text-gray-800 border-gray-200',
-            'GOLD': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-            'PLATINUM': 'bg-cyan-100 text-cyan-800 border-cyan-200'
+    const getDifficultyBadgeClass = (diff) => {
+        const classes = {
+            'BRONZE': 'badge-bronze',
+            'SILVER': 'badge-silver',
+            'GOLD': 'badge-gold',
+            'PLATINUM': 'badge-platinum'
         };
-        return styles[diff] || 'bg-gray-100 text-gray-800 border-gray-200';
+        return classes[diff] || 'badge-silver';
+    };
+
+    const getProblemTypeBadgeClass = (type) => {
+        return type === 'SQL' ? 'badge-database' : 'badge-algorithm';
     };
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <p className="mt-2 text-gray-600">문제를 불러오는 중...</p>
+            <div className="loading-state">
+                <div className="loading-content">
+                    <div className="loading-spinner"></div>
+                    <p className="loading-text">문제를 불러오는 중...</p>
                 </div>
             </div>
         );
@@ -187,10 +65,10 @@ const ProblemDetail = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-red-600 text-xl mb-4">⚠️ {error}</p>
-                    <Link to="/algorithm/problems" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            <div className="error-state">
+                <div className="error-content">
+                    <p className="error-text">⚠️ {error}</p>
+                    <Link to="/algorithm/problems" className="error-button">
                         문제 목록으로 돌아가기
                     </Link>
                 </div>
@@ -201,77 +79,83 @@ const ProblemDetail = () => {
     if (!problem) return null;
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12">
-            <div className="max-w-4xl mx-auto px-4">
+        <div className="problem-detail-container">
+            <div className="problem-detail-wrapper">
 
                 {/* 상단 네비게이션 */}
-                <div className="mb-6">
-                    <Link to="/algorithm/problems" className="text-gray-500 hover:text-gray-900 flex items-center gap-1">
-                        ← 목록으로 돌아가기
+                <div>
+                    <Link to="/algorithm/problems" className="back-link">
+                        <span>←</span>
+                        <span>목록으로 돌아가기</span>
                     </Link>
                 </div>
 
                 {/* 문제 헤더 */}
-                <div className="bg-white rounded-lg shadow-sm border p-8 mb-6">
-                    <div className="flex justify-between items-start mb-4">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getDifficultyBadge(problem.algoProblemDifficulty)}`}>
+                <div className="problem-header-card">
+                    <div className="problem-header-top">
+                        <div className="problem-header-left">
+                            <div className="problem-badges">
+                                <span className={`badge ${getDifficultyBadgeClass(problem.algoProblemDifficulty)}`}>
                                     {problem.algoProblemDifficulty}
                                 </span>
-                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${problem.problemType === 'SQL'
-                                    ? 'bg-purple-100 text-purple-800 border-purple-200'
-                                    : 'bg-blue-100 text-blue-800 border-blue-200'
-                                    }`}>
+                                <span className={`badge ${getProblemTypeBadgeClass(problem.problemType)}`}>
                                     {problem.problemType === 'SQL' ? 'DATABASE' : 'ALGORITHM'}
                                 </span>
-                                <span className="text-gray-500 text-sm">#{problem.algoProblemId}</span>
+                                {/* 문제 태그 - 알고리즘 유형 오른쪽에 표시 */}
+                                {problem.algoProblemTags && (() => {
+                                    try {
+                                        const tags = JSON.parse(problem.algoProblemTags);
+                                        return tags.map((tag, idx) => (
+                                            <span key={idx} className="badge badge-tag">
+                                                {tag}
+                                            </span>
+                                        ));
+                                    } catch {
+                                        return <span className="badge badge-tag">{problem.algoProblemTags}</span>;
+                                    }
+                                })()}
+                                <span className="problem-id">#{problem.algoProblemId}</span>
                             </div>
-                            <h1 className="text-3xl font-bold text-gray-900">{problem.algoProblemTitle}</h1>
+                            <h1 className="problem-detail-title">{problem.algoProblemTitle}</h1>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="problem-header-right">
                             <Link
                                 to={`/algorithm/problems/${problemId}/solve`}
-                                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
+                                className="solve-button"
                             >
-                                <span>🚀 문제 풀기</span>
+                                🚀 문제 풀기
                             </Link>
                         </div>
                     </div>
 
-                    <div className="flex gap-6 text-sm text-gray-600 border-t pt-4 mt-4">
-                        <div>
-                            <span className="font-medium text-gray-900">시간 제한:</span> {problem.timelimit || 1000}ms
+                    <div className="problem-meta">
+                        <div className="problem-meta-item">
+                            <span className="problem-meta-label">시간 제한:</span>
+                            <span>{problem.timelimit || 1000}ms</span>
                         </div>
-                        <div>
-                            <span className="font-medium text-gray-900">메모리 제한:</span> {problem.memorylimit || 256}MB
+                        <div className="problem-meta-item">
+                            <span className="problem-meta-label">메모리 제한:</span>
+                            <span>{problem.memorylimit || 256}MB</span>
                         </div>
-                        <div>
-                            <span className="font-medium text-gray-900">출처:</span> {problem.algoProblemSource || 'Unknown'}
+                        <div className="problem-meta-item">
+                            <span className="problem-meta-label">출처:</span>
+                            <span>{problem.algoProblemSource || 'Unknown'}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* 탭 네비게이션 */}
-                <div className="bg-white rounded-t-lg shadow-sm border border-b-0">
-                    <div className="flex border-b">
+                <div className="tab-navigation">
+                    <div className="tab-buttons">
                         <button
                             onClick={() => setActiveTab('description')}
-                            className={`px-6 py-3 font-medium transition-colors ${
-                                activeTab === 'description'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
-                            }`}
+                            className={`tab-button ${activeTab === 'description' ? 'active' : ''}`}
                         >
                             문제 설명
                         </button>
                         <button
                             onClick={() => setActiveTab('solutions')}
-                            className={`px-6 py-3 font-medium transition-colors ${
-                                activeTab === 'solutions'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
-                            }`}
+                            className={`tab-button ${activeTab === 'solutions' ? 'active' : ''}`}
                         >
                             다른 사람의 풀이
                         </button>
@@ -279,82 +163,110 @@ const ProblemDetail = () => {
                 </div>
 
                 {/* 탭 컨텐츠 */}
-                {activeTab === 'description' ? (
-                    <>
-                        {/* 문제 설명 (마크다운 파싱 적용) */}
-                        {(() => {
-                            const parsedSections = parseProblemDescription(problem.algoProblemDescription);
-                            return (
-                                <>
-                                    {/* 문제 설명 */}
-                                    <div className="bg-white shadow-sm border border-t-0 p-8 mb-6">
-                                        <h2 className="text-xl font-bold text-gray-900 mb-4">문제 설명</h2>
-                                        <div className="prose max-w-none text-gray-800 leading-relaxed">
-                                            {parsedSections?.description
-                                                ? renderFormattedText(parsedSections.description)
-                                                : renderFormattedText(problem.algoProblemDescription)}
+                {activeTab === 'description' && (
+                    <div className="problem-content-area">
+                        {/* 구조화된 필드가 있는지 확인 */}
+                        {(problem.inputFormat || problem.outputFormat || problem.constraints ||
+                          (problem.testcases && problem.testcases.filter(tc => tc.isSample).length > 0)) ? (
+                            <>
+                                {/* 문제 설명 - DB의 ALGO_PROBLEM_DESCRIPTION 컬럼 (순수 스토리만) */}
+                                {/* 별도 inputFormat 필드가 있으면 description에서 "**입력**" 앞부분만 추출 */}
+                                <div className="section-card section-description">
+                                    <div className="section-header">
+                                        <span className="section-icon">📋</span>
+                                        <h2 className="section-title">문제 설명</h2>
+                                    </div>
+                                    <div className="section-content">
+                                        {renderFormattedText(
+                                            problem.inputFormat
+                                                ? extractPureDescription(problem.algoProblemDescription)
+                                                : problem.algoProblemDescription
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* 입력/출력 그리드 - DB의 INPUT_FORMAT, OUTPUT_FORMAT 컬럼 */}
+                                {(problem.inputFormat || problem.outputFormat) && (
+                                    <div className="io-grid">
+                                        {problem.inputFormat && (
+                                            <div className="section-card section-input">
+                                                <div className="section-header">
+                                                    <span className="section-icon">📥</span>
+                                                    <h2 className="section-title">입력</h2>
+                                                </div>
+                                                <div className="section-content">
+                                                    {renderFormattedText(problem.inputFormat)}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {problem.outputFormat && (
+                                            <div className="section-card section-output">
+                                                <div className="section-header">
+                                                    <span className="section-icon">📤</span>
+                                                    <h2 className="section-title">출력</h2>
+                                                </div>
+                                                <div className="section-content">
+                                                    {renderFormattedText(problem.outputFormat)}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* 제한 사항 - DB의 CONSTRAINTS 컬럼 */}
+                                {problem.constraints && (
+                                    <div className="section-card section-constraints">
+                                        <div className="section-header">
+                                            <span className="section-icon">⚠️</span>
+                                            <h2 className="section-title">제한 사항</h2>
+                                        </div>
+                                        <div className="section-content">
+                                            {renderFormattedText(problem.constraints)}
                                         </div>
                                     </div>
+                                )}
 
-                                    {/* 입력 형식 */}
-                                    {parsedSections?.input && (
-                                        <div className="bg-white shadow-sm border p-8 mb-6">
-                                            <h2 className="text-xl font-bold text-gray-900 mb-4">입력</h2>
-                                            <div className="prose max-w-none text-gray-800 leading-relaxed">
-                                                {renderFormattedText(parsedSections.input)}
-                                            </div>
+                                {/* 예제 입출력 - DB의 ALGO_TESTCASES 테이블 (isSample=true인 것들) */}
+                                {problem.testcases && problem.testcases.filter(tc => tc.isSample).length > 0 && (
+                                    <div className="examples-section">
+                                        <h2 className="section-title">예제 입출력</h2>
+                                        <div className="examples-container">
+                                            {problem.testcases.filter(tc => tc.isSample).map((tc, idx) => (
+                                                <div key={idx} className="example-grid">
+                                                    <div className="example-item">
+                                                        <h3 className="example-label">📝 예제 입력 {idx + 1}</h3>
+                                                        <pre className="example-code">
+                                                            {tc.inputData || tc.input}
+                                                        </pre>
+                                                    </div>
+                                                    <div className="example-item">
+                                                        <h3 className="example-label">✅ 예제 출력 {idx + 1}</h3>
+                                                        <pre className="example-code">
+                                                            {tc.expectedOutput || tc.output}
+                                                        </pre>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                    )}
-
-                                    {/* 출력 형식 */}
-                                    {parsedSections?.output && (
-                                        <div className="bg-white shadow-sm border p-8 mb-6">
-                                            <h2 className="text-xl font-bold text-gray-900 mb-4">출력</h2>
-                                            <div className="prose max-w-none text-gray-800 leading-relaxed">
-                                                {renderFormattedText(parsedSections.output)}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 제한 사항 */}
-                                    {parsedSections?.constraints && (
-                                        <div className="bg-blue-50 shadow-sm border border-blue-100 p-8 mb-6">
-                                            <h2 className="text-xl font-bold text-blue-900 mb-4">제한 사항</h2>
-                                            <div className="prose max-w-none text-blue-800 leading-relaxed">
-                                                {renderFormattedText(parsedSections.constraints)}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            );
-                        })()}
-
-                        {/* 예제 입출력 */}
-                        {problem.testcases && problem.testcases.length > 0 && (
-                            <div className="bg-white rounded-b-lg shadow-sm border p-8">
-                                <h2 className="text-xl font-bold text-gray-900 mb-6">예제</h2>
-                                <div className="space-y-6">
-                                    {problem.testcases.filter(tc => tc.isSample).map((tc, idx) => (
-                                        <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <h3 className="text-sm font-medium text-gray-700 mb-2">예제 입력 {idx + 1}</h3>
-                                                <pre className="bg-gray-50 border rounded-md p-4 font-mono text-sm overflow-x-auto whitespace-pre-wrap">
-                                                    {tc.inputData || tc.input}
-                                                </pre>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-sm font-medium text-gray-700 mb-2">예제 출력 {idx + 1}</h3>
-                                                <pre className="bg-gray-50 border rounded-md p-4 font-mono text-sm overflow-x-auto whitespace-pre-wrap">
-                                                    {tc.expectedOutput || tc.output}
-                                                </pre>
-                                            </div>
-                                        </div>
-                                    ))}
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            /* 구조화된 필드가 없으면 description 전체를 표시 */
+                            <div className="section-card section-description">
+                                <div className="section-header">
+                                    <span className="section-icon">📋</span>
+                                    <h2 className="section-title">문제 설명</h2>
+                                </div>
+                                <div className="section-content">
+                                    {renderFormattedText(problem.algoProblemDescription)}
                                 </div>
                             </div>
                         )}
-                    </>
-                ) : (
+                    </div>
+                )}
+
+                {activeTab === 'solutions' && (
                     <SharedSolutions problemId={problemId} />
                 )}
 

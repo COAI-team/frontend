@@ -3,9 +3,11 @@
  * ex) createEmptyRules(["a", "b"]) → { a:false, b:false }
  */
 export function createEmptyRules(ruleKeys) {
-    const result = {};
-    ruleKeys.forEach(key => result[key] = false);
-    return result;
+  const result = {};
+  for (const element of ruleKeys) {
+    result[element] = false;
+  }
+  return result;
 }
 
 /**
@@ -14,8 +16,10 @@ export function createEmptyRules(ruleKeys) {
  * messages = { rule2: "오류 메시지" }
  */
 export function getFirstError(checks, messages) {
-    for (const key in checks) {
-        if (!checks[key]) return messages[key];
-    }
-    return "";
+  const keys = Object.keys(checks);
+  for (const element of keys) {
+    const key = element;
+    if (!checks[key]) return messages[key];
+  }
+  return "";
 }

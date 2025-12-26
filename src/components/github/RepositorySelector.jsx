@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../server/AxiosConfig';
 import { useLogin } from '../../context/login/useLogin';
 
-const RepositorySelector = ({ onSelect, onSearch }) => {
+const RepositorySelector = ({ onSelect, onSearch, mockRepositories }) => {
     const { user } = useLogin();
     const [repositories, setRepositories] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -18,23 +18,27 @@ const RepositorySelector = ({ onSelect, onSearch }) => {
 
     // Mount 시 DB에서 최신 정보를 가져와서 owner 업데이트 (Stale Data 방지)
     useEffect(() => {
-        const fetchLatestUserInfo = async () => {
-            try {
-                const res = await axiosInstance.get("/users/me");
-                if (res.data && res.data.githubId) {
-                    setOwner(res.data.githubId);
-                    // 초기 로드시 값이 있으면 자동 조회 (선택 사항, 여기서는 자동 조회를 원치 않는다면 제거 가능하지만,
-                    // "입력하지 않아도 ID가 입력되어 있습니다"라는 불만이 캐시 때문이라면 최신 값으로 덮어쓰기만 하면 됨.
-                    // 만약 페이지 진입 시 자동으로 리스트가 뜨길 원하면 여기서 fetchRepositories() 호출)
+        if (!user?.githubId && !mockRepositories) { // Don't fetch user info if using mocks
+             const fetchLatestUserInfo = async () => {
+                try {
+                    const res = await axiosInstance.get("/users/me");
+                    if (res.data && res.data.githubId) {
+                        setOwner(res.data.githubId);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch fresh user info:", err);
                 }
-            } catch (err) {
-                console.error("Failed to fetch fresh user info:", err);
-            }
-        };
-        fetchLatestUserInfo();
-    }, []);
+            };
+            fetchLatestUserInfo();
+        }
+    }, [mockRepositories]);
 
     const fetchRepositories = async () => {
+        if (mockRepositories) {
+            setRepositories(mockRepositories);
+            return;
+        }
+
         if (!owner) return;
         try {
             setLoading(true);
@@ -58,7 +62,9 @@ const RepositorySelector = ({ onSelect, onSearch }) => {
     };
 
     const handleManualSearch = () => {
-        if (onSearch) onSearch(owner);
+        // 사용자 본인의 GitHub ID인지 검증
+        const isOwnRepo = user?.githubId && owner.toLowerCase() === user.githubId.toLowerCase();
+        if (onSearch) onSearch(owner, isOwnRepo);
         fetchRepositories();
     };
 
@@ -91,7 +97,7 @@ const RepositorySelector = ({ onSelect, onSearch }) => {
                 />
                 <button 
                     onClick={handleManualSearch}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500 cursor-pointer"
                 >
                     Search
                 </button>

@@ -40,24 +40,30 @@ export const getSolveBonusStatus = async (problemId) => {
 export const getProblems = async (params = {}) => {
     try {
         const queryParams = new URLSearchParams();
-        const { page = 1, size = 10, difficulty, source, keyword, topic, problemType, solved } = params;  // solved 추가
+        const { 
+            page = 1,  // 프론트엔드는 1-based
+            size = 10, 
+            difficulty, 
+            keyword, 
+            topic,
+            solved
+        } = params;
 
-        queryParams.append('page', page);
+        // 백엔드는 0-based이므로 page - 1 전송
+        queryParams.append('page', page - 1);
         queryParams.append('size', size);
         if (difficulty) queryParams.append('difficulty', difficulty);
-        if (source) queryParams.append('source', source);
-        if (keyword) queryParams.append('keyword', keyword);
-        if (topic) queryParams.append('topic', topic);
-        if (problemType) queryParams.append('problemType', problemType);
-        if (solved) queryParams.append('solved', solved);  // solved 파라미터 추가
+        if (keyword && keyword.trim()) queryParams.append('keyword', keyword.trim());
+        if (topic) queryParams.append('tags', topic);
+        if (solved) queryParams.append('solved', solved);
 
         const res = await axiosInstance.get(`/algo/problems?${queryParams}`);
-
         console.log('✅ [getProblems] 응답:', res.data);
-
         return res.data;
     } catch (err) {
         console.error("❌ [getProblems] 요청 실패:", err);
+        console.error("❌ 에러 데이터:", err.response?.data);
+        
         if (err.response?.data) {
             return { error: true, code: err.response.data.code, message: err.response.data.message };
         }
@@ -312,6 +318,10 @@ export const generateProblem = async (data) => {
 export const generateProblemWithSSE = (data, callbacks) => {
     const { onStep, onComplete, onError } = callbacks;
 
+    // 로그인된 사용자 ID 가져오기 (Rate Limit 추적용)
+    const auth = getAuth();
+    const userId = auth?.user?.userId;
+
     // URL 쿼리 파라미터 구성
     const params = new URLSearchParams({
         difficulty: data.difficulty,
@@ -321,6 +331,11 @@ export const generateProblemWithSSE = (data, callbacks) => {
 
     if (data.additionalRequirements) {
         params.append('additionalRequirements', data.additionalRequirements);
+    }
+
+    // userId가 있으면 파라미터에 추가 (SSE는 Authorization 헤더 전송 불가)
+    if (userId) {
+        params.append('userId', userId);
     }
 
     // API 베이스 URL 가져오기 (검증 포함 스트리밍 엔드포인트 사용)
@@ -439,6 +454,37 @@ export const healthCheck = async () => {
     }
 };
 
+/**
+ * 문제 통계 정보 조회
+ * GET /api/algo/problems/statistics
+ * 
+ * @returns {Object} 통계 데이터
+ * - totalProblems: 전체 문제 수
+ * - solvedProblems: 내가 푼 문제 수
+ * - averageAccuracy: 평균 정답률
+ * - totalAttempts: 총 응시자 (누적 풀이 횟수)
+ */
+export const getAlgorithmStatistics = async () => {
+    try {
+        const res = await axiosInstance.get('/algo/problems/statistics');
+        console.log('✅ [getAlgorithmStatistics] 응답:', res.data);
+        return res.data.data || res.data;
+    } catch (err) {
+        console.error("❌ [getAlgorithmStatistics] 요청 실패:", err);
+        if (err.response?.data) {
+            return { 
+                error: true, 
+                code: err.response.data.code, 
+                message: err.response.data.message 
+            };
+        }
+        return { 
+            error: true, 
+            message: "통계 정보를 가져오는데 실패했습니다." 
+        };
+    }
+};
+
 // ============== 모니터링 API ==============
 
 /**
@@ -489,13 +535,36 @@ export const recordMonitoringWarning = async (sessionId) => {
 
 /**
  * 모니터링 세션 종료
+ * @param {string} sessionId - 모니터링 세션 ID
+ * @param {number|null} remainingSeconds - 남은 시간 (초)
+ * @param {object|null} focusScoreStats - 집중도 점수 통계 (선택)
+ *   - avgScore: 평균 점수 (-100 ~ 100)
+ *   - finalScore: 최종 점수 (-100 ~ 100)
+ *   - focusedPercentage: 집중 시간 비율 (%)
+ *   - highFocusPercentage: 높은 집중 시간 비율 (%)
+ *   - totalTime: 총 시간 (초)
+ *   - focusedTime: 집중 시간 (초)
  */
-export const endMonitoringSession = async (sessionId, remainingSeconds = null) => {
+export const endMonitoringSession = async (sessionId, remainingSeconds = null, focusScoreStats = null) => {
     try {
-        const res = await axiosInstance.post('/algo/monitoring/end', {
+        const requestBody = {
             sessionId,
             remainingSeconds
-        });
+        };
+
+        // 집중도 점수 통계가 있으면 포함
+        if (focusScoreStats) {
+            requestBody.focusScoreStats = {
+                avgScore: focusScoreStats.avgScore || 0,
+                finalScore: focusScoreStats.finalScore || focusScoreStats.currentScore || 0,
+                focusedPercentage: focusScoreStats.focusedPercentage || 0,
+                highFocusPercentage: focusScoreStats.highFocusPercentage || 0,
+                totalTime: focusScoreStats.totalTime || 0,
+                focusedTime: focusScoreStats.focusedTime || 0
+            };
+        }
+
+        const res = await axiosInstance.post('/algo/monitoring/end', requestBody);
         return res.data;
     } catch (err) {
         console.error('❌ [endMonitoringSession] 요청 실패:', err);
@@ -612,6 +681,26 @@ export const getUserLevel = async (userId) => {
             return { error: true, code: err.response.data.code, message: err.response.data.message };
         }
         return { error: true, message: '레벨 정보를 가져오는데 실패했습니다.' };
+    }
+};
+
+/**
+ * 일별 문제 풀이 수 조회 (GitHub 잔디 캘린더용)
+ * @param {number} userId - 사용자 ID (테스트용)
+ * @param {number} months - 조회할 개월 수 (기본 12)
+ */
+export const getContributions = async (userId, months = 12) => {
+    try {
+        const params = { months };
+        if (userId) params.testUserId = userId;
+        const res = await axiosInstance.get('/algo/missions/contributions', { params });
+        return res.data;
+    } catch (err) {
+        console.error('❌ [getContributions] 요청 실패:', err);
+        if (err.response?.data) {
+            return { error: true, code: err.response.data.code, message: err.response.data.message };
+        }
+        return { error: true, message: '잔디 캘린더 데이터를 가져오는데 실패했습니다.' };
     }
 };
 
@@ -763,7 +852,7 @@ export const getPoolStatus = async () => {
 // ============== 상수 정의 ==============
 
 export const DIFFICULTY_OPTIONS = [
-    { value: '', label: '전체', color: 'gray' },
+    { value: '', label: '난이도 전체', color: 'gray' },
     { value: 'BRONZE', label: '브론즈', color: 'amber' },
     { value: 'SILVER', label: '실버', color: 'gray' },
     { value: 'GOLD', label: '골드', color: 'yellow' },
@@ -820,6 +909,14 @@ export const TOPIC_OPTIONS = [
     { value: '문자열', label: '문자열' },
 ];
 
+/**
+ * 알고리즘 레벨 정보
+ *
+ * 변경사항 (2025-12-17): XP 기반 레벨 시스템으로 전환
+ * - minSolved 대신 requiredXp 사용 (XP 기반 레벨 산정)
+ * - 레벨 임계값: EMERALD(0), SAPPHIRE(300), RUBY(1000), DIAMOND(3000)
+ * - XP 획득: BRONZE=10, SILVER=25, GOLD=50, PLATINUM=100 (첫 정답 +50%)
+ */
 export const ALGO_LEVEL_INFO = {
     EMERALD: {
         name: '에메랄드',
@@ -828,7 +925,7 @@ export const ALGO_LEVEL_INFO = {
         textColor: 'text-emerald-700',
         borderColor: 'border-emerald-300',
         icon: '💎',
-        minSolved: 0,
+        requiredXp: 0,
         rewardPoints: 10
     },
     SAPPHIRE: {
@@ -838,8 +935,8 @@ export const ALGO_LEVEL_INFO = {
         textColor: 'text-blue-700',
         borderColor: 'border-blue-300',
         icon: '💠',
-        minSolved: 20,
-        rewardPoints: 20
+        requiredXp: 300,
+        rewardPoints: 15
     },
     RUBY: {
         name: '루비',
@@ -848,8 +945,8 @@ export const ALGO_LEVEL_INFO = {
         textColor: 'text-red-700',
         borderColor: 'border-red-300',
         icon: '🔴',
-        minSolved: 50,
-        rewardPoints: 30
+        requiredXp: 1000,
+        rewardPoints: 25
     },
     DIAMOND: {
         name: '다이아몬드',
@@ -858,8 +955,8 @@ export const ALGO_LEVEL_INFO = {
         textColor: 'text-cyan-700',
         borderColor: 'border-cyan-300',
         icon: '💎',
-        minSolved: 100,
-        rewardPoints: 50
+        requiredXp: 3000,
+        rewardPoints: 40
     }
 };
 

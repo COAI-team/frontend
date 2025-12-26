@@ -3,14 +3,18 @@ import { useParams, useNavigate } from "react-router-dom";
 import { axiosInstance } from "../../server/AxiosConfig";
 import { getAuth } from "../../utils/auth/token";
 import hljs from 'highlight.js';
-import { Heart, MessageCircle, Share2, AlertCircle } from "lucide-react";
+import { MessageCircle, Share2, AlertCircle } from "lucide-react";
 import "../../styles/CodeboardDetail.css";
 import CommentSection from '../../components/comment/CommentSection';
 import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
 import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
 import { processCodeBlocks, applyHighlighting } from '../../utils/codeBlockUtils';
+import LikeButton from '../../components/button/LikeButton';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
 
 const CodeboardDetail = () => {
+  const {alert, showAlert, closeAlert} = useAlert();
   const { id } = useParams();
   const navigate = useNavigate();
   const [board, setBoard] = useState(null);
@@ -48,7 +52,7 @@ const CodeboardDetail = () => {
       
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.setAttribute('data-hljs-theme', 'true');
+      link.dataset.hljsTheme = 'true';
       link.href = darkMode 
         ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css'
         : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
@@ -157,8 +161,8 @@ const CodeboardDetail = () => {
             params: { path: data.filePath }
           });
           setFileContent(contentRes.data.content);
-        } catch (contentErr) {
-          console.error("Failed to load file content:", contentErr);
+        } catch (error_) {
+          console.error("Failed to load file content:", error_);
           setFileContent("// 파일 내용을 불러올 수 없습니다.");
         }
       }
@@ -170,28 +174,9 @@ const CodeboardDetail = () => {
     }
   };
 
-  const handleLike = async () => {
-    if (!currentUser) {
-      const goLogin = window.confirm(
-        "로그인 후 좋아요를 누를 수 있습니다. 로그인 하시겠습니까?"
-      );
-      if (goLogin) {
-        const redirect = encodeURIComponent(`/codeboard/${id}`);
-        navigate(`/signin?redirect=${redirect}`);
-      }
-      return;
-    }
-
-    try {
-      const response = await axiosInstance.post(`/like/codeboard/${id}`);
-      const { isLiked: newIsLiked } = response.data;
-      
-      setIsLiked(newIsLiked);
-      setLikeCount(prev => newIsLiked ? prev + 1 : prev - 1);
-    } catch (error) {
-      console.error('좋아요 처리 실패:', error);
-      alert('좋아요 처리에 실패했습니다.');
-    }
+  const handleLikeChange = (newIsLiked, newLikeCount) => {
+    setIsLiked(newIsLiked);
+    setLikeCount(newLikeCount);
   };
 
   const handleTagClick = (tag) => {
@@ -199,77 +184,21 @@ const CodeboardDetail = () => {
   };
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert('링크가 복사되었습니다.');
+    navigator.clipboard.writeText(globalThis.location.href);
+
+    showAlert({
+      type: 'success',
+      title: '복사 완료',
+      message: '링크가 클립보드에 복사되었습니다.'
+    });
   };
 
   const handleReport = () => {
     console.log("신고 클릭");
   };
 
-  const renderLinkPreview = (preview, isDark) => {
-    const title = preview.getAttribute('data-title');
-    const description = preview.getAttribute('data-description');
-    const image = preview.getAttribute('data-image');
-    const site = preview.getAttribute('data-site');
-    const url = preview.getAttribute('data-url');
-    
-    if (!url) return;
-    
-    preview.innerHTML = '';
-    preview.className = `link-preview-card ${isDark ? 'dark' : 'light'}`;
-    Object.assign(preview.style, {
-      border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-      borderRadius: '0.5rem',
-      padding: '1rem',
-      margin: '1rem 0',
-      display: 'flex',
-      gap: '1rem',
-      background: isDark ? '#1f2937' : '#ffffff',
-      cursor: 'pointer',
-      transition: 'all 0.2s'
-    });
-    
-    preview.onmouseenter = () => preview.style.borderColor = isDark ? '#60a5fa' : '#3b82f6';
-    preview.onmouseleave = () => preview.style.borderColor = isDark ? '#374151' : '#e5e7eb';
-    preview.onclick = () => window.open(url, '_blank');
-    
-    if (image) {
-      const imgContainer = document.createElement('div');
-      imgContainer.style.cssText = 'flex-shrink: 0; width: 120px; height: 120px; overflow: hidden; border-radius: 0.375rem;';
-      const img = document.createElement('img');
-      img.src = image;
-      img.alt = title || 'Link preview';
-      img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
-      imgContainer.appendChild(img);
-      preview.appendChild(imgContainer);
-    }
-    
-    const textContainer = document.createElement('div');
-    textContainer.style.cssText = 'flex: 1; min-width: 0;';
-    
-    if (site) {
-      const siteSpan = document.createElement('div');
-      siteSpan.textContent = site;
-      siteSpan.style.cssText = `font-size: 0.875rem; color: ${isDark ? '#9ca3af' : '#6b7280'}; margin-bottom: 0.25rem;`;
-      textContainer.appendChild(siteSpan);
-    }
-    
-    if (title) {
-      const titleDiv = document.createElement('div');
-      titleDiv.textContent = title;
-      titleDiv.style.cssText = `font-weight: 600; font-size: 1rem; color: ${isDark ? '#f3f4f6' : '#111827'}; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;`;
-      textContainer.appendChild(titleDiv);
-    }
-    
-    if (description) {
-      const descDiv = document.createElement('div');
-      descDiv.textContent = description;
-      descDiv.style.cssText = `font-size: 0.875rem; color: ${isDark ? '#d1d5db' : '#4b5563'}; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;`;
-      textContainer.appendChild(descDiv);
-    }
-    
-    preview.appendChild(textContainer);
+  const handleCommentCountChange = (newCount) => {
+    setCommentCount(newCount);
   };
 
   if (!board) {
@@ -290,21 +219,18 @@ const CodeboardDetail = () => {
   // 날짜 포맷팅 함수
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-
     return `${year}.${month}.${day}. ${hours}:${minutes}`;
   };    
 
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: isDark ? '#101828' : '#f9fafb',
+      backgroundColor: isDark ? '#131313' : '#ffffff',
       padding: '2rem 1rem'
     }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -332,7 +258,7 @@ const CodeboardDetail = () => {
           display: 'grid', 
           gridTemplateColumns: board.analysisId ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr', 
           gap: '1.5rem',
-          overflow: 'hidden'
+          overflow: 'visible'
         }}>
           
           {/* 좌측 패널 - analysisId가 있으면 항상 영역 확보 */}
@@ -351,10 +277,10 @@ const CodeboardDetail = () => {
               }}>
                 {/* 코드 뷰어 스켈레톤 */}
                 <div style={{
-                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                  border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
                   borderRadius: '0.5rem',
                   overflow: 'hidden',
-                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
                   height: '500px',
                   display: 'flex',
                   alignItems: 'center',
@@ -370,7 +296,7 @@ const CodeboardDetail = () => {
                     <div style={{
                       width: '2rem',
                       height: '2rem',
-                      border: `2px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                      border: `2px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
                       borderTopColor: isDark ? '#60a5fa' : '#3b82f6',
                       borderRadius: '50%',
                       animation: 'spin 1s linear infinite'
@@ -381,10 +307,10 @@ const CodeboardDetail = () => {
 
                 {/* 분석 결과 스켈레톤 */}
                 <div style={{
-                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                  border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
                   borderRadius: '0.5rem',
                   overflow: 'hidden',
-                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
                   height: '300px',
                   display: 'flex',
                   alignItems: 'center',
@@ -400,7 +326,7 @@ const CodeboardDetail = () => {
                     <div style={{
                       width: '2rem',
                       height: '2rem',
-                      border: `2px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                      border: `2px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
                       borderTopColor: isDark ? '#60a5fa' : '#3b82f6',
                       borderRadius: '50%',
                       animation: 'spin 1s linear infinite'
@@ -439,7 +365,7 @@ const CodeboardDetail = () => {
                       borderRadius: '0.5rem',
                       fontSize: '1rem',
                       fontWeight: '500',
-                      backgroundColor: isDark ? '#374151' : '#e5e7eb',
+                      backgroundColor: isDark ? '#2e2e2e' : '#e5e7eb',
                       color: isDark ? '#e5e7eb' : '#1f2937',
                       border: 'none',
                       cursor: 'pointer'
@@ -448,18 +374,17 @@ const CodeboardDetail = () => {
                     수정
                   </button>
                   <button
-                    onClick={() => {
-                      if (window.confirm("정말 삭제하시겠습니까?")) {
-                        axiosInstance
-                          .delete(`/codeboard/${id}`)
-                          .then(() => {
-                            alert("삭제되었습니다.");
-                            navigate("/codeboard");
-                          })
-                          .catch((err) => {
-                            console.error("삭제 실패:", err);
-                            alert("삭제에 실패했습니다.");
-                          });
+                    onClick={async () => {
+                      if (!confirm('정말 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.')) {
+                        return;
+                      }
+
+                      try {
+                        await axiosInstance.delete(`/codeboard/${id}`);
+                        navigate('/codeboard');
+                      } catch (err) {
+                        console.error('삭제 실패:', err);
+                        alert('게시글 삭제에 실패했습니다.');
                       }
                     }}
                     style={{
@@ -467,7 +392,9 @@ const CodeboardDetail = () => {
                       borderRadius: '0.5rem',
                       fontSize: '1rem',
                       fontWeight: '500',
-                      backgroundColor: isDark ? 'rgba(127, 29, 29, 0.3)' : 'rgba(220, 38, 38, 0.1)',
+                      backgroundColor: isDark
+                        ? 'rgba(127, 29, 29, 0.3)'
+                        : 'rgba(220, 38, 38, 0.1)',
                       color: isDark ? '#fca5a5' : '#dc2626',
                       border: 'none',
                       cursor: 'pointer'
@@ -484,25 +411,38 @@ const CodeboardDetail = () => {
               alignItems: 'center',
               gap: '1rem',
               paddingBottom: '1.5rem',
-              borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+              borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
               color: isDark ? '#9ca3af' : '#4b5563'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{
-                  width: '2rem',
-                  height: '2rem',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.875rem',
-                  backgroundColor: isDark ? '#374151' : '#d1d5db',
-                  color: isDark ? '#e5e7eb' : '#1f2937'
-                }}>
-                  {board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'}
-                </div>
-                <span>{board.userNickname || '익명'}</span>
+              <div style={{
+                width: '2rem',
+                height: '2rem',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.875rem',
+                backgroundColor: isDark ? '#2e2e2e' : '#d1d5db',
+                color: isDark ? '#e5e7eb' : '#1f2937',
+                overflow: 'hidden'
+              }}>
+                {board.userImage ? (
+                  <img 
+                    src={board.userImage} 
+                    alt={board.userNickname}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                ) : (
+                  board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'
+                )}
               </div>
+              <span>{board.userNickname || '익명'}</span>
+            </div>
               <span>·</span>
               <span>{formatDate(board.codeboardCreatedAt)}</span>
               <span>·</span>
@@ -520,7 +460,7 @@ const CodeboardDetail = () => {
                 flexWrap: 'wrap',
                 gap: '0.5rem',
                 paddingTop: '2rem',
-                borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
+                borderTop: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`
               }}>
                 {board.tags.map((tag, index) => (
                   <span
@@ -551,31 +491,28 @@ const CodeboardDetail = () => {
               padding: '1rem 0',
               marginTop: '2rem',
               paddingTop: '2rem',
-              borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
+              borderTop: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+              flexWrap: 'wrap', 
+               gap: '1rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <button
-                  onClick={handleLike}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: isLiked ? '#ef4444' : (isDark ? '#9ca3af' : '#4b5563')
-                  }}
-                >
-                  <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
-                  <span style={{ fontSize: '0.875rem' }}>좋아요</span>
-                  <span style={{ fontWeight: '500' }}>{likeCount}</span>
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', minWidth: 0 }}>
+                <LikeButton
+                  referenceType="codeboard"
+                  referenceId={Number(id)}
+                  initialIsLiked={isLiked}
+                  initialLikeCount={likeCount}
+                  showCount={true}
+                  showUsers={true}
+                  size="md"
+                  onChange={handleLikeChange}
+                />
 
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  color: isDark ? '#9ca3af' : '#4b5563'
+                  color: isDark ? '#9ca3af' : '#4b5563',
+                  minWidth: 0
                 }}>
                   <MessageCircle size={20} />
                   <span style={{ fontSize: '0.875rem' }}>댓글</span>
@@ -583,7 +520,7 @@ const CodeboardDetail = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', minWidth: 0 }}>
                 <button 
                   onClick={handleShare}
                   style={{
@@ -626,15 +563,28 @@ const CodeboardDetail = () => {
               currentUserId={currentUserId}
               currentUserNickname={currentUserNickname}
               isDark={isDark}
+              onCommentCountChange={handleCommentCountChange}
             />
           </div>
         </div>
       </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
     </div>
   );
 };
 
 const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
+  const { alert, showAlert, closeAlert } = useAlert();
   const codeViewerRef = useRef(null);
   
   const parseJSON = (data) => {
@@ -680,7 +630,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
     const timer = setTimeout(() => {
       codeViewerRef.current.querySelectorAll('pre code').forEach((block) => {
         block.classList.remove('hljs');
-        block.removeAttribute('data-highlighted');
+        delete block.dataset.highlighted;
         hljs.highlightElement(block);
       });
     }, 100);
@@ -696,22 +646,22 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
       flexDirection: 'column', 
       gap: '1.5rem',
       minWidth: 0,
-      overflow: 'hidden'
+      overflow: 'visible'
     }}>
       {/* 코드 뷰어 */}
       <div style={{
-        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+        border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
         overflow: 'hidden',
-        backgroundColor: isDark ? '#1f2937' : '#ffffff'
+        backgroundColor: isDark ? '#1f1f1f' : '#ffffff'
       }} ref={codeViewerRef}>
         <div style={{
           padding: '0.5rem 1rem',
-          borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: isDark ? '#1f2937' : '#F9FAFB'
+          backgroundColor: isDark ? '#2e2e2e' : '#F9FAFB'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
@@ -721,7 +671,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
               fontSize: '0.75rem', 
               padding: '0.125rem 0.5rem',
               borderRadius: '0.25rem',
-              backgroundColor: isDark ? '#374151' : '#e5e7eb',
+              backgroundColor: isDark ? '#2e2e2e' : '#e5e7eb',
               color: isDark ? '#9ca3af' : '#6b7280'
             }}>
               {language}
@@ -730,7 +680,12 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
           <button
             onClick={() => {
               navigator.clipboard.writeText(fileContent);
-              alert('코드가 복사되었습니다.');
+
+              showAlert({
+                type: 'success',
+                title: '복사 완료',
+                message: '코드가 클립보드에 복사되었습니다.'
+              });
             }}
             style={{
               display: 'flex',
@@ -766,18 +721,18 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
 
       {/* 분석 결과 */}
       <div style={{
-        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+        border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
         overflow: 'hidden',
-        backgroundColor: isDark ? '#1f2937' : '#ffffff'
+        backgroundColor: isDark ? '#1f1f1f' : '#ffffff'
       }}>
         <div style={{
           padding: '0.5rem 1rem',
-          borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+          borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: isDark ? '#111827' : '#f9fafb'
+          backgroundColor: isDark ? '#2e2e2e' : '#f9fafb'
         }}>
           <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
             분석 결과
@@ -836,14 +791,14 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {parseJSON(analysisResult.suggestions).map((suggestion, idx) => (
                     <div key={idx} style={{
-                      border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                      border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
                       borderRadius: '0.375rem',
                       overflow: 'hidden'
                     }}>
                       <div style={{
                         padding: '0.5rem 0.75rem',
-                        borderBottom: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
-                        backgroundColor: isDark ? '#111827' : '#f9fafb'
+                        borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+                        backgroundColor: isDark ? '#2e2e2e' : '#f9fafb'
                       }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
                           제안 #{idx + 1}
@@ -897,6 +852,17 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
           </div>
         </div>
       </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
     </div>
   );
 };

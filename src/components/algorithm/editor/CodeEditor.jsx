@@ -86,7 +86,7 @@ const CodeEditor = ({
     // Ctrl+Enter 실행 단축키 (부모에서 처리 가능하도록)
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       const event = new CustomEvent('editor-run', { detail: { code: editor.getValue() } });
-      window.dispatchEvent(event);
+      globalThis.dispatchEvent(event);
     });
 
     // 테마 커스터마이징

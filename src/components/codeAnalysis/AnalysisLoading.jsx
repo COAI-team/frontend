@@ -38,7 +38,7 @@ const AnalysisLoading = () => {
     }, []);
 
     return (
-        <div className="rounded-lg shadow-sm border p-6 bg-white dark:bg-gray-800">
+        <div className="rounded-lg shadow-sm border border-[#e2e8f0] dark:border-[#3f3f46] p-6">
             {/* Header Area */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
@@ -50,7 +50,7 @@ const AnalysisLoading = () => {
                         <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                             AI 분석 진행 중
                         </h2>
-                        <p className="text-sm text-gray-500 mt-1 animate-pulse">
+                        <p className="text-sm mt-1 animate-pulse">
                             잠시만 기다려주세요. 상세한 리포트를 작성하고 있습니다.
                         </p>
                     </div>
@@ -61,11 +61,11 @@ const AnalysisLoading = () => {
             <div className="mb-10 px-4">
                 <div className="flex justify-between items-center relative">
                     {/* Progress Line Background */}
-                    <div className="absolute left-0 top-1/2 w-full h-1 bg-gray-100 -z-10 rounded"></div>
+                    <div className="absolute left-0 top-1/2 w-full h-1-z-10 rounded"></div>
                     
                     {/* Active Progress Line */}
                     <div 
-                        className="absolute left-0 top-1/2 h-1 bg-indigo-500 -z-10 rounded transition-all duration-1000 ease-in-out"
+                        className="absolute left-0 top-1/2 h-1 -z-10 rounded transition-all duration-1000 ease-in-out"
                         style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
                     ></div>
 
@@ -75,15 +75,14 @@ const AnalysisLoading = () => {
                         const isCompleted = idx < currentStep;
 
                         return (
-                            <div key={idx} className="flex flex-col items-center gap-2 bg-white dark:bg-gray-800 px-2">
+                            <div key={idx} className="flex flex-col items-center gap-2">
                                 <div className={`
-                                    w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500
-                                    ${isActive || isCompleted ? 'border-indigo-500 bg-indigo-50 text-indigo-600 transform scale-110' : 'border-gray-200 text-gray-400'}
+                                    w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500'}
                                 `}>
                                     {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Icon className={`w-5 h-5 ${isActive ? 'animate-bounce' : ''}`} />}
                                 </div>
                                 <div className="text-center">
-                                    <div className={`text-sm font-semibold transition-colors ${isActive || isCompleted ? 'text-gray-900' : 'text-gray-400'}`}>
+                                    <div className={`text-sm font-semibold `}>
                                         {step.label}
                                     </div>
                                     {isActive && (
@@ -102,19 +101,19 @@ const AnalysisLoading = () => {
             <div className="space-y-6 opacity-60 pointer-events-none select-none filter blur-[1px] transition-all duration-1000">
                 {/* Score Badge Skeleton */}
                 <div className="flex justify-between items-center">
-                    <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="h-8 w-24 bg-gray-200 rounded-full animate-pulse"></div>
+                    <div className="h-8 w-32 rounded animate-pulse"></div>
+                    <div className="h-8 w-24 rounded-full animate-pulse"></div>
                 </div>
 
                 {/* Code Smells Skeleton */}
                 <div className="space-y-3">
-                    <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+                    <div className="h-6 w-48 rounded animate-pulse mb-4"></div>
                     {[1, 2, 3].map((_, i) => (
                         <div key={i} className="p-4 border border-gray-100 rounded-lg bg-gray-50 flex gap-4">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0 animate-pulse"></div>
+                            <div className="w-10 h-10 rounded-full flex-shrink-0 animate-pulse"></div>
                             <div className="flex-1 space-y-2">
-                                <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse"></div>
-                                <div className="h-3 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                                <div className="h-4 w-1/3 rounded animate-pulse"></div>
+                                <div className="h-3 w-3/4 rounded animate-pulse"></div>
                             </div>
                         </div>
                     ))}
@@ -122,12 +121,12 @@ const AnalysisLoading = () => {
 
                 {/* Suggestions Skeleton */}
                 <div className="space-y-4 pt-4">
-                    <div className="h-6 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
+                    <div className="h-6 w-40 rounded animate-pulse mb-4"></div>
                      <div className="border rounded-lg overflow-hidden">
                         <div className="p-3 border-b bg-gray-50 h-10 animate-pulse"></div>
                         <div className="p-4 space-y-4">
-                            <div className="h-20 bg-gray-100 rounded animate-pulse"></div>
-                            <div className="h-20 bg-gray-100 rounded animate-pulse"></div>
+                            <div className="h-20 rounded animate-pulse"></div>
+                            <div className="h-20 rounded animate-pulse"></div>
                         </div>
                     </div>
                 </div>

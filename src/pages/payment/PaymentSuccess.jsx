@@ -19,6 +19,17 @@ function PaymentSuccess() {
   const [orderLine, setOrderLine] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // 결제 완료 후 돌아갈 경로 (sessionStorage에서 읽기)
+  const [redirectPath, setRedirectPath] = useState(null);
+  useEffect(() => {
+    const savedPath = sessionStorage.getItem("paymentRedirectPath");
+    if (savedPath) {
+      setRedirectPath(savedPath);
+      // 한 번 사용 후 삭제
+      sessionStorage.removeItem("paymentRedirectPath");
+    }
+  }, []);
+
   const confirmCalledRef = useRef(false);
 
   useEffect(() => {
@@ -105,7 +116,20 @@ function PaymentSuccess() {
         {orderLine && <p className="payment-status">{orderLine}</p>}
 
         <div className="payment-buttons">
-          <button className="payment-btn-primary" onClick={() => navigate("/")}>
+          {/* 결제 전 페이지로 돌아가기 (redirect 경로가 있는 경우) */}
+          {isSuccess && redirectPath && (
+            <button
+              className="payment-btn-primary"
+              onClick={() => navigate(redirectPath)}
+            >
+              원래 페이지로 돌아가기
+            </button>
+          )}
+
+          <button
+            className={redirectPath && isSuccess ? "payment-btn-secondary" : "payment-btn-primary"}
+            onClick={() => navigate("/")}
+          >
             홈으로
           </button>
 

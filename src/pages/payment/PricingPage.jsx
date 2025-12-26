@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { fetchSubscriptions } from "../../service/payment/PaymentApi";
 import { fetchMyProfile } from "../../service/mypage/MyPageApi";
 import { getAuth, removeAuth } from "../../utils/auth/token";
 import AlertModal from "../../components/modal/AlertModal";
+import { useAlert } from "../../hooks/common/useAlert";
 import "./css/pricing.css";
 
 const PLANS = {
@@ -85,14 +86,20 @@ const renderFeatures = (items) => (
 
 function PricingPage() {
   const navigate = useNavigate();
-
+  const location = useLocation();
+  const { alert, showAlert, closeAlert } = useAlert();
   const [loading, setLoading] = useState(true);
   const [currentPlan, setCurrentPlan] = useState("FREE");
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [userName, setUserName] = useState("");
   const [isAuthed, setIsAuthed] = useState(!!getAuth()?.accessToken);
-  const [showLoginAlert, setShowLoginAlert] = useState(false);
+
+  // URL에서 redirect 파라미터 추출 (구독 완료 후 돌아갈 경로)
+  const redirectPath = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("redirect") || null;
+  }, [location.search]);
 
   // PricingPage 함수 맨 위
   console.log("[PricingPage render]", {
@@ -136,7 +143,17 @@ function PricingPage() {
           console.log("🚨 [fetchSubs] REMOVE AUTH 실행됨");
           removeAuth();
           setIsAuthed(false);
-          setShowLoginAlert(true);
+          showAlert({
+            type: "warning",
+            title: "로그인이 필요합니다",
+            message: "결제를 진행하려면 로그인이 필요합니다.\n로그인 화면으로 이동합니다.",
+            onConfirm: () =>
+              navigate("/signin", {
+                replace: true,
+                state: { redirect: "/pages/payment/pricing" },
+              }),
+            confirmText: "확인",
+          });
         } else {
           setCurrentPlan("FREE");
           setErrorMsg("구독 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
@@ -147,7 +164,7 @@ function PricingPage() {
     };
 
     fetchSubs();
-  }, [isAuthed]);
+  }, [isAuthed, navigate, showAlert]);
 
   // 사용자 이름/닉네임 조회
   useEffect(() => {
@@ -162,14 +179,25 @@ function PricingPage() {
           removeAuth();
           setIsAuthed(false);
           setErrorMsg("세션이 만료되었습니다. 다시 로그인해 주세요.");
-          setShowLoginAlert(true);
+
+          showAlert({
+            type: "warning",
+            title: "세션 만료",
+            message: "세션이 만료되었습니다.\n다시 로그인해 주세요.",
+            onConfirm: () =>
+              navigate("/signin", {
+                replace: true,
+                state: { redirect: "/pages/payment/pricing" },
+              }),
+            confirmText: "확인",
+          });
         } else {
           console.warn("내 정보 조회 실패(이름 표시 생략):", e);
         }
       }
     };
     fetchMe();
-  }, [isAuthed]);
+  }, [isAuthed, navigate, showAlert]);
 
   const currentPlanLabel =
     currentPlan === "BASIC" ? "Basic" : currentPlan === "PRO" ? "Pro" : "Free";
@@ -188,11 +216,25 @@ function PricingPage() {
     if (!isAuthed || !token) {
       removeAuth();
       setIsAuthed(false);
-      setShowLoginAlert(true);
+
+      showAlert({
+        type: "warning",
+        title: "로그인이 필요합니다",
+        message: "결제를 진행하려면 로그인이 필요합니다.\n로그인 화면으로 이동합니다.",
+        onConfirm: () =>
+          navigate("/signin", {
+            replace: true,
+            state: { redirect: "/pages/payment/pricing" },
+          }),
+        confirmText: "확인",
+      });
+
       return;
     }
     if (!selectedPlan) return;
-    navigate(`/buy?plan=${selectedPlan}`);
+    // redirect 파라미터가 있으면 함께 전달
+    const redirectParam = redirectPath ? `&redirect=${encodeURIComponent(redirectPath)}` : "";
+    navigate(`/buy?plan=${selectedPlan}${redirectParam}`);
   };
 
   const cardClass = (key, options = {}) => {
@@ -214,11 +256,11 @@ function PricingPage() {
             <div>
               <div className="status-title">{(userName || "사용자")}님의 구독 상태</div>
               <div className="status-text">
-                {!isAuthed
-                  ? "로그인이 필요합니다."
-                  : currentPlan === "FREE"
-                  ? "현재 무료 구독입니다. Free 요금제를 이용 중입니다."
-                  : `${currentPlanLabel} 구독 중입니다.`}
+                {isAuthed
+                  ? currentPlan === "FREE"
+                    ? "현재 무료 구독입니다. Free 요금제를 이용 중입니다."
+                    : `${currentPlanLabel} 구독 중입니다.`
+                  : "로그인이 필요합니다."}
               </div>
             </div>
           </div>
@@ -397,18 +439,13 @@ function PricingPage() {
       </div>
 
       <AlertModal
-        open={showLoginAlert}
-        onClose={() => setShowLoginAlert(false)}
-        onConfirm={() =>
-          navigate("/signin", {
-            replace: true,
-            state: { redirect: "/pages/payment/pricing" },
-          })
-        }
-        type="warning"
-        title="로그인이 필요합니다"
-        message={"결제를 진행하려면 로그인이 필요합니다.\n로그인 화면으로 이동합니다."}
-        confirmText="확인"
+        open={alert.open}
+        onClose={closeAlert}
+        onConfirm={alert.onConfirm}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        confirmText={alert.confirmText}
       />
     </div>
   );

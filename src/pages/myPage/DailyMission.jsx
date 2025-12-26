@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import {
     getTodayMissions,
     getUsageInfo,
     getUserLevel,
     getSolveBonusStatus,
-    MISSION_TYPE_INFO,
-    DIFFICULTY_OPTIONS
+    getContributions,
 } from '../../service/algorithm/AlgorithmApi';
 import UsageDisplay from '../../components/algorithm/mission/UsageDisplay';
 import UserLevelBadge from '../../components/algorithm/mission/UserLevelBadge';
 import { useLogin } from '../../context/login/useLogin';
+import '../../styles/DailyMission.css';
 
 const DailyMission = () => {
     // ===== 로그인 상태 확인 =====
@@ -30,13 +29,12 @@ const DailyMission = () => {
     const [missions, setMissions] = useState([]);
     const [usageInfo, setUsageInfo] = useState(null);
     const [userLevel, setUserLevel] = useState(null);
+    const [contributions, setContributions] = useState([]);  // 잔디 캘린더용
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [lastUpdated, setLastUpdated] = useState(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [bonusStatusMap, setBonusStatusMap] = useState({});
-
-    const navigate = useNavigate();
 
     const fetchBonusStatuses = useCallback(async (missionList) => {
         const targets = missionList.filter(
@@ -92,16 +90,18 @@ const DailyMission = () => {
             console.log('📡 [DailyMission] 데이터 로딩 시작 - userId:', userId);
 
             // 병렬로 데이터 로딩 (testUserId 전달)
-            const [missionsResult, usageResult, levelResult] = await Promise.all([
+            const [missionsResult, usageResult, levelResult, contributionsResult] = await Promise.all([
                 getTodayMissions(userId),
                 getUsageInfo(userId),
-                getUserLevel(userId)
+                getUserLevel(userId),
+                getContributions(userId, 12)  // 12개월치 잔디 데이터
             ]);
 
             console.log('📊 [DailyMission] API 응답:', {
                 missions: missionsResult,
                 usage: usageResult,
-                level: levelResult
+                level: levelResult,
+                contributions: contributionsResult
             });
 
             // 미션 데이터 설정
@@ -127,6 +127,14 @@ const DailyMission = () => {
             } else {
                 console.log('✅ [DailyMission] 레벨 데이터:', levelResult.data);
                 setUserLevel(levelResult.data);
+            }
+
+            // 잔디 캘린더 데이터 설정
+            if (contributionsResult.error) {
+                console.warn('잔디 캘린더 로딩 실패:', contributionsResult.message);
+            } else {
+                console.log('✅ [DailyMission] 잔디 캘린더 데이터:', contributionsResult.data);
+                setContributions(contributionsResult.data || []);
             }
 
             setLastUpdated(new Date());
@@ -177,28 +185,6 @@ const DailyMission = () => {
         };
     }, [hydrated, isLoggedIn, loadData]);
 
-    // ===== 미션 카드 클릭 핸들러 =====
-    const handleMissionClick = (mission) => {
-        if (mission.completed) return;
-
-        const typeInfo = MISSION_TYPE_INFO[mission.missionType];
-        if (mission.missionType === 'PROBLEM_GENERATE') {
-            navigate(typeInfo.link);
-        } else if (mission.missionType === 'PROBLEM_SOLVE' && mission.problemId) {
-            navigate(`${typeInfo.linkPrefix}${mission.problemId}`);
-        }
-    };
-
-    // ===== 난이도 라벨 가져오기 =====
-    const getDifficultyLabel = (difficulty) => {
-        const option = DIFFICULTY_OPTIONS.find(opt => opt.value === difficulty);
-        return option ? option.label : difficulty;
-    };
-
-    // ===== 완료된 미션 수 계산 =====
-    const completedCount = missions.filter(m => m.completed).length;
-    const totalMissions = missions.length;
-
     // ===== 렌더링 =====
 
     // hydration 완료 전 또는 로딩 중 표시
@@ -212,16 +198,16 @@ const DailyMission = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto daily-mission-page">
                 {/* 페이지 헤더 */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-3xl font-bold text-main mb-2">
-                                오늘의 미션
+                                나의 활동
                             </h1>
                             <p className="text-muted">
-                                매일 미션을 완료하고 포인트를 획득하세요!
+                                활동을 확인하세요!
                             </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
@@ -265,199 +251,227 @@ const DailyMission = () => {
                         {/* 상단 정보 카드 */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             {/* 레벨 정보 */}
-                            <UserLevelBadge userLevel={userLevel} />
+                            <div className="user-level-container">
+                                <UserLevelBadge userLevel={userLevel} />
+                            </div>
 
                             {/* 사용량 정보 */}
-                            <UsageDisplay usageInfo={usageInfo} />
+                            <div className="usage-display-container">
+                                <UsageDisplay usageInfo={usageInfo} />
+                            </div>
                         </div>
 
-                        {/* 미션 진행 상황 */}
-                        <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 mb-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-semibold text-main">
-                                    미션 진행률
+                        {/* 🌱 GitHub 스타일 잔디 캘린더 */}
+                        <div className="rounded-2xl border border-[#e2e8f0] dark:border-[#2e2e2e] shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-6 mb-6 grass-calendar-container">
+                            <div className="flex items-center justify-between mb-4 calendar-header pb-0">
+                                <h2 className="text-lg font-semibold text-main flex items-center gap-2">
+                                    🌱 문제 풀이 기록
                                 </h2>
                                 <span className="text-sm text-muted">
-                                    {completedCount} / {totalMissions} 완료
+                                    {new Date().getFullYear()}년
                                 </span>
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                                <div
-                                    className="bg-green-500 h-3 rounded-full transition-all duration-500"
-                                    style={{
-                                        width: totalMissions > 0
-                                            ? `${(completedCount / totalMissions) * 100}%`
-                                            : '0%'
-                                    }}
-                                ></div>
-                            </div>
-                            {completedCount === totalMissions && totalMissions > 0 && (
-                                <p className="mt-3 text-center text-green-600 dark:text-green-400 font-medium">
-                                    오늘의 모든 미션을 완료했습니다!
-                                </p>
-                            )}
-                        </div>
 
-                        {/* 미션 목록 */}
-                        <div className="space-y-4">
-                            <h2 className="text-lg font-semibold text-main">
-                                오늘의 미션 목록
-                            </h2>
+                            {/* 잔디 캘린더 그리드 - 클릭 이벤트 버블링 차단 */}
+                            <div className="overflow-x-auto" onClick={(e) => e.stopPropagation()}>
+                                <div className="min-w-[720px]">
+                                    {(() => {
+                                        // 로컬 날짜 포맷 함수 (timezone 문제 해결: toISOString()은 UTC 반환)
+                                        const formatLocalDate = (date) => {
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            return `${year}-${month}-${day}`;
+                                        };
 
-                            {missions.length === 0 ? (
-                                <div className="bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-8 text-center">
-                                    <p className="text-muted">
-                                        오늘의 미션이 없습니다.
-                                    </p>
-                                </div>
-                            ) : (
-                                missions.map((mission, index) => {
-                                    const typeInfo = MISSION_TYPE_INFO[mission.missionType] || {};
-                                    const isCompleted = mission.completed;
+                                        // 날짜별 데이터를 Map으로 변환
+                                        const dataMap = new Map();
+                                        contributions.forEach(item => {
+                                            // solveDate 필드 처리 (다양한 형식 지원)
+                                            const dateStr = item.solveDate?.split?.('T')[0] || String(item.solveDate);
+                                            const count = Number(item.solveCount) || 0;
+                                            dataMap.set(dateStr, count);
+                                        });
 
-                                    return (
-                                        <div
-                                            key={mission.missionId || index}
-                                            onClick={() => handleMissionClick(mission)}
-                                            className={`bg-panel rounded-lg shadow-sm border dark:border-gray-700 p-6 transition-all ${
-                                                isCompleted
-                                                    ? 'opacity-70 cursor-default'
-                                                    : 'hover:shadow-md cursor-pointer hover:border-blue-300 dark:hover:border-blue-500'
-                                            }`}
-                                        >
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-start gap-4">
-                                                    {/* 아이콘 */}
-                                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${
-                                                        isCompleted
-                                                            ? 'bg-green-100 dark:bg-green-900/30'
-                                                            : 'bg-blue-100 dark:bg-blue-900/30'
-                                                    }`}>
-                                                        {isCompleted ? '✅' : typeInfo.icon}
+                                        // 디버깅: 날짜 매칭 확인
+                                        console.log('📅 캘린더 dataMap:', Object.fromEntries(dataMap));
+
+                                        // 올해 1월 1일부터 12월 31일까지 표시
+                                        const currentYear = new Date().getFullYear();
+                                        const startDate = new Date(currentYear, 0, 1);  // 1월 1일
+                                        const endDate = new Date(currentYear, 11, 31);  // 12월 31일
+                                        const today = new Date();
+
+                                        const weeks = [];
+                                        let currentWeek = [];
+
+                                        // 월 라벨 위치 계산용
+                                        const monthPositions = [];
+                                        let lastMonth = -1;
+
+                                        // 1월 1일의 요일에 따라 첫 주 패딩 추가
+                                        const firstDayOfWeek = startDate.getDay();
+                                        if (firstDayOfWeek !== 0) {
+                                            for (let j = 0; j < firstDayOfWeek; j++) {
+                                                currentWeek.push({ empty: true });
+                                            }
+                                        }
+
+                                        // 1월 1일부터 12월 31일까지 순회
+                                        const currentDate = new Date(startDate);
+                                        while (currentDate <= endDate) {
+                                            // 로컬 날짜 형식 사용 (toISOString은 UTC로 변환되어 날짜 불일치 발생)
+                                            const dateStr = formatLocalDate(currentDate);
+                                            const count = dataMap.get(dateStr) || 0;
+                                            const dayOfWeek = currentDate.getDay();
+                                            const month = currentDate.getMonth();
+                                            const isFuture = currentDate > today;
+
+                                            currentWeek.push({
+                                                date: dateStr,
+                                                count,
+                                                month,
+                                                day: currentDate.getDate(),
+                                                isFuture
+                                            });
+
+                                            // 토요일이면 주 완료
+                                            if (dayOfWeek === 6) {
+                                                // 해당 주의 첫 날짜 기준으로 월 위치 기록
+                                                const weekFirstDay = currentWeek.find(d => !d.empty);
+                                                if (weekFirstDay && weekFirstDay.month !== lastMonth) {
+                                                    monthPositions.push({ month: weekFirstDay.month, weekIdx: weeks.length });
+                                                    lastMonth = weekFirstDay.month;
+                                                }
+                                                weeks.push(currentWeek);
+                                                currentWeek = [];
+                                            }
+
+                                            currentDate.setDate(currentDate.getDate() + 1);
+                                        }
+
+                                        // 마지막 주 처리
+                                        if (currentWeek.length > 0) {
+                                            // 마지막 주 패딩 (토요일까지 채우기)
+                                            while (currentWeek.length < 7) {
+                                                currentWeek.push({ empty: true });
+                                            }
+                                            const weekFirstDay = currentWeek.find(d => !d.empty);
+                                            if (weekFirstDay && weekFirstDay.month !== lastMonth) {
+                                                monthPositions.push({ month: weekFirstDay.month, weekIdx: weeks.length });
+                                            }
+                                            weeks.push(currentWeek);
+                                        }
+
+                                        // 색상 결정 함수 (CSS 클래스 사용)
+                                        const getGrassCellClass = (count, isFuture) => {
+                                            if (isFuture) return 'grass-cell-future';
+                                            if (count === 0) return 'grass-cell-empty';
+                                            if (count === 1) return 'grass-cell-level1';
+                                            if (count === 2) return 'grass-cell-level2';
+                                            if (count <= 4) return 'grass-cell-level3';
+                                            return 'grass-cell-level4';
+                                        };
+
+                                        // 월 이름
+                                        const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
+                                        // 총 풀이 수 및 활동일 계산 (올해 데이터만)
+                                        const yearStart = `${currentYear}-01-01`;
+                                        const yearEnd = `${currentYear}-12-31`;
+                                        const thisYearData = contributions.filter(c => {
+                                            const d = c.solveDate?.split?.('T')[0] || String(c.solveDate);
+                                            return d >= yearStart && d <= yearEnd;
+                                        });
+                                        const activeDays = thisYearData.filter(c => (Number(c.solveCount) || 0) > 0).length;
+
+                                        // 툴팁 포맷 함수 (중복 제외 문제 수 표시)
+                                        const formatTooltip = (day) => {
+                                            if (day.empty) return '';
+                                            const month = day.month + 1;
+                                            const dayNum = day.day;
+                                            if (day.isFuture) return `${month}월 ${dayNum}일`;
+                                            if (day.count === 0) return `${month}월 ${dayNum}일: 풀이 없음`;
+                                            return `${month}월 ${dayNum}일: ${day.count}개 문제 정답 (중복 제외)`;
+                                        };
+
+                                        return (
+                                            <>
+                                                {/* 월 라벨 - 동적 위치 */}
+                                                <div className="flex mb-2 text-xs text-muted relative h-4" style={{ marginLeft: '24px' }}>
+                                                    {monthPositions.map((pos, idx) => (
+                                                        <span
+                                                            key={idx}
+                                                            className="absolute"
+                                                            style={{ left: `${pos.weekIdx * 13}px` }}
+                                                        >
+                                                            {monthNames[pos.month]}
+                                                        </span>
+                                                    ))}
+                                                </div>
+
+                                                {/* 요일 라벨 + 잔디 그리드 */}
+                                                <div className="flex">
+                                                    {/* 요일 라벨 */}
+                                                    <div className="flex flex-col text-xs text-muted mr-2 justify-around h-[88px] w-[16px]">
+                                                        <span>월</span>
+                                                        <span>수</span>
+                                                        <span>금</span>
                                                     </div>
 
-                                                    {/* 미션 정보 */}
-                                                    <div>
-                                                        <h3 className={`font-semibold text-lg ${
-                                                            isCompleted
-                                                                ? 'text-muted line-through'
-                                                                : 'text-main'
-                                                        }`}>
-                                                            {typeInfo.name || mission.missionType}
-                                                        </h3>
-                                                        <p className="text-muted text-sm mt-1">
-                                                            {typeInfo.description}
-                                                        </p>
-
-                                                        {/* 문제 정보 (PROBLEM_SOLVE인 경우) */}
-                                                        {mission.missionType === 'PROBLEM_SOLVE' && mission.problemTitle && (
-                                                            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
-                                                                <p className="text-sm text-sub">
-                                                                    <span className="font-medium">문제:</span> {mission.problemTitle}
-                                                                </p>
-                                                                {mission.problemDifficulty && (
-                                                                    <p className="text-sm text-muted">
-                                                                        <span className="font-medium">난이도:</span>{' '}
-                                                                        {getDifficultyLabel(mission.problemDifficulty)}
-                                                                    </p>
-                                                                )}
+                                                    {/* 잔디 그리드 */}
+                                                    <div className="flex gap-[2px]">
+                                                        {weeks.map((week, weekIdx) => (
+                                                            <div key={weekIdx} className="flex flex-col gap-[2px]">
+                                                                {week.map((day, dayIdx) => (
+                                                                    <div
+                                                                        key={dayIdx}
+                                                                        className={`w-[11px] h-[11px] rounded-[2px] cursor-default group relative ${
+                                                                            day.empty ? 'bg-transparent' : getGrassCellClass(day.count, day.isFuture)
+                                                                        }`}
+                                                                    >
+                                                                        {/* CSS 툴팁 (네이티브 title 대체 - 작은 요소에서 더 잘 보임) */}
+                                                                        {!day.empty && (
+                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1
+                                                                                bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900
+                                                                                text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100
+                                                                                pointer-events-none transition-opacity duration-150 z-50 shadow-lg">
+                                                                                {formatTooltip(day)}
+                                                                                {/* 툴팁 화살표 */}
+                                                                                <div className="absolute top-full left-1/2 -translate-x-1/2
+                                                                                    border-4 border-transparent border-t-gray-900 dark:border-t-gray-100" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        )}
+                                                        ))}
                                                     </div>
                                                 </div>
 
-                                                {/* 보상 포인트 */}
-                                                <div className="text-right">
-                                                    <div className={`text-lg font-bold ${
-                                                        isCompleted
-                                                            ? 'text-green-600 dark:text-green-400'
-                                                            : 'text-yellow-600 dark:text-yellow-400'
-                                                    }`}>
-                                                        +{mission.rewardPoints}P
+                                                {/* 통계 + 범례 */}
+                                                <div className="mt-4 pt-4 border-t border-[#e2e8f0] dark:border-[#2e2e2e] flex items-center justify-between text-sm">
+                                                    {/* 통계 (좌측) */}
+                                                    <div className="text-muted">
+                                                        올해 활동일 <span className="font-bold text-main">{activeDays}</span>일
                                                     </div>
-                                                    <div className="text-xs text-muted mt-1">
-                                                        {isCompleted ? '획득 완료' : '보상'}
+
+                                                    {/* 범례 (우측) */}
+                                                    <div className="flex items-center gap-1 text-xs text-muted">
+                                                        <span>적음</span>
+                                                        <div className="legend-cell-empty"></div>
+                                                        <div className="legend-cell-level1"></div>
+                                                        <div className="legend-cell-level2"></div>
+                                                        <div className="legend-cell-level3"></div>
+                                                        <div className="legend-cell-level4"></div>
+                                                        <span>많음</span>
                                                     </div>
                                                 </div>
-                                            </div>
-
-                                            {/* 선착순 보너스 상태 (문제 풀이 미션 전용) */}
-                                            {mission.missionType === 'PROBLEM_SOLVE' && (
-                                                <div className="mt-3 text-sm">
-                                                    {(() => {
-                                                        const bonusKey = mission.missionId || mission.problemId;
-                                                        const bonusStatus = bonusStatusMap[bonusKey];
-                                                        const current = bonusStatus?.currentCount ?? 0;
-                                                        const limit = bonusStatus?.limit ?? 3;
-
-                                                        if (!bonusStatus) {
-                                                            return (
-                                                                <span className="text-gray-500 dark:text-gray-400">
-                                                                    선착순 보너스 상태 확인 중...
-                                                                </span>
-                                                            );
-                                                        }
-
-                                                        if (isCompleted) {
-                                                            return (
-                                                                <span className="text-green-600 dark:text-green-400 font-medium">
-                                                                    오늘 {current}번째로 보너스 지급 완료 ({current}/{limit}명)
-                                                                </span>
-                                                            );
-                                                        }
-
-                                                        if (bonusStatus.eligible) {
-                                                            return (
-                                                                <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                                                    선착순 보너스 가능 ({current}/{limit}명)
-                                                                </span>
-                                                            );
-                                                        }
-
-                                                        return (
-                                                            <span className="text-gray-500 dark:text-gray-400 font-medium">
-                                                                보너스 마감 ({current}/{limit}명)
-                                                            </span>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            )}
-
-                                            {/* 완료 시간 */}
-                                            {isCompleted && mission.completedAt && (
-                                                <div className="mt-3 pt-3 border-t dark:border-gray-700 text-sm text-muted">
-                                                    완료 시간: {new Date(mission.completedAt).toLocaleTimeString('ko-KR')}
-                                                </div>
-                                            )}
-
-                                            {/* 미완료 시 안내 */}
-                                            {!isCompleted && (
-                                                <div className="mt-4 pt-3 border-t dark:border-gray-700">
-                                                    <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
-                                                        클릭하여 미션 시작하기 →
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-
-                        {/* 하단 링크 */}
-                        <div className="mt-8 flex justify-center gap-4">
-                            <Link
-                                to="/algorithm/problems"
-                                className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
-                            >
-                                문제 목록 보기
-                            </Link>
-                            <Link
-                                to="/algorithm/problems/generate"
-                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-                            >
-                                AI 문제 생성
-                            </Link>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
                         </div>
                     </>
                 )}

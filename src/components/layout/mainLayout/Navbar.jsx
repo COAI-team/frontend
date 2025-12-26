@@ -1,12 +1,12 @@
-import {Disclosure} from "@headlessui/react";
-import {useLocation, useNavigate} from "react-router-dom";
-import {useEffect, useState} from "react";
-import {useLogin} from "../../../context/login/useLogin";
-import {useTheme} from "../../../context/theme/useTheme";
+import { Disclosure } from "@headlessui/react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLogin } from "../../../context/login/useLogin";
+import { useTheme } from "../../../context/theme/useTheme";
 import MobileNav from "../../navbar/MobileNav";
 import MobileMenuButton from "../../button/MobileMenuButton";
 import Logo from "../../navbar/Logo";
-import {NavLinks} from "../../navbar/NavLinks";
+import NavLinks from "../../navbar/NavLinks";
 import RightActions from "../../navbar/RightActions";
 
 const initialNavigation = [
@@ -16,137 +16,166 @@ const initialNavigation = [
   { name: "자유게시판", href: "/freeboard" },
   { name: "코드게시판", href: "/codeboard" },
   { name: "결제", href: "/payments" },
-  { name: "관리자", href: "/admin" },
 ];
 
 export default function Navbar() {
-    const location = useLocation();
-    const navigate = useNavigate();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-    const [navigation, setNavigation] = useState(
-        initialNavigation.map((item) => ({...item, current: false}))
+  const [navigation, setNavigation] = useState(
+    initialNavigation.map((item) => ({ ...item, current: false }))
+  );
+
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  const BASE_URL = import.meta.env.VITE_API_URL;
+  const { user, logout, hydrated, accessToken } = useLogin();
+
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    setNavigation((prev) =>
+      prev.map((i) => ({
+        ...i,
+        current: i.href === location.pathname,
+      }))
     );
+  }, [location.pathname]);
 
-    const {theme, setTheme} = useTheme();
-    const [mounted, setMounted] = useState(false);
+  const handleLinkClick = (href) => {
+    setNavigation((prev) =>
+      prev.map((i) => ({
+        ...i,
+        current: i.href === href,
+      }))
+    );
+  };
 
-    const BASE_URL = import.meta.env.VITE_API_URL;
-    const {user, logout, hydrated, accessToken} = useLogin();
+  const [showMoai, setShowMoai] = useState(() => {
+    if (globalThis.window === undefined) return true;
+    return JSON.parse(localStorage.getItem("walkingMoai") ?? "true");
+  });
 
-    useEffect(() => setMounted(true), []);
-
-    useEffect(() => {
-        setNavigation((prev) =>
-            prev.map((i) => ({
-                ...i,
-                current: i.href === location.pathname,
-            }))
-        );
-    }, [location.pathname]);
-
-    const handleLinkClick = (href) => {
-        setNavigation((prev) =>
-            prev.map((i) => ({
-                ...i,
-                current: i.href === href,
-            }))
-        );
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setShowMoai(JSON.parse(localStorage.getItem("walkingMoai") ?? "true"));
     };
+    globalThis.addEventListener("storage", handleStorageChange);
+    return () => globalThis.removeEventListener("storage", handleStorageChange);
+  }, []);
 
-    // Walking Moai Render State
-    // localStorage 접근은 안전하게 try-catch가 없으므로, SSR환경이 아니라고 가정
-    const [showMoai, setShowMoai] = useState(() => {
-        if (typeof globalThis.window !== 'undefined') {
-            return JSON.parse(localStorage.getItem("walkingMoai") ?? "true");
-        }
-        return true;
-    });
+  if (!mounted) return null;
 
-    useEffect(() => {
-        const handleStorageChange = () => {
-            setShowMoai(JSON.parse(localStorage.getItem("walkingMoai") ?? "true"));
-        };
+  return (
+    <Disclosure
+      as="nav"
+      className="relative z-50 bg-white text-gray-900 border-b border-gray-200 shadow-sm
+        dark:bg-[#0a0a0a] dark:text-white dark:border-transparent
+        dark:shadow-[0_1px_3px_0_rgba(255,255,255,0.05),0_1px_2px_-1px_rgba(255,255,255,0.03)]"
+    >
+      {/* Walking Moai Animation */}
+      {showMoai && (
+        <div className="header-banner-area">
+          {/* Snowflakes */}
+          {Array.from({ length: 50 }).map((_, i) => {
+            const style = {
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${5 + Math.random() * 10}s`,
+              opacity: Math.random(),
+              width: `${Math.random() * 5 + 2}px`,
+              height: `${Math.random() * 5 + 2}px`,
+            };
+            return <div key={`snow-${i}`} className="snowflake" style={style} />;
+          })}
 
-        globalThis.addEventListener("storage", handleStorageChange);
-        return () => globalThis.removeEventListener("storage", handleStorageChange);
-    }, []);
+          {/* Snow Floor */}
+          <div className="snow-floor"></div>
 
-    // 크리스마스 시즌 체크 (12월)
-    const isChristmas = new Date().getMonth() === 11;
+          {/* Moai Characters */}
+          {Array.from({
+            length: Math.max(1, Number.parseInt(localStorage.getItem("moaiCount") ?? "1")),
+          }).map((_, i) => {
+            const seed = i * 1337;
+            const duration = `${15 + (seed % 20)}s`;
+            const delay = `${(seed % 15)}s`;
+            const key = `moai-${i}`;
+            const randomVal = (seed * 9301 + 49297) % 233280 % 100;
 
-    if (!mounted) return null;
+            let content = <div className="moai-body text-[40px]">🗿</div>;
+            let animationName = "walkAcrossScreen";
 
-    return (
-        <Disclosure
-            as="nav"
-            className="relative transition-colors border-b
-       dark:bg-gray-800 dark:text-gray-100
-       dark:border-gray-200
-       dark:after:absolute dark:after:bottom-0 dark:after:h-px
-       dark:after:w-full dark:after:bg-white/10"
-        >
-            {/* 2 & 3. Walking Moai Animation */}
-            {showMoai && (
-                <div className="header-banner-area">
-                    {Array.from({
-                        length: Math.max(1, parseInt(localStorage.getItem("moaiCount") ?? "1")),
-                    }).map((_, i) => {
-                        // 인덱스를 시드로 사용하는 유사 랜덤
-                        const seed = i * 1337;
-                        const duration = 15 + (seed % 20) + "s";
-                        const delay = (seed % 15) + "s";
+            if (randomVal < 5) {
+              content = (
+                <img
+                  src="/assets/images/moai_rudolph.png"
+                  alt="Rudolph Moai"
+                  className="moai-body h-12.5 w-auto object-contain"
+                  style={{ transform: "scaleX(-1)" }}
+                />
+              );
+              animationName = "walkAcrossScreenReverse";
+            } else if (randomVal < 15) {
+              content = (
+                <img
+                  src="/assets/images/moai_santa.png"
+                  alt="Santa Moai"
+                  className="moai-body h-12.5 w-auto object-contain"
+                />
+              );
+            }
 
-                        // ✅ 인덱스를 그대로 쓰지 말고, 의미 있는 문자열 키로 감싸서 사용
-                        const key = `moai-${i}`;
+            return (
+              <div
+                key={key}
+                className="walking-moai-container"
+                style={{
+                  "--walk-duration": duration,
+                  "--walk-delay": delay,
+                  animationName,
+                }}
+              >
+                {content}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-                        return (
-                            <div
-                                key={key}
-                                className="walking-moai-container"
-                                style={{
-                                    "--walk-duration": duration,
-                                    "--walk-delay": delay,
-                                }}
-                            >
-                                <div className={`moai-body ${isChristmas ? "christmas" : ""}`}>🗿</div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+      {/* Navigation Content */}
+      <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 relative z-20">
+        <div className="relative flex h-16 items-center justify-between">
+          <MobileMenuButton theme={theme} />
 
-            <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 relative z-20">
-                <div className="relative flex h-16 items-center justify-between">
-                    <MobileMenuButton theme={theme}/>
+          <div className="flex flex-1 items-center justify-center sm:justify-start">
+            <Logo theme={theme} />
 
-                    <div className="flex flex-1 items-center justify-center sm:justify-start">
-                        <Logo theme={theme}/>
-
-                        <div className="hidden sm:flex sm:flex-1 sm:justify-center">
-                            <div className="flex space-x-6">
-                                <NavLinks
-                                    navigation={navigation}
-                                    onLinkClick={handleLinkClick}
-                                    themeKey={theme}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <RightActions
-                        theme={theme}
-                        setTheme={setTheme}
-                        user={user}
-                        logout={logout}
-                        navigate={navigate}
-                        BASE_URL={BASE_URL}
-                        accessToken={accessToken}
-                        hydrated={hydrated}
-                    />
-                </div>
+            <div className="hidden sm:flex sm:flex-1 sm:justify-center">
+              <div className="flex space-x-6">
+                <NavLinks
+                  navigation={navigation}
+                  onLinkClick={handleLinkClick}
+                  themeKey={theme}
+                />
+              </div>
             </div>
+          </div>
 
-            <MobileNav navigation={navigation} onLinkClick={handleLinkClick}/>
-        </Disclosure>
-    );
+          <RightActions
+            theme={theme}
+            setTheme={setTheme}
+            user={user}
+            logout={logout}
+            navigate={navigate}
+            BASE_URL={BASE_URL}
+            accessToken={accessToken}
+            hydrated={hydrated}
+          />
+        </div>
+      </div>
+
+      <MobileNav navigation={navigation} onLinkClick={handleLinkClick} />
+    </Disclosure>
+  );
 }

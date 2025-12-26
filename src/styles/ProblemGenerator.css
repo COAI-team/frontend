@@ -1,0 +1,641 @@
+/* ProblemGenerator.jsx 전용 스타일 */
+
+/* ===== 모든 버튼/링크 커서 스타일 ===== */
+.difficulty-btn,
+.problem-type-btn,
+.topic-btn,
+.theme-btn,
+.reset-btn,
+.alert-link {
+  cursor: pointer;
+}
+
+.difficulty-btn:disabled,
+.problem-type-btn:disabled,
+.topic-btn:disabled,
+.theme-btn:disabled,
+.reset-btn:disabled {
+  cursor: not-allowed;
+}
+
+.back-link:hover {
+    color: var(--text-primary);
+  }
+
+/* ===== 난이도 버튼 스타일 ===== */
+
+/* 공통 버튼 스타일 */
+.difficulty-btn {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+/* 라이트 모드 - 선택되지 않은 상태 */
+html:not(.dark) .difficulty-btn-unselected {
+  background-color: var(--bg-secondary, #ffffff);
+  border-color: #e5e7eb;
+}
+
+html:not(.dark) .difficulty-btn-unselected:hover {
+  border-color: #d1d5db;
+}
+
+/* 다크 모드 - 선택되지 않은 상태 */
+html.dark .difficulty-btn-unselected {
+  background-color: transparent;
+  border-color: #52525b;
+}
+
+html.dark .difficulty-btn-unselected:hover {
+  border-color: #71717a;
+}
+
+/* ===== 브론즈 (BRONZE) - 주황색 계열 ===== */
+/* 라이트 모드 - 선택됨 (입력/출력/제한사항 컨테이너와 유사한 부드러운 대비) */
+html:not(.dark) .difficulty-btn-bronze-selected {
+  background-color: #fff7ed;  /* orange-50 - 아주 연한 주황 */
+  border-color: #fdba74;      /* orange-300 - 부드러운 주황 보더 */
+  color: #c2410c;             /* orange-700 - 진한 주황 텍스트 */
+}
+
+/* 다크 모드 - 선택됨 (기존 스타일 유지) */
+html.dark .difficulty-btn-bronze-selected {
+  background-color: rgba(234, 88, 12, 0.3);
+  border-color: rgba(234, 88, 12, 0.6);
+  color: #fb923c;
+}
+
+/* ===== 실버 (SILVER) - 회색 계열 ===== */
+/* 라이트 모드 - 선택됨 */
+html:not(.dark) .difficulty-btn-silver-selected {
+  background-color: #f9fafb;  /* gray-50 - 아주 연한 회색 */
+  border-color: #9ca3af;      /* gray-400 - 부드러운 회색 보더 */
+  color: #374151;             /* gray-700 - 진한 회색 텍스트 */
+}
+
+/* 다크 모드 - 선택됨 (기존 스타일 유지) */
+html.dark .difficulty-btn-silver-selected {
+  background-color: rgba(55, 65, 81, 0.5);
+  border-color: #6b7280;
+  color: #d1d5db;
+}
+
+/* ===== 골드 (GOLD) - 노란색 계열 ===== */
+/* 라이트 모드 - 선택됨 (제한사항 컨테이너와 유사) */
+html:not(.dark) .difficulty-btn-gold-selected {
+  background-color: #fefce8;  /* yellow-50 - 아주 연한 노랑 (제한사항 bg와 동일) */
+  border-color: #fcd34d;      /* yellow-400 - 부드러운 노랑 보더 */
+  color: #a16207;             /* yellow-700 - 진한 노랑/갈색 텍스트 */
+}
+
+/* 다크 모드 - 선택됨 (기존 스타일 유지) */
+html.dark .difficulty-btn-gold-selected {
+  background-color: rgba(234, 179, 8, 0.3);
+  border-color: rgba(234, 179, 8, 0.6);
+  color: #fbbf24;
+}
+
+/* ===== 플래티넘 (PLATINUM) - 파란색 계열 ===== */
+/* 라이트 모드 - 선택됨 (입력 컨테이너와 유사) */
+html:not(.dark) .difficulty-btn-platinum-selected {
+  background-color: #eff6ff;  /* blue-50 - 아주 연한 파랑 (입력 bg와 유사) */
+  border-color: #93c5fd;      /* blue-300 - 부드러운 파랑 보더 */
+  color: #1d4ed8;             /* blue-700 - 진한 파랑 텍스트 */
+}
+
+/* 다크 모드 - 선택됨 (기존 스타일 유지) */
+html.dark .difficulty-btn-platinum-selected {
+  background-color: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.6);
+  color: #60a5fa;
+}
+
+/* 선택된 버튼의 텍스트 색상 (라이트 모드) */
+html:not(.dark) .difficulty-btn-bronze-selected .difficulty-label,
+html:not(.dark) .difficulty-btn-bronze-selected .difficulty-desc {
+  color: #c2410c;
+}
+
+html:not(.dark) .difficulty-btn-silver-selected .difficulty-label,
+html:not(.dark) .difficulty-btn-silver-selected .difficulty-desc {
+  color: #374151;
+}
+
+html:not(.dark) .difficulty-btn-gold-selected .difficulty-label,
+html:not(.dark) .difficulty-btn-gold-selected .difficulty-desc {
+  color: #a16207;
+}
+
+html:not(.dark) .difficulty-btn-platinum-selected .difficulty-label,
+html:not(.dark) .difficulty-btn-platinum-selected .difficulty-desc {
+  color: #1d4ed8;
+}
+
+/* 선택된 버튼의 텍스트 색상 (다크 모드) */
+html.dark .difficulty-btn-bronze-selected .difficulty-label,
+html.dark .difficulty-btn-bronze-selected .difficulty-desc {
+  color: #fb923c;
+}
+
+html.dark .difficulty-btn-silver-selected .difficulty-label,
+html.dark .difficulty-btn-silver-selected .difficulty-desc {
+  color: #d1d5db;
+}
+
+html.dark .difficulty-btn-gold-selected .difficulty-label,
+html.dark .difficulty-btn-gold-selected .difficulty-desc {
+  color: #fbbf24;
+}
+
+html.dark .difficulty-btn-platinum-selected .difficulty-label,
+html.dark .difficulty-btn-platinum-selected .difficulty-desc {
+  color: #60a5fa;
+}
+
+/* 선택되지 않은 버튼의 텍스트 색상 */
+html:not(.dark) .difficulty-btn-unselected .difficulty-label {
+  color: var(--text-primary, #111827);
+}
+
+html:not(.dark) .difficulty-btn-unselected .difficulty-desc {
+  color: var(--text-secondary, #6b7280);
+}
+
+html.dark .difficulty-btn-unselected .difficulty-label {
+  color: #f4f4f5;
+}
+
+html.dark .difficulty-btn-unselected .difficulty-desc {
+  color: #a1a1aa;
+}
+
+/* ===== 출제분야 버튼 스타일 (파란색 계열) ===== */
+
+/* 공통 스타일 */
+.problem-type-btn {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+/* 라이트 모드 - 선택됨 */
+html:not(.dark) .problem-type-btn-selected {
+  background-color: #eff6ff;  /* blue-50 - 입력 컨테이너와 유사 */
+  border-color: #93c5fd;      /* blue-300 */
+  color: #1d4ed8;             /* blue-700 */
+}
+
+html:not(.dark) .problem-type-btn-selected .problem-type-label,
+html:not(.dark) .problem-type-btn-selected .problem-type-desc {
+  color: #1d4ed8;
+}
+
+/* 다크 모드 - 선택됨 (기존 스타일 유지) */
+html.dark .problem-type-btn-selected {
+  background-color: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.6);
+  color: #60a5fa;
+}
+
+html.dark .problem-type-btn-selected .problem-type-label,
+html.dark .problem-type-btn-selected .problem-type-desc {
+  color: #60a5fa;
+}
+
+/* 라이트 모드 - 선택되지 않음 */
+html:not(.dark) .problem-type-btn-unselected {
+  background-color: var(--bg-secondary, #ffffff);
+  border-color: #e5e7eb;
+}
+
+html:not(.dark) .problem-type-btn-unselected:hover {
+  border-color: #d1d5db;
+}
+
+html:not(.dark) .problem-type-btn-unselected .problem-type-label {
+  color: var(--text-primary, #111827);
+}
+
+html:not(.dark) .problem-type-btn-unselected .problem-type-desc {
+  color: var(--text-secondary, #6b7280);
+}
+
+/* 다크 모드 - 선택되지 않음 */
+html.dark .problem-type-btn-unselected {
+  background-color: transparent;
+  border-color: #52525b;
+}
+
+html.dark .problem-type-btn-unselected:hover {
+  border-color: #71717a;
+}
+
+html.dark .problem-type-btn-unselected .problem-type-label {
+  color: #f4f4f5;
+}
+
+html.dark .problem-type-btn-unselected .problem-type-desc {
+  color: #a1a1aa;
+}
+
+/* ===== 알고리즘 유형 버튼 스타일 (파란색 계열) ===== */
+
+/* 공통 스타일 */
+.topic-btn {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+/* 라이트 모드 - 선택됨 */
+html:not(.dark) .topic-btn-selected {
+  background-color: #eff6ff;  /* blue-50 */
+  border-color: #93c5fd;      /* blue-300 */
+  color: #1d4ed8;             /* blue-700 */
+  font-weight: 600;
+}
+
+/* 다크 모드 - 선택됨 (기존 스타일 유지) */
+html.dark .topic-btn-selected {
+  background-color: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+/* 라이트 모드 - 선택되지 않음 */
+html:not(.dark) .topic-btn-unselected {
+  background-color: var(--bg-secondary, #ffffff);
+  border-color: #e5e7eb;
+  color: var(--text-secondary, #6b7280);
+}
+
+html:not(.dark) .topic-btn-unselected:hover {
+  border-color: #d1d5db;
+}
+
+/* 다크 모드 - 선택되지 않음 */
+html.dark .topic-btn-unselected {
+  background-color: transparent;
+  border-color: #52525b;
+  color: #a1a1aa;
+}
+
+html.dark .topic-btn-unselected:hover {
+  border-color: #71717a;
+}
+
+/* ===== 스토리 테마 버튼 스타일 (보라색 계열) ===== */
+
+/* 공통 스타일 */
+.theme-btn {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+/* 라이트 모드 - 선택됨 */
+html:not(.dark) .theme-btn-selected {
+  background-color: #faf5ff;  /* purple-50 */
+  border-color: #c4b5fd;      /* violet-300 */
+}
+
+html:not(.dark) .theme-btn-selected .theme-label {
+  color: #6d28d9;             /* violet-700 */
+}
+
+html:not(.dark) .theme-btn-selected .theme-desc {
+  color: #7c3aed;             /* violet-600 */
+}
+
+/* 다크 모드 - 선택됨 (기존 스타일 유지) */
+html.dark .theme-btn-selected {
+  background-color: rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.6);
+}
+
+html.dark .theme-btn-selected .theme-label {
+  color: #c4b5fd;
+}
+
+html.dark .theme-btn-selected .theme-desc {
+  color: #a78bfa;
+}
+
+/* 라이트 모드 - 선택되지 않음 */
+html:not(.dark) .theme-btn-unselected {
+  background-color: var(--bg-secondary, #ffffff);
+  border-color: #e5e7eb;
+}
+
+html:not(.dark) .theme-btn-unselected:hover {
+  border-color: #c4b5fd;
+}
+
+html:not(.dark) .theme-btn-unselected .theme-label {
+  color: var(--text-primary, #111827);
+}
+
+html:not(.dark) .theme-btn-unselected .theme-desc {
+  color: var(--text-secondary, #6b7280);
+}
+
+/* 다크 모드 - 선택되지 않음 */
+html.dark .theme-btn-unselected {
+  background-color: transparent;
+  border-color: #52525b;
+}
+
+html.dark .theme-btn-unselected:hover {
+  border-color: rgba(139, 92, 246, 0.6);
+}
+
+html.dark .theme-btn-unselected .theme-label {
+  color: #f4f4f5;
+}
+
+html.dark .theme-btn-unselected .theme-desc {
+  color: #a1a1aa;
+}
+
+/* ===== 초기화 버튼 스타일 (회색 계열) ===== */
+
+/* 공통 스타일 */
+.reset-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid;
+  transition: all 0.2s;
+  font-weight: 600;
+}
+
+/* 라이트 모드 */
+html:not(.dark) .reset-btn {
+  background-color: var(--bg-secondary, #ffffff);
+  border-color: #e5e7eb;
+  color: #374151;
+}
+
+html:not(.dark) .reset-btn:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+html:not(.dark) .reset-btn:disabled {
+  opacity: 0.5;
+}
+
+/* 다크 모드 (기존 스타일 유지) */
+html.dark .reset-btn {
+  background-color: transparent;
+  border-color: #52525b;
+  color: #d1d5db;
+}
+
+html.dark .reset-btn:hover:not(:disabled) {
+  background-color: #3f3f46;
+}
+
+html.dark .reset-btn:disabled {
+  opacity: 0.5;
+}
+
+/* ===== 성공 메시지 스타일 (녹색 계열) ===== */
+
+/* 공통 스타일 */
+.success-message {
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid;
+}
+
+/* 라이트 모드 */
+html:not(.dark) .success-message {
+  background-color: #f0fdf4;  /* green-50 - 아주 연한 초록 */
+  border-color: #bbf7d0;      /* green-200 - 부드러운 초록 보더 */
+  color: #15803d;             /* green-700 - 진한 초록 텍스트 */
+}
+
+/* 다크 모드 (기존 스타일 유지) */
+html.dark .success-message {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+/* ===== 진행률 바 스타일 ===== */
+
+/* 공통 스타일 */
+.progress-bar-container {
+  height: 0.5rem;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  transition: all 0.5s;
+  background: linear-gradient(to right, #3b82f6, #a855f7);
+}
+
+/* 라이트 모드 */
+html:not(.dark) .progress-bar-container {
+  background-color: #e5e7eb;  /* gray-200 - 부드러운 회색 */
+}
+
+/* 다크 모드 */
+html.dark .progress-bar-container {
+  background-color: #3f3f46;  /* zinc-700 */
+}
+
+/* ===== 현재 진행 상태 컨테이너 스타일 (파란색 계열) ===== */
+
+/* 공통 스타일 */
+.current-status-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+}
+
+.current-status-spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-bottom-color: #3b82f6;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.current-status-text {
+  font-weight: 500;
+}
+
+/* 라이트 모드 */
+html:not(.dark) .current-status-container {
+  background-color: #eff6ff;  /* blue-50 */
+  border-color: #93c5fd;      /* blue-300 */
+}
+
+html:not(.dark) .current-status-text {
+  color: #1d4ed8;             /* blue-700 */
+}
+
+/* 다크 모드 */
+html.dark .current-status-container {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+html.dark .current-status-text {
+  color: #93c5fd;
+}
+
+/* ===== 생성 정보 컨테이너 스타일 ===== */
+
+/* 공통 스타일 */
+.generation-info-container {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  border: 1px solid;
+}
+
+/* 풀에서 즉시 제공 - 에메랄드/초록 계열 */
+/* 라이트 모드 */
+html:not(.dark) .generation-info-pool {
+  background-color: #ecfdf5;  /* emerald-50 */
+  border-color: #6ee7b7;      /* emerald-300 */
+}
+
+/* 다크 모드 */
+html.dark .generation-info-pool {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* 실시간 생성 - 파란색 계열 */
+/* 라이트 모드 */
+html:not(.dark) .generation-info-realtime {
+  background-color: #eff6ff;  /* blue-50 */
+  border-color: #93c5fd;      /* blue-300 */
+}
+
+/* 다크 모드 */
+html.dark .generation-info-realtime {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* ===== 알림 컨테이너 스타일 ===== */
+
+/* 공통 스타일 */
+.alert-container {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  border: 1px solid;
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.alert-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+/* 정보 알림 (파란색 계열) - 비회원 경고 */
+/* 라이트 모드 */
+html:not(.dark) .alert-info {
+  background-color: #eff6ff;  /* blue-50 */
+  border-color: #93c5fd;      /* blue-300 */
+}
+
+html:not(.dark) .alert-info .alert-header {
+  color: #1d4ed8;             /* blue-700 */
+}
+
+html:not(.dark) .alert-link-info {
+  color: #1d4ed8;             /* blue-700 */
+}
+
+html:not(.dark) .alert-link-info:hover {
+  color: #1e3a8a;             /* blue-900 */
+}
+
+/* 다크 모드 */
+html.dark .alert-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+html.dark .alert-info .alert-header {
+  color: #93c5fd;
+}
+
+html.dark .alert-link-info {
+  color: #60a5fa;
+}
+
+html.dark .alert-link-info:hover {
+  color: #bfdbfe;
+}
+
+/* 경고 알림 (주황/황색 계열) - 사용량 초과 경고 */
+/* 라이트 모드 */
+html:not(.dark) .alert-warning {
+  background-color: #fffbeb;  /* amber-50 */
+  border-color: #fcd34d;      /* amber-300 */
+}
+
+html:not(.dark) .alert-warning .alert-header {
+  color: #b45309;             /* amber-700 */
+}
+
+html:not(.dark) .alert-link-warning {
+  color: #b45309;             /* amber-700 */
+}
+
+html:not(.dark) .alert-link-warning:hover {
+  color: #78350f;             /* amber-900 */
+}
+
+/* 다크 모드 */
+html.dark .alert-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+html.dark .alert-warning .alert-header {
+  color: #fcd34d;
+}
+
+html.dark .alert-link-warning {
+  color: #fbbf24;
+}
+
+html.dark .alert-link-warning:hover {
+  color: #fde68a;
+}

@@ -1,0 +1,128 @@
+/* NavLinks.css - 네비게이션 링크 Bracket 호버 효과 */
+
+/* ===== Bracket 호버 효과 ===== */
+.nav-link-bracket {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Bracket 공통 스타일 */
+.nav-bracket {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 500;
+  font-size: 1.25em;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+}
+
+/* 왼쪽 괄호 { */
+.nav-bracket-left {
+  left: -8px;
+}
+
+/* 오른쪽 괄호 } */
+.nav-bracket-right {
+  right: -8px;
+}
+
+/* 호버 시 괄호 나타남 */
+.nav-link-bracket:hover .nav-bracket {
+  opacity: 1;
+}
+
+.nav-link-bracket:hover .nav-bracket-left {
+  left: 4px;
+}
+
+.nav-link-bracket:hover .nav-bracket-right {
+  right: 4px;
+}
+
+/* ===== 그라데이션 배경 효과 ===== */
+.nav-gradient-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 0.375rem;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.15) 0%,
+    rgba(139, 92, 246, 0.15) 50%,
+    rgba(59, 130, 246, 0.15) 100%
+  );
+  filter: blur(0px);
+}
+
+.nav-link-bracket:hover .nav-gradient-bg {
+  opacity: 1;
+}
+
+/* ===== 라이트모드 스타일 ===== */
+html:not(.dark) .nav-bracket {
+  color: #6366f1;
+}
+
+html:not(.dark) .nav-link-bracket:hover {
+  color: #4f46e5;
+}
+
+html:not(.dark) .nav-gradient-bg {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.12) 0%,
+    rgba(139, 92, 246, 0.12) 50%,
+    rgba(59, 130, 246, 0.12) 100%
+  );
+}
+
+/* ===== 다크모드 스타일 ===== */
+html.dark .nav-bracket {
+  color: #818cf8;
+}
+
+html.dark .nav-link-bracket:hover {
+  color: #ffffff;
+}
+
+html.dark .nav-gradient-bg {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.2) 0%,
+    rgba(139, 92, 246, 0.2) 50%,
+    rgba(59, 130, 246, 0.2) 100%
+  );
+}
+
+/* ===== 활성 링크 스타일 ===== */
+.nav-link-active {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 활성 메뉴 괄호 - 항상 표시 */
+.nav-bracket-active {
+  opacity: 1 !important;
+}
+
+.nav-bracket-active.nav-bracket-left {
+  left: 4px !important;
+}
+
+.nav-bracket-active.nav-bracket-right {
+  right: 4px !important;
+}
+
+/* 라이트모드 활성 괄호 색상 */
+html:not(.dark) .nav-bracket-active {
+  color: #6366f1;
+}
+
+/* 다크모드 활성 괄호 색상 */
+html.dark .nav-bracket-active {
+  color: #818cf8;
+}
