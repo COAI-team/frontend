@@ -3,7 +3,7 @@ import {axiosInstance} from '../../server/AxiosConfig';
 import CommentForm from './CommentForm';
 import {getAuth} from '../../utils/auth/token';
 
-export default function CommentItem({comment, onCommentUpdated, isReply = false, isDark, currentUserId}) {
+export default function CommentItem({comment, onCommentUpdated, isReply = false, isDark, currentUserId, onLineClick}) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -409,15 +409,12 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
           </div>
 
           {/* 댓글 내용 */}
-          <p style={{
-            fontSize: isReply ? '0.8125rem' : '0.875rem',
-            lineHeight: '1.6',
-            whiteSpace: 'pre-wrap',
-            marginBottom: '0.5rem',
-            color: isDark ? '#e5e7eb' : '#374151'
-          }}>
-            {comment.content}
-          </p>
+          <CommentContent 
+            content={comment.content}
+            isReply={isReply}
+            isDark={isDark}
+            onLineClick={onLineClick}
+          />
 
           {/* 액션 버튼들 */}
           <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
@@ -539,5 +536,106 @@ export default function CommentItem({comment, onCommentUpdated, isReply = false,
         </div>
       )}
     </div>
+  );
+}
+
+// 댓글 내용에서 라인 참조 처리
+function CommentContent({ content, isReply, isDark, onLineClick }) {
+  const [processedContent, setProcessedContent] = useState([]); // 빈 배열로 초기화
+
+  useEffect(() => {
+    const regex = /\[L(\d+)(?:-(\d+))?\]/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(content)) !== null) {
+      // 일반 텍스트
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: content.substring(lastIndex, match.index)
+        });
+      }
+
+      // 라인 참조
+      const startLine = parseInt(match[1]);
+      const endLine = match[2] ? parseInt(match[2]) : startLine;
+      parts.push({
+        type: 'line',
+        content: match[0],
+        startLine,
+        endLine
+      });
+
+      lastIndex = regex.lastIndex;
+    }
+
+    // 남은 텍스트
+    if (lastIndex < content.length) {
+      parts.push({
+        type: 'text',
+        content: content.substring(lastIndex)
+      });
+    }
+
+    // 라인 참조가 없으면 전체를 텍스트로
+    if (parts.length === 0) {
+      parts.push({
+        type: 'text',
+        content: content
+      });
+    }
+
+    setProcessedContent(parts);
+  }, [content]);
+
+  return (
+    <p style={{
+      fontSize: isReply ? '0.8125rem' : '0.875rem',
+      lineHeight: '1.6',
+      whiteSpace: 'pre-wrap',
+      marginBottom: '0.5rem',
+      color: isDark ? '#e5e7eb' : '#374151'
+    }}>
+      {processedContent.map((part, index) => {
+        if (part.type === 'text') {
+          return <span key={index}>{part.content}</span>;
+        }
+
+        return (
+          <button
+            key={index}
+            onClick={() => onLineClick && onLineClick(part.startLine, part.endLine)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              padding: '0.125rem 0.375rem',
+              margin: '0 0.125rem',
+              borderRadius: '0.25rem',
+              fontSize: '0.75rem',
+              fontFamily: 'monospace',
+              cursor: onLineClick ? 'pointer' : 'default',
+              transition: 'background-color 0.2s',
+              backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(224, 231, 255, 1)',
+              color: isDark ? '#a5b4fc' : '#4f46e5',
+              border: `1px solid ${isDark ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.2)'}`,
+              opacity: onLineClick ? 1 : 0.5
+            }}
+            onMouseEnter={(e) => {
+              if (onLineClick) {
+                e.target.style.backgroundColor = isDark ? 'rgba(99, 102, 241, 0.3)' : 'rgba(199, 210, 254, 1)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(224, 231, 255, 1)';
+            }}
+          >
+            {part.content}
+          </button>
+        );
+      })}
+    </p>
   );
 }

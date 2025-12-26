@@ -582,6 +582,7 @@ const CodeboardDetail = () => {
               currentUserNickname={currentUserNickname}
               isDark={isDark}
               onCommentCountChange={handleCommentCountChange}
+              onLineClick={handleLineClick}
             />
           </div>
         </div>
