@@ -56,9 +56,15 @@ function AdminPageSideBar() {
   }, [theme, isActive]);
 
   // aside 클래스 미리 계산
-  const asideClass = useMemo(() =>
-      `w-64 border-r ${theme === "light" ? "border-black bg-white" : "border-gray-700 bg-gray-900"}`,
-    [theme]);
+  const asideClass = useMemo(
+    () =>
+      `w-64 border-r ${
+        theme === "light"
+          ? "border-slate-200/70 bg-white"
+          : "border-slate-700/60 bg-gray-900"
+      }`,
+    [theme]
+  );
 
   // 메뉴 항목들 미리 처리
   const renderedMenu = useMemo(() =>

@@ -1,9 +1,10 @@
-import axios from "axios";
-import { ChevronsRightLeft } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axiosInstance from "../../server/AxiosConfig";
+import { useTheme } from "../../context/theme/useTheme";
 
 const AdminUserDetailModal = ({ userId, onClose }) => {
+  const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -295,199 +296,217 @@ const AdminUserDetailModal = ({ userId, onClose }) => {
 
 export default AdminUserDetailModal;
 
-const styles = {
-  overlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 999,
-  },
-  modal: {
-    backgroundColor: "#1f2430",
-    color: "#fff",
-    padding: "24px",
-    borderRadius: "12px",
-    width: "420px",
-    boxShadow: "0 6px 15px rgba(0,0,0,0.5)",
-  },
-  title: {
-    fontSize: "20px",
-    fontWeight: "bold",
-    marginBottom: "15px",
-    textAlign: "center",
-  },
-  infoBox: {
-    backgroundColor: "#2a2f3d",
-    borderRadius: "10px",
-    padding: "15px",
-    lineHeight: "1.6",
-    fontSize: "14px",
-  },
-  idRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "12px",
-    flexWrap: "wrap",
-  },
-  idText: {
-    margin: 0,
-  },
-  banButton: {
-    backgroundColor: "#ff7043",
-    border: "none",
-    color: "#fff",
-    padding: "6px 10px",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontSize: "12px",
-    fontWeight: "bold",
-  },
-  divider: {
-    border: "0.5px solid rgba(255,255,255,0.1)",
-    margin: "10px 0",
-  },
-  subscriptionRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "10px",
-  },
-  checkBtn: {
-    backgroundColor: "#43a047",
-    border: "none",
-    color: "#fff",
-    padding: "8px 12px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "13px",
-    height: "fit-content",
-    alignSelf: "center",
-    whiteSpace: "nowrap",
-    fontWeight: "600",
-  },
-  statusText: {
-    marginTop: "10px",
-    textAlign: "center",
-    color: "#90caf9",
-    fontWeight: "500",
-  },
-  closeBtn: {
-    marginTop: "18px",
-    backgroundColor: "#1976d2",
-    color: "#fff",
-    border: "none",
-    padding: "10px 0",
-    borderRadius: "8px",
-    cursor: "pointer",
-    width: "100%",
-    fontSize: "15px",
-    fontWeight: "bold",
-  },
-  loading: {
-    color: "#fff",
-    textAlign: "center",
-    marginTop: "30px",
-  },
-  error: {
-    color: "#ff5252",
-    textAlign: "center",
-    marginTop: "30px",
-  },
-  subscriptionModalOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-    padding: "0 16px",
-  },
-  subscriptionModal: {
-    width: "100%",
-    maxWidth: "420px",
-    backgroundColor: "#1f2430",
-    border: "1px solid #3c4458",
-    borderRadius: "12px",
-    boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
-  },
-  subscriptionModalHeader: {
-    padding: "14px 18px",
-    borderBottom: "1px solid #2f3545",
-  },
-  subscriptionModalTitle: {
-    margin: 0,
-    fontSize: "17px",
-    fontWeight: 700,
-    color: "#fff",
-  },
-  subscriptionModalBody: {
-    padding: "16px 18px",
-  },
-  subscriptionModalMessage: {
-    margin: 0,
-    fontSize: "14px",
-    lineHeight: 1.5,
-  },
-  subscriptionModalFooter: {
-    display: "flex",
-    justifyContent: "flex-end",
-    padding: "12px 18px",
-    borderTop: "1px solid #2f3545",
-  },
-  subscriptionModalButton: {
-    backgroundColor: "#1976d2",
-    color: "#fff",
-    border: "none",
-    padding: "8px 14px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "13px",
-    fontWeight: 600,
-  },
-  banModal: {
-    width: "100%",
-    maxWidth: "420px",
-    backgroundColor: "#1f2430",
-    border: "1px solid #3c4458",
-    borderRadius: "12px",
-    boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
-  },
-  banModalFooter: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "10px",
-    padding: "12px 18px",
-    borderTop: "1px solid #2f3545",
-  },
-  cancelButton: {
-    backgroundColor: "#2f3545",
-    color: "#fff",
-    border: "none",
-    padding: "8px 14px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "13px",
-    fontWeight: 600,
-  },
-  banButtonConfirm: {
-    backgroundColor: "#ff5252",
-    color: "#fff",
-    border: "none",
-    padding: "8px 14px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "13px",
-    fontWeight: 600,
-  },
+const getStyles = (theme) => {
+  const isLight = theme === "light";
+  return {
+    overlay: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: isLight ? "rgba(15, 23, 42, 0.35)" : "rgba(0,0,0,0.6)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    },
+    modal: {
+      backgroundColor: isLight ? "#ffffff" : "#1f2430",
+      color: isLight ? "#0f172a" : "#fff",
+      padding: "24px",
+      borderRadius: "12px",
+      width: "420px",
+      boxShadow: isLight
+        ? "0 8px 24px rgba(15, 23, 42, 0.12)"
+        : "0 6px 15px rgba(0,0,0,0.5)",
+      border: isLight ? "1px solid #e2e8f0" : "1px solid transparent",
+    },
+    title: {
+      fontSize: "20px",
+      fontWeight: "bold",
+      marginBottom: "15px",
+      textAlign: "center",
+      color: isLight ? "#0f172a" : "#fff",
+    },
+    infoBox: {
+      backgroundColor: isLight ? "#f8fafc" : "#2a2f3d",
+      borderRadius: "10px",
+      padding: "15px",
+      lineHeight: "1.6",
+      fontSize: "14px",
+      color: isLight ? "#0f172a" : "#e5e7eb",
+      border: isLight ? "1px solid #e2e8f0" : "1px solid transparent",
+    },
+    idRow: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: "12px",
+      flexWrap: "wrap",
+    },
+    idText: {
+      margin: 0,
+    },
+    banButton: {
+      backgroundColor: "#ff7043",
+      border: "none",
+      color: "#fff",
+      padding: "6px 10px",
+      borderRadius: "6px",
+      cursor: "pointer",
+      fontSize: "12px",
+      fontWeight: "bold",
+    },
+    divider: {
+      border: isLight
+        ? "0.5px solid rgba(15, 23, 42, 0.12)"
+        : "0.5px solid rgba(255,255,255,0.1)",
+      margin: "10px 0",
+    },
+    subscriptionRow: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: "10px",
+    },
+    checkBtn: {
+      backgroundColor: "#43a047",
+      border: "none",
+      color: "#fff",
+      padding: "8px 12px",
+      borderRadius: "8px",
+      cursor: "pointer",
+      fontSize: "13px",
+      height: "fit-content",
+      alignSelf: "center",
+      whiteSpace: "nowrap",
+      fontWeight: "600",
+    },
+    statusText: {
+      marginTop: "10px",
+      textAlign: "center",
+      color: isLight ? "#2563eb" : "#90caf9",
+      fontWeight: "500",
+    },
+    closeBtn: {
+      marginTop: "18px",
+      backgroundColor: "#1976d2",
+      color: "#fff",
+      border: "none",
+      padding: "10px 0",
+      borderRadius: "8px",
+      cursor: "pointer",
+      width: "100%",
+      fontSize: "15px",
+      fontWeight: "bold",
+    },
+    loading: {
+      color: isLight ? "#0f172a" : "#fff",
+      textAlign: "center",
+      marginTop: "30px",
+    },
+    error: {
+      color: "#ff5252",
+      textAlign: "center",
+      marginTop: "30px",
+    },
+    subscriptionModalOverlay: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: isLight
+        ? "rgba(15, 23, 42, 0.35)"
+        : "rgba(0,0,0,0.6)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000,
+      padding: "0 16px",
+    },
+    subscriptionModal: {
+      width: "100%",
+      maxWidth: "420px",
+      backgroundColor: isLight ? "#ffffff" : "#1f2430",
+      border: `1px solid ${isLight ? "#e2e8f0" : "#3c4458"}`,
+      borderRadius: "12px",
+      boxShadow: isLight
+        ? "0 14px 32px rgba(15, 23, 42, 0.15)"
+        : "0 12px 32px rgba(0,0,0,0.35)",
+    },
+    subscriptionModalHeader: {
+      padding: "14px 18px",
+      borderBottom: `1px solid ${isLight ? "#e2e8f0" : "#2f3545"}`,
+    },
+    subscriptionModalTitle: {
+      margin: 0,
+      fontSize: "17px",
+      fontWeight: 700,
+      color: isLight ? "#0f172a" : "#fff",
+    },
+    subscriptionModalBody: {
+      padding: "16px 18px",
+      color: isLight ? "#0f172a" : "#e5e7eb",
+    },
+    subscriptionModalMessage: {
+      margin: 0,
+      fontSize: "14px",
+      lineHeight: 1.5,
+    },
+    subscriptionModalFooter: {
+      display: "flex",
+      justifyContent: "flex-end",
+      padding: "12px 18px",
+      borderTop: `1px solid ${isLight ? "#e2e8f0" : "#2f3545"}`,
+    },
+    subscriptionModalButton: {
+      backgroundColor: "#1976d2",
+      color: "#fff",
+      border: "none",
+      padding: "8px 14px",
+      borderRadius: "8px",
+      cursor: "pointer",
+      fontSize: "13px",
+      fontWeight: 600,
+    },
+    banModal: {
+      width: "100%",
+      maxWidth: "420px",
+      backgroundColor: isLight ? "#ffffff" : "#1f2430",
+      border: `1px solid ${isLight ? "#e2e8f0" : "#3c4458"}`,
+      borderRadius: "12px",
+      boxShadow: isLight
+        ? "0 14px 32px rgba(15, 23, 42, 0.15)"
+        : "0 12px 32px rgba(0,0,0,0.35)",
+    },
+    banModalFooter: {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: "10px",
+      padding: "12px 18px",
+      borderTop: `1px solid ${isLight ? "#e2e8f0" : "#2f3545"}`,
+    },
+    cancelButton: {
+      backgroundColor: isLight ? "#e2e8f0" : "#2f3545",
+      color: isLight ? "#0f172a" : "#fff",
+      border: "none",
+      padding: "8px 14px",
+      borderRadius: "8px",
+      cursor: "pointer",
+      fontSize: "13px",
+      fontWeight: 600,
+    },
+    banButtonConfirm: {
+      backgroundColor: "#ff5252",
+      color: "#fff",
+      border: "none",
+      padding: "8px 14px",
+      borderRadius: "8px",
+      cursor: "pointer",
+      fontSize: "13px",
+      fontWeight: 600,
+    },
+  };
 };
