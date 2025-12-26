@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchPointInfo } from "../../service/mypage/MyPageApi";
 import { cancelPayment, fetchPaymentHistory } from "../../service/payment/PaymentApi";
@@ -9,7 +9,7 @@ import "./css/billing.css";
 const statusLabel = {
   DONE: "결제 완료",
   READY: "진행중",
-  CANCELED: "환불 완료",
+  CANCELED: "취소 완료",
   ERROR: "결제 오류",
 };
 
@@ -65,7 +65,6 @@ function extractPointHistory(resData) {
   }
 
   if (Array.isArray(resData)) return resData;
-
   return [];
 }
 
@@ -114,7 +113,7 @@ function isWithinDays(dateInput, days) {
   if (!base) return false;
   const now = Date.now();
   const diffMs = now - base.getTime();
-  if (diffMs < 0) return false; // 미래 시간은 환불 불가
+  if (diffMs < 0) return false; // 미래 시간은 취소 불가
   return diffMs <= days * 24 * 60 * 60 * 1000;
 }
 
@@ -151,6 +150,15 @@ export default function BillingPage() {
   const [showPointUse, setShowPointUse] = useState(true);
   const [showPointEarn, setShowPointEarn] = useState(true);
   const [pointOrderFilter, setPointOrderFilter] = useState("");
+  const [reasonModal, setReasonModal] = useState({ open: false, row: null });
+  const [reasonText, setReasonText] = useState("");
+  const [reasonError, setReasonError] = useState("");
+  const MAX_REASON = 200;
+  const [isDark, setIsDark] = useState(
+    () =>
+      typeof document !== "undefined" &&
+      document.documentElement.classList.contains("dark")
+  );
   const isAuthed = !!auth?.accessToken;
 
   // 로그인 상태 확인 (hydration 이후에만)
@@ -161,7 +169,7 @@ export default function BillingPage() {
     }
   }, [hydrated, isAuthed, navigate]);
 
-  // 결제/환불/포인트 이력 조회
+  // 결제/취소/포인트 이력 조회
   useEffect(() => {
     if (!hydrated || !isAuthed) return;
 
@@ -194,7 +202,7 @@ export default function BillingPage() {
               navigate("/signin", { replace: true, state: { redirect: "/mypage/billing" } });
               return;
             }
-            setError("포인트 내역을 불러오지 못했습니다.");
+            setError("포인트 이력을 불러오지 못했습니다.");
             setPointHistory([]);
             setPointBalance(0);
             setLoading(false);
@@ -218,6 +226,15 @@ export default function BillingPage() {
 
     fetchHistory();
   }, [hydrated, isAuthed, startDate, endDate, logout, navigate, tab]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const sortedHistory = useMemo(() => sortByLatest(history, getTransactionDate), [history]);
 
@@ -319,7 +336,6 @@ export default function BillingPage() {
     return sum + (direction === "적립" ? Math.abs(amount) : 0);
   }, 0);
 
-  // 페이지네이션
   const PAGE_SIZE = 10;
 
   const historyTotalPages = Math.max(1, Math.ceil(filteredHistory.length / PAGE_SIZE));
@@ -366,24 +382,30 @@ export default function BillingPage() {
   }, [history]);
 
   const handleRefund = async (row) => {
+    const planCode = (row?.planCode || row?.orderName || '').toUpperCase();
+    const highestTier = (currentPlan || '').toUpperCase();
+    if (planCode === 'BASIC' && highestTier === 'PRO') {
+      alert('PRO 구독이 활성화되어 있습니다. PRO를 먼저 환불해 주세요.');
+      return;
+    }
+    const statusUpper = (row?.status || "").toUpperCase();
+    const endDate = parseDateStrict(row?.subscriptionEndAt || row?.approvedAt || row?.requestedAt);
+    if (statusUpper !== "DONE") {
+      alert("결제 완료 상태가 아니어서 환불할 수 없습니다.");
+      return;
+    }
+    if (endDate && endDate < new Date()) {
+      alert("만료된 구독은 환불할 수 없습니다.");
+      return;
+    }
     if (!row?.paymentKey || Number(row.amount || 0) === 0) {
       alert("포인트 전액 결제 건은 환불할 수 없습니다.");
       return;
     }
 
-    const reason = prompt("환불 사유를 입력해주세요", "사용 취소")?.trim() || "";
-    if (!reason) return;
-
-    try {
-      await cancelPayment({ paymentKey: row.paymentKey, cancelReason: reason });
-      alert("환불 요청이 처리되었습니다.");
-      const res = await fetchPaymentHistory({ from: startDate, to: endDate });
-      setHistory(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      const message =
-        err?.response?.data?.message || "환불 요청 처리 중 문제가 발생했습니다.";
-      alert(message);
-    }
+    setReasonText("사용 취소");
+    setReasonError("");
+    setReasonModal({ open: true, row });
   };
 
   return (
@@ -391,11 +413,11 @@ export default function BillingPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-1 text-main">결제 / 구독 관리</h1>
-          <p className="text-sm text-sub">현재 구독 상태와 결제·환불 내역을 확인하세요.</p>
+          <p className="text-sm text-sub">현재 구독 상태와 결제·취소 이력을 확인하세요.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="px-3 py-2 rounded-md text-sm font-semibold billing-current-plan text-main">
-            현재 요금제: <span className="font-bold text-main">{currentPlan}</span>
+            현재 요금제 <span className="font-bold text-main">{currentPlan}</span>
           </div>
           <Link
             to="/pricing"
@@ -414,7 +436,7 @@ export default function BillingPage() {
             }`}
             onClick={() => setTab("history")}
           >
-            결제/환불 내역
+            결제/취소 이력
           </button>
           <button
             className={`pb-2 px-1 font-semibold ${
@@ -422,7 +444,7 @@ export default function BillingPage() {
             }`}
             onClick={() => setTab("point")}
           >
-            포인트 내역
+            포인트 이력
           </button>
         </div>
 
@@ -463,7 +485,7 @@ export default function BillingPage() {
                   checked={showRefunds}
                   onChange={(e) => setShowRefunds(e.target.checked)}
                 />
-                환불 보기
+                취소 보기
               </label>
               <label className="flex items-center gap-1 cursor-pointer select-none">
                 <input
@@ -505,7 +527,7 @@ export default function BillingPage() {
               <span className="text-sub">총 {filteredHistory.length}건</span>
               <div className="text-right">
                 <span className="mr-4 text-sub">총 결제 금액: {formatMoney(filteredPaymentSum)}</span>
-                <span className="text-sub">총 환불 금액: {formatMoney(filteredRefundSum)}</span>
+                <span className="text-sub">총 취소 금액: {formatMoney(filteredRefundSum)}</span>
               </div>
             </div>
             <Pagination
@@ -594,9 +616,9 @@ export default function BillingPage() {
             <div className="flex items-center justify-between text-sm text-main mt-3">
               <span className="text-sub">총 {filteredPointHistory.length}건</span>
               <div className="text-right space-x-4">
-                <span className="text-sub">현재 보유 포인트: {formatPoint(pointBalance)}</span>
-                <span className="text-sub">총 사용 포인트: {formatPoint(filteredTotalPointUse)}</span>
-                <span className="text-sub">총 적립 포인트: {formatPoint(filteredTotalPointEarn)}</span>
+                <span className="text-sub">현재 보유 포인트 {formatPoint(pointBalance)}</span>
+                <span className="text-sub">총 사용 포인트 {formatPoint(filteredTotalPointUse)}</span>
+                <span className="text-sub">총 적립 포인트 {formatPoint(filteredTotalPointEarn)}</span>
               </div>
             </div>
             <Pagination
@@ -612,14 +634,104 @@ export default function BillingPage() {
         )}
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
       </div>
+      {reasonModal.open && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div
+            className={`rounded-lg shadow-2xl w-full max-w-md p-6 space-y-4 ${
+              isDark
+                ? "bg-slate-900 text-gray-100 border border-slate-700"
+                : "bg-white text-gray-900 border border-gray-200"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">환불 사유 입력</h3>
+              <button
+                type="button"
+                className={`text-sm ${
+                  isDark
+                    ? "text-gray-300 hover:text-gray-100"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setReasonModal({ open: false, row: null })}
+              >
+                닫기
+              </button>
+            </div>
+            <div className="text-sm text-gray-700 dark:text-gray-200">
+              최대 {MAX_REASON}자까지 입력할 수 있습니다.
+            </div>
+            <textarea
+              className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                isDark
+                  ? "bg-slate-800 text-gray-100 border-slate-700 placeholder-gray-500"
+                  : "bg-white text-gray-900 border-gray-300 placeholder-gray-400"
+              }`}
+              rows={3}
+              maxLength={MAX_REASON}
+              value={reasonText}
+              onChange={(e) => {
+                setReasonText(e.target.value);
+                if (e.target.value.trim().length > 0) setReasonError("");
+              }}
+              placeholder="예: 사용 취소, 잘못 결제 등"
+            />
+            <div
+              className={`flex items-center justify-between text-xs ${
+                isDark ? "text-gray-300" : "text-gray-500"
+              }`}
+            >
+              <span className={isDark ? "text-red-400" : "text-red-600"}>{reasonError}</span>
+              <span>{reasonText.length}/{MAX_REASON}</span>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className={`px-4 py-2 rounded-md text-sm ${
+                  isDark
+                    ? "border border-slate-700 bg-slate-800 text-gray-100 hover:border-slate-500"
+                    : "border border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                }`}
+                onClick={() => setReasonModal({ open: false, row: null })}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 rounded-md bg-rose-500 text-white hover:bg-rose-600 text-sm"
+                onClick={async () => {
+                  const reason = reasonText.trim();
+                  if (!reason) {
+                    setReasonError("환불 사유를 입력해 주세요.");
+                    return;
+                  }
+                  try {
+                    await cancelPayment({ paymentKey: reasonModal.row.paymentKey, cancelReason: reason });
+                    alert("환불 요청이 처리되었습니다.");
+                    const res = await fetchPaymentHistory({ from: startDate, to: endDate });
+                    setHistory(Array.isArray(res.data) ? res.data : []);
+                    setReasonModal({ open: false, row: null });
+                    setReasonText("");
+                  } catch (err) {
+                    const message =
+                      err?.response?.data?.message || "환불 요청 처리 중 문제가 발생했습니다.";
+                    setReasonError(message);
+                  }
+                }}
+              >
+                환불 요청
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function HistoryTable({ rows, onRefund, onOrderLink, numberMap, rowKeyFn }) {
-  const emptyText = "내역이 없습니다.";
+  const emptyText = "이력이 없습니다.";
   const dateLabel1 = "구독/결제일";
-  const dateLabel2 = "만료/해지일";
+  const dateLabel2 = "만료/취소일";
 
   return (
     <div className="border rounded-2xl shadow-sm overflow-hidden billing-panel">
@@ -628,7 +740,7 @@ function HistoryTable({ rows, onRefund, onOrderLink, numberMap, rowKeyFn }) {
           <tr>
             <th className="px-4 py-3 text-center">#</th>
             <th className="px-4 py-3 text-center">주문번호</th>
-            <th className="px-4 py-3 text-center">구독권 종류</th>
+            <th className="px-4 py-3 text-center">구독/종류</th>
             <th className="px-4 py-3 text-center">금액</th>
             <th className="px-4 py-3 text-center">{dateLabel1}</th>
             <th className="px-4 py-3 text-center">{dateLabel2}</th>
@@ -664,13 +776,13 @@ function HistoryTable({ rows, onRefund, onOrderLink, numberMap, rowKeyFn }) {
               isSubscriptionActive;
 
             let refundLabel = "환불 불가";
-            let refundReason = "환불을 진행할 수 없는 건입니다.";
+            let refundReason = "환불이 진행되지 않는 건입니다.";
             if (isCanceled) {
               refundLabel = "환불됨";
               refundReason = "이미 환불 완료된 건입니다.";
             } else if (status === "ERROR") {
               refundLabel = "결제 오류";
-              refundReason = "결제 오류로 환불이 불가능합니다.";
+              refundReason = "결제 오류로 환불만 불가합니다.";
             } else if (canRefund) {
               refundLabel = "환불 가능";
               refundReason = "결제 완료 건으로 환불 요청이 가능합니다.";
@@ -679,14 +791,14 @@ function HistoryTable({ rows, onRefund, onOrderLink, numberMap, rowKeyFn }) {
               refundReason = "만료된 구독은 환불할 수 없습니다.";
             } else if (status === "DONE" && !isWithinRefund) {
               refundLabel = "기간 만료";
-              refundReason = "환불 가능 기간(7일)이 지났습니다.";
+              refundReason = "환불 가능기간(7일)이 지났습니다.";
             } else if (isPointOnly) {
-              refundReason = "포인트만 사용된 결제는 환불을 지원하지 않습니다.";
+              refundReason = "포인트만 사용한 결제는 환불을 지원하지 않습니다.";
             } else if (!hasPaymentKey) {
               refundReason = "결제 키가 없어 환불할 수 없습니다.";
               refundLabel = "결제 오류";
             } else if (status !== "DONE") {
-              refundReason = "진행 중/실패/만료 등 결제 완료가 아닌 상태입니다.";
+              refundReason = "진행 실패/만료 등 결제 완료가 아닌 상태입니다.";
             }
 
             const badgeClass =
@@ -752,7 +864,7 @@ function HistoryTable({ rows, onRefund, onOrderLink, numberMap, rowKeyFn }) {
 }
 
 function PointTable({ rows, numberMap, rowKeyFn }) {
-  const emptyText = "포인트 내역이 없습니다.";
+  const emptyText = "포인트 이력이 없습니다.";
 
   const formatDescription = (row) => {
     const direction = getPointDirection(row);
@@ -795,7 +907,14 @@ function PointTable({ rows, numberMap, rowKeyFn }) {
                 <td className="px-4 py-3 text-center">{getPointDirection(row)}</td>
                 <td className="px-4 py-3 text-center">{formatPointChange(row.changeAmount)}</td>
                 <td className="px-4 py-3 text-center">{formatDate(row.createdAt)}</td>
-                <td className="px-4 py-3 text-center">{formatDescription(row)}</td>
+                <td className="px-4 py-3 text-center">
+                  <span
+                    className="inline-block max-w-[180px] truncate align-middle"
+                    title={formatDescription(row)}
+                  >
+                    {formatDescription(row)}
+                  </span>
+                </td>
               </tr>
             );
           })}

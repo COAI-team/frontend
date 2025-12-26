@@ -4,6 +4,7 @@ import { LoginProviderPropTypes } from "../../utils/propTypes";
 import { getUserInfo } from "../../service/user/User";
 import { getAuth, saveAuth, removeAuth } from "../../utils/auth/token";
 import { normalizeUser } from "../../utils/normalizeUser";
+import axiosInstance from "../../server/AxiosConfig";
 
 export default function LoginProvider({ children }) {
     const [auth, setAuth] = useState(null);
@@ -67,6 +68,15 @@ export default function LoginProvider({ children }) {
                 setHydrated(true);
             });
     }, []);
+
+    // accessToken 변경 시 Axios 기본 Authorization 헤더도 동기화
+    useEffect(() => {
+        if (auth?.accessToken) {
+            axiosInstance.defaults.headers.common.Authorization = `Bearer ${auth.accessToken}`;
+        } else {
+            delete axiosInstance.defaults.headers.common.Authorization;
+        }
+    }, [auth?.accessToken]);
 
     // ===============================================================
     // 로그인 처리
