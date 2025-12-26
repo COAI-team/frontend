@@ -306,45 +306,45 @@ const CodeboardList = () => {
 
                     <p className="post-preview">{getPreviewText(post.codeboardSummary || post.codeboardContent)}</p>
 
-                    {(post.codeboardTag || post.aiScore != null) && (
-                      <div className="post-tags">
-                        {post.codeboardTag && (Array.isArray(post.codeboardTag) ? post.codeboardTag : post.codeboardTag.split(',')).map((tag, index) => (
-                          <span 
-                            key={index} 
-                            className="post-tag"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTagClick(tag);
-                            }}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            #{tag.trim()}
-                          </span>
-                        ))}
-                        
-                        {post.aiScore != null && (
-                          <span 
-                            className="post-tag"
-                            style={{
-                              backgroundColor: post.aiScore >= 50 
-                                ? 'rgba(76, 175, 80, 0.15)' 
-                                : 'rgba(255, 82, 82, 0.15)',
-                              color: post.aiScore >= 50 
-                                ? '#4caf50' 
-                                : '#FF5E5B',
-                              cursor: 'pointer'
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                              handleSmellTagClick(post.aiScore);
-                            }}
-                          >
-                            {getSmellKeyword(post.aiScore).text.replace(/🌸|🍃|🤧|🤢|🤮/g, '').trim()}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    {(post.tags || post.aiScore != null) && (
+                    <div className="card-tags">
+                      {post.tags && (Array.isArray(post.tags) ? post.tags : post.tags.split(',')).slice(0, 3).map((tag, index) => (
+                        <span 
+                          key={index} 
+                          className="post-tag"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTagClick(tag);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          #{tag.trim()}
+                        </span>
+                      ))}
+                      
+                      {post.aiScore != null && (
+                        <span 
+                          className="post-tag"
+                          style={{
+                            backgroundColor: post.aiScore >= 50 
+                              ? 'rgba(76, 175, 80, 0.15)' 
+                              : 'rgba(255, 82, 82, 0.15)',
+                            color: post.aiScore >= 50 
+                              ? '#4caf50' 
+                              : '#FF5E5B',
+                            cursor: 'pointer'
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleSmellTagClick(post.aiScore);
+                          }}
+                        >
+                          {getSmellKeyword(post.aiScore).text.replace(/🌸|🍃|🤧|🤢|🤮/g, '').trim()}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                     <div className="post-footer">
                       <div className="post-user-info">
@@ -457,45 +457,45 @@ const CodeboardList = () => {
                     <h3 className="card-title">{post.codeboardTitle}</h3>
                     <p className="card-preview">{getPreviewText(post.codeboardSummary || post.codeboardContent)}</p>
 
-                    {(post.codeboardTag || post.aiScore != null) && (
-                      <div className="card-tags">
-                        {post.codeboardTag && (Array.isArray(post.codeboardTag) ? post.codeboardTag : post.codeboardTag.split(',')).slice(0, 3).map((tag, index) => (
-                          <span 
-                            key={index} 
-                            className="post-tag"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTagClick(tag);
-                            }}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            #{tag.trim()}
-                          </span>
-                        ))}
-                        
-                        {post.aiScore != null && (
-                          <span 
-                            className="post-tag"
-                            style={{
-                              backgroundColor: post.aiScore >= 50 
-                                ? 'rgba(76, 175, 80, 0.15)' 
-                                : 'rgba(255, 82, 82, 0.15)',
-                              color: post.aiScore >= 50 
-                                ? '#4caf50' 
-                                : '#FF5E5B',
-                              cursor: 'pointer'
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                              handleSmellTagClick(post.aiScore);
-                            }}
-                          >
-                            {getSmellKeyword(post.aiScore).text.replace(/🌸|🍃|🤧|🤢|🤮/g, '').trim()}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    {(post.tags || post.aiScore != null) && (
+                    <div className="post-tags">
+                      {post.tags && (Array.isArray(post.tags) ? post.tags : post.tags.split(',')).map((tag, index) => (
+                        <span 
+                          key={index} 
+                          className="post-tag"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTagClick(tag);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          #{tag.trim()}
+                        </span>
+                      ))}
+                      
+                      {post.aiScore != null && (
+                        <span 
+                          className="post-tag"
+                          style={{
+                            backgroundColor: post.aiScore >= 50 
+                              ? 'rgba(76, 175, 80, 0.15)' 
+                              : 'rgba(255, 82, 82, 0.15)',
+                            color: post.aiScore >= 50 
+                              ? '#4caf50' 
+                              : '#FF5E5B',
+                            cursor: 'pointer'
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleSmellTagClick(post.aiScore);
+                          }}
+                        >
+                          {getSmellKeyword(post.aiScore).text.replace(/🌸|🍃|🤧|🤢|🤮/g, '').trim()}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                     <div className="card-stats">
                       <span className="stat-item">
