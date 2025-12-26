@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { axiosInstance } from "../../server/AxiosConfig";
 import { getAuth } from "../../utils/auth/token";
-import hljs from 'highlight.js';
 import { MessageCircle, Share2, AlertCircle } from "lucide-react";
 import "../../styles/CodeboardDetail.css";
 import CommentSection from '../../components/comment/CommentSection';
@@ -12,6 +11,8 @@ import { processCodeBlocks, applyHighlighting } from '../../utils/codeBlockUtils
 import LikeButton from '../../components/button/LikeButton';
 import AlertModal from "../../components/modal/AlertModal";
 import {useAlert} from "../../hooks/common/useAlert";
+import CodeCopy from '../../components/editor/CodeCopy';
+import LineCopy from '../../components/editor/LineCopy';
 
 const CodeboardDetail = () => {
   const {alert, showAlert, closeAlert} = useAlert();
@@ -44,6 +45,21 @@ const CodeboardDetail = () => {
       setCurrentUser(auth.user);
     }
   }, []);
+
+  // 코드 복사 ref
+  const codeCopyRef = useRef(null);
+
+  const handleLineClick = (startLine, endLine) => {
+    console.log('handleLineClick 호출됨:', startLine, endLine);
+    console.log('codeCopyRef.current:', codeCopyRef.current);
+    
+    if (codeCopyRef.current) {
+      console.log('highlightLines 함수 호출 시도');
+      codeCopyRef.current.highlightLines(startLine, endLine);
+    } else {
+      console.log('codeCopyRef.current가 null입니다');
+    }
+  };
 
   // highlight.js 테마 관리
   useEffect(() => {
@@ -268,6 +284,7 @@ const CodeboardDetail = () => {
                 analysisResult={analysisResult}
                 fileContent={fileContent}
                 isDark={isDark}
+                codeCopyRef={codeCopyRef}
               />
             ) : (
               <div style={{
@@ -452,6 +469,7 @@ const CodeboardDetail = () => {
             <ContentRenderer 
               content={processedContent || getRenderedContent(board.codeboardContent)}
               isDark={isDark}
+              onLineClick={handleLineClick}
             />
 
             {board.tags && board.tags.length > 0 && (
@@ -583,7 +601,7 @@ const CodeboardDetail = () => {
   );
 };
 
-const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
+const AnalysisPanel = ({ analysisResult, fileContent, isDark, codeCopyRef }) => {
   const { alert, showAlert, closeAlert } = useAlert();
   const codeViewerRef = useRef(null);
   
@@ -598,7 +616,6 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
     return data || [];
   };
 
-  // 파일 확장자로 언어 감지
   const detectLanguage = (filePath) => {
     if (!filePath) return 'plaintext';
     const ext = filePath.split('.').pop().toLowerCase();
@@ -623,20 +640,13 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
     return langMap[ext] || 'plaintext';
   };
 
-  // 코드 하이라이팅 적용
-  useEffect(() => {
-    if (!codeViewerRef.current || !fileContent) return;
-
-    const timer = setTimeout(() => {
-      codeViewerRef.current.querySelectorAll('pre code').forEach((block) => {
-        block.classList.remove('hljs');
-        delete block.dataset.highlighted;
-        hljs.highlightElement(block);
-      });
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [fileContent, isDark]);
+  const handleCopyNotification = (message) => {
+    showAlert({
+      type: 'success',
+      title: '복사 완료',
+      message: message
+    });
+  };
 
   const language = detectLanguage(analysisResult.filePath);
 
@@ -654,7 +664,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
         borderRadius: '0.5rem',
         overflow: 'hidden',
         backgroundColor: isDark ? '#1f1f1f' : '#ffffff'
-      }} ref={codeViewerRef}>
+      }}>
         <div style={{
           padding: '0.5rem 1rem',
           borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
@@ -680,12 +690,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
           <button
             onClick={() => {
               navigator.clipboard.writeText(fileContent);
-
-              showAlert({
-                type: 'success',
-                title: '복사 완료',
-                message: '코드가 클립보드에 복사되었습니다.'
-              });
+              handleCopyNotification('전체 코드가 클립보드에 복사되었습니다.');
             }}
             style={{
               display: 'flex',
@@ -700,26 +705,21 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
               cursor: 'pointer'
             }}
           >
-            복사
+            전체 복사
           </button>
         </div>
         
-        <div style={{ maxHeight: '500px', overflow: 'auto' }}>
-          <pre style={{ margin: 0, backgroundColor: isDark ? '#1e1e1e' : '#f6f8fa' }}>
-            <code className={`language-${language}`} style={{
-              display: 'block',
-              padding: '1rem',
-              fontSize: '0.875rem',
-              lineHeight: '1.5',
-              fontFamily: 'monospace'
-            }}>
-              {fileContent}
-            </code>
-          </pre>
+        <div style={{ maxHeight: '500px', overflow: 'auto' }} ref={codeViewerRef}>
+          <CodeCopy 
+            ref={codeCopyRef}
+            code={fileContent}
+            language={language}
+            onCopy={handleCopyNotification}
+          />
         </div>
       </div>
 
-      {/* 분석 결과 */}
+      {/* 분석 결과 - 기존 코드 유지 */}
       <div style={{
         border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
@@ -899,21 +899,124 @@ const ScoreBadge = ({ score, isDark }) => {
 };
 
 // ContentRenderer 컴포넌트 - analysisResult 변경에 영향받지 않음
-const ContentRenderer = React.memo(({ content, isDark }) => {
+const ContentRenderer = React.memo(({ content, isDark, onLineClick }) => {
   const innerRef = useRef(null);
+  const [processedContent, setProcessedContent] = useState('');
 
   useEffect(() => {
-    if (!innerRef.current || !content) return;
+    if (!content) return;
+
+    // HTML 파싱
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/html');
+    
+    // 텍스트 노드에서 [L15-20] 패턴 찾아서 처리
+    const processTextNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent;
+        const regex = /\[L(\d+)(?:-(\d+))?\]/g;
+        
+        if (regex.test(text)) {
+          const fragment = document.createDocumentFragment();
+          let lastIndex = 0;
+          const matches = [...text.matchAll(/\[L(\d+)(?:-(\d+))?\]/g)];
+          
+          matches.forEach(match => {
+            // 일반 텍스트 추가
+            if (match.index > lastIndex) {
+              fragment.appendChild(
+                document.createTextNode(text.substring(lastIndex, match.index))
+              );
+            }
+            
+            // 라인 참조 버튼 생성
+            const startLine = parseInt(match[1]);
+            const endLine = match[2] ? parseInt(match[2]) : startLine;
+            
+            const button = document.createElement('button');
+            button.textContent = match[0];
+            button.className = 'line-reference-button';
+            button.dataset.startLine = startLine;
+            button.dataset.endLine = endLine;
+            button.style.cssText = `
+              display: inline-flex;
+              align-items: center;
+              gap: 0.25rem;
+              padding: 0.125rem 0.375rem;
+              margin: 0 0.125rem;
+              border-radius: 0.25rem;
+              font-size: 0.75rem;
+              font-family: monospace;
+              cursor: pointer;
+              transition: background-color 0.2s;
+              background-color: ${isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(224, 231, 255, 1)'};
+              color: ${isDark ? '#a5b4fc' : '#4f46e5'};
+              border: 1px solid ${isDark ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.2)'};
+            `;
+            
+            button.addEventListener('mouseenter', () => {
+              button.style.backgroundColor = isDark ? 'rgba(99, 102, 241, 0.3)' : 'rgba(199, 210, 254, 1)';
+            });
+            
+            button.addEventListener('mouseleave', () => {
+              button.style.backgroundColor = isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(224, 231, 255, 1)';
+            });
+            
+            fragment.appendChild(button);
+            lastIndex = match.index + match[0].length;
+          });
+          
+          // 남은 텍스트 추가
+          if (lastIndex < text.length) {
+            fragment.appendChild(
+              document.createTextNode(text.substring(lastIndex))
+            );
+          }
+          
+          node.parentNode.replaceChild(fragment, node);
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        // 재귀적으로 자식 노드 처리
+        Array.from(node.childNodes).forEach(processTextNode);
+      }
+    };
+    
+    // 모든 텍스트 노드 처리
+    processTextNode(doc.body);
+    
+    setProcessedContent(doc.body.innerHTML);
+  }, [content, isDark]);
+
+  useEffect(() => {
+    if (!innerRef.current) return;
 
     applyHighlighting(innerRef.current);
-  }, [content, isDark]);
+
+    // 라인 참조 버튼 클릭 이벤트 등록
+    const buttons = innerRef.current.querySelectorAll('.line-reference-button');
+    buttons.forEach(button => {
+      button.addEventListener('click', () => {
+        const startLine = parseInt(button.dataset.startLine);
+        const endLine = parseInt(button.dataset.endLine);
+        if (onLineClick) {
+          onLineClick(startLine, endLine);
+        }
+      });
+    });
+
+    return () => {
+      buttons.forEach(button => {
+        button.replaceWith(button.cloneNode(true));
+      });
+    };
+  }, [processedContent, isDark, onLineClick]);
 
   return (
     <div
       ref={innerRef}
       className={`codeboard-content ${isDark ? 'dark' : 'light'}`}
       style={{ marginBottom: '2rem', minHeight: '300px', overflowX: 'auto' }}
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: processedContent }}
     />
   );
 });
