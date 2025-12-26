@@ -7,6 +7,8 @@ import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
 import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
 import AlertModal from "../../components/modal/AlertModal";
 import {useAlert} from "../../hooks/common/useAlert";
+import CodeCopy from '../../components/editor/CodeCopy';
+import hljs from 'highlight.js';
 
 const CodeboardEdit = () => {
   const { id } = useParams();
@@ -23,6 +25,51 @@ const CodeboardEdit = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
+
+  const detectLanguage = (filePath) => {
+    if (!filePath) return 'plaintext';
+    const ext = filePath.split('.').pop().toLowerCase();
+    const langMap = {
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'py': 'python',
+      'java': 'java',
+      'cpp': 'cpp',
+      'c': 'c',
+      'css': 'css',
+      'html': 'html',
+      'json': 'json',
+      'xml': 'xml',
+      'sql': 'sql',
+      'sh': 'bash',
+      'yml': 'yaml',
+      'yaml': 'yaml'
+    };
+    return langMap[ext] || 'plaintext';
+  };
+
+  // highlight.js 테마 관리
+  useEffect(() => {
+    const loadHljsTheme = (darkMode) => {
+      document.querySelectorAll('link[data-hljs-theme]').forEach(el => el.remove());
+      
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.dataset.hljsTheme = 'true';
+      link.href = darkMode 
+        ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css'
+        : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+      document.head.appendChild(link);
+    };
+
+    loadHljsTheme(theme === 'dark');
+
+    return () => {
+      document.querySelectorAll('link[data-hljs-theme]').forEach(el => el.remove());
+    };
+  }, [theme]);
 
   // 기존 게시글 데이터 로드
   useEffect(() => {
@@ -51,7 +98,7 @@ const CodeboardEdit = () => {
         // WriteEditor에 전달할 초기 데이터 설정
         setInitialData({
           title: data.codeboardTitle,
-          content: content,  // 파싱된 content 사용
+          content: content,
           tags: data.tags || []
         });
 
@@ -202,16 +249,21 @@ const CodeboardEdit = () => {
               <div className={`border rounded-lg overflow-hidden ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
                 {/* 헤더 */}
                 <div className={`px-4 py-2 border-b flex justify-between items-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'}`}>
-                                    <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                                        {analysisResult.filePath?.split('/').pop()}
-                                    </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {analysisResult.filePath?.split('/').pop()}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded ${theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-600'}`}>
+                      {detectLanguage(analysisResult.filePath)}
+                    </span>
+                  </div>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(fileContent);
                       showAlert({
                         type: "success",
                         title: "복사 완료",
-                        message: "코드가 클립보드에 복사되었습니다.",
+                        message: "전체 코드가 클립보드에 복사되었습니다.",
                       });
                     }}
                     className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-200'}`}
@@ -219,28 +271,23 @@ const CodeboardEdit = () => {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    복사
+                    전체 복사
                   </button>
                 </div>
 
                 {/* 코드 영역 */}
                 <div className="overflow-auto" style={{ maxHeight: '500px' }}>
-                  {fileContent.split('\n').map((line, index) => {
-                    const lineNumber = index + 1;
-                    return (
-                      <div
-                        key={lineNumber}
-                        className={`flex ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}
-                      >
-                        <div className={`w-12 flex-shrink-0 px-2 text-right text-xs select-none border-r ${theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-600' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-                          {lineNumber}
-                        </div>
-                        <div className="flex-1 px-4 py-0">
-                          <pre className={`text-sm m-0 font-mono ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{line || ' '}</pre>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <CodeCopy 
+                    code={fileContent}
+                    language={detectLanguage(analysisResult.filePath)}
+                    onCopy={(message) => {
+                      showAlert({
+                        type: "success",
+                        title: "복사 완료",
+                        message: message,
+                      });
+                    }}
+                  />
                 </div>
               </div>
 
@@ -248,9 +295,9 @@ const CodeboardEdit = () => {
               <div className={`border rounded-lg overflow-hidden ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
                 {/* 헤더 */}
                 <div className={`px-4 py-2 border-b flex justify-between items-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'}`}>
-                                    <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                                        분석 결과
-                                    </span>
+                  <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    분석 결과
+                  </span>
                   {analysisResult && (() => {
                     const score = analysisResult.aiScore;
                     let colorClass = '';
@@ -275,8 +322,8 @@ const CodeboardEdit = () => {
 
                     return (
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
-                                                {getSmellKeyword(score).text}
-                                            </span>
+                        {getSmellKeyword(score).text}
+                      </span>
                     );
                   })()}
                 </div>
@@ -325,16 +372,16 @@ const CodeboardEdit = () => {
                                     <div>
                                       <div className={`text-xs mb-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>변경 전:</div>
                                       <pre className={`p-2 rounded text-xs overflow-x-auto font-mono ${theme === 'dark' ? 'bg-red-900/20 text-red-300' : 'bg-red-50 text-red-700'}`}>
-                                                                                {suggestion.problematicSnippet || suggestion.problematicCode}
-                                                                            </pre>
+                                        {suggestion.problematicSnippet || suggestion.problematicCode}
+                                      </pre>
                                     </div>
                                   )}
                                   {suggestion.proposedReplacement && (
                                     <div>
                                       <div className={`text-xs mb-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>변경 후:</div>
                                       <pre className={`p-2 rounded text-xs overflow-x-auto font-mono ${theme === 'dark' ? 'bg-green-900/20 text-green-300' : 'bg-green-50 text-green-700'}`}>
-                                                                                {suggestion.proposedReplacement}
-                                                                            </pre>
+                                        {suggestion.proposedReplacement}
+                                      </pre>
                                     </div>
                                   )}
                                 </div>

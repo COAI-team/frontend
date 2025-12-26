@@ -8,6 +8,7 @@ import {getSmellKeyword} from '../../utils/codeAnalysisUtils';
 import hljs from 'highlight.js';
 import AlertModal from "../../components/modal/AlertModal";
 import {useAlert} from "../../hooks/common/useAlert";
+import CodeCopy from '../../components/editor/CodeCopy';
 
 const CodeboardWrite = () => {
   const {analysisId} = useParams();
@@ -65,6 +66,15 @@ const CodeboardWrite = () => {
       'yaml': 'yaml'
     };
     return langMap[ext] || 'plaintext';
+  };
+
+  {/* 코드 복사 */}
+  const handleCopyNotification = (message) => {
+    showAlert({
+      type: 'success',
+      title: '복사 완료',
+      message: message
+    });
   };
 
   useEffect(() => {
@@ -245,17 +255,11 @@ const CodeboardWrite = () => {
               </div>
 
               <div className="overflow-auto" style={{maxHeight: '500px'}}>
-                <pre style={{ margin: 0, backgroundColor: theme === 'dark' ? '#1e1e1e' : '#f6f8fa' }}>
-                  <code className={`language-${language}`} style={{
-                    display: 'block',
-                    padding: '1rem',
-                    fontSize: '0.875rem',
-                    lineHeight: '1.5',
-                    fontFamily: 'monospace'
-                  }}>
-                    {fileContent}
-                  </code>
-                </pre>
+                <CodeCopy 
+                  code={fileContent}
+                  language={language}
+                  onCopy={handleCopyNotification}
+                />
               </div>
             </div>
 
