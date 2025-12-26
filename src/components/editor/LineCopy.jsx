@@ -64,7 +64,7 @@ const LineCopy = ({ content, onLineClick }) => {
           <button
             key={index}
             onClick={() => handleLineClick(part.startLine, part.endLine)}
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded text-xs font-mono transition-colors ${
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded text-xs font-mono transition-colors cursor-pointer ${
               theme === 'dark'
                 ? 'bg-indigo-900/40 text-indigo-300 hover:bg-indigo-900/60 border border-indigo-700'
                 : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'

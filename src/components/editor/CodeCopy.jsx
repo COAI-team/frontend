@@ -1,12 +1,46 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { useTheme } from '../../context/theme/useTheme';
 import hljs from 'highlight.js';
 
-const CodeCopy = ({ code, language, onCopy, showLineNumbers = true }) => {
+
+
+const CodeCopy = forwardRef(({ code, language, onCopy, showLineNumbers = true }, ref) => {
   const { theme } = useTheme();
   const codeRef = useRef(null);
+  const containerRef = useRef(null);
   const [toolbarPosition, setToolbarPosition] = useState(null);
   const [selectedLines, setSelectedLines] = useState(null);
+  const [highlightedLines, setHighlightedLines] = useState(null);
+
+  useEffect(() => {
+    console.log('highlightedLines 상태 변경:', highlightedLines);
+  }, [highlightedLines]);
+
+  // 부모 컴포넌트에서 호출할 수 있는 함수 노출
+  useImperativeHandle(ref, () => ({
+    highlightLines: (startLine, endLine) => {
+      console.log('CodeCopy highlightLines 호출됨:', startLine, endLine);
+      console.log('containerRef.current:', containerRef.current);
+      
+      setHighlightedLines({ start: startLine, end: endLine });
+      
+      // 해당 라인으로 스크롤
+      if (containerRef.current) {
+        const lineHeight = 21; // 1.5 * 14px (fontSize 0.875rem)
+        const scrollTop = (startLine - 1) * lineHeight - 100;
+        console.log('스크롤 위치:', scrollTop);
+        containerRef.current.scrollTop = Math.max(0, scrollTop);
+      } else {
+        console.log('containerRef.current가 null입니다');
+      }
+
+      // 3초 후 하이라이트 제거
+      setTimeout(() => {
+        console.log('하이라이트 제거');
+        setHighlightedLines(null);
+      }, 3000);
+    }
+  }));
 
   // highlight.js 적용
   useEffect(() => {
@@ -34,14 +68,12 @@ const CodeCopy = ({ code, language, onCopy, showLineNumbers = true }) => {
       const rect = range.getBoundingClientRect();
       const containerRect = codeRef.current.getBoundingClientRect();
 
-      // 선택된 영역이 코드 블록 내부인지 확인
       if (!codeRef.current.contains(range.commonAncestorContainer)) {
         setToolbarPosition(null);
         setSelectedLines(null);
         return;
       }
 
-      // 라인 번호 계산
       const beforeSelection = range.cloneRange();
       beforeSelection.selectNodeContents(codeRef.current);
       beforeSelection.setEnd(range.startContainer, range.startOffset);
@@ -97,11 +129,12 @@ const CodeCopy = ({ code, language, onCopy, showLineNumbers = true }) => {
   };
 
   const lines = code.split('\n');
+  const lineHeight = 21; // 1.5 * 14px
 
   return (
     <div className="relative" style={{ position: 'relative' }}>
       <div 
-        ref={codeRef}
+        ref={containerRef}
         style={{ 
           margin: 0, 
           backgroundColor: theme === 'dark' ? '#1e1e1e' : '#f6f8fa',
@@ -135,20 +168,39 @@ const CodeCopy = ({ code, language, onCopy, showLineNumbers = true }) => {
             ))}
           </div>
         )}
-        <pre style={{ margin: 0, flex: 1, backgroundColor: 'transparent' }}>
-          <code 
-            className={`language-${language}`} 
-            style={{
-              display: 'block',
-              padding: '1rem',
-              fontSize: '0.875rem',
-              lineHeight: '1.5',
-              fontFamily: 'monospace'
-            }}
-          >
-            {code}
-          </code>
-        </pre>
+        <div ref={codeRef} style={{ flex: 1, position: 'relative' }}>
+          <pre style={{ margin: 0, backgroundColor: 'transparent', position: 'relative' }}>
+            {/* 오버레이를 pre 안쪽으로 이동 */}
+            {highlightedLines && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '1rem',  // padding 고려
+                  right: '1rem',
+                  top: `${(highlightedLines.start - 1) * lineHeight + 16}px`,
+                  height: `${(highlightedLines.end - highlightedLines.start + 1) * lineHeight}px`,
+                  backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)',
+                  pointerEvents: 'none',
+                  zIndex: 3  // 코드 뒤에 배치
+                }}
+              />
+            )}
+            <code 
+              className={`language-${language}`} 
+              style={{
+                display: 'block',
+                padding: '1rem',
+                fontSize: '0.875rem',
+                lineHeight: '1.5',
+                fontFamily: 'monospace',
+                position: 'relative',
+                zIndex: 1
+              }}
+            >
+              {code}
+            </code>
+          </pre>
+        </div>
       </div>
 
       {toolbarPosition && (
@@ -199,6 +251,6 @@ const CodeCopy = ({ code, language, onCopy, showLineNumbers = true }) => {
       )}
     </div>
   );
-};
+});
 
 export default CodeCopy;
