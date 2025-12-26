@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { axiosInstance } from "../../server/AxiosConfig";
 import { getAuth } from "../../utils/auth/token";
-import hljs from 'highlight.js';
 import { MessageCircle, Share2, AlertCircle } from "lucide-react";
 import "../../styles/CodeboardDetail.css";
 import CommentSection from '../../components/comment/CommentSection';
@@ -12,6 +11,8 @@ import { processCodeBlocks, applyHighlighting } from '../../utils/codeBlockUtils
 import LikeButton from '../../components/button/LikeButton';
 import AlertModal from "../../components/modal/AlertModal";
 import {useAlert} from "../../hooks/common/useAlert";
+import CodeCopy from '../../components/editor/CodeCopy';
+import LineCopy from '../../components/editor/LineCopy';
 
 const CodeboardDetail = () => {
   const {alert, showAlert, closeAlert} = useAlert();
@@ -598,7 +599,6 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
     return data || [];
   };
 
-  // 파일 확장자로 언어 감지
   const detectLanguage = (filePath) => {
     if (!filePath) return 'plaintext';
     const ext = filePath.split('.').pop().toLowerCase();
@@ -623,20 +623,13 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
     return langMap[ext] || 'plaintext';
   };
 
-  // 코드 하이라이팅 적용
-  useEffect(() => {
-    if (!codeViewerRef.current || !fileContent) return;
-
-    const timer = setTimeout(() => {
-      codeViewerRef.current.querySelectorAll('pre code').forEach((block) => {
-        block.classList.remove('hljs');
-        delete block.dataset.highlighted;
-        hljs.highlightElement(block);
-      });
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [fileContent, isDark]);
+  const handleCopyNotification = (message) => {
+    showAlert({
+      type: 'success',
+      title: '복사 완료',
+      message: message
+    });
+  };
 
   const language = detectLanguage(analysisResult.filePath);
 
@@ -654,7 +647,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
         borderRadius: '0.5rem',
         overflow: 'hidden',
         backgroundColor: isDark ? '#1f1f1f' : '#ffffff'
-      }} ref={codeViewerRef}>
+      }}>
         <div style={{
           padding: '0.5rem 1rem',
           borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
@@ -680,12 +673,7 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
           <button
             onClick={() => {
               navigator.clipboard.writeText(fileContent);
-
-              showAlert({
-                type: 'success',
-                title: '복사 완료',
-                message: '코드가 클립보드에 복사되었습니다.'
-              });
+              handleCopyNotification('전체 코드가 클립보드에 복사되었습니다.');
             }}
             style={{
               display: 'flex',
@@ -700,26 +688,20 @@ const AnalysisPanel = ({ analysisResult, fileContent, isDark }) => {
               cursor: 'pointer'
             }}
           >
-            복사
+            전체 복사
           </button>
         </div>
         
-        <div style={{ maxHeight: '500px', overflow: 'auto' }}>
-          <pre style={{ margin: 0, backgroundColor: isDark ? '#1e1e1e' : '#f6f8fa' }}>
-            <code className={`language-${language}`} style={{
-              display: 'block',
-              padding: '1rem',
-              fontSize: '0.875rem',
-              lineHeight: '1.5',
-              fontFamily: 'monospace'
-            }}>
-              {fileContent}
-            </code>
-          </pre>
+        <div style={{ maxHeight: '500px', overflow: 'auto' }} ref={codeViewerRef}>
+          <CodeCopy 
+            code={fileContent}
+            language={language}
+            onCopy={handleCopyNotification}
+          />
         </div>
       </div>
 
-      {/* 분석 결과 */}
+      {/* 분석 결과 - 기존 코드 유지 */}
       <div style={{
         border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
         borderRadius: '0.5rem',
