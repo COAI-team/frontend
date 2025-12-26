@@ -52,7 +52,9 @@ export default function SearchableCombobox({
   }, []);
 
   const filtered = useMemo(() => {
-    const q = inputValue.trim().toLowerCase();
+    const raw = inputValue.trim().toLowerCase();
+    const selectedLabel = (selected?.label || "").trim().toLowerCase();
+    const q = open && selectedLabel && raw === selectedLabel ? "" : raw;
     if (!q) return items;
     return items.filter((item) => {
       const searchText =
@@ -61,7 +63,7 @@ export default function SearchableCombobox({
           "").toLowerCase();
       return searchText.includes(q);
     });
-  }, [items, inputValue]);
+  }, [items, inputValue, open, selected?.label]);
 
   const handleSelect = (item) => {
     onChange?.(item.value);
@@ -71,12 +73,12 @@ export default function SearchableCombobox({
 
   const dropdown = (
     <div
-      className="absolute z-50 mt-1 bg-white border rounded shadow-lg max-h-64 overflow-auto"
+      className="absolute z-50 mt-1 bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#3f3f46] rounded shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] max-h-64 overflow-auto"
       style={{ width: dropdownWidth || "100%", left: 0 }}
     >
-      <ul className="divide-y">
+      <ul className="divide-y divide-gray-200 dark:divide-[#3f3f46]">
         {filtered.length === 0 && (
-          <li className="px-3 py-2 text-sm text-gray-500">검색 결과 없음</li>
+          <li className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">검색 결과 없음</li>
         )}
         {filtered.map((item) => (
           <li
@@ -86,12 +88,12 @@ export default function SearchableCombobox({
             <button
               type="button"
               onClick={() => handleSelect(item)}
-              className="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center justify-between"
+              className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center justify-between"
             >
               <div className="truncate">
-                <div className="font-medium text-gray-900 truncate">{item.label}</div>
+                <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{item.label}</div>
                 {item.subLabel && (
-                  <div className="text-xs text-gray-600 truncate">{item.subLabel}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 truncate">{item.subLabel}</div>
                 )}
               </div>
               {item.badge && (() => {
@@ -114,9 +116,9 @@ export default function SearchableCombobox({
 
   return (
     <div className="w-full relative" ref={containerRef}>
-      {label && <label className="block text-sm text-gray-600 mb-1">{label}</label>}
+      {label && <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">{label}</label>}
       <div className="relative">
-        <div className="flex items-center border rounded px-3 py-2 focus-within:ring bg-white">
+        <div className="flex items-center border rounded px-3 py-2 focus-within:ring bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46]">
           <input
             ref={inputRef}
             value={inputValue}
@@ -126,7 +128,7 @@ export default function SearchableCombobox({
             }}
             onFocus={() => setOpen(true)}
             placeholder={placeholder || "검색 또는 선택"}
-            className="flex-1 min-w-0 outline-none text-gray-900 placeholder:text-gray-400 truncate"
+            className="flex-1 min-w-0 outline-none text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 truncate bg-transparent"
             title={inputValue}
           />
           {selected?.badge && (() => {
@@ -152,7 +154,7 @@ export default function SearchableCombobox({
               inputRef.current?.focus();
               setOpen((v) => !v);
             }}
-            className="text-gray-500 text-sm ml-2"
+            className="text-gray-500 dark:text-gray-400 text-sm ml-2"
             aria-label="드롭다운"
           >
             {open ? "▲" : "▼"}
@@ -160,7 +162,7 @@ export default function SearchableCombobox({
         </div>
         {open && dropdown}
       </div>
-      {helperText && <p className="text-xs text-gray-500 mt-1">{helperText}</p>}
+      {helperText && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{helperText}</p>}
     </div>
   );
 }
