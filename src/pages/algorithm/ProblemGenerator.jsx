@@ -229,6 +229,12 @@ const ProblemGenerator = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // 이미 로딩 중이면 중복 요청 방지
+    if (loading) {
+      console.log('⚠️ 이미 문제 생성 중 - 중복 요청 무시');
+      return;
+    }
+
     // SQL 문제는 현재 지원하지 않음
     if (formData.problemType === 'SQL') {
       setError('SQL 문제는 현재 준비 중입니다. 향후 지원 예정입니다.');
