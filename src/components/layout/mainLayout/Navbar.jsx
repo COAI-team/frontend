@@ -53,7 +53,7 @@ export default function Navbar() {
   };
 
   const [showMoai, setShowMoai] = useState(() => {
-    if (typeof window === "undefined") return true;
+    if (typeof globalThis === "undefined") return true;
     return JSON.parse(localStorage.getItem("walkingMoai") ?? "true");
   });
 
@@ -61,8 +61,8 @@ export default function Navbar() {
     const handler = () => {
       setShowMoai(JSON.parse(localStorage.getItem("walkingMoai") ?? "true"));
     };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
+    globalThis.addEventListener("storage", handler);
+    return () => globalThis.removeEventListener("storage", handler);
   }, []);
 
   if (!mounted) return null;

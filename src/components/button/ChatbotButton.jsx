@@ -45,6 +45,20 @@ export default function ChatbotButton() {
   const [nextId, setNextId] = useState(1);
   const messagesEndRef = useRef(null);
 
+  useEffect(() => {
+    if (!hydrated) return;
+
+    if (!user) {
+      if (localStorage.getItem("pageReloaded") === "true") {
+        localStorage.removeItem("pageReloaded");
+        return;
+      }
+
+      localStorage.setItem("pageReloaded", "true");
+      globalThis.location.reload();
+    }
+  }, [hydrated, user]);
+
   // ✅ useCallback으로 스크롤 함수 메모이제이션
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({behavior: "smooth"});

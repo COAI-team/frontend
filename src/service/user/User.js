@@ -41,7 +41,7 @@ export const verifyEmailCode = (email, code) =>
 
 // ✅ 비밀번호 재설정
 export const requestPasswordReset = (email) =>
-  axiosInstance.post("/users/password/reset/request", { email }).then(res => res.data);
+  axiosInstance.post("/users/password/reset/request", {email}).then(res => res.data);
 
 export const validateResetToken = (token) =>
   axiosInstance.get(`/users/password/reset/validate?token=${token}`).then(res => res.data);
@@ -58,7 +58,7 @@ export const updateMyInfo = (payload) =>
 
 // ✅ GitHub API
 export const loginWithGithub = async (code, state) => {
-    console.log("깃헙로그인이다??????");
+  console.log("깃헙로그인이다??????");
   try {
     const query = state ? `?code=${code}&state=${state}` : `?code=${code}`;
     const response = await axiosInstance.get(`/auth/github/callback${query}`, {
@@ -88,13 +88,8 @@ export const disconnectGithub = () =>
   axiosInstance.post("/auth/github/disconnect", {}).then(res => res.data);
 
 export const linkGithubAccount = (gitHubUser, config = {}) => {
-  console.log("🔥 linkGithubAccount 호출됨!");
-  console.log("🔥 gitHubUser:", gitHubUser);
-  console.log("🔥 config:", config);
-  console.log("🔥 호출 스택:", new Error().stack);
-
   return axiosInstance.post("/users/github/link", gitHubUser, {
     ...config,
-    headers: { 'Content-Type': 'application/json', ...config.headers },
+    headers: {'Content-Type': 'application/json', ...config.headers},
   }).then(res => res.data);
 };
