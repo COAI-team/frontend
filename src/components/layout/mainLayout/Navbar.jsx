@@ -51,11 +51,8 @@ export default function Navbar() {
     );
   };
 
-  // localStorage 접근은 안전하게 try-catch가 없으므로, SSR환경이 아니라고 가정
   const [showMoai, setShowMoai] = useState(() => {
-    if (globalThis.window === undefined) {
-      return true;
-    }
+    if (globalThis.window === undefined) return true;
     return JSON.parse(localStorage.getItem("walkingMoai") ?? "true");
   });
 
@@ -63,139 +60,89 @@ export default function Navbar() {
     const handleStorageChange = () => {
       setShowMoai(JSON.parse(localStorage.getItem("walkingMoai") ?? "true"));
     };
-
     globalThis.addEventListener("storage", handleStorageChange);
     return () => globalThis.removeEventListener("storage", handleStorageChange);
   }, []);
-
-
 
   if (!mounted) return null;
 
   return (
     <Disclosure
-        as="nav"
-        className="relative z-50 bg-white text-gray-900 border-b border-gray-200 shadow-sm
-          dark:bg-[#0a0a0a] dark:text-white dark:border-transparent dark:shadow-[0_1px_3px_0_rgba(255,255,255,0.05),0_1px_2px_-1px_rgba(255,255,255,0.03)]"
-       >
-            {/* 2 & 3. Walking Moai Animation */}
-            {showMoai && (
-                <div className="header-banner-area">
-                    {/* ❄️ Snowflakes */}
-                    {Array.from({ length: 50 }).map((_, i) => {
-                        const style = {
-                            left: `${Math.random() * 100}%`,
-                            animationDelay: `${Math.random() * 5}s`,
-                            animationDuration: `${5 + Math.random() * 10}s`,
-                            opacity: Math.random(),
-                            width: `${Math.random() * 5 + 2}px`,
-                            height: `${Math.random() * 5 + 2}px`,
-                        };
-                        return <div key={`snow-${i}`} className="snowflake" style={style} />;
-                    })}
+      as="nav"
+      className="relative z-50 bg-white text-gray-900 border-b border-gray-200 shadow-sm
+        dark:bg-[#0a0a0a] dark:text-white dark:border-transparent
+        dark:shadow-[0_1px_3px_0_rgba(255,255,255,0.05),0_1px_2px_-1px_rgba(255,255,255,0.03)]"
+    >
+      {/* Walking Moai Animation */}
+      {showMoai && (
+        <div className="header-banner-area">
+          {/* Snowflakes */}
+          {Array.from({ length: 50 }).map((_, i) => {
+            const style = {
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${5 + Math.random() * 10}s`,
+              opacity: Math.random(),
+              width: `${Math.random() * 5 + 2}px`,
+              height: `${Math.random() * 5 + 2}px`,
+            };
+            return <div key={`snow-${i}`} className="snowflake" style={style} />;
+          })}
 
-                    {/* 🏔 Accumulated Snow Floor */}
-                    <div className="snow-floor"></div>
+          {/* Snow Floor */}
+          <div className="snow-floor"></div>
 
-                    {Array.from({
-                      length: Math.max(1, Number.parseInt(localStorage.getItem("moaiCount") ?? "1")),
-                    }).map((_, i) => {
-                        // 인덱스를 시드로 사용하는 유사 랜덤
-                        const seed = i * 1337;
-                        const duration = 15 + (seed % 20) + "s";
-                        const delay = (seed % 15) + "s";
+          {/* Moai Characters */}
+          {Array.from({
+            length: Math.max(1, Number.parseInt(localStorage.getItem("moaiCount") ?? "1")),
+          }).map((_, i) => {
+            const seed = i * 1337;
+            const duration = `${15 + (seed % 20)}s`;
+            const delay = `${(seed % 15)}s`;
+            const key = `moai-${i}`;
+            const randomVal = (seed * 9301 + 49297) % 233280 % 100;
 
-                        // ✅ 인덱스를 그대로 쓰지 말고, 의미 있는 문자열 키로 감싸서 사용
-                        const key = `moai-${i}`;
+            let content = <div className="moai-body text-[40px]">🗿</div>;
+            let animationName = "walkAcrossScreen";
 
-                        // 확률 로직: 루돌프(5%), 산타(10%), 기본(85%)
-                        // 매번 랜덤하게 바뀌게 하려면 Math.random() 사용
-                        // (seed 기반으로 하면 항상 같은 모아이만 루돌프가 됨 -> 새로고침하면 바뀜)
-                        // 여기서는 i번째 모아이는 고정된 운명을 가지도록 seed 사용 권장 (깜빡임 방지)
-                        // 하지만 "10번 중 1번"이라는 빈도를 맞추려면,
-                        // 단순 10% 확률로 결정하는 것이 맞음.
-                        
-                        // 시드 기반 난수 생성 (0 ~ 99)
-                        // (i * 1337) % 100 은 패턴이 생길 수 있으므로 좀 더 복잡하게
-                        const randomVal = (seed * 9301 + 49297) % 233280 % 100; 
-                        
-                        let content = <div className="moai-body text-[40px]">🗿</div>; // 기본
-                        let animationName = "walkAcrossScreen"; // 기본 방향 (왼쪽 -> 오른쪽)
+            if (randomVal < 5) {
+              content = (
+                <img
+                  src="/assets/images/moai_rudolph.png"
+                  alt="Rudolph Moai"
+                  className="moai-body h-12.5 w-auto object-contain"
+                  style={{ transform: "scaleX(-1)" }}
+                />
+              );
+              animationName = "walkAcrossScreenReverse";
+            } else if (randomVal < 15) {
+              content = (
+                <img
+                  src="/assets/images/moai_santa.png"
+                  alt="Santa Moai"
+                  className="moai-body h-12.5 w-auto object-contain"
+                />
+              );
+            }
 
-                        if (randomVal < 5) {
-                            // 5% (0, 1, 2, 3, 4) -> Rudolph
-                            content = (
-                                <img 
-                                    src="/assets/images/moai_rudolph.png" 
-                                    alt="Rudolph Moai" 
-                                    className="moai-body h-[50px] w-auto object-contain"
-                                    style={{ transform: "scaleX(-1)" }} // 진행 방향(왼쪽)을 보도록 반전
-                                />
-                            );
-                            animationName = "walkAcrossScreenReverse"; // 오른쪽 -> 왼쪽
-                        } else if (randomVal < 15) {
-                            // 10% (5 ~ 14) -> Santa
-                            content = (
-                                <img 
-                                    src="/assets/images/moai_santa.png" 
-                                    alt="Santa Moai" 
-                                    className="moai-body h-[50px] w-auto object-contain"
-                                />
-                            );
-                        }
-
-                        return (
-                            <div
-                                key={key}
-                                className="walking-moai-container"
-                                style={{
-                                    "--walk-duration": duration,
-                                    "--walk-delay": delay,
-                                    animationName: animationName, // 동적 애니메이션 적용
-                                }}
-                            >
-                                {content}
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-
-            <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 relative z-20">
-                <div className="relative flex h-16 items-center justify-between">
-                    <MobileMenuButton theme={theme}/>
-
-                    <div className="flex flex-1 items-center justify-center sm:justify-start">
-                        <Logo theme={theme}/>
-
-                        <div className="hidden sm:flex sm:flex-1 sm:justify-center">
-                            <div className="flex space-x-6">
-                                <NavLinks
-                                    navigation={navigation}
-                                    onLinkClick={handleLinkClick}
-                                    themeKey={theme}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <RightActions
-                        theme={theme}
-                        setTheme={setTheme}
-                        user={user}
-                        logout={logout}
-                        navigate={navigate}
-                        BASE_URL={BASE_URL}
-                        accessToken={accessToken}
-                        hydrated={hydrated}
-                    />
-                </div>
+            return (
+              <div
+                key={key}
+                className="walking-moai-container"
+                style={{
+                  "--walk-duration": duration,
+                  "--walk-delay": delay,
+                  animationName,
+                }}
+              >
+                {content}
               </div>
             );
           })}
         </div>
       )}
 
+      {/* Navigation Content */}
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 relative z-20">
         <div className="relative flex h-16 items-center justify-between">
           <MobileMenuButton theme={theme} />

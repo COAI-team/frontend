@@ -102,6 +102,33 @@ const ProblemSolve = () => {
   const handleSubmitRef = useRef(null); // 자동 제출용 ref (stale closure 방지)
   const noFaceSustainedRecordedRef = useRef(false); // NO_FACE_SUSTAINED 중복 기록 방지
 
+  // 페이지 언마운트 시 웹캠 정리 (안전장치)
+  useEffect(() => {
+    const eyeTrackerInstance = eyeTrackerRef.current;
+    return () => {
+      console.log('🧹 ProblemSolve unmount - cleaning up webcam');
+      // EyeTracker가 자체적으로 cleanup하지만, 안전장치로 추가
+      if (eyeTrackerInstance?.stopTracking) {
+        eyeTrackerInstance.stopTracking().catch(e => {
+          console.error('Error stopping tracking on unmount:', e);
+        });
+      }
+      // 모든 미디어 스트림 정리 (최후의 안전장치)
+      try {
+        const allVideos = document.querySelectorAll('video');
+        allVideos.forEach(video => {
+          if (video.srcObject) {
+            const tracks = video.srcObject.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+          }
+        });
+      } catch (e) {
+        console.error('Error cleaning up media streams:', e);
+      }
+    };
+  }, []);
+
   // 테마 적용 (이 페이지는 Layout 밖에 있어서 직접 호출 필요)
   useApplyThemeClass();
 

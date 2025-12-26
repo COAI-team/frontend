@@ -3,7 +3,7 @@ import {loginWithGithub, linkGithubAccount} from "../../service/user/User";
 import {useNavigate} from "react-router-dom";
 import {useLogin} from "../../context/login/useLogin";
 import axiosInstance from "../../server/AxiosConfig";
-import {saveAuth} from "../../utils/auth/token";
+import {saveAuth, getAuth} from "../../utils/auth/token";
 import AlertModal from "../../components/modal/AlertModal";
 import {useAlert} from "../../hooks/common/useAlert";
 
@@ -16,6 +16,10 @@ export default function GitHubCallback() {
   /* 🔗 GitHub 계정 연동 */
   const handleLinkGithubAccount = useCallback(
     async (gitHubUser, accessToken) => {
+      console.log("🔥🔥🔥 handleLinkGithubAccount 호출!");
+      console.log("🔥🔥🔥 gitHubUser:", gitHubUser);
+      console.log("🔥🔥🔥 accessToken:", accessToken);
+
       const linkResult = await linkGithubAccount(gitHubUser, {
         _skipAuth: true,
         headers: {Authorization: `Bearer ${accessToken}`},
@@ -72,7 +76,7 @@ export default function GitHubCallback() {
   /* 🔗 link 모드 */
   const handleLinkMode = useCallback(
     async (githubResult) => {
-      const accessToken = localStorage.getItem("accessToken");
+      const accessToken = getAuth()?.accessToken;
       await handleLinkGithubAccount(githubResult.gitHubUser, accessToken);
     },
     [handleLinkGithubAccount]
@@ -103,7 +107,7 @@ export default function GitHubCallback() {
         title: "기존 계정 발견",
         message: "기존 계정이 존재합니다. GitHub 계정을 연동하시겠습니까?",
         onConfirm: async () => {
-          const accessToken = localStorage.getItem("accessToken");
+          const accessToken = getAuth()?.accessToken;
           const linkResult = await linkGithubAccount(githubResult.gitHubUser, {
             _skipAuth: true,
             headers: {Authorization: `Bearer ${accessToken}`},
@@ -166,6 +170,12 @@ export default function GitHubCallback() {
     const code = url.searchParams.get("code");
     const mode = url.searchParams.get("state");
 
+    console.log("🔥🔥🔥 processGithub 시작");
+    console.log("🔥🔥🔥 URL:", globalThis.location.href);
+    console.log("🔥🔥🔥 code:", code);
+    console.log("🔥🔥🔥 mode (state):", mode);
+    console.log("🔥🔥🔥 mode === 'link':", mode === "link");
+
     if (!code) {
       showAlert({
         type: "error",
@@ -177,7 +187,7 @@ export default function GitHubCallback() {
 
     try {
       const githubResult = await loginWithGithub(code, mode);
-
+      
       if (githubResult?.error) {
         showAlert({
           type: "error",
@@ -190,7 +200,12 @@ export default function GitHubCallback() {
         return;
       }
 
+      console.log("🔥🔥🔥 githubResult:", JSON.stringify(githubResult, null, 2));
+      console.log("🔥🔥🔥 githubResult.linkMode:", githubResult.linkMode);
+      console.log("🔥🔥🔥 mode === 'link' 체크:", mode === "link");
+
       if (mode === "link") {
+        console.log("🔥🔥🔥 handleLinkMode 호출 예정!");
         await handleLinkMode(githubResult);
         return;
       }

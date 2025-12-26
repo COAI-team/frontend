@@ -1680,11 +1680,15 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             }
 
             // FaceLandmarker 먼저 닫기 (비디오 스트림 참조 해제)
-            if (faceLandmarkerRef.current) {
-                console.log('🔒 Closing FaceLandmarker before stream cleanup...');
-                faceLandmarkerRef.current.close();
-                faceLandmarkerRef.current = null;
-                console.log('✅ FaceLandmarker closed');
+            try {
+                if (faceLandmarkerRef.current) {
+                    console.log('🔒 Closing FaceLandmarker before stream cleanup...');
+                    faceLandmarkerRef.current.close();
+                    faceLandmarkerRef.current = null;
+                    console.log('✅ FaceLandmarker closed');
+                }
+            } catch (e) {
+                console.error('Error closing FaceLandmarker:', e);
             }
 
             // 웹캠 스트림 정리 (streamRef 우선 사용)
@@ -1695,47 +1699,79 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
             });
 
             // 1. streamRef에서 직접 종료 (가장 확실한 방법)
-            if (streamRef.current) {
-                const tracks = streamRef.current.getTracks();
-                console.log('🛑 Stopping tracks from streamRef:', tracks.map(t => ({
-                    kind: t.kind,
-                    label: t.label,
-                    readyState: t.readyState
-                })));
-                tracks.forEach(track => {
-                    track.stop();
-                    console.log('✅ Track stopped:', track.kind, track.readyState);
-                });
-                streamRef.current = null;
+            try {
+                if (streamRef.current) {
+                    const tracks = streamRef.current.getTracks();
+                    console.log('🛑 Stopping tracks from streamRef:', tracks.map(t => ({
+                        kind: t.kind,
+                        label: t.label,
+                        readyState: t.readyState
+                    })));
+                    tracks.forEach(track => {
+                        try {
+                            track.stop();
+                            console.log('✅ Track stopped:', track.kind, track.readyState);
+                        } catch (e) {
+                            console.error('Error stopping track:', e);
+                        }
+                    });
+                    streamRef.current = null;
+                }
+            } catch (e) {
+                console.error('Error cleaning streamRef:', e);
             }
 
             // 2. videoRef 정리 (비디오 재생 중지 → 스트림 해제 → 리셋)
-            if (videoRef.current) {
-                // 비디오 재생 중지 (브라우저가 카메라 리소스 해제하도록)
-                videoRef.current.pause();
+            try {
+                if (videoRef.current) {
+                    // 비디오 재생 중지 (브라우저가 카메라 리소스 해제하도록)
+                    videoRef.current.pause();
 
-                if (videoRef.current.srcObject) {
-                    const tracks = videoRef.current.srcObject.getTracks();
-                    tracks.forEach(track => track.stop());
-                    videoRef.current.srcObject = null;
+                    if (videoRef.current.srcObject) {
+                        const tracks = videoRef.current.srcObject.getTracks();
+                        tracks.forEach(track => {
+                            try {
+                                track.stop();
+                            } catch (e) {
+                                console.error('Error stopping video track:', e);
+                            }
+                        });
+                        videoRef.current.srcObject = null;
+                    }
+
+                    // 비디오 엘리먼트 리셋 (Safari/Chrome에서 확실한 해제)
+                    videoRef.current.load();
+                    console.log('✅ Video element reset');
                 }
-
-                // 비디오 엘리먼트 리셋 (Safari/Chrome에서 확실한 해제)
-                videoRef.current.load();
-                console.log('✅ Video element reset');
+            } catch (e) {
+                console.error('Error cleaning videoRef:', e);
             }
             videoRef.current = null;
 
             // DOM 요소 정리
-            const debugContainer = document.getElementById('mediapipeDebugContainer');
-            if (debugContainer) {
-                debugContainer.remove();
-            }
+            try {
+                const debugContainer = document.getElementById('mediapipeDebugContainer');
+                if (debugContainer) {
+                    debugContainer.remove();
+                }
 
-            // 시선 도트 제거
-            const gazeDot = document.getElementById('mediapipeGazeDot');
-            if (gazeDot) {
-                gazeDot.remove();
+                // 시선 도트 제거
+                const gazeDot = document.getElementById('mediapipeGazeDot');
+                if (gazeDot) {
+                    gazeDot.remove();
+                }
+
+                // 전역 미디어 스트림 정리 (안전장치)
+                const allVideos = document.querySelectorAll('video');
+                allVideos.forEach(video => {
+                    if (video.id === 'mediapipeVideoFeed' && video.srcObject) {
+                        const tracks = video.srcObject.getTracks();
+                        tracks.forEach(track => track.stop());
+                        video.srcObject = null;
+                    }
+                });
+            } catch (e) {
+                console.error('Error cleaning DOM elements:', e);
             }
 
             console.log('✅ MediaPipe tracking stopped');
@@ -1912,26 +1948,81 @@ export const useMediaPipeTracking = (problemId, isActive = false, timeLimitMinut
     useEffect(() => {
         return () => {
             console.log('🧹 useMediaPipeTracking unmount cleanup');
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
-            // streamRef 우선 정리
-            if (streamRef.current) {
-                const tracks = streamRef.current.getTracks();
-                tracks.forEach(track => track.stop());
-                streamRef.current = null;
-            }
-            // videoRef 정리 (pause → srcObject 해제 → load 리셋)
-            if (videoRef.current) {
-                videoRef.current.pause();
-                if (videoRef.current.srcObject) {
-                    const tracks = videoRef.current.srcObject.getTracks();
-                    tracks.forEach(track => track.stop());
-                    videoRef.current.srcObject = null;
+
+            // 애니메이션 프레임 취소
+            try {
+                if (animationFrameRef.current) {
+                    cancelAnimationFrame(animationFrameRef.current);
+                    animationFrameRef.current = null;
                 }
-                videoRef.current.load();
+            } catch (e) {
+                console.error('Error canceling animation frame:', e);
+            }
+
+            // FaceLandmarker 정리
+            try {
+                if (faceLandmarkerRef.current) {
+                    faceLandmarkerRef.current.close();
+                    faceLandmarkerRef.current = null;
+                }
+            } catch (e) {
+                console.error('Error closing FaceLandmarker:', e);
+            }
+
+            // streamRef 우선 정리
+            try {
+                if (streamRef.current) {
+                    const tracks = streamRef.current.getTracks();
+                    tracks.forEach(track => {
+                        try {
+                            track.stop();
+                        } catch (e) {
+                            console.error('Error stopping track:', e);
+                        }
+                    });
+                    streamRef.current = null;
+                }
+            } catch (e) {
+                console.error('Error cleaning streamRef:', e);
+            }
+
+            // videoRef 정리 (pause → srcObject 해제 → load 리셋)
+            try {
+                if (videoRef.current) {
+                    videoRef.current.pause();
+                    if (videoRef.current.srcObject) {
+                        const tracks = videoRef.current.srcObject.getTracks();
+                        tracks.forEach(track => {
+                            try {
+                                track.stop();
+                            } catch (e) {
+                                console.error('Error stopping video track:', e);
+                            }
+                        });
+                        videoRef.current.srcObject = null;
+                    }
+                    videoRef.current.load();
+                }
+            } catch (e) {
+                console.error('Error cleaning videoRef:', e);
             }
             videoRef.current = null;
+
+            // 전역 미디어 스트림 정리 (안전장치)
+            try {
+                const allVideos = document.querySelectorAll('video');
+                allVideos.forEach(video => {
+                    if (video.id === 'mediapipeVideoFeed' && video.srcObject) {
+                        const tracks = video.srcObject.getTracks();
+                        tracks.forEach(track => track.stop());
+                        video.srcObject = null;
+                    }
+                });
+            } catch (e) {
+                console.error('Error cleaning global video elements:', e);
+            }
+
+            console.log('✅ useMediaPipeTracking cleanup complete');
         };
     }, []);
 
