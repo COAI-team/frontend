@@ -322,7 +322,12 @@ function PaymentPage() {
         setShowLoginAlert(true);
         return;
       }
-      setErrorMsg("포인트 결제 처리 중 오류가 발생했습니다.");
+      const msg = e?.response?.data?.message || e?.message || "";
+      if (msg.includes("최근 2회 연속 환불")) {
+        setErrorMsg("최근 2회 연속 환불로 인해 1개월 동안 결제가 제한된 계정입니다.");
+      } else {
+        setErrorMsg("포인트 결제 처리 중 오류가 발생했습니다.");
+      }
     } finally {
       setIsReadySaving(false);
     }
@@ -374,7 +379,12 @@ function PaymentPage() {
         return;
       }
       console.error("결제 처리 중 오류:", e);
-      setErrorMsg("결제 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+      const msg = e?.response?.data?.message || e?.message || "";
+      if (msg.includes("최근 2회 연속 환불")) {
+        setErrorMsg("최근 2회 연속 환불로 인해 1개월 동안 결제가 제한된 계정입니다.");
+      } else {
+        setErrorMsg("결제 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+      }
     } finally {
       setIsReadySaving(false);
     }

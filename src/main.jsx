@@ -13,6 +13,10 @@ import PaymentPage from "./pages/payment/PaymentPage";
 import PaymentSuccess from "./pages/payment/PaymentSuccess";
 import PaymentFail from "./pages/payment/PaymentFail";
 
+// 배틀(1vs1)
+import BattleLobby from "./pages/battle/BattleLobby";
+import BattleRoom from "./pages/battle/BattleRoom";
+
 // 사용자 관련
 import SignIn from "./pages/user/SignIn";
 import SignUp from "./pages/user/SignUp";
@@ -183,6 +187,10 @@ createRoot(document.getElementById("root")).render(
               path="algorithm/my-submissions"
               element={<MySubmissions />}
             />
+                
+            {/* 1vs1 배틀 */}
+            <Route path="battle" element={<BattleLobby/>}/>
+            <Route path="battle/room/:roomId" element={<BattleRoom/>}/>
 
             {/* 코드 분석 (CodeNose) */}
             <Route path="codeAnalysis" element={<CodeAnalysisMain/>}/>
