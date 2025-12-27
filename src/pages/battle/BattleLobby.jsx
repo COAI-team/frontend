@@ -276,8 +276,22 @@ export default function BattleLobby() {
     (async () => {
       const myRoom = await fetchMyRoom();
       if (myRoom?.roomId) {
-        navigate(`/battle/room/${myRoom.roomId}`);
-        return;
+        let skipRoomId = null;
+        let skipAt = null;
+        try {
+          skipRoomId = sessionStorage.getItem("battleSkipRoomId");
+          skipAt = Number(sessionStorage.getItem("battleSkipRoomAt") || 0);
+        } catch {}
+        const skipFresh = skipRoomId && skipAt && Date.now() - skipAt < 2 * 60 * 1000;
+        if (skipRoomId && skipRoomId === myRoom.roomId && skipFresh) {
+          try {
+            sessionStorage.removeItem("battleSkipRoomId");
+            sessionStorage.removeItem("battleSkipRoomAt");
+          } catch {}
+        } else {
+          navigate(`/battle/room/${myRoom.roomId}`);
+          return;
+        }
       }
       try {
         const notice = sessionStorage.getItem("battleLobbyNotice");
@@ -418,8 +432,8 @@ export default function BattleLobby() {
 
   const confirmJoinWithPassword = async () => {
     if (!joinModal.roomId) return;
-    if (!/^\d{4}$/.test(joinPassword)) {
-      setJoinModal((prev) => ({ ...prev, error: "비밀번호는 숫자 4자리로 입력해 주세요." }));
+    if (!/^\d{1,4}$/.test(joinPassword)) {
+      setJoinModal((prev) => ({ ...prev, error: "비밀번호는 숫자 4자리 이내로 입력해 주세요." }));
       return;
     }
     setJoiningId(joinModal.roomId);
@@ -488,7 +502,7 @@ export default function BattleLobby() {
       const isOpen = room.status === "WAITING" && headCount < 2;
       const roomIsPrivate =
         room.isPrivate ?? room.private ?? room.privateRoom ?? room.passwordRequired ?? false;
-      const isRandomHidden = Boolean(room.randomProblem && !room.algoProblemId);
+      const isRandomHidden = Boolean(room.randomProblem && room.status !== "RUNNING");
       const meta = problemMetaMap[room.algoProblemId] || {};
       const problemTitle = isRandomHidden
         ? "? RANDOM"
@@ -699,7 +713,6 @@ export default function BattleLobby() {
         <header className="flex flex-col gap-4">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">알고리즘 · 1vs1</p>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">1vs1 배틀 로비</h1>
             </div>
             <div className="flex items-center gap-2">
@@ -1077,7 +1090,7 @@ export default function BattleLobby() {
               </button>
             </div>
             <div className="space-y-2">
-              <label className="block text-sm text-gray-700 dark:text-gray-300">비밀번호 (숫자 4자리)</label>
+              <label className="block text-sm text-gray-700 dark:text-gray-300">비밀번호 (숫자 4자리 이내)</label>
               <div className="flex items-center border rounded px-2 py-1 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46]">
                 <input
                   type="password"
@@ -1086,7 +1099,7 @@ export default function BattleLobby() {
                   onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
                     setJoinPassword(digits);
-                    if (digits.length === 4) {
+                    if (digits.length >= 1) {
                       setJoinModal((prev) => ({ ...prev, error: "" }));
                     }
                   }}
@@ -1383,8 +1396,8 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
       setError("베팅 금액은 99,999P 이하만 가능합니다.");
       return;
     }
-    if (isPrivate && !/^\d{4}$/.test(password)) {
-      setError("비밀번호는 숫자 4자리로 입력해 주세요.");
+    if (isPrivate && !/^\d{1,4}$/.test(password)) {
+      setError("비밀번호는 숫자 4자리 이내로 입력해 주세요.");
       return;
     }
 
@@ -1445,7 +1458,7 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
                       setPassword(digits);
                     }}
                     className="w-24 outline-none text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                    placeholder="숫자4자리"
+                    placeholder="1~4자리"
                   />
                   <button
                     type="button"
@@ -1458,8 +1471,8 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
                 </div>
               )}
             </div>
-            {isPrivate && password.length < 4 && (
-              <div className="text-xs text-red-600 dark:text-red-400 text-right">비밀번호는 숫자 4자리로 입력해 주세요.</div>
+            {isPrivate && !/^\d{1,4}$/.test(password) && (
+              <div className="text-xs text-red-600 dark:text-red-400 text-right">비밀번호는 숫자 4자리 이내로 입력해 주세요.</div>
             )}
           </div>
         </div>
@@ -1617,7 +1630,7 @@ function CreateRoomModal({ onClose, onCreated, languages, accessToken }) {
             </button>
             <button
               type="submit"
-              disabled={loading || (isPrivate && password.length !== 4)}
+              disabled={loading || (isPrivate && !/^\d{1,4}$/.test(password))}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
             >
               {loading ? "생성 중..." : "만들기"}
