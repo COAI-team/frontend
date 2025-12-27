@@ -1467,6 +1467,7 @@ export default function BattleRoom() {
                       onChange={(val) => setCode(val ?? "")}
                       readOnly={isJudgeLocked}
                       className="border rounded h-full"
+                      height="100%"
                     />
                   </div>
                   <div
