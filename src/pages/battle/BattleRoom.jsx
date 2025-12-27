@@ -15,7 +15,7 @@ import {
   surrender,
   fetchDurationPolicy,
 } from "../../service/battle/battleApi";
-import { getLanguages, getProblem, getProblems } from "../../service/algorithm/AlgorithmApi";
+import { getLanguages, getProblem, getProblems, startProblemSolve } from "../../service/algorithm/AlgorithmApi";
 import { useBattleWebSocket } from "../../hooks/battle/useBattleWebSocket";
 
 const STATUS_LABEL = {
@@ -145,6 +145,56 @@ const buildProblemItems = (items) => {
   ];
 };
 
+const parseProblemDescription = (description) => {
+  if (!description) return null;
+
+  const sections = {
+    description: "",
+    input: "",
+    output: "",
+    constraints: "",
+    exampleInput: "",
+    exampleOutput: "",
+  };
+
+  const patterns = {
+    input: /(?:^|\n)(?:\*\*)?(?:입력|Input)(?:\*\*)?\s*:?\s*\n?/i,
+    output: /(?:^|\n)(?:\*\*)?(?:출력|Output)(?:\*\*)?\s*:?\s*\n?/i,
+    constraints: /(?:^|\n)(?:\*\*)?(?:제한|제한사항|Constraints?)(?:\*\*)?\s*:?\s*\n?/i,
+    exampleInput: /(?:^|\n)(?:\*\*)?(?:예제 입력|Sample Input|Example Input)(?:\*\*)?\s*\d*\s*:?\s*\n?/i,
+    exampleOutput: /(?:^|\n)(?:\*\*)?(?:예제 출력|Sample Output|Example Output)(?:\*\*)?\s*\d*\s*:?\s*\n?/i,
+  };
+
+  const found = [];
+  Object.entries(patterns).forEach(([key, regex]) => {
+    const match = regex.exec(description);
+    if (match) {
+      found.push({ key, index: match.index, length: match[0].length });
+    }
+  });
+
+  found.sort((a, b) => a.index - b.index);
+
+  if (found.length === 0) {
+    sections.description = description.trim();
+    return sections;
+  }
+
+  const first = found[0];
+  sections.description = description.slice(0, first.index).trim();
+
+  for (let i = 0; i < found.length; i += 1) {
+    const current = found[i];
+    const next = found[i + 1];
+    const content = description
+      .slice(current.index + current.length, next ? next.index : description.length)
+      .trim();
+    sections[current.key] = content;
+  }
+
+  return sections;
+};
+
 const getAliasesByKey = (key) => {
   if (LANGUAGE_ALIAS_TABLE[key]) return LANGUAGE_ALIAS_TABLE[key];
   if (key === "go") return LANGUAGE_ALIAS_TABLE.golang || [];
@@ -171,6 +221,7 @@ export default function BattleRoom() {
   const [joinPassword, setJoinPassword] = useState("");
   const [joinError, setJoinError] = useState("");
   const [problemDescription, setProblemDescription] = useState("");
+  const [problemMeta, setProblemMeta] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const [settingsError, setSettingsError] = useState("");
@@ -194,8 +245,12 @@ export default function BattleRoom() {
   const [joiningRoom, setJoiningRoom] = useState(false);
   const [pendingJudgeReview, setPendingJudgeReview] = useState(false);
   const [authMismatch, setAuthMismatch] = useState(false);
+  const [editorSplitRatio, setEditorSplitRatio] = useState(0.72);
 
   const containerRef = useRef(null);
+  const rightPaneRef = useRef(null);
+  const splitDragRef = useRef(null);
+  const fullscreenRetryRef = useRef(null);
   const violationStateRef = useRef({});
   const submitTimeoutRef = useRef(null);
   const lastMatchIdRef = useRef(null);
@@ -229,6 +284,29 @@ export default function BattleRoom() {
     const key = myUserId != null ? String(myUserId) : "anonymous";
     violationStateRef.current[key] = { count: 0, lastAt: 0, auto: false };
   }, [myUserId]);
+
+  const lockKeyboard = useCallback(() => {
+    try {
+      navigator.keyboard?.lock?.(["Escape", "F11", "Tab", "AltLeft", "AltRight"]).catch(() => {});
+    } catch {}
+  }, []);
+
+  const unlockKeyboard = useCallback(() => {
+    try {
+      navigator.keyboard?.unlock?.();
+    } catch {}
+  }, []);
+
+  const enforceFullscreen = useCallback(() => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen?.().catch(() => {});
+    }
+    lockKeyboard();
+    containerRef.current.scrollIntoView?.({ block: "start" });
+    window.scrollTo({ top: 0, left: 0 });
+    window.focus?.();
+  }, [lockKeyboard]);
 
   const clearSubmitTimeout = useCallback(() => {
     if (submitTimeoutRef.current) {
@@ -284,6 +362,52 @@ export default function BattleRoom() {
     }
   };
 
+  const startSplitDrag = useCallback(
+    (startY) => {
+      const pane = rightPaneRef.current;
+      if (!pane || startY == null) return;
+      const rect = pane.getBoundingClientRect();
+      const total = rect.height;
+      if (!total) return;
+
+      const divider = 8;
+      const minEditor = 180;
+      const minResult = 80;
+      const startHeight = editorSplitRatio * total;
+
+      splitDragRef.current = { startY, startHeight, total, divider, minEditor, minResult };
+
+      const handleMove = (event) => {
+        const clientY = event.touches?.[0]?.clientY ?? event.clientY;
+        if (clientY == null || !splitDragRef.current) return;
+        const { startY: baseY, startHeight: baseHeight, total: baseTotal, divider: bar, minEditor: minTop, minResult: minBottom } =
+          splitDragRef.current;
+        const delta = clientY - baseY;
+        let nextHeight = baseHeight + delta;
+        const maxEditor = Math.max(minTop, baseTotal - minBottom - bar);
+        nextHeight = Math.max(minTop, Math.min(maxEditor, nextHeight));
+        setEditorSplitRatio(nextHeight / baseTotal);
+        if (event.cancelable) {
+          event.preventDefault();
+        }
+      };
+
+      const handleUp = () => {
+        splitDragRef.current = null;
+        window.removeEventListener("mousemove", handleMove);
+        window.removeEventListener("mouseup", handleUp);
+        window.removeEventListener("touchmove", handleMove);
+        window.removeEventListener("touchend", handleUp);
+      };
+
+      window.addEventListener("mousemove", handleMove);
+      window.addEventListener("mouseup", handleUp);
+      window.addEventListener("touchmove", handleMove, { passive: false });
+      window.addEventListener("touchend", handleUp);
+    },
+    [editorSplitRatio]
+  );
+
   const loadRoom = useCallback(async () => {
     const snapshot = readJoinSnapshot(roomId);
     if (snapshot) {
@@ -295,6 +419,8 @@ export default function BattleRoom() {
       if (res.code === "B001" || msg.includes("존재하지 않는")) {
         try {
           sessionStorage.setItem("battleLobbyNotice", msg);
+          sessionStorage.setItem("battleSkipRoomId", roomId);
+          sessionStorage.setItem("battleSkipRoomAt", String(Date.now()));
         } catch {}
         if (!snapshot) {
           navigate("/battle", { replace: true });
@@ -335,6 +461,7 @@ export default function BattleRoom() {
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
     }
+    unlockKeyboard();
   }, [roomId, resetViolations, pendingJudgeReview, judgeSummary, judgeDetail, judgeScore]);
 
   useEffect(() => {
@@ -417,8 +544,9 @@ export default function BattleRoom() {
       if (document.fullscreenElement) {
         document.exitFullscreen?.().catch(() => {});
       }
+      unlockKeyboard();
     }
-  }, [room?.status]);
+  }, [room?.status, unlockKeyboard]);
 
   const problemItems = useMemo(() => buildProblemItems(problems), [problems]);
 
@@ -464,33 +592,52 @@ export default function BattleRoom() {
 
   useEffect(() => {
     if (!room) return;
-    if (room.randomProblem && !room.algoProblemId) {
+    const randomMasked = room.randomProblem && room.status !== "RUNNING";
+    if (randomMasked) {
       setProblemTitle("? RANDOM");
       setProblemDescription("");
+      setProblemMeta(null);
       return;
     }
     if (!room.algoProblemId) {
       setProblemTitle("");
       setProblemDescription("");
+      setProblemMeta(null);
       return;
     }
     (async () => {
-      const res = await getProblem(room.algoProblemId);
+      let data = null;
+      const solveRes = await startProblemSolve(room.algoProblemId);
+      if (!solveRes?.error) {
+        const raw = solveRes?.data || solveRes;
+        data = raw?.data || raw;
+      }
+      if (!data) {
+        const res = await getProblem(room.algoProblemId);
+        data = res?.data || res;
+      }
       const title =
-        res?.data?.algoProblemTitle ||
-        res?.algoProblemTitle ||
-        res?.data?.title ||
+        data?.algoProblemTitle ||
+        data?.title ||
         `문제 #${room.algoProblemId}`;
       setProblemTitle(title);
       const description =
-        res?.data?.algoProblemDescription ||
-        res?.algoProblemDescription ||
-        res?.data?.description ||
-        res?.description ||
+        data?.algoProblemDescription ||
+        data?.description ||
         "";
       setProblemDescription(description || "");
+      const meta = {
+        difficulty: data?.algoProblemDifficulty || data?.difficulty || null,
+        timeLimit: data?.timeLimit ?? data?.timelimit ?? null,
+        memoryLimit: data?.memoryLimit ?? data?.memorylimit ?? null,
+        inputFormat: data?.inputFormat || "",
+        outputFormat: data?.outputFormat || "",
+        constraints: data?.constraints || "",
+        sampleTestCases: Array.isArray(data?.sampleTestCases) ? data.sampleTestCases : [],
+      };
+      setProblemMeta(meta);
     })();
-  }, [room?.algoProblemId, room?.randomProblem]);
+  }, [room?.algoProblemId, room?.randomProblem, room?.status]);
 
   useEffect(() => {
     if (!room?.startedAt || room.status !== "RUNNING") {
@@ -553,6 +700,7 @@ export default function BattleRoom() {
     if (!document.fullscreenElement) {
       el.requestFullscreen?.().catch(() => {});
     }
+    lockKeyboard();
     el.scrollIntoView?.({ block: "start" });
     window.scrollTo({ top: 0, left: 0 });
     window.focus?.();
@@ -569,14 +717,16 @@ export default function BattleRoom() {
         e.preventDefault();
         registerViolation("개발자 도구 사용이 감지되었습니다.");
       }
-      if (key === "escape") {
+      if (key === "escape" || key === "f11") {
         e.preventDefault();
-        registerViolation("전체화면이 해제되었습니다.");
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") {
+          e.stopImmediatePropagation();
+        }
+        registerViolation("전체화면 해제 시도가 감지되었습니다.");
         setTimeout(() => {
-          if (activePlay && containerRef.current) {
-            containerRef.current.requestFullscreen?.().catch(() => {});
-            containerRef.current.scrollIntoView?.({ block: "start" });
-            window.scrollTo({ top: 0, left: 0 });
+          if (activePlay && containerRef.current && !document.fullscreenElement) {
+            enforceFullscreen();
           }
         }, 0);
       }
@@ -601,7 +751,7 @@ export default function BattleRoom() {
         registerViolation("창 전환이 감지되었습니다.");
       }
     };
-    window.addEventListener("keydown", handleKey);
+    document.addEventListener("keydown", handleKey, true);
     window.addEventListener("contextmenu", handleContext);
     window.addEventListener("copy", handleClipboard);
     window.addEventListener("cut", handleClipboard);
@@ -610,7 +760,7 @@ export default function BattleRoom() {
     window.addEventListener("blur", handleBlur);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
-      window.removeEventListener("keydown", handleKey);
+      document.removeEventListener("keydown", handleKey, true);
       window.removeEventListener("contextmenu", handleContext);
       window.removeEventListener("copy", handleClipboard);
       window.removeEventListener("cut", handleClipboard);
@@ -618,23 +768,42 @@ export default function BattleRoom() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("blur", handleBlur);
       document.removeEventListener("visibilitychange", handleVisibility);
+      unlockKeyboard();
     };
-  }, [room?.status]);
+  }, [room?.status, enforceFullscreen, lockKeyboard, unlockKeyboard]);
 
   useEffect(() => {
     const handleFsChange = () => {
       const activePlay = room?.status === "RUNNING" || room?.status === "COUNTDOWN";
       if (activePlay && containerRef.current && !document.fullscreenElement) {
-        registerViolation("전체화면이 해제되었습니다.");
-        containerRef.current.requestFullscreen?.().catch(() => {});
-        containerRef.current.scrollIntoView?.({ block: "start" });
-        window.scrollTo({ top: 0, left: 0 });
-        window.focus?.();
+        registerViolation("전체화면 해제 시도가 감지되었습니다.");
+        if (fullscreenRetryRef.current) {
+          clearInterval(fullscreenRetryRef.current);
+        }
+        fullscreenRetryRef.current = setInterval(() => {
+          if (!activePlay) {
+            clearInterval(fullscreenRetryRef.current);
+            fullscreenRetryRef.current = null;
+            return;
+          }
+          if (!document.fullscreenElement) {
+            enforceFullscreen();
+          } else if (fullscreenRetryRef.current) {
+            clearInterval(fullscreenRetryRef.current);
+            fullscreenRetryRef.current = null;
+          }
+        }, 250);
       }
     };
     document.addEventListener("fullscreenchange", handleFsChange);
-    return () => document.removeEventListener("fullscreenchange", handleFsChange);
-  }, [room?.status]);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFsChange);
+      if (fullscreenRetryRef.current) {
+        clearInterval(fullscreenRetryRef.current);
+        fullscreenRetryRef.current = null;
+      }
+    };
+  }, [room?.status, enforceFullscreen]);
 
   const mergeRoomState = (prev, payload) => {
     if (!payload) return prev || {};
@@ -970,8 +1139,8 @@ export default function BattleRoom() {
   };
 
   const submitJoinWithPassword = async () => {
-    if (!/^\d{4}$/.test(joinPassword)) {
-      setJoinError("비밀번호는 숫자 4자리로 입력해 주세요.");
+    if (!/^\d{1,4}$/.test(joinPassword)) {
+      setJoinError("비밀번호는 숫자 4자리 이내로 입력해 주세요.");
       return;
     }
     if (joiningRoom) return;
@@ -1056,7 +1225,7 @@ export default function BattleRoom() {
     if (!room) return;
     setSettings({
       title: room.title || "",
-      algoProblemId: room.randomProblem && !room.algoProblemId ? "" : room.algoProblemId ?? "",
+      algoProblemId: room.randomProblem ? "" : room.algoProblemId ?? "",
       languageId: room.languageId,
       levelMode: room.levelMode,
       betAmount: room.betAmount,
@@ -1068,6 +1237,35 @@ export default function BattleRoom() {
     setSettingsOpen(true);
     setSettingsError("");
   };
+
+  const problemSections = useMemo(
+    () => parseProblemDescription(problemDescription),
+    [problemDescription]
+  );
+  const problemSummary = problemSections?.description || problemDescription || "";
+  const exampleInput = problemSections?.exampleInput || "";
+  const exampleOutput = problemSections?.exampleOutput || "";
+  const inputFormat = problemMeta?.inputFormat || problemSections?.input || "";
+  const outputFormat = problemMeta?.outputFormat || problemSections?.output || "";
+  const constraints = problemMeta?.constraints || problemSections?.constraints || "";
+  const sampleTestCases = Array.isArray(problemMeta?.sampleTestCases) ? problemMeta.sampleTestCases : [];
+  const statusLines = useMemo(() => {
+    const lines = [];
+    if (message) {
+      lines.push({ text: message, tone: "error" });
+    }
+    if (submitState === "SENDING") {
+      lines.push({ text: "채점 중입니다. 잠시만 기다려 주세요.", tone: "info" });
+    } else if (myParticipant?.finished && room?.status === "RUNNING") {
+      lines.push({ text: "채점 완료. 상대 제출을 기다리는 중입니다.", tone: "info" });
+    } else if (room?.status === "RUNNING") {
+      lines.push({ text: "제출 후 AI 채점이 진행됩니다.", tone: "muted" });
+    }
+    if (wsStatus !== "CONNECTED" && room?.status === "RUNNING") {
+      lines.push({ text: "서버 연결이 불안정합니다. 잠시 후 다시 시도해 주세요.", tone: "warning" });
+    }
+    return lines;
+  }, [message, submitState, myParticipant?.finished, room?.status, wsStatus]);
 
   if (!room) {
     return (
@@ -1086,11 +1284,14 @@ export default function BattleRoom() {
     room.status === "RUNNING" ||
     room.status === "FINISHED" ||
     room.status === "CANCELED";
+  const showTopMessage = message && room?.status !== "RUNNING";
   const winReasonDetail = formatWinReasonDetail(winReason, resultWinnerId, resultHost, resultGuest);
+  const isRandomMasked = room?.randomProblem && room?.status !== "RUNNING";
+  const displayProblemTitle = isRandomMasked ? "? RANDOM" : problemTitle || "-";
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#131313]">
-      <div ref={containerRef} className="max-w-5xl mx-auto px-4 py-6 space-y-4 text-gray-900 dark:text-gray-100">
+      <div ref={containerRef} className="max-w-5xl mx-auto px-4 py-3 space-y-2 text-gray-900 dark:text-gray-100">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{room.title || `방 ${roomId}`}</h1>
@@ -1101,7 +1302,7 @@ export default function BattleRoom() {
             <button
               type="button"
               onClick={openSettings}
-              className="px-4 py-2 rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
+              className="px-4 py-2 rounded bg-gray-200 dark:bg-[#2e2e2e] hover:bg-gray-300 dark:hover:bg-[#3f3f3f] text-gray-700 dark:text-gray-300"
             >
               설정
             </button>
@@ -1109,23 +1310,20 @@ export default function BattleRoom() {
           <button
             type="button"
             onClick={handleLeave}
-            className="px-4 py-2 rounded border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-gray-500"
+            className="px-4 py-2 rounded bg-gray-200 dark:bg-[#2e2e2e] hover:bg-gray-300 dark:hover:bg-[#3f3f3f] text-gray-700 dark:text-gray-300"
           >
             나가기
           </button>
         </div>
       </div>
 
-      {message && <div className="text-sm text-red-600 dark:text-red-400">{message}</div>}
+      {showTopMessage && <div className="text-sm text-red-600 dark:text-red-400">{message}</div>}
 
       <div className="flex flex-wrap gap-2 items-center">
         <InfoChip label="상태" value={STATUS_LABEL[room.status] || room.status} />
         <InfoChip label="인원" value={`${headCount}/2`} />
         <InfoChip label="베팅" value={formatPoint(room.betAmount)} />
-        <InfoChip
-          label="문제"
-          value={problemTitle || (room.randomProblem && !room.algoProblemId ? "? RANDOM" : "-")}
-        />
+        <InfoChip label="문제" value={displayProblemTitle} />
         <InfoChip label="언어" value={languageName || `언어 #${room.languageId || "-"}`} />
         <InfoChip label="매칭" value={levelModeText(room.levelMode)} />
         <InfoChip label="최대 진행" value={`${room.maxDurationMinutes || "-"}분`} />
@@ -1138,11 +1336,12 @@ export default function BattleRoom() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <ParticipantCard title="방장" userId={room.hostUserId} state={host} />
+        <ParticipantCard title="방장" userId={room.hostUserId} state={host} roomStatus={room.status} />
         <ParticipantCard
           title="유저"
           userId={room.guestUserId}
           state={guest}
+          roomStatus={room.status}
           onKick={iAmHost && room.status === "WAITING" && room.guestUserId ? () => setKickConfirmOpen(true) : undefined}
         />
       </div>
@@ -1150,55 +1349,179 @@ export default function BattleRoom() {
       {isParticipant ? (
         <div className="border rounded-lg p-4 bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] space-y-3">
           {room.status !== "RUNNING" && (
-            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <span>준비 후 두 명 모두 준비 완료 시 자동으로 카운트다운 후 시작합니다.</span>
-              {room.betAmount > 0 && <span className="text-red-600 dark:text-red-400">베팅 방은 포인트가 홀드됩니다.</span>}
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            {room.status !== "RUNNING" && (
-              <button
-                type="button"
-                onClick={handleReady}
-                disabled={readyDisabled || isJudgeLocked}
-                className={`px-4 py-2 rounded ${participants[myUserId]?.ready ? "bg-red-600 text-white" : "bg-blue-600 text-white"} disabled:opacity-60`}
-              >
-                {readyText}
-              </button>
-            )}
-            {room.status === "RUNNING" && (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={submitState === "SENDING" || wsStatus !== "CONNECTED" || isJudgeLocked}
-                className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
-              >
-                {submitState === "SENDING" ? "채점 요청 중..." : "제출"}
-              </button>
-            )}
-          </div>
-          {readyCooldownSeconds > 0 && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              방 설정이 변경되어 {readyCooldownSeconds}s 후 준비 가능합니다.
-            </div>
-          )}
-          {room.status === "RUNNING" && (
-            <div className="space-y-2">
-              <div className="text-sm text-gray-700 dark:text-gray-300">
-                문제: {problemTitle || (room.randomProblem && !room.algoProblemId ? "? RANDOM" : "-")}
+            <>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <span>준비 후 두 명 모두 준비 완료 시 자동으로 카운트다운 후 시작합니다.</span>
+                {room.betAmount > 0 && (
+                  <span className="text-red-600 dark:text-red-400">베팅 방은 포인트가 홀드됩니다.</span>
+                )}
               </div>
-              {problemDescription && (
-                <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap border rounded bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#3f3f46] px-3 py-2">
-                  {problemDescription}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleReady}
+                  disabled={readyDisabled || isJudgeLocked}
+                  className={`px-4 py-2 rounded ${participants[myUserId]?.ready ? "bg-red-600 text-white" : "bg-blue-600 text-white"} disabled:opacity-60`}
+                >
+                  {readyText}
+                </button>
+              </div>
+              {readyCooldownSeconds > 0 && (
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  방 설정이 변경되어 {readyCooldownSeconds}s 후 준비 가능합니다.
                 </div>
               )}
-              <CodeEditor
-                language={languageName}
-                value={code}
-                onChange={(val) => setCode(val ?? "")}
-                readOnly={isJudgeLocked}
-                className="border rounded"
-              />
+            </>
+          )}
+          {room.status === "RUNNING" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0 lg:h-[calc(100vh-320px)] lg:overflow-hidden">
+              <div className="lg:col-span-5 h-full min-h-0">
+                <div className="bg-gray-50 dark:bg-[#1f1f1f] rounded border border-gray-200 dark:border-[#2e2e2e] p-3 h-full overflow-auto space-y-4">
+                  <div>
+                    <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">문제 설명</h2>
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      {problemMeta?.difficulty && (
+                        <span className={`px-2 py-1 rounded border text-xs ${getDifficultyBadge(problemMeta.difficulty)}`}>
+                          {String(problemMeta.difficulty).toUpperCase()}
+                        </span>
+                      )}
+                      {problemMeta?.timeLimit != null && (
+                        <span className="px-2 py-1 rounded border border-blue-300 dark:border-blue-800 bg-blue-100 dark:bg-blue-900/30 text-xs text-blue-600 dark:text-blue-200">
+                          시간제한: {problemMeta.timeLimit}ms
+                        </span>
+                      )}
+                      {problemMeta?.memoryLimit != null && (
+                        <span className="px-2 py-1 rounded border border-emerald-300 dark:border-emerald-800 bg-emerald-100 dark:bg-emerald-900/30 text-xs text-emerald-600 dark:text-emerald-200">
+                          메모리제한: {problemMeta.memoryLimit}MB
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {problemSections ? (
+                    <div className="space-y-4">
+                      <SectionCard
+                        title="문제 설명"
+                        content={problemSummary || "문제 설명이 없습니다."}
+                        bgColor="bg-gray-100 dark:bg-zinc-900/30"
+                      />
+
+                      <div className="grid grid-cols-1 gap-4">
+                        <SectionCard
+                          title="입력"
+                          content={inputFormat || "입력 형식이 없습니다."}
+                          bgColor="bg-blue-50 dark:bg-blue-900/20"
+                        />
+                        <SectionCard
+                          title="출력"
+                          content={outputFormat || "출력 형식이 없습니다."}
+                          bgColor="bg-green-50 dark:bg-green-900/20"
+                        />
+                      </div>
+
+                      <SectionCard
+                        title="제한사항"
+                        content={constraints || "제한사항이 없습니다."}
+                        bgColor="bg-yellow-50 dark:bg-yellow-900/20"
+                      />
+
+                      {(exampleInput || exampleOutput) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <CodeBlock title="예제 입력" content={exampleInput} />
+                          <CodeBlock title="예제 출력" content={exampleOutput} />
+                        </div>
+                      )}
+
+                      {!exampleInput && !exampleOutput && sampleTestCases.length > 0 && (
+                        <div>
+                          <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">예제</h3>
+                          {sampleTestCases.map((tc, idx) => (
+                            <div key={idx} className="mb-3">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                예제 {idx + 1}
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <CodeBlock title="예제 입력" content={tc.inputData || tc.input || ""} />
+                                <CodeBlock title="예제 출력" content={tc.expectedOutput || tc.output || ""} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-600 dark:text-gray-300">문제 설명을 불러올 수 없습니다.</div>
+                  )}
+                </div>
+              </div>
+              <div className="lg:col-span-7 h-full min-h-0 flex flex-col">
+                <div
+                  ref={rightPaneRef}
+                  className="bg-gray-50 dark:bg-[#1f1f1f] rounded border border-gray-200 dark:border-[#2e2e2e] p-3 h-full min-h-[400px] grid min-h-0"
+                  style={{ gridTemplateRows: `${Math.round(editorSplitRatio * 100)}% 8px 1fr` }}
+                >
+                  <div className="min-h-0 overflow-hidden">
+                    <CodeEditor
+                      language={languageName}
+                      value={code}
+                      onChange={(val) => setCode(val ?? "")}
+                      readOnly={isJudgeLocked}
+                      className="border rounded h-full"
+                    />
+                  </div>
+                  <div
+                    role="separator"
+                    aria-label="에디터 크기 조절"
+                    className="group flex items-center justify-center cursor-row-resize bg-gray-200 dark:bg-zinc-800 rounded"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      startSplitDrag(e.clientY);
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      const touch = e.touches?.[0];
+                      if (!touch) return;
+                      startSplitDrag(touch.clientY);
+                    }}
+                  >
+                    <span className="w-10 h-1 rounded bg-gray-400 dark:bg-zinc-600 group-hover:bg-gray-500 dark:group-hover:bg-zinc-500" />
+                  </div>
+                  <div className="min-h-0 flex flex-col border-t border-gray-200 dark:border-[#2e2e2e] pt-3">
+                    <div className="bg-gray-100 dark:bg-zinc-900 rounded p-3 min-h-[64px] max-h-[88px] overflow-auto text-xs text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-zinc-800">
+                      {statusLines.length > 0 ? (
+                        statusLines.map((line, idx) => (
+                          <div
+                            key={`${line.text}-${idx}`}
+                            className={
+                              line.tone === "error"
+                                ? "text-red-600 dark:text-red-400"
+                                : line.tone === "warning"
+                                  ? "text-amber-600 dark:text-amber-400"
+                                  : line.tone === "info"
+                                    ? "text-gray-700 dark:text-gray-200"
+                                    : "text-gray-500 dark:text-gray-400"
+                            }
+                          >
+                            {line.text}
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-gray-500">제출 후 AI 채점이 진행됩니다.</span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-end gap-3 pt-3 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={submitState === "SENDING" || wsStatus !== "CONNECTED" || isJudgeLocked}
+                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-60 text-sm"
+                      >
+                        {submitState === "SENDING" ? "채점 요청 중..." : "제출"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           {room.status === "FINISHED" && (
@@ -1284,7 +1607,7 @@ export default function BattleRoom() {
               </button>
             </div>
             <div className="space-y-2">
-              <label className="block text-sm text-gray-700 dark:text-gray-300">비밀번호 (숫자 4자리)</label>
+              <label className="block text-sm text-gray-700 dark:text-gray-300">비밀번호 (숫자 4자리 이내)</label>
               <div className="flex items-center border rounded px-2 py-1 bg-white dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46]">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -1293,7 +1616,7 @@ export default function BattleRoom() {
                   onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
                     setJoinPassword(digits);
-                    if (digits.length === 4) {
+                    if (digits.length >= 1) {
                       setJoinError("");
                     }
                   }}
@@ -1361,7 +1684,7 @@ export default function BattleRoom() {
                           }))
                         }
                         className="w-24 outline-none text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                        placeholder="숫자4자리"
+                        placeholder="1~4자리"
                       />
                       <button
                         type="button"
@@ -1374,8 +1697,8 @@ export default function BattleRoom() {
                     </div>
                   )}
                 </div>
-                {settings.isPrivate && settings.newPassword.length > 0 && settings.newPassword.length < 4 && (
-                  <div className="text-xs text-red-600 dark:text-red-400 text-right">비밀번호는 숫자 4자리로 입력해 주세요.</div>
+                {settings.isPrivate && !/^\d{1,4}$/.test(settings.newPassword || "") && (
+                  <div className="text-xs text-red-600 dark:text-red-400 text-right">비밀번호는 숫자 4자리 이내로 입력해 주세요.</div>
                 )}
               </div>
             </div>
@@ -1529,8 +1852,8 @@ export default function BattleRoom() {
                     setSettingsError("언어를 선택해 주세요.");
                     return;
                   }
-                  if (settings.isPrivate && (!settings.newPassword || settings.newPassword.length !== 4)) {
-                    setSettingsError("비밀방은 새 비밀번호 4자리가 필요합니다.");
+                  if (settings.isPrivate && !/^\d{1,4}$/.test(settings.newPassword || "")) {
+                    setSettingsError("비밀방은 숫자 4자리 이내 비밀번호가 필요합니다.");
                     return;
                   }
                   const payload = {
@@ -1899,7 +2222,32 @@ function InfoChip({ label, value }) {
   );
 }
 
-function ParticipantCard({ title, userId, state, onKick }) {
+function SectionCard({ title, content, bgColor }) {
+  const bg = bgColor || "bg-white dark:bg-[#161b22]";
+  return (
+    <div className={`rounded-lg border border-gray-200 dark:border-[#3f3f46] ${bg} p-4`}>
+      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">{title}</div>
+      <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+        {content}
+      </div>
+    </div>
+  );
+}
+
+function CodeBlock({ title, content }) {
+  return (
+    <div className="bg-gray-100 dark:bg-zinc-950 rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700">
+      <div className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-zinc-900 border-b border-gray-300 dark:border-zinc-700">
+        {title}
+      </div>
+      <pre className="p-4 text-sm text-green-600 dark:text-green-400 font-mono overflow-x-auto whitespace-pre-wrap">
+        {content}
+      </pre>
+    </div>
+  );
+}
+
+function ParticipantCard({ title, userId, state, roomStatus, onKick }) {
   if (!userId) {
     return (
       <div className="border rounded p-3 bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-[#3f3f46] text-gray-500 dark:text-gray-400">
@@ -1907,7 +2255,9 @@ function ParticipantCard({ title, userId, state, onKick }) {
       </div>
     );
   }
-  const highlight = state?.ready;
+  const status = resolveParticipantStatus(roomStatus, state);
+  const cardClass = getParticipantCardClass(status?.tone);
+  const badgeClass = getParticipantBadgeClass(status?.tone);
   const displayName =
     state?.nickname ||
     state?.name ||
@@ -1917,7 +2267,7 @@ function ParticipantCard({ title, userId, state, onKick }) {
   const pointBalance = state?.pointBalance;
   const grade = state?.grade ?? state?.userGrade ?? state?.level ?? null;
   return (
-    <div className={`relative border rounded p-3 ${highlight ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900/40" : "bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#3f3f46]"}`}>
+    <div className={`relative border rounded p-3 ${cardClass}`}>
       <div className="flex justify-between items-start gap-2">
         <div>
           <div className="text-sm text-gray-500 dark:text-gray-400">{title}</div>
@@ -1938,16 +2288,55 @@ function ParticipantCard({ title, userId, state, onKick }) {
         )}
       </div>
       <div
-        className={`absolute bottom-2 right-2 text-xs px-2 py-1 rounded ${
-          highlight
-            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-            : "bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-gray-300"
-        }`}
+        className={`absolute bottom-2 right-2 text-xs px-2 py-1 rounded ${badgeClass}`}
       >
-        {highlight ? "준비완료" : "대기"}
+        {status?.label || "대기"}
       </div>
     </div>
   );
+}
+
+function resolveParticipantStatus(roomStatus, state) {
+  const status = String(roomStatus || "").toUpperCase();
+  if (status === "RUNNING") {
+    if (state?.finished) {
+      return { label: "제출 완료", tone: "submitted" };
+    }
+    return { label: "코딩 중...", tone: "coding" };
+  }
+  if (state?.ready) {
+    return { label: "준비완료", tone: "ready" };
+  }
+  if (status === "FINISHED" || status === "CANCELED") {
+    return { label: "종료", tone: "idle" };
+  }
+  return { label: "대기", tone: "idle" };
+}
+
+function getParticipantCardClass(tone) {
+  if (tone === "ready") {
+    return "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900/40";
+  }
+  if (tone === "submitted") {
+    return "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-900/40";
+  }
+  if (tone === "coding") {
+    return "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-900/40";
+  }
+  return "bg-white dark:bg-[#161b22] border-gray-200 dark:border-[#3f3f46]";
+}
+
+function getParticipantBadgeClass(tone) {
+  if (tone === "ready") {
+    return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+  }
+  if (tone === "submitted") {
+    return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200";
+  }
+  if (tone === "coding") {
+    return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200";
+  }
+  return "bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-gray-300";
 }
 
 function levelModeText(mode) {
@@ -1973,6 +2362,18 @@ function mapJoinError(res) {
   if (code === "B027") return msg || "아직 게임이 종료되지 않았습니다.";
   if (code === "B032") return msg || "동일 레벨이 아닙니다.";
   return msg || "입장에 실패했습니다.";
+}
+
+function getDifficultyBadge(diff) {
+  const upper = String(diff || "").toUpperCase();
+  const styles = {
+    BRONZE: "bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 border-orange-300 dark:border-orange-700",
+    SILVER: "bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600",
+    GOLD: "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-600 dark:text-yellow-400 border-yellow-300 dark:border-yellow-700",
+    PLATINUM: "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400 border-cyan-300 dark:border-cyan-700",
+    DIAMOND: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 border-blue-300 dark:border-blue-700",
+  };
+  return styles[upper] || "bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600";
 }
 
 const GRADE_GEMS = {

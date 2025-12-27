@@ -155,6 +155,8 @@ const ProblemLearn = () => {
   const { problemId } = useParams();
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const editorPaneRef = useRef(null);
+  const splitDragRef = useRef(null);
   const chatContainerRef = useRef(null);
   const judgeCooldownRef = useRef(0);
   const { user, setUser } = useLogin();
@@ -181,8 +183,8 @@ const ProblemLearn = () => {
 
   const [tutorQuestion, setTutorQuestion] = useState('');
   const [localMessages, setLocalMessages] = useState([]);
-  const [tutorFontSize, setTutorFontSize] = useState('14px');
-  const [tutorTextColor, setTutorTextColor] = useState('#e5e7eb');
+  const [tutorFontSize, setTutorFontSize] = useState('12px');
+  const [tutorTextColor, setTutorTextColor] = useState('#000000');
 
   const [hasRunOnce, setHasRunOnce] = useState(false);
   const [lastJudgeResult, setLastJudgeResult] = useState(null);
@@ -202,6 +204,7 @@ const ProblemLearn = () => {
   const [testResult, setTestResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [runProgress, setRunProgress] = useState(0);
+  const [editorSplitRatio, setEditorSplitRatio] = useState(0.72);
 
   // AUTO HINT 토글 상태
   const [autoHintEnabled, setAutoHintEnabled] = useState(false);
@@ -370,6 +373,58 @@ const ProblemLearn = () => {
   const handleEditorMount = useCallback((editor) => {
     editorRef.current = editor;
   }, []);
+
+  const startSplitDrag = useCallback(
+    (startY) => {
+      const pane = editorPaneRef.current;
+      if (!pane || startY == null) return;
+      const rect = pane.getBoundingClientRect();
+      const total = rect.height;
+      if (!total) return;
+
+      const divider = 8;
+      const minEditor = 200;
+      const minResult = 120;
+      const startHeight = editorSplitRatio * total;
+
+      splitDragRef.current = { startY, startHeight, total, divider, minEditor, minResult };
+
+      const handleMove = (event) => {
+        const clientY = event.touches?.[0]?.clientY ?? event.clientY;
+        if (clientY == null || !splitDragRef.current) return;
+        const {
+          startY: baseY,
+          startHeight: baseHeight,
+          total: baseTotal,
+          divider: bar,
+          minEditor: minTop,
+          minResult: minBottom
+        } = splitDragRef.current;
+        const delta = clientY - baseY;
+        let nextHeight = baseHeight + delta;
+        const maxEditor = Math.max(minTop, baseTotal - minBottom - bar);
+        nextHeight = Math.max(minTop, Math.min(maxEditor, nextHeight));
+        setEditorSplitRatio(nextHeight / baseTotal);
+        if (event.cancelable) {
+          event.preventDefault();
+        }
+      };
+
+      const handleUp = () => {
+        splitDragRef.current = null;
+        window.removeEventListener('mousemove', handleMove);
+        window.removeEventListener('mouseup', handleUp);
+        window.removeEventListener('touchmove', handleMove);
+        window.removeEventListener('touchend', handleUp);
+      };
+
+      window.addEventListener('mousemove', handleMove);
+      window.addEventListener('mouseup', handleUp);
+      window.addEventListener('touchmove', handleMove, { passive: false });
+      window.addEventListener('touchend', handleUp);
+    },
+    [editorSplitRatio]
+  );
 
   const handleCodeChange = useCallback(
     (value) => {
@@ -973,103 +1028,130 @@ const ProblemLearn = () => {
                   </div>
 
                   {/* 코드 에디터 */}
-                  <div className="flex-[7] min-h-0 overflow-hidden flex flex-col">
-                    <CodeEditor
-                      language={selectedLanguage}
-                      value={code}
-                      onChange={handleCodeChange}
-                      onMount={handleEditorMount}
-                      height="100%"
-                      theme={theme === 'dark' ? 'vs-dark' : 'light'}
-                    />
-                  </div>
-
-                  {/* 실행 결과 */}
-                  <div className="flex-[3] min-h-0 flex flex-col border-t border-gray-200 dark:border-[#2e2e2e] mt-4 pt-3">
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">실행 결과</p>
-
-                    {isRunning && (
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                          <span>⏳ 코드 실행 중...</span>
-                          <span>{Math.round(runProgress)}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 transition-all duration-300 ease-out"
-                            style={{ width: `${runProgress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="bg-gray-100 dark:bg-zinc-900 rounded p-3 h-full overflow-auto text-xs text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-zinc-800">
-                      {isRunning ? (
-                        <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-300">
-                          <span className="animate-spin">⚙️</span>
-                          <span>Judge0 서버에서 코드를 실행하고 있습니다...</span>
-                        </div>
-                      ) : testResult ? (
-                        testResult.error ? (
-                          <span className="text-red-500 dark:text-red-400">오류: {testResult.message}</span>
-                        ) : (
-                          <div>
-                            <div
-                              className={`font-bold mb-2 ${
-                                testResult.overallResult === 'AC'
-                                  ? 'text-green-600 dark:text-green-400'
-                                  : 'text-red-500 dark:text-red-400'
-                              }`}
-                            >
-                              {testResult.overallResult === 'AC' ? '정답!' : `결과: ${testResult.overallResult}`}
-                              <span className="ml-2 text-gray-500 dark:text-gray-400 font-normal">
-                                ({testResult.passedCount}/{testResult.totalCount} 통과)
-                              </span>
-                              {testResult.maxExecutionTime && (
-                                <span className="ml-2 text-gray-500 font-normal text-xs">
-                                  실행시간: {testResult.maxExecutionTime}ms
-                                </span>
-                              )}
-                            </div>
-                            {testResult.testCaseResults?.map((tc, idx) => (
-                              <div key={idx} className="text-xs mt-1">
-                                <span className={tc.result === 'AC' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}>
-                                  TC{tc.testCaseNumber}: {tc.result}
-                                </span>
-                                {tc.result !== 'AC' && tc.actualOutput && (
-                                  <span className="text-gray-500 ml-2">
-                                    출력: "{tc.actualOutput?.trim()}"
-                                  </span>
-                                )}
-                                {tc.errorMessage && (
-                                  <pre className="text-red-500 dark:text-red-300 mt-1 text-xs whitespace-pre-wrap bg-red-100 dark:bg-red-900/20 p-2 rounded">
-                                    {tc.errorMessage}
-                                  </pre>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )
-                      ) : (
-                        <span className="text-gray-500">코드를 작성하고 "코드 실행" 버튼을 눌러주세요.</span>
-                      )}
+                  <div
+                    ref={editorPaneRef}
+                    className="flex-1 min-h-0 grid"
+                    style={{ gridTemplateRows: `${Math.round(editorSplitRatio * 100)}% 8px 1fr` }}
+                  >
+                    {/* Code editor */}
+                    <div className="min-h-0 overflow-hidden flex flex-col">
+                      <CodeEditor
+                        language={selectedLanguage}
+                        value={code}
+                        onChange={handleCodeChange}
+                        onMount={handleEditorMount}
+                        height="100%"
+                        theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                      />
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 pt-3 flex-shrink-0">
-                      <button
-                        onClick={runTests}
-                        className="px-4 py-2 bg-gray-200 dark:bg-[#2e2e2e] hover:bg-gray-300 dark:hover:bg-[#3f3f3f] text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 flex items-center gap-2 text-sm"
-                        disabled={isRunning}
-                      >
+                    <div
+                      role="separator"
+                      aria-label="Resize editor"
+                      className="group flex items-center justify-center cursor-row-resize bg-gray-200 dark:bg-zinc-800 rounded"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        startSplitDrag(e.clientY);
+                      }}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        const touch = e.touches?.[0];
+                        if (!touch) return;
+                        startSplitDrag(touch.clientY);
+                      }}
+                    >
+                      <span className="w-10 h-1 rounded bg-gray-400 dark:bg-zinc-600 group-hover:bg-gray-500 dark:group-hover:bg-zinc-500" />
+                    </div>
+
+                    {/* Run output */}
+                    <div className="min-h-0 flex flex-col border-t border-gray-200 dark:border-[#2e2e2e] pt-3">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{"실행 결과"}</p>
+
+                      {isRunning && (
+                        <div className="mb-3">
+                          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            <span>{"? 코드 실행 중..."}</span>
+                            <span>{Math.round(runProgress)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 transition-all duration-300 ease-out"
+                              style={{ width: `${runProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="bg-gray-100 dark:bg-zinc-900 rounded p-3 h-full overflow-auto text-xs text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-zinc-800">
                         {isRunning ? (
-                          <>
-                            <span className="animate-spin">⚙️</span>
-                            실행 중...
-                          </>
+                          <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-300">
+                            <span className="animate-spin">??</span>
+                            <span>{"Judge0 서버에서 코드를 실행하고 있습니다..."}</span>
+                          </div>
+                        ) : testResult ? (
+                          testResult.error ? (
+                            <span className="text-red-500 dark:text-red-400">{"오류: "}{testResult.message}</span>
+                          ) : (
+                            <div>
+                              <div
+                                className={`font-bold mb-2 ${
+                                  testResult.overallResult === 'AC'
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : 'text-red-500 dark:text-red-400'
+                                }`}
+                              >
+                                {testResult.overallResult === 'AC'
+                                  ? '정답!'
+                                  : `결과: ${testResult.overallResult}`}
+                                <span className="ml-2 text-gray-500 dark:text-gray-400 font-normal">
+                                  {`(${testResult.passedCount}/${testResult.totalCount} 통과)`}
+                                </span>
+                                {testResult.maxExecutionTime && (
+                                  <span className="ml-2 text-gray-500 font-normal text-xs">
+                                    {`실행시간: ${testResult.maxExecutionTime}ms`}
+                                  </span>
+                                )}
+                              </div>
+                              {testResult.testCaseResults?.map((tc, idx) => (
+                                <div key={idx} className="text-xs mt-1">
+                                  <span className={tc.result === 'AC' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}>
+                                    TC{tc.testCaseNumber}: {tc.result}
+                                  </span>
+                                  {tc.result !== 'AC' && tc.actualOutput && (
+                                    <span className="text-gray-500 ml-2">
+                                      {`출력: "${tc.actualOutput?.trim()}"`}
+                                    </span>
+                                  )}
+                                  {tc.errorMessage && (
+                                    <pre className="text-red-500 dark:text-red-300 mt-1 text-xs whitespace-pre-wrap bg-red-100 dark:bg-red-900/20 p-2 rounded">
+                                      {tc.errorMessage}
+                                    </pre>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )
                         ) : (
-                          '코드 실행'
+                          <span className="text-gray-500">{'코드를 작성하고 "코드 실행" 버튼을 눌러주세요.'}</span>
                         )}
-                      </button>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 pt-3 flex-shrink-0">
+                        <button
+                          onClick={runTests}
+                          className="px-4 py-2 bg-gray-200 dark:bg-[#2e2e2e] hover:bg-gray-300 dark:hover:bg-[#3f3f3f] text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 flex items-center gap-2 text-sm"
+                          disabled={isRunning}
+                        >
+                          {isRunning ? (
+                            <>
+                              <span className="animate-spin">??</span>
+                              {'실행 중...'}
+                            </>
+                          ) : (
+                            '코드 실행'
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
