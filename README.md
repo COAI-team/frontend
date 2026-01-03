@@ -2,6 +2,8 @@
 
 Code-Nemsy 프론트엔드는 React.js 기반으로 1vs1 코딩 배틀, 알고리즘 문제 풀이, AI 코드 분석, 커뮤니티 기능을 제공합니다. Vite.js 빌드 도구와 Tailwind CSS로 빠르고 반응형 UI를 구현했습니다.
 
+---
+
 ## 기술 스택
 프론트엔드는 현대적인 React 생태계를 활용하여 개발되었습니다.
 
@@ -14,6 +16,8 @@ Code-Nemsy 프론트엔드는 React.js 기반으로 1vs1 코딩 배틀, 알고�
 - **실시간 통신**: WebSocket (배틀, 튜터 모드)
 - **배포**: Vercel (code-nemsy-frontend.vercel.app)
 
+---
+
 ## 주요 기능
 다양한 학습 및 커뮤니티 기능을 React 컴포넌트로 모듈화하여 구현했습니다.
 
@@ -25,6 +29,8 @@ Code-Nemsy 프론트엔드는 React.js 기반으로 1vs1 코딩 배틀, 알고�
 - **챗봇**: OpenAI API 연동 실시간 대화
 - **결제**: Toss Payments 위젯 통합
 
+---
+
 ## 핵심 Hooks & Context
 상태 관리와 사용자 경험을 최적화한 커스텀 훅을 사용합니다.
 
@@ -33,6 +39,8 @@ Code-Nemsy 프론트엔드는 React.js 기반으로 1vs1 코딩 배틀, 알고�
 - **OAuth Hooks**: GitHub 로그인 흐름 및 리다이렉트 제어
 - **WebSocket Hooks**: 배틀 상태 실시간 업데이트, Grace Period 처리
 
+---
+
 ## 배포 (Vercel)
 개발 중 발생한 주요 이슈와 해결 방법을 문서화했습니다.
 
@@ -40,3 +48,57 @@ Code-Nemsy 프론트엔드는 React.js 기반으로 1vs1 코딩 배틀, 알고�
 - **ThemeContext 지연**: Context 초기화 최적화
 - **WebSocket 재연결**: SSE 중복 차감 방지 로직 추가 (Redis 마커)
 - **XSS 방어**: React 자동 이스케이프 + 백엔드 화이트리스트 검증
+
+---
+
+# Code-Nemsy Frontend
+
+The **Code-Nemsy frontend** is built with **React.js** and delivers features such as **1vs1 coding battles**, **algorithm problem solving**, **AI code analysis**, and **community interactions**.  
+It uses **Vite.js** as the build tool and **Tailwind CSS** to achieve a fast, responsive user interface.
+
+---
+
+## Tech Stack
+The frontend is developed using a modern React ecosystem.
+
+- **Framework**: React.js (Functional Components & Hooks)
+- **Build Tool**: Vite.js
+- **Styling**: Tailwind CSS
+- **Authentication**: GitHub OAuth, JWT token management
+- **State Management**: React Context (LoginContext, ThemeContext)
+- **Editor**: Monaco Editor (syntax highlighting, auto-completion)
+- **Real-time Communication**: WebSocket (Battle mode, Tutor mode)
+- **Deployment**: Vercel (`code-nemsy-frontend.vercel.app`)
+
+---
+
+## Key Features
+A wide range of learning and community features are modularized into React components.
+
+- **GitHub OAuth Login**: Callback handling and account linking (`needLink` state management)
+- **Algorithm Problem Solving**: Tutor mode, Focus mode, Monaco Editor integration
+- **1vs1 Coding Battles**: Real-time state synchronization via Redis, WebSocket push updates
+- **AI Code Analysis**: GitHub integration, RAG-based feedback, Langfuse monitoring
+- **Community**: Free/Code boards, tag system, unified editor (images, tables, emojis)
+- **Chatbot**: Real-time conversations powered by the OpenAI API
+- **Payments**: Toss Payments widget integration
+
+---
+
+## Core Hooks & Contexts
+Custom hooks are used to optimize state management and user experience.
+
+- **LoginContext**: Global authentication state management with LocalStorage synchronization
+- **ThemeContext**: Dark mode toggling based on `next-themes`
+- **OAuth Hooks**: GitHub login flow and redirect control
+- **WebSocket Hooks**: Real-time battle state updates with Grace Period handling
+
+---
+
+## Deployment (Vercel)
+Key issues encountered during development and their resolutions are documented.
+
+- **TDZ Errors**: Resolved by adjusting variable declaration order
+- **ThemeContext Delay**: Optimized context initialization
+- **WebSocket Reconnection**: Added logic to prevent duplicate deductions in SSE (Redis markers)
+- **XSS Protection**: React automatic escaping + backend whitelist validation
