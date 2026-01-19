@@ -42,7 +42,7 @@
     "devtools-detect": "^4.0.2",
     "echarts": "^5.4.1",
     "echarts-wordcloud": "^2.1.0",
-    "framer-motion": "^12.26.2",
+    "framer-motion": "^12.27.0",
     "highlight.js": "^11.11.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.562.0",
