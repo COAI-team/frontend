@@ -1,0 +1,807 @@
+/* 문제 상세 페이지 컨테이너 */
+.problem-detail-container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  padding: 3rem 1rem;
+}
+
+.problem-detail-wrapper {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* 상단 네비게이션 */
+.back-link {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--text-primary);
+}
+
+/* 문제 헤더 카드 */
+.problem-header-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.problem-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.problem-header-left {
+  flex: 1;
+}
+
+.problem-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+/* 난이도 배지 - 라이트모드 */
+html:not(.dark) .badge-bronze {
+  background-color: #ffedd5;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
+html:not(.dark) .badge-silver {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  border-color: #e5e7eb;
+}
+
+html:not(.dark) .badge-gold {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+html:not(.dark) .badge-platinum {
+  background-color: #cffafe;
+  color: #155e75;
+  border-color: #a5f3fc;
+}
+
+/* 난이도 배지 - 다크모드 */
+html.dark .badge-bronze {
+  background-color: rgba(234, 88, 12, 0.3);
+  color: #fb923c;
+  border-color: rgba(234, 88, 12, 0.5);
+}
+
+html.dark .badge-silver {
+  background-color: rgba(55, 65, 81, 0.5);
+  color: #d1d5db;
+  border-color: #4b5563;
+}
+
+html.dark .badge-gold {
+  background-color: rgba(234, 179, 8, 0.3);
+  color: #fbbf24;
+  border-color: rgba(234, 179, 8, 0.5);
+}
+
+html.dark .badge-platinum {
+  background-color: rgba(6, 182, 212, 0.3);
+  color: #22d3ee;
+  border-color: rgba(6, 182, 212, 0.5);
+}
+
+/* 문제 타입 배지 */
+html:not(.dark) .badge-database {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+  border-color: #e9d5ff;
+}
+
+html:not(.dark) .badge-algorithm {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+html.dark .badge-database {
+  background-color: rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.5);
+}
+
+html.dark .badge-algorithm {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+/* 문제 태그 배지 */
+html:not(.dark) .badge-tag {
+  background-color: #f3e8ff;
+  color: #7c3aed;
+  border-color: #ddd6fe;
+}
+
+html.dark .badge-tag {
+  background-color: rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.problem-id {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.problem-detail-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.problem-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.solve-button {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(to right, #3b82f6, #6366f1);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1.125rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.solve-button:hover {
+  background: linear-gradient(to right, #2563eb, #4f46e5);
+}
+
+.problem-meta {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.problem-meta-item {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.problem-meta-label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* 탭 네비게이션 */
+.tab-navigation {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  border-radius: 0.5rem 0.5rem 0 0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.tab-buttons {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  position: relative;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-button:hover {
+  color: var(--text-primary);
+}
+
+.tab-button.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+html.dark .tab-button.active {
+  color: #60a5fa;
+  border-bottom-color: #60a5fa;
+}
+
+/* 문제 컨텐츠 영역 */
+.problem-content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* 섹션 카드 - ProblemGenerator와 동일한 스타일 */
+.section-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 0rem;
+  padding: 1rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.section-icon {
+  font-size: 1.125rem;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.section-content {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  padding-left: 1.625rem;
+  padding-right: 1.625rem;
+}
+
+/* 문제 설명 섹션 */
+.section-description {
+  background-color: var(--bg-secondary);
+}
+
+/* 입력/출력 그리드 레이아웃 */
+.io-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .io-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 입력 섹션 - 파란색 */
+.section-input {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+}
+
+html:not(.dark) {
+  --input-bg: #eff6ff;
+  --input-border: #dbeafe;
+}
+
+html.dark {
+  --input-bg: rgba(59, 130, 246, 0.1);
+  --input-border: rgba(59, 130, 246, 0.3);
+}
+
+/* 출력 섹션 - 녹색 */
+.section-output {
+  background-color: var(--output-bg);
+  border-color: var(--output-border);
+}
+
+html:not(.dark) {
+  --output-bg: #f0fdf4;
+  --output-border: #bbf7d0;
+}
+
+html.dark {
+  --output-bg: rgba(34, 197, 94, 0.1);
+  --output-border: rgba(34, 197, 94, 0.3);
+}
+
+/* 제한사항 섹션 - 노란색 */
+.section-constraints {
+  background-color: var(--constraints-bg);
+  border-color: var(--constraints-border);
+}
+
+html:not(.dark) {
+  --constraints-bg: #fefce8;
+  --constraints-border: #fef08a;
+}
+
+html.dark {
+  --constraints-bg: rgba(234, 179, 8, 0.1);
+  --constraints-border: rgba(234, 179, 8, 0.3);
+}
+
+/* 레거시 constraints-card 호환성 */
+.constraints-card {
+  background-color: var(--constraints-bg);
+  border: 1px solid var(--constraints-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.constraints-card .section-title {
+  color: var(--text-primary);
+}
+
+.constraints-card .section-content {
+  color: var(--text-secondary);
+}
+
+/* 마크다운 렌더링 */
+.formatted-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formatted-text-line {
+  line-height: 1.75;
+}
+
+.formatted-text-empty {
+  height: 0.5rem;
+}
+
+.formatted-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.formatted-text-bullet {
+  color: var(--text-tertiary);
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+}
+
+.formatted-text-number {
+  color: var(--text-secondary);
+  font-weight: 500;
+  min-width: 20px;
+  flex-shrink: 0;
+}
+
+.formatted-bold {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.formatted-code {
+  padding: 0.125rem 0.375rem;
+  background-color: var(--code-bg);
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--code-text);
+}
+
+html:not(.dark) {
+  --code-bg: #f3f4f6;
+  --code-text: #dc2626;
+}
+
+html.dark {
+  --code-bg: #374151;
+  --code-text: #f87171;
+}
+
+/* 예제 입출력 */
+.examples-section {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 0 0 0.5rem 0.5rem;
+  padding: 2rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.examples-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.example-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .example-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.example-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.example-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.example-code {
+  background-color: var(--example-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+}
+
+html:not(.dark) {
+  --example-bg: #f9fafb;
+}
+
+html.dark {
+  --example-bg: #2e2e2e;
+}
+
+/* 로딩 상태 */
+.loading-state {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid transparent;
+  border-top-color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+}
+
+/* 에러 상태 */
+.error-state {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-content {
+  text-align: center;
+}
+
+.error-text {
+  color: var(--error-text);
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+html:not(.dark) {
+  --error-text: #dc2626;
+}
+
+html.dark {
+  --error-text: #f87171;
+}
+
+.error-button {
+  padding: 0.5rem 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 0.375rem;
+  transition: background-color 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.error-button:hover {
+  background-color: #2563eb;
+}
+
+/* CSS 변수 정의 */
+html:not(.dark),
+html:not(.dark) .problem-detail-container {
+  --bg-primary: #ffffff;
+  --bg-secondary: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --border-color: #e5e7eb;
+}
+
+html.dark,
+html.dark .problem-detail-container {
+  --bg-primary: #131313;
+  --bg-secondary: #1f1f1f;
+  --text-primary: #f3f4f6;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --border-color: #2b2b2b;
+}
+
+/* ProblemSolve.jsx 전용 다크 테마 - 항상 다크 모드 적용 */
+.problem-solve-dark {
+  --bg-primary: #18181b;
+  --bg-secondary: #27272a;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --border-color: #3f3f46;
+  --input-bg: rgba(59, 130, 246, 0.15);
+  --input-border: rgba(59, 130, 246, 0.4);
+  --output-bg: rgba(34, 197, 94, 0.15);
+  --output-border: rgba(34, 197, 94, 0.4);
+  --constraints-bg: rgba(234, 179, 8, 0.15);
+  --constraints-border: rgba(234, 179, 8, 0.4);
+  --code-bg: #3f3f46;
+  --code-text: #f87171;
+  --example-bg: #18181b;
+}
+
+.problem-solve-dark .section-card {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+.problem-solve-dark .section-title {
+  color: var(--text-primary);
+}
+
+.problem-solve-dark .section-content {
+  color: var(--text-secondary);
+}
+
+.problem-solve-dark .section-input {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+}
+
+.problem-solve-dark .section-output {
+  background-color: var(--output-bg);
+  border-color: var(--output-border);
+}
+
+.problem-solve-dark .section-constraints {
+  background-color: var(--constraints-bg);
+  border-color: var(--constraints-border);
+}
+
+.problem-solve-dark .examples-section {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+.problem-solve-dark .example-code {
+  background-color: var(--example-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.problem-solve-dark .formatted-bold {
+  color: var(--text-primary);
+}
+
+.problem-solve-dark .formatted-code {
+  background-color: var(--code-bg);
+  color: var(--code-text);
+}
+
+.problem-solve-dark .formatted-text-bullet,
+.problem-solve-dark .formatted-text-number {
+  color: var(--text-tertiary);
+}
+
+/* ===== ProblemSolve 라이트모드 테마 ===== */
+html:not(.dark) .problem-solve-content {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --border-color: #e2e8f0;
+  --input-bg: #eff6ff;
+  --input-border: #dbeafe;
+  --output-bg: #f0fdf4;
+  --output-border: #bbf7d0;
+  --constraints-bg: #fefce8;
+  --constraints-border: #fef08a;
+  --code-bg: #f3f4f6;
+  --code-text: #dc2626;
+  --example-bg: #f9fafb;
+}
+
+html:not(.dark) .problem-solve-content .section-card {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+html:not(.dark) .problem-solve-content .section-title {
+  color: var(--text-primary);
+}
+
+html:not(.dark) .problem-solve-content .section-content {
+  color: var(--text-secondary);
+}
+
+html:not(.dark) .problem-solve-content .section-input {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+}
+
+html:not(.dark) .problem-solve-content .section-output {
+  background-color: var(--output-bg);
+  border-color: var(--output-border);
+}
+
+html:not(.dark) .problem-solve-content .section-constraints {
+  background-color: var(--constraints-bg);
+  border-color: var(--constraints-border);
+}
+
+html:not(.dark) .problem-solve-content .examples-section {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+html:not(.dark) .problem-solve-content .example-code {
+  background-color: var(--example-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html:not(.dark) .problem-solve-content .formatted-bold {
+  color: var(--text-primary);
+}
+
+html:not(.dark) .problem-solve-content .formatted-code {
+  background-color: var(--code-bg);
+  color: var(--code-text);
+}
+
+html:not(.dark) .problem-solve-content .formatted-text-bullet,
+html:not(.dark) .problem-solve-content .formatted-text-number {
+  color: var(--text-tertiary);
+}
+
+/* ProblemSolve 다크모드 테마 (기존 problem-solve-dark 스타일 유지) */
+html.dark .problem-solve-content {
+  --bg-primary: #18181b;
+  --bg-secondary: #27272a;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --border-color: #3f3f46;
+  --input-bg: rgba(59, 130, 246, 0.15);
+  --input-border: rgba(59, 130, 246, 0.4);
+  --output-bg: rgba(34, 197, 94, 0.15);
+  --output-border: rgba(34, 197, 94, 0.4);
+  --constraints-bg: rgba(234, 179, 8, 0.15);
+  --constraints-border: rgba(234, 179, 8, 0.4);
+  --code-bg: #3f3f46;
+  --code-text: #f87171;
+  --example-bg: #18181b;
+}
+
+html.dark .problem-solve-content .section-card {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+html.dark .problem-solve-content .section-title {
+  color: var(--text-primary);
+}
+
+html.dark .problem-solve-content .section-content {
+  color: var(--text-secondary);
+}
+
+html.dark .problem-solve-content .section-input {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+}
+
+html.dark .problem-solve-content .section-output {
+  background-color: var(--output-bg);
+  border-color: var(--output-border);
+}
+
+html.dark .problem-solve-content .section-constraints {
+  background-color: var(--constraints-bg);
+  border-color: var(--constraints-border);
+}
+
+html.dark .problem-solve-content .examples-section {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+html.dark .problem-solve-content .example-code {
+  background-color: var(--example-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html.dark .problem-solve-content .formatted-bold {
+  color: var(--text-primary);
+}
+
+html.dark .problem-solve-content .formatted-code {
+  background-color: var(--code-bg);
+  color: var(--code-text);
+}
+
+html.dark .problem-solve-content .formatted-text-bullet,
+html.dark .problem-solve-content .formatted-text-number {
+  color: var(--text-tertiary);
+}

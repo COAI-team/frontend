@@ -1,0 +1,165 @@
+:root {
+  --pay-screen-bg: #f8fafc;
+  --pay-card-bg: #ffffff;
+  --pay-card-text: var(--text-main);
+  --pay-card-shadow: rgba(15, 23, 42, 0.18);
+  --pay-btn-dark: #0f172a;
+  --pay-btn-dark-text: #ffffff;
+  --pay-btn-light: #ffffff;
+  --pay-btn-light-border: #cbd5e1;
+  --pay-btn-light-text: #1f2937;
+  --pay-status: var(--text-sub);
+  --pay-status-sub: var(--text-muted);
+  --pay-fail-border: #fb7185;
+  --pay-fail-bg: #fff1f2;
+  --pay-fail-text: #be123c;
+}
+
+.dark {
+  --pay-screen-bg: #0b1221;
+  --pay-card-bg: #0f172a;
+  --pay-card-text: var(--text-main);
+  --pay-card-shadow: rgba(0, 0, 0, 0.35);
+  --pay-btn-dark: #e2e8f0;
+  --pay-btn-dark-text: #0f172a;
+  --pay-btn-light: #111827;
+  --pay-btn-light-border: #1f2937;
+  --pay-btn-light-text: #e5e7eb;
+  --pay-status: var(--text-sub);
+  --pay-status-sub: var(--text-muted);
+  --pay-fail-border: #7f1d1d;
+  --pay-fail-bg: #111827;
+  --pay-fail-text: #fca5a5;
+}
+
+/* Common screens */
+.payment-screen {
+  background-color: var(--pay-screen-bg);
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.payment-card {
+  max-width: 640px;
+  margin: 60px auto;
+  padding: 32px 28px 40px;
+  border-radius: 16px;
+  background-color: var(--pay-card-bg);
+  color: var(--pay-card-text);
+  box-shadow: 0 18px 40px var(--pay-card-shadow);
+  text-align: center;
+}
+
+.payment-title-success {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  color: #16a34a;
+}
+
+.payment-title-warning {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  color: #f97316;
+}
+
+.payment-status {
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  color: var(--pay-status);
+}
+
+.payment-subtext {
+  font-size: 14px;
+  color: var(--pay-status-sub);
+}
+
+.payment-buttons {
+  margin-top: 28px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.payment-btn-primary {
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  background-color: var(--pay-btn-dark);
+  color: var(--pay-btn-dark-text);
+  cursor: pointer;
+}
+
+.payment-btn-secondary {
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--pay-btn-light-border);
+  font-size: 14px;
+  font-weight: 500;
+  background-color: var(--pay-btn-light);
+  color: var(--pay-btn-light-text);
+  cursor: pointer;
+}
+
+/* Fail screen */
+.fail-wrapper {
+  max-width: 600px;
+  margin: 50px auto;
+  text-align: center;
+  padding: 20px;
+  border: 1px solid var(--pay-fail-border);
+  border-radius: 8px;
+  background-color: var(--pay-fail-bg);
+  color: var(--pay-card-text);
+}
+
+.fail-title {
+  color: var(--pay-fail-text);
+  margin-bottom: 16px;
+}
+
+.fail-message {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-bottom: 24px;
+}
+
+.fail-box {
+  margin-top: 10px;
+  text-align: left;
+  padding: 20px;
+  background-color: var(--pay-card-bg);
+  border-radius: 6px;
+  color: var(--pay-card-text);
+  border: 1px solid var(--pay-btn-light-border);
+}
+
+.fail-detail {
+  margin-top: 6px;
+}
+
+.fail-detail-sub {
+  margin-top: 4px;
+  font-size: 0.95em;
+  color: var(--pay-status-sub);
+}
+
+.fail-note {
+  margin-top: 20px;
+  color: var(--pay-status-sub);
+}
+
+.fail-button {
+  margin-top: 30px;
+  padding: 10px 20px;
+  background-color: gray;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}

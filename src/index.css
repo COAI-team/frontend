@@ -1,1 +1,409 @@
 @import "tailwindcss";
+
+/* ✅ Tailwind v4: 클래스 기반 다크모드 설정 (tailwind.config.js의 darkMode: 'class' 대체) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 👇 Tailwind에 light/dark 모드 힌트 주기 */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+}
+
+/* ------------------ */
+/* 색상 변수 (공통)   */
+/* ------------------ */
+
+:root {
+  /* 텍스트 */
+  --color-text-main: #111827;   /* 본문, 숫자, 합계 */
+  --color-text-sub: #374151;    /* 서브 제목, 라벨 */
+  --color-text-muted: #6b7280;  /* 설명, 힌트 */
+
+  /* 배경 */
+  --color-bg-main: #f9fafb;
+  --color-bg-panel: #ffffff;
+}
+
+/* ✅ html.dark 에 걸리도록 : html에 dark 클래스가 붙으므로 */
+html.dark {
+  --color-text-main: #e5e7eb;   /* 본문 */
+  --color-text-sub: #cbd5e1;    /* 서브 */
+  --color-text-muted: #9ca3af;  /* 힌트 */
+
+  --color-bg-main: #020617;
+  --color-bg-panel: #0f172a;
+}
+
+/* ------------------ */
+/* 유틸 클래스        */
+/* ------------------ */
+
+.text-main {
+  color: var(--color-text-main);
+}
+
+.text-sub {
+  color: var(--color-text-sub);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.bg-main {
+  background-color: var(--color-bg-main);
+}
+
+.bg-panel {
+  background-color: var(--color-bg-panel);
+}
+
+/* 날짜 필터 전용 공통 스타일 */
+.input-date {
+  background-color: var(--billing-panel, var(--color-bg-panel));
+  color: var(--color-text-main);
+  border: 1px solid var(--billing-border, #e5e7eb);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.input-date::-webkit-datetime-edit {
+  color: var(--color-text-sub);
+  opacity: 1;
+}
+
+.input-date:focus::-webkit-datetime-edit,
+.input-date:valid::-webkit-datetime-edit {
+  color: var(--color-text-main);
+}
+
+.input-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+/* ✅ html.dark 기준으로 수정 */
+html.dark .input-date {
+  background-color: var(--billing-panel, var(--color-bg-panel));
+  color: var(--color-text-main);
+  border-color: var(--billing-border, #1f2937);
+}
+
+/* ------------------ */
+/* 레이아웃 기본값    */
+/* ------------------ */
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* 라이트모드 전체 배경 */
+html {
+  background-color: #f7f7f7 !important;
+}
+
+/* 다크모드 전체 배경 */
+html.dark {
+  background-color: #000 !important;
+}
+
+body {
+  background-color: #f7f7f7;
+}
+
+/* ✅ body.dark 는 안 쓰고, html.dark body 만 유지 */
+html.dark body {
+  background-color: #000;
+}
+
+/* 기본 스크롤바 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+/* Custom Animations for Hero Section */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Fade In Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Scroll Reveal Animations */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); /* Premium ease-out */
+}
+
+.reveal-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Code Scanning Animation */
+@keyframes scan-line {
+  0% { top: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.animate-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #3b82f6, transparent); /* Blue scan line */
+  box-shadow: 0 0 10px #3b82f6;
+  animation: scan-line 2s ease-in-out infinite;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ✅ 여기만 그대로 둬도 됨 (html이나 body에 dark 클래스가 있어도 동작) */
+html.dark .animate-scan,
+.dark .animate-scan {
+  background: linear-gradient(to right, transparent, #60a5fa, transparent);
+  box-shadow: 0 0 15px #60a5fa;
+}
+
+/* 1. 360 Degree Spinning Moai */
+.moai-spinner-container {
+  display: inline-block;
+  perspective: 1000px;
+}
+
+.moai-spinner {
+  display: inline-block;
+  animation: spinMoai 10s linear infinite;
+  transform-style: preserve-3d;
+}
+
+@keyframes spinMoai {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+/* 2. Walking Moai in Header */
+.header-banner-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible; /* Allow snow to drip down (vertical overflow) */
+  z-index: 1; 
+  /* Note: Horizontal overflow from Moai walking might cause scrollbars if not handled by parent (Navbar/Body) */
+}
+
+.walking-moai-container {
+  position: absolute;
+  left: -10%;
+  bottom: 0px; /* Feet closer to snow floor */
+  /* 기본 20초, 인라인 스타일로 오버라이드 가능하도록 */
+  animation: walkAcrossScreen var(--walk-duration, 20s) linear infinite;
+  animation-delay: var(--walk-delay, 0s);
+  z-index: 30; /* Above Snow (10) */
+  will-change: left;
+}
+
+/* ... existing code ... */
+
+/* accumulated snow (sobok sobok) */
+.snow-floor {
+  position: absolute;
+  /* Moved UP as requested: was -12px, now -2px */
+  bottom: -2px; 
+  left: 0;
+  width: 100%;
+  height: 25px;
+  /* Clean white snow, no circles */
+  background: white; 
+  /* Wavy/Dripping bottom edge simulation */
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  /* Thicker hanging layer */
+  border-bottom-left-radius: 50% 25px;
+  border-bottom-right-radius: 50% 25px;
+  
+  box-shadow: 
+    0 10px 20px rgba(0,0,0,0.1), /* Enhanced shadow */
+    inset 0 -5px 10px rgba(220, 230, 240, 0.5); 
+  
+  z-index: 10; 
+  filter: blur(0.5px);
+}
+
+.moai-body {
+  font-size: 40px;
+  display: inline-block;
+  /* 더 무거운 느낌: 빠른 하강, 느린 상승, 착지 시 찌그러짐 */
+  animation: heavyBounce 0.8s infinite cubic-bezier(0.8, 0, 1, 1);
+  transform-origin: bottom center;
+}
+
+.moai-body.christmas::after {
+  content: '🎅';
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
+  z-index: 2;
+}
+
+@keyframes walkAcrossScreen {
+  from { left: -15%; }
+  to { left: 115%; }
+}
+
+@keyframes heavyBounce {
+  0%, 100% {
+    transform: translateY(0) scaleY(0.95) scaleX(1.05); /* 착지: 찌그러짐 */
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1); /* 점프 시작: 빠르게 튀어오름 */
+  }
+  40% {
+    transform: translateY(-20px) scaleY(1.05) scaleX(0.95); /* 정점: 늘어남 */
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1); /* 하강: 점점 빨라짐 (중력) */
+  }
+  100% {
+    transform: translateY(0) scaleY(0.95) scaleX(1.05); /* 착지 */
+  }
+}
+
+@keyframes walkAcrossScreenReverse {
+  from { left: 115%; }
+  to { left: -15%; }
+}
+
+/* ❄️ Snow Animation */
+@keyframes snowfall {
+  0% {
+    transform: translateY(-10px) translateX(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(80px) translateX(20px);
+    opacity: 0.3;
+  }
+}
+
+.snowflake {
+  position: absolute;
+  top: -10px;
+  background-color: white;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 20; /* Snowflakes fall in front of floor but maybe behind Moai? Let's make them front for immersion */
+  animation: snowfall linear infinite;
+  box-shadow: 0 0 5px white;
+}
+
+/* accumulated snow (sobok sobok) */
+.snow-floor {
+  position: absolute;
+  /* Navbar bottom is 0. We want it to hang down a bit. */
+  bottom: -12px; 
+  left: 0;
+  width: 100%;
+  height: 20px;
+  /* Clean white snow, no circles */
+  background: white; 
+  /* Wavy/Dripping bottom edge simulation using border-radius specific corners or mask. 
+     A simple effective way is irregular border radius. */
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  /* To make it look like "flowing over", it needs to be wider than container or just smooth at bottom. 
+     Let's try a simpler approach first: a thick hanging layer with soft shadow. */
+  border-bottom-left-radius: 50% 20px;
+  border-bottom-right-radius: 50% 20px;
+  
+  box-shadow: 
+    0 8px 15px rgba(0,0,0,0.1), /* Soft drop shadow */
+    inset 0 -5px 10px rgba(220, 230, 240, 0.5); /* Inner shading for depth at bottom */
+  
+  z-index: 10; 
+  filter: blur(0.5px);
+}
+
+/* Moai Container Adjustment */
+.walking-moai-container {
+  /* ... existing styles ... */
+  z-index: 30; /* Higher than snow (10) and snowflakes (20) if desired */
+}
+/* Note: walking-moai-container style block is not defined locally in CSS, 
+   it's in Navbar.jsx inline styles mostly, but class exists. 
+   We have .walking-moai-container defined around line 270. Let's update that block specifically. 
+*/

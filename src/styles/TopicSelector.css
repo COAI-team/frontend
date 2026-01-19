@@ -1,0 +1,99 @@
+/* 주제 선택 컨테이너 */
+.topic-selector-container {
+  margin-bottom: 1rem;
+}
+
+/* 주제 버튼 래퍼 */
+.topic-buttons-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 주제 버튼 */
+.topic-button {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  background: var(--topic-bg);
+  color: var(--topic-text);
+}
+
+.topic-button:hover {
+  background: var(--topic-hover-bg);
+  color: var(--topic-hover-text);
+}
+
+.topic-button.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* 더보기 버튼 */
+.topic-more-button {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  background: var(--topic-bg);
+  color: var(--topic-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topic-more-button:hover {
+  background: var(--topic-hover-bg);
+  color: var(--topic-hover-text);
+}
+
+.topic-more-button svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s;
+}
+
+.topic-more-button.open svg {
+  transform: rotate(180deg);
+}
+
+/* 추가 주제 섹션 */
+.extra-topics-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* 다크모드 CSS 변수 */
+html.dark {
+  --topic-bg: #2e2e2e;
+  --topic-text: #e5e7eb;
+  --topic-hover-bg: #1e1e1e;
+  --topic-hover-text: #ffffff;
+  --primary-color: #3b82f6;
+  --border-color: #374151;
+}
+
+/* 라이트모드 CSS 변수 */
+html:not(.dark) {
+  --topic-bg: #f3f4f6;
+  --topic-text: #374151;
+  --topic-hover-bg: #e5e7eb;
+  --topic-hover-text: #111827;
+  --primary-color: #3b82f6;
+  --border-color: #e5e7eb;
+}

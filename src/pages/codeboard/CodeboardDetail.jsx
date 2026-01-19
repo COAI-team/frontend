@@ -1,0 +1,1025 @@
+import React, { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { axiosInstance } from "../../server/AxiosConfig";
+import { getAuth } from "../../utils/auth/token";
+import { MessageCircle, Share2, AlertCircle } from "lucide-react";
+import "../../styles/CodeboardDetail.css";
+import CommentSection from '../../components/comment/CommentSection';
+import { getAnalysisResult } from '../../service/codeAnalysis/analysisApi';
+import { getSmellKeyword } from '../../utils/codeAnalysisUtils';
+import { processCodeBlocks, applyHighlighting } from '../../utils/codeBlockUtils';
+import LikeButton from '../../components/button/LikeButton';
+import AlertModal from "../../components/modal/AlertModal";
+import {useAlert} from "../../hooks/common/useAlert";
+import CodeCopy from '../../components/editor/CodeCopy';
+import LineCopy from '../../components/editor/LineCopy';
+
+const CodeboardDetail = () => {
+  const {alert, showAlert, closeAlert} = useAlert();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [board, setBoard] = useState(null);
+  const [isDark, setIsDark] = useState(() => 
+    document.documentElement.classList.contains('dark')
+  );
+  
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [commentCount, setCommentCount] = useState(0);
+
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [fileContent, setFileContent] = useState('');
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
+
+  // 처리된 content 저장
+  const [processedContent, setProcessedContent] = useState('');
+  const contentProcessed = useRef(false);
+
+  // 로그인 유저 정보
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // 로그인 유저 정보 가져오기
+  useEffect(() => {
+    const auth = getAuth();
+    if (auth?.user) {
+      setCurrentUser(auth.user);
+    }
+  }, []);
+
+  // 코드 복사 ref
+  const codeCopyRef = useRef(null);
+
+  const handleLineClick = (startLine, endLine) => {
+    console.log('handleLineClick 호출됨:', startLine, endLine);
+    console.log('codeCopyRef.current:', codeCopyRef.current);
+    
+    if (codeCopyRef.current) {
+      console.log('highlightLines 함수 호출 시도');
+      codeCopyRef.current.highlightLines(startLine, endLine);
+    } else {
+      console.log('codeCopyRef.current가 null입니다');
+    }
+  };
+
+  // highlight.js 테마 관리
+  useEffect(() => {
+    const loadHljsTheme = (darkMode) => {
+      document.querySelectorAll('link[data-hljs-theme]').forEach(el => el.remove());
+      
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.dataset.hljsTheme = 'true';
+      link.href = darkMode 
+        ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css'
+        : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+      document.head.appendChild(link);
+    };
+
+    const checkDarkMode = () => {
+      const darkMode = document.documentElement.classList.contains('dark');
+      setIsDark(darkMode);
+      loadHljsTheme(darkMode);
+    };
+    
+    checkDarkMode();
+    
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => {
+      observer.disconnect();
+      document.querySelectorAll('link[data-hljs-theme]').forEach(el => el.remove());
+    };
+  }, []);
+
+  // 게시글 데이터 로드
+  useEffect(() => {
+    if (!id) return;
+
+    axiosInstance
+      .get(`/codeboard/${id}`)
+      .then((res) => {
+        const responseData = res.data?.data || res.data;
+        setBoard(responseData);
+        setIsLiked(responseData.isLiked || false);
+        setLikeCount(responseData.likeCount || 0);
+        setCommentCount(responseData.commentCount || 0);
+
+        if (responseData.analysisId) {
+          loadAnalysisData(responseData.analysisId);
+        }
+      })
+      .catch((err) => console.error("게시글 불러오기 실패:", err));
+  }, [id]);
+
+  // content에서 실제 HTML 추출
+  const getRenderedContent = (content) => {
+    if (!content) return "";
+    
+    try {
+      if (content.startsWith('[')) {
+        const blocks = JSON.parse(content);
+        if (blocks.length > 0 && blocks[0].content) {
+          return blocks[0].content;
+        }
+      }
+      return content;
+    } catch {
+      return content;
+    }
+  };
+
+  // 우측 content 처리 (processCodeBlocks만 호출)
+  useEffect(() => {
+    if (!board || contentProcessed.current) return;
+
+    const rawContent = getRenderedContent(board.codeboardContent);
+    if (!rawContent) return;
+
+    // DOM 파서로 처리
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${rawContent}</div>`, 'text/html');
+    const container = doc.body.firstChild;
+
+    // 스티커 처리
+    container.querySelectorAll('img[data-sticker], img[src*="openmoji"]').forEach(img => {
+      img.style.width = '1.5em';
+      img.style.height = '1.5em';
+      img.style.verticalAlign = '-0.3em';
+      img.style.display = 'inline-block';
+      img.style.margin = '0 0.1em';
+    });
+
+    // 코드 블록 처리 (utils/codeBlockUtils.js)
+    processCodeBlocks(container, isDark);
+
+    setProcessedContent(container.innerHTML);
+    contentProcessed.current = true;
+  }, [board, isDark]);
+
+  const loadAnalysisData = async (analysisId) => {
+    try {
+      setIsAnalysisLoading(true);
+      const result = await getAnalysisResult(analysisId);
+      const data = result.data;
+      setAnalysisResult(data);
+      
+      if (data.repositoryUrl && data.filePath) {
+        try {
+          const parts = data.repositoryUrl.split('/');
+          const owner = parts[parts.length - 2];
+          const repo = parts[parts.length - 1];
+          
+          const contentRes = await axiosInstance.get(`/api/github/repos/${owner}/${repo}/content`, {
+            params: { path: data.filePath }
+          });
+          setFileContent(contentRes.data.content);
+        } catch (error_) {
+          console.error("Failed to load file content:", error_);
+          setFileContent("// 파일 내용을 불러올 수 없습니다.");
+        }
+      }
+    } catch (err) {
+      console.error("분석 결과 로드 실패:", err);
+      setAnalysisResult(null);
+    } finally {
+      setIsAnalysisLoading(false);
+    }
+  };
+
+  const handleLikeChange = (newIsLiked, newLikeCount) => {
+    setIsLiked(newIsLiked);
+    setLikeCount(newLikeCount);
+  };
+
+  const handleTagClick = (tag) => {
+    navigate(`/codeboard?keyword=${encodeURIComponent(tag)}`);
+  };
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(globalThis.location.href);
+
+    showAlert({
+      type: 'success',
+      title: '복사 완료',
+      message: '링크가 클립보드에 복사되었습니다.'
+    });
+  };
+
+  const handleReport = () => {
+    console.log("신고 클릭");
+  };
+
+  const handleCommentCountChange = (newCount) => {
+    setCommentCount(newCount);
+  };
+
+  if (!board) {
+    return (
+      <div className={`loading-container ${isDark ? 'dark' : ''}`}>
+        로딩 중...
+      </div>
+    );
+  }
+
+  const currentUserId = currentUser?.userId ?? currentUser?.id ?? null;
+  const currentUserNickname = currentUser?.userNickname ?? currentUser?.nickname ?? "";
+  const isAuthor =
+    currentUserId != null && board.userId != null
+      ? Number(currentUserId) === Number(board.userId)
+      : false;
+
+  // 날짜 포맷팅 함수
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}.${month}.${day}. ${hours}:${minutes}`;
+  };    
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: isDark ? '#131313' : '#ffffff',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <button
+            onClick={() => navigate("/codeboard")}
+            className="back-button"
+            style={{
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: isDark ? '#9ca3af' : '#4b5563',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            ← 목록으로
+          </button>
+        </div>
+
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: board.analysisId ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr', 
+          gap: '1.5rem',
+          overflow: 'visible'
+        }}>
+          
+          {/* 좌측 패널 - analysisId가 있으면 항상 영역 확보 */}
+          {board.analysisId && (
+            analysisResult ? (
+              <AnalysisPanel 
+                analysisResult={analysisResult}
+                fileContent={fileContent}
+                isDark={isDark}
+                codeCopyRef={codeCopyRef}
+              />
+            ) : (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.5rem'
+              }}>
+                {/* 코드 뷰어 스켈레톤 */}
+                <div style={{
+                  border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
+                  height: '500px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{ 
+                    color: isDark ? '#9ca3af' : '#6b7280',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{
+                      width: '2rem',
+                      height: '2rem',
+                      border: `2px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+                      borderTopColor: isDark ? '#60a5fa' : '#3b82f6',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    <span>코드 불러오는 중...</span>
+                  </div>
+                </div>
+
+                {/* 분석 결과 스켈레톤 */}
+                <div style={{
+                  border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
+                  height: '300px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{ 
+                    color: isDark ? '#9ca3af' : '#6b7280',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{
+                      width: '2rem',
+                      height: '2rem',
+                      border: `2px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+                      borderTopColor: isDark ? '#60a5fa' : '#3b82f6',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    <span>분석 결과 불러오는 중...</span>
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+
+          {/* 우측 패널 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0, overflow: 'hidden'}}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: '1rem'
+            }}>
+              <h1 style={{
+                fontSize: '2.25rem',
+                fontWeight: '700',
+                flex: 1,
+                color: isDark ? '#e5e7eb' : '#111827',
+                margin: 0
+              }}>
+                {board.codeboardTitle || "제목 없음"}
+              </h1>
+              
+              {isAuthor && (
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => navigate(`/codeboard/edit/${id}`)}
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '500',
+                      backgroundColor: isDark ? '#2e2e2e' : '#e5e7eb',
+                      color: isDark ? '#e5e7eb' : '#1f2937',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!confirm('정말 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.')) {
+                        return;
+                      }
+
+                      try {
+                        await axiosInstance.delete(`/codeboard/${id}`);
+                        navigate('/codeboard');
+                      } catch (err) {
+                        console.error('삭제 실패:', err);
+                        alert('게시글 삭제에 실패했습니다.');
+                      }
+                    }}
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '500',
+                      backgroundColor: isDark
+                        ? 'rgba(127, 29, 29, 0.3)'
+                        : 'rgba(220, 38, 38, 0.1)',
+                      color: isDark ? '#fca5a5' : '#dc2626',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    삭제
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              paddingBottom: '1.5rem',
+              borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+              color: isDark ? '#9ca3af' : '#4b5563'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{
+                width: '2rem',
+                height: '2rem',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.875rem',
+                backgroundColor: isDark ? '#2e2e2e' : '#d1d5db',
+                color: isDark ? '#e5e7eb' : '#1f2937',
+                overflow: 'hidden'
+              }}>
+                {board.userImage ? (
+                  <img 
+                    src={board.userImage} 
+                    alt={board.userNickname}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                ) : (
+                  board.userNickname ? String(board.userNickname).charAt(0).toUpperCase() : 'U'
+                )}
+              </div>
+              <span>{board.userNickname || '익명'}</span>
+            </div>
+              <span>·</span>
+              <span>{formatDate(board.codeboardCreatedAt)}</span>
+              <span>·</span>
+              <span>조회수 {board.codeboardClick}</span>
+            </div>
+
+            <ContentRenderer 
+              content={processedContent || getRenderedContent(board.codeboardContent)}
+              isDark={isDark}
+              onLineClick={handleLineClick}
+            />
+
+            {board.tags && board.tags.length > 0 && (
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
+                paddingTop: '2rem',
+                borderTop: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`
+              }}>
+                {board.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    onClick={() => handleTagClick(tag)}
+                    style={{
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.875rem',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      color: '#60a5fa',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => (e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)')}
+                    onMouseLeave={(e) => (e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)')}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '1rem 0',
+              marginTop: '2rem',
+              paddingTop: '2rem',
+              borderTop: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+              flexWrap: 'wrap', 
+               gap: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', minWidth: 0 }}>
+                <LikeButton
+                  referenceType="codeboard"
+                  referenceId={Number(id)}
+                  initialIsLiked={isLiked}
+                  initialLikeCount={likeCount}
+                  showCount={true}
+                  showUsers={true}
+                  size="md"
+                  onChange={handleLikeChange}
+                />
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: isDark ? '#9ca3af' : '#4b5563',
+                  minWidth: 0
+                }}>
+                  <MessageCircle size={20} />
+                  <span style={{ fontSize: '0.875rem' }}>댓글</span>
+                  <span style={{ fontWeight: '500' }}>{commentCount}</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', minWidth: 0 }}>
+                <button 
+                  onClick={handleShare}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.875rem',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: isDark ? '#9ca3af' : '#4b5563'
+                  }}
+                >
+                  <Share2 size={18} />
+                  <span>공유</span>
+                </button>
+
+                <button 
+                  onClick={handleReport}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.875rem',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: isDark ? '#9ca3af' : '#4b5563'
+                  }}
+                >
+                  <AlertCircle size={18} />
+                  <span>신고</span>
+                </button>
+              </div>
+            </div>
+
+            <CommentSection
+              boardId={Number(id)}
+              boardType="CODEBOARD"
+              currentUserId={currentUserId}
+              currentUserNickname={currentUserNickname}
+              isDark={isDark}
+              onCommentCountChange={handleCommentCountChange}
+              onLineClick={handleLineClick}
+            />
+          </div>
+        </div>
+      </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
+    </div>
+  );
+};
+
+const AnalysisPanel = ({ analysisResult, fileContent, isDark, codeCopyRef }) => {
+  const { alert, showAlert, closeAlert } = useAlert();
+  const codeViewerRef = useRef(null);
+  
+  const parseJSON = (data) => {
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch {
+        return [];
+      }
+    }
+    return data || [];
+  };
+
+  const detectLanguage = (filePath) => {
+    if (!filePath) return 'plaintext';
+    const ext = filePath.split('.').pop().toLowerCase();
+    const langMap = {
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'py': 'python',
+      'java': 'java',
+      'cpp': 'cpp',
+      'c': 'c',
+      'css': 'css',
+      'html': 'html',
+      'json': 'json',
+      'xml': 'xml',
+      'sql': 'sql',
+      'sh': 'bash',
+      'yml': 'yaml',
+      'yaml': 'yaml'
+    };
+    return langMap[ext] || 'plaintext';
+  };
+
+  const handleCopyNotification = (message) => {
+    showAlert({
+      type: 'success',
+      title: '복사 완료',
+      message: message
+    });
+  };
+
+  const language = detectLanguage(analysisResult.filePath);
+
+  return (
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '1.5rem',
+      minWidth: 0,
+      overflow: 'visible'
+    }}>
+      {/* 코드 뷰어 */}
+      <div style={{
+        border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+        borderRadius: '0.5rem',
+        overflow: 'hidden',
+        backgroundColor: isDark ? '#1f1f1f' : '#ffffff'
+      }}>
+        <div style={{
+          padding: '0.5rem 1rem',
+          borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: isDark ? '#2e2e2e' : '#F9FAFB'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
+              {analysisResult.filePath?.split('/').pop()}
+            </span>
+            <span style={{ 
+              fontSize: '0.75rem', 
+              padding: '0.125rem 0.5rem',
+              borderRadius: '0.25rem',
+              backgroundColor: isDark ? '#2e2e2e' : '#e5e7eb',
+              color: isDark ? '#9ca3af' : '#6b7280'
+            }}>
+              {language}
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(fileContent);
+              handleCopyNotification('전체 코드가 클립보드에 복사되었습니다.');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.25rem 0.5rem',
+              fontSize: '0.75rem',
+              borderRadius: '0.25rem',
+              color: isDark ? '#d1d5db' : '#1f2937',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            전체 복사
+          </button>
+        </div>
+        
+        <div style={{ maxHeight: '500px', overflow: 'auto' }} ref={codeViewerRef}>
+          <CodeCopy 
+            ref={codeCopyRef}
+            code={fileContent}
+            language={language}
+            onCopy={handleCopyNotification}
+          />
+        </div>
+      </div>
+
+      {/* 분석 결과 - 기존 코드 유지 */}
+      <div style={{
+        border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+        borderRadius: '0.5rem',
+        overflow: 'hidden',
+        backgroundColor: isDark ? '#1f1f1f' : '#ffffff'
+      }}>
+        <div style={{
+          padding: '0.5rem 1rem',
+          borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: isDark ? '#2e2e2e' : '#f9fafb'
+        }}>
+          <span style={{ fontSize: '0.875rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
+            분석 결과
+          </span>
+          <ScoreBadge score={analysisResult.aiScore} isDark={isDark} />
+        </div>
+
+        <div style={{ padding: '1rem', maxHeight: '600px', overflow: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {parseJSON(analysisResult.codeSmells).length > 0 && (
+              <div>
+                <h3 style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: isDark ? '#fca5a5' : '#dc2626'
+                }}>
+                  발견된 문제점
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {parseJSON(analysisResult.codeSmells).map((smell, idx) => (
+                    <div key={idx} style={{
+                      padding: '0.75rem',
+                      border: `1px solid ${isDark ? 'rgba(239, 68, 68, 0.3)' : 'rgba(220, 38, 38, 0.3)'}`,
+                      borderRadius: '0.375rem',
+                      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(254, 226, 226, 1)'
+                    }}>
+                      <div style={{ fontWeight: '500', fontSize: '0.875rem', color: isDark ? '#fca5a5' : '#dc2626' }}>
+                        {smell.name}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: isDark ? '#fca5a5' : '#dc2626' }}>
+                        {smell.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {parseJSON(analysisResult.suggestions).length > 0 && (
+              <div>
+                <h3 style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: isDark ? '#86efac' : '#16a34a'
+                }}>
+                  개선 제안
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {parseJSON(analysisResult.suggestions).map((suggestion, idx) => (
+                    <div key={idx} style={{
+                      border: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+                      borderRadius: '0.375rem',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        padding: '0.5rem 0.75rem',
+                        borderBottom: `1px solid ${isDark ? '#2b2b2b' : '#e5e7eb'}`,
+                        backgroundColor: isDark ? '#2e2e2e' : '#f9fafb'
+                      }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '500', color: isDark ? '#d1d5db' : '#1f2937' }}>
+                          제안 #{idx + 1}
+                        </span>
+                      </div>
+                      <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {(suggestion.problematicSnippet || suggestion.problematicCode) && (
+                          <div>
+                            <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: isDark ? '#9ca3af' : '#4b5563' }}>
+                              변경 전:
+                            </div>
+                            <pre style={{
+                              padding: '0.5rem',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.75rem',
+                              overflowX: 'auto',
+                              fontFamily: 'monospace',
+                              backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(254, 226, 226, 1)',
+                              color: isDark ? '#fca5a5' : '#dc2626',
+                              margin: 0
+                            }}>
+                              {suggestion.problematicSnippet || suggestion.problematicCode}
+                            </pre>
+                          </div>
+                        )}
+                        {suggestion.proposedReplacement && (
+                          <div>
+                            <div style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: isDark ? '#9ca3af' : '#4b5563' }}>
+                              변경 후:
+                            </div>
+                            <pre style={{
+                              padding: '0.5rem',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.75rem',
+                              overflowX: 'auto',
+                              fontFamily: 'monospace',
+                              backgroundColor: isDark ? 'rgba(34, 197, 94, 0.1)' : 'rgba(220, 252, 231, 1)',
+                              color: isDark ? '#86efac' : '#16a34a',
+                              margin: 0
+                            }}>
+                              {suggestion.proposedReplacement}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <AlertModal
+        open={alert.open}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onConfirm={() => {
+          closeAlert();
+          alert.onConfirm?.();
+        }}
+        onClose={closeAlert}
+      />
+    </div>
+  );
+};
+
+const ScoreBadge = ({ score, isDark }) => {
+  let bgColor, textColor;
+  
+  if (score >= 80) {
+    bgColor = isDark ? 'rgba(34, 197, 94, 0.2)' : 'rgba(220, 252, 231, 1)';
+    textColor = isDark ? '#86efac' : '#16a34a';
+  } else if (score >= 60) {
+    bgColor = isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(219, 234, 254, 1)';
+    textColor = isDark ? '#93c5fd' : '#2563eb';
+  } else if (score >= 40) {
+    bgColor = isDark ? 'rgba(234, 179, 8, 0.2)' : 'rgba(254, 249, 195, 1)';
+    textColor = isDark ? '#fde047' : '#ca8a04';
+  } else {
+    bgColor = isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(254, 226, 226, 1)';
+    textColor = isDark ? '#fca5a5' : '#dc2626';
+  }
+  
+  return (
+    <span style={{
+      padding: '0.125rem 0.75rem',
+      borderRadius: '9999px',
+      fontSize: '0.75rem',
+      fontWeight: '500',
+      backgroundColor: bgColor,
+      color: textColor
+    }}>
+      {getSmellKeyword(score).text}
+    </span>
+  );
+};
+
+// ContentRenderer 컴포넌트 - analysisResult 변경에 영향받지 않음
+const ContentRenderer = React.memo(({ content, isDark, onLineClick }) => {
+  const innerRef = useRef(null);
+  const [processedContent, setProcessedContent] = useState('');
+
+  useEffect(() => {
+    if (!content) return;
+
+    // HTML 파싱
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/html');
+    
+    // 텍스트 노드에서 [L15-20] 패턴 찾아서 처리
+    const processTextNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent;
+        const regex = /\[L(\d+)(?:-(\d+))?\]/g;
+        
+        if (regex.test(text)) {
+          const fragment = document.createDocumentFragment();
+          let lastIndex = 0;
+          const matches = [...text.matchAll(/\[L(\d+)(?:-(\d+))?\]/g)];
+          
+          matches.forEach(match => {
+            // 일반 텍스트 추가
+            if (match.index > lastIndex) {
+              fragment.appendChild(
+                document.createTextNode(text.substring(lastIndex, match.index))
+              );
+            }
+            
+            // 라인 참조 버튼 생성
+            const startLine = parseInt(match[1]);
+            const endLine = match[2] ? parseInt(match[2]) : startLine;
+            
+            const button = document.createElement('button');
+            button.textContent = match[0];
+            button.className = 'line-reference-button';
+            button.dataset.startLine = startLine;
+            button.dataset.endLine = endLine;
+            button.style.cssText = `
+              display: inline-flex;
+              align-items: center;
+              gap: 0.25rem;
+              padding: 0.125rem 0.375rem;
+              margin: 0 0.125rem;
+              border-radius: 0.25rem;
+              font-size: 0.75rem;
+              font-family: monospace;
+              cursor: pointer;
+              transition: background-color 0.2s;
+              background-color: ${isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(224, 231, 255, 1)'};
+              color: ${isDark ? '#a5b4fc' : '#4f46e5'};
+              border: 1px solid ${isDark ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.2)'};
+            `;
+            
+            button.addEventListener('mouseenter', () => {
+              button.style.backgroundColor = isDark ? 'rgba(99, 102, 241, 0.3)' : 'rgba(199, 210, 254, 1)';
+            });
+            
+            button.addEventListener('mouseleave', () => {
+              button.style.backgroundColor = isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(224, 231, 255, 1)';
+            });
+            
+            fragment.appendChild(button);
+            lastIndex = match.index + match[0].length;
+          });
+          
+          // 남은 텍스트 추가
+          if (lastIndex < text.length) {
+            fragment.appendChild(
+              document.createTextNode(text.substring(lastIndex))
+            );
+          }
+          
+          node.parentNode.replaceChild(fragment, node);
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        // 재귀적으로 자식 노드 처리
+        Array.from(node.childNodes).forEach(processTextNode);
+      }
+    };
+    
+    // 모든 텍스트 노드 처리
+    processTextNode(doc.body);
+    
+    setProcessedContent(doc.body.innerHTML);
+  }, [content, isDark]);
+
+  useEffect(() => {
+    if (!innerRef.current) return;
+
+    applyHighlighting(innerRef.current);
+
+    // 라인 참조 버튼 클릭 이벤트 등록
+    const buttons = innerRef.current.querySelectorAll('.line-reference-button');
+    buttons.forEach(button => {
+      button.addEventListener('click', () => {
+        const startLine = parseInt(button.dataset.startLine);
+        const endLine = parseInt(button.dataset.endLine);
+        if (onLineClick) {
+          onLineClick(startLine, endLine);
+        }
+      });
+    });
+
+    return () => {
+      buttons.forEach(button => {
+        button.replaceWith(button.cloneNode(true));
+      });
+    };
+  }, [processedContent, isDark, onLineClick]);
+
+  return (
+    <div
+      ref={innerRef}
+      className={`codeboard-content ${isDark ? 'dark' : 'light'}`}
+      style={{ marginBottom: '2rem', minHeight: '300px', overflowX: 'auto' }}
+      dangerouslySetInnerHTML={{ __html: processedContent }}
+    />
+  );
+});
+
+export default CodeboardDetail;

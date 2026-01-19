@@ -1,0 +1,60 @@
+:root {
+  --dashboard-bg: #f9fafb;
+  --dashboard-text: var(--text-main);
+  --dashboard-muted: var(--text-muted);
+  --dashboard-subtle: var(--text-sub);
+  --dashboard-panel: #ffffff;
+  --dashboard-border: #e2e8f0
+  --dashboard-header: #f1f5f9; /* slate-100 */
+  --dashboard-header-text: var(--text-main);
+  --dashboard-chart-bg: #eef2ff; /* indigo-50 */
+  --dashboard-chart-bar: #6366f1; /* indigo-500 */
+  --dashboard-chart-bar-hover: #818cf8; /* indigo-400 */
+}
+
+.dark {
+  --dashboard-bg: #020617;
+  --dashboard-text: var(--text-main);
+  --dashboard-muted: var(--text-muted);
+  --dashboard-subtle: var(--text-sub);
+  --dashboard-panel: #0f172a; /* slate-900 */
+  --dashboard-header: #111827;
+  --dashboard-header-text: var(--text-main);
+  --dashboard-chart-bg: #1f2937;
+  --dashboard-chart-bar: #6366f1;
+  --dashboard-chart-bar-hover: #818cf8;
+}
+
+.dashboard-panel {
+  border: 1px solid var(--dashboard-border);
+  color: var(--dashboard-text);
+}
+
+.dashboard-card-title {
+  color: var(--dashboard-text);
+  font-weight: 600;
+  font-size: 1.25rem; /* text-xl */
+  margin-bottom: 1rem;
+}
+
+.dashboard-text-sub {
+  color: var(--dashboard-subtle);
+}
+
+
+.dashboard-chart-bar-fill {
+  background-color: var(--dashboard-chart-bar);
+}
+
+.dashboard-chart-bar-fill:hover {
+  background-color: var(--dashboard-chart-bar-hover);
+}
+
+.dashboard-list-item {
+  border: 1px solid var(--dashboard-border);
+}
+
+.dashboard-list-item:hover {
+  background-color: var(--dashboard-chart-bg); /* slight highlight */
+  border-color: var(--dashboard-chart-bar);
+}

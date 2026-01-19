@@ -1,40 +1,28 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    // File Layout
-    // "rootDir": "./src",
-    // "outDir": "./dist",
-
-    // Environment Settings
-    "module": "esnext",               // ✅ Vite 번들러용 (NodeNext → esnext)
-    "moduleResolution": "bundler",    // ✅ Vite/ESM 환경에서 import 확장자 자동 처리
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "target": "esnext",
-    "types": [],
+    "types": ["react"],
 
-    // JS/JSX 파일 허용
-    "allowJs": true,                  // ✅ JS/JSX 파일 import 허용
-    "checkJs": false,                 // ✅ JSX 타입 검사 비활성화
-    "jsx": "react-jsx",               // ✅ React 17+ 자동 JSX 트랜스폼
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "react-jsx",
 
-    // Other Outputs
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
 
-    // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-
-    // Recommended Options
     "strict": true,
     "isolatedModules": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   },
-  "include": ["src"],                 // ✅ src 폴더 내 모든 파일 (.ts/.tsx/.js/.jsx)
-  "exclude": ["node_modules"],        // ✅ 외부 모듈 제외
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"],
   "files": [],
-
-  // ✅ JSX 모듈 인식용 선언 파일
   "ts-node": {
     "files": true
   }

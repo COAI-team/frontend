@@ -1,0 +1,807 @@
+/* 알고리즘 문제 목록 컨테이너 */
+.problem-list-container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  padding: 2rem 1rem;
+}
+
+.problem-list-container > * {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 페이지 헤더 */
+.problem-header {
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.problem-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.problem-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.problem-subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+/* 주제 필터 섹션 */
+.topic-filter-section {
+  margin-bottom: 1rem;
+}
+
+/* 검색 및 필터 컨트롤 */
+.problem-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 2;
+  min-width: 300px;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* 필터 셀렉트 */
+.filter-select {
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.filter-select:hover {
+  border-color: var(--primary-color);
+}
+
+.filter-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* AI 생성 버튼 */
+.ai-generate-btn {
+  padding: 12px 24px;
+  background: linear-gradient(to right, #3b82f6, #6366f1);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.2s;
+  height: 3.0rem;
+}
+
+.ai-generate-btn:hover {
+  background: linear-gradient(to right, #2563eb, #4f46e5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* 로딩 상태 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* 에러 상태 */
+.error-container {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 1.5rem;
+}
+
+.error-title {
+  font-weight: 600;
+  color: #ef4444;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  font-size: 0.9rem;
+  color: #f87171;
+}
+
+/* 문제 테이블 */
+.problem-table-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.problem-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.problem-table thead {
+  background: var(--table-header-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.problem-table th {
+  padding: 12px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.problem-table th:nth-child(3) {
+  text-align: left;
+}
+
+.problem-table tbody {
+  background: var(--table-body-bg);
+}
+
+.problem-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.problem-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.problem-table td {
+  padding: 12px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.problem-table td:nth-child(3) {
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+/* 상태 아이콘 */
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.status-icon.solved {
+  background: transparent;
+}
+
+.status-icon.unsolved {
+  border: 2px solid var(--border-color);
+  background: transparent;
+}
+
+.status-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 난이도 색상 */
+.difficulty-bronze {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.difficulty-silver {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.difficulty-gold {
+  color: #ca8a04;
+  font-weight: 600;
+}
+
+.difficulty-platinum {
+  color: #0891b2;
+  font-weight: 600;
+}
+
+/* 다크모드에서의 난이도 색상 */
+html.dark .difficulty-bronze {
+  color: #f59e0b;
+}
+
+html.dark .difficulty-silver {
+  color: #9ca3af;
+}
+
+html.dark .difficulty-gold {
+  color: #fbbf24;
+}
+
+html.dark .difficulty-platinum {
+  color: #06b6d4;
+}
+
+/* 라이트모드에서도 난이도 색상 명시적 유지 */
+html:not(.dark) .difficulty-bronze {
+  color: #b45309;
+}
+
+html:not(.dark) .difficulty-silver {
+  color: #6b7280;
+}
+
+html:not(.dark) .difficulty-gold {
+  color: #ca8a04;
+}
+
+html:not(.dark) .difficulty-platinum {
+  color: #0891b2;
+}
+
+/* 빈 상태 */
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  gap: 20px;
+}
+
+.empty-container p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+/* 페이지네이션 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1.5rem;
+  padding: 20px 0;
+}
+
+.page-btn {
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  background: var(--bg-hover);
+}
+
+.page-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   오늘의 미션 사이드바 CSS (추가)
+   ======================================== */
+
+/* 레이아웃 */
+.problem-list-layout {
+  position: relative;
+}
+
+.problem-list-main {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 사이드바 - 오른쪽 고정 + 슬라이드 애니메이션 */
+.problem-list-sidebar {
+  width: 220px;
+  position: fixed;
+  right: 1rem;
+  top: 220px;
+  max-height: calc(100vh - 240px);
+  overflow-y: auto;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  z-index: 100;
+}
+
+.problem-list-sidebar.open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.problem-list-sidebar.closed {
+  transform: translateX(calc(100% + 2rem));
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 미니멀 화살표 토글 */
+.sidebar-toggle-minimal {
+  position: fixed;
+  right: 0;
+  top: 220px;
+  width: 20px;
+  height: 48px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 99;
+}
+
+.sidebar-toggle-minimal:hover {
+  width: 24px;
+  background: var(--bg-hover);
+  border-color: var(--primary-color);
+}
+
+.sidebar-toggle-arrow {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.sidebar-toggle-minimal:hover .sidebar-toggle-arrow {
+  color: var(--primary-color);
+}
+
+/* 사이드바 헤더 우측 영역 */
+.sidebar-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 사이드바 닫기 버튼 */
+.sidebar-close-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  transition: all 0.2s;
+}
+
+.sidebar-close-btn:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+.sidebar-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.sidebar-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.sidebar-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* 로그인 안내 */
+.sidebar-login-prompt {
+  text-align: center;
+  padding: 0.75rem 0.25rem;
+}
+
+.sidebar-login-prompt p {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar-login-btn {
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.sidebar-login-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* 사이드바 로딩 */
+.sidebar-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.loading-spinner-small {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* 미션 진행률 바 */
+.mission-progress-bar-container {
+  margin-bottom: 0.5rem;
+}
+
+.mission-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.mission-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.mission-complete-message {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #22c55e;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+/* 미션 목록 */
+.sidebar-mission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.sidebar-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: 1.5rem 0;
+}
+
+/* 미션 카드 */
+.sidebar-mission-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.625rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sidebar-mission-card.active:hover {
+  border-color: var(--primary-color);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+
+.sidebar-mission-card.completed {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.mission-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+}
+
+.mission-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.mission-icon.completed {
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.mission-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mission-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.125rem 0;
+  line-height: 1.25;
+}
+
+.mission-name.completed {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.mission-problem-title {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.125rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mission-difficulty {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+}
+
+.mission-difficulty.bronze {
+  color: #b45309;
+}
+
+.mission-difficulty.silver {
+  color: #6b7280;
+}
+
+.mission-difficulty.gold {
+  color: #ca8a04;
+}
+
+.mission-difficulty.platinum {
+  color: #0891b2;
+}
+
+.mission-reward {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #eab308;
+  flex-shrink: 0;
+}
+
+.mission-reward.completed {
+  color: #22c55e;
+}
+
+/* 보너스 상태 */
+.mission-bonus-status {
+  margin-top: 0.25rem;
+  font-size: 0.65rem;
+  padding-left: 1.75rem;
+}
+
+.bonus-loading {
+  color: var(--text-tertiary);
+}
+
+.bonus-completed {
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.bonus-eligible {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.bonus-closed {
+  color: var(--text-tertiary);
+}
+
+/* 미션 시작 힌트 */
+.mission-action-hint {
+  margin-top: 0.25rem;
+  font-size: 0.65rem;
+  color: var(--primary-color);
+  font-weight: 500;
+  padding-left: 1.75rem;
+}
+
+/* 전체 미션 보기 링크 */
+.sidebar-view-all {
+  display: block;
+  text-align: center;
+  margin-top: 0.5rem;
+  padding: 0.375rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--primary-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.sidebar-view-all:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary-color);
+}
+
+/* 반응형 */
+@media (max-width: 1400px) {
+  .problem-list-sidebar {
+    display: none;
+  }
+  .sidebar-toggle-minimal {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .problem-controls {
+    flex-direction: column;
+  }
+
+  .search-input {
+    min-width: 100%;
+  }
+
+  .problem-table {
+    font-size: 0.85rem;
+  }
+
+  .problem-table th,
+  .problem-table td {
+    padding: 8px 4px;
+  }
+
+  .problem-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* 다크모드 CSS 변수 */
+html.dark,
+html.dark .problem-list-container {
+  --bg-primary: #131313;
+  --bg-secondary: #1f1f1f;
+  --bg-tertiary: #2e2e2e;
+  --bg-hover: #2e2e2e;
+  --table-header-bg: #1f1f1f;
+  --table-body-bg: #1f1f1f;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6b7280;
+  --border-color: #2b2b2b;
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+}
+
+/* 라이트모드 CSS 변수 */
+html:not(.dark),
+html:not(.dark) .problem-list-container {
+  --bg-primary: #ffffff;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f3f4f6;
+  --bg-hover: #f3f4f6;
+  --table-header-bg: #f9fafb;
+  --table-body-bg: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+  --border-color: #e5e7eb;
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+}

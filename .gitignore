@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Local HTTPS certificates
+localhost-key.pem
+localhost-cert.pem
+*.pem
+
+# Environment files
+.env
+.env.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +31,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# AI / Project instructions (지수 로컬 전용)
+PROJECT_INSTRUCTIONS.*
