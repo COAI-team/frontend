@@ -79,7 +79,7 @@ export default function SignIn() {
       try {
         // ✅ 최적화된 API (에러 throw)
         const result = await apiLogin({ userEmail: email, userPw: password });
-        console.log("result ==>>", JSON.stringify(result, null, 2));
+        // console.log("result ==>>", JSON.stringify(result, null, 2));
 
         // 현목 추가
         const role =

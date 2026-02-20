@@ -58,13 +58,13 @@ export const updateMyInfo = (payload) =>
 
 // ✅ GitHub API
 export const loginWithGithub = async (code, state) => {
-  console.log("깃헙로그인이다??????");
+  // console.log("깃헙로그인이다??????");
   try {
     const query = state ? `?code=${code}&state=${state}` : `?code=${code}`;
     const response = await axiosInstance.get(`/auth/github/callback${query}`, {
       _skipAuthRedirect: true
     });
-    console.log("요고요고" + JSON.stringify(response.data));
+    // console.log("요고요고" + JSON.stringify(response.data));
     return response.data;
   } catch (error) {
     console.error("❌ [GitHub Login] 오류:", error);
