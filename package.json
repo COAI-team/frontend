@@ -34,7 +34,7 @@
     "@tiptap/react": "^3.20.0",
     "@tiptap/starter-kit": "^3.20.0",
     "@tosspayments/tosspayments-sdk": "^2.5.0",
-    "axios": "^1.13.5",
+    "axios": "^1.13.6",
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
     "devtools-detect": "^4.0.2",
