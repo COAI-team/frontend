@@ -34,7 +34,7 @@
     "@tiptap/react": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
     "@tosspayments/tosspayments-sdk": "^2.6.0",
-    "axios": "^1.15.0",
+    "axios": "^1.15.1",
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
     "devtools-detect": "^4.0.2",
@@ -60,7 +60,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/language-server": "^0.14.29",
-    "@tailwindcss/vite": "^4.2.2",
+    "@tailwindcss/vite": "^4.2.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
@@ -71,9 +71,9 @@
     "globals": "^17.5.0",
     "next": "^16.2.4",
     "postcss": "^8.5.10",
-    "tailwindcss": "^4.2.2",
+    "tailwindcss": "^4.2.3",
     "typescript": "^6.0.3",
-    "vite": "^8.0.8",
+    "vite": "^8.0.9",
     "vite-plugin-monaco-editor-esm": "^2.0.2"
   }
 }
